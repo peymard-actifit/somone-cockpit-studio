@@ -16,19 +16,25 @@ export default function PublicCockpitPage() {
   useEffect(() => {
     const fetchPublicCockpit = async () => {
       try {
+        console.log('Fetching public cockpit:', publicId);
         const response = await fetch(`/api/public/cockpit/${publicId}`);
         
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error response:', errorData);
           if (response.status === 404) {
             setError('Cette maquette n\'existe pas ou n\'est plus publiée.');
           } else {
-            setError('Erreur lors du chargement de la maquette.');
+            setError(`Erreur ${response.status}: ${errorData.error || 'Erreur inconnue'}`);
           }
           setIsLoading(false);
           return;
         }
         
         const data = await response.json();
+        console.log('Cockpit data loaded:', data.name, 'Domains:', data.domains?.length);
         setCockpit(data);
         
         // Sélectionner le premier domaine par défaut
@@ -38,6 +44,7 @@ export default function PublicCockpitPage() {
         
         setIsLoading(false);
       } catch (err) {
+        console.error('Fetch error:', err);
         setError('Erreur de connexion au serveur.');
         setIsLoading(false);
       }
