@@ -46,10 +46,20 @@ export default function HomePage() {
     setShowDeleteModal(null);
   };
   
+  // URL de base pour les publications (Vercel en production, local en dev)
+  const getPublicBaseUrl = () => {
+    // Si on est sur Vercel ou en production
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return window.location.origin;
+    }
+    // En développement, utiliser l'URL Vercel si disponible
+    return 'https://somone-cockpit.vercel.app';
+  };
+  
   const handlePublish = async (id: string) => {
     const result = await publishCockpit(id);
     if (result) {
-      const url = `${window.location.origin}/public/${result.publicId}`;
+      const url = `${getPublicBaseUrl()}/public/${result.publicId}`;
       setPublishedUrl(url);
     }
   };
@@ -234,7 +244,7 @@ export default function HomePage() {
                     onClick={() => {
                       setShowPublishModal(cockpit.id);
                       if (cockpit.isPublished && cockpit.publicId) {
-                        setPublishedUrl(`${window.location.origin}/public/${cockpit.publicId}`);
+                        setPublishedUrl(`${getPublicBaseUrl()}/public/${cockpit.publicId}`);
                       } else {
                         setPublishedUrl(null);
                       }
