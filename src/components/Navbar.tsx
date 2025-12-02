@@ -27,7 +27,7 @@ export default function Navbar() {
       <div className="flex items-center">
         {/* Domaines - Style bandeau PDF SOMONE */}
         <div className="flex items-center flex-1">
-          {domains.map((domain, index) => (
+          {domains.map((domain) => (
             <button
               key={domain.id}
               onClick={() => setCurrentDomain(domain.id)}

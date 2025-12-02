@@ -1080,11 +1080,12 @@ export default function BackgroundView({ domain }: BackgroundViewProps) {
                 <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
                 <div className="flex items-center justify-center h-20">
                   {editForm.icon ? (
-                    <MuiIcon 
-                      name={editForm.icon} 
-                      size={Math.min(editForm.width, editForm.height) * 2} 
-                      style={{ color: STATUS_COLORS[editForm.status].hex }}
-                    />
+                    <span style={{ color: STATUS_COLORS[editForm.status].hex }}>
+                      <MuiIcon 
+                        name={editForm.icon} 
+                        size={Math.min(editForm.width, editForm.height) * 2} 
+                      />
+                    </span>
                   ) : (
                     <div 
                       className="rounded"

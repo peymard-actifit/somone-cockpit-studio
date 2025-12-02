@@ -611,7 +611,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
 });
 
 // Templates
-app.get('/api/templates', authMiddleware, (req: AuthRequest, res) => {
+app.get('/api/templates', authMiddleware, (_req: AuthRequest, res) => {
   res.json(db.templates.map(t => ({
     id: t.id,
     name: t.name,
@@ -756,7 +756,7 @@ Statuts: ok (vert), mineur (orange), critique (rouge), fatal (violet), deconnect
 });
 
 // Endpoint pour vérifier si l'API OpenAI est configurée
-app.get('/api/ai/status', authMiddleware, (req: AuthRequest, res) => {
+app.get('/api/ai/status', authMiddleware, (_req: AuthRequest, res) => {
   res.json({ 
     configured: !!OPENAI_API_KEY,
     model: 'gpt-4o-mini'

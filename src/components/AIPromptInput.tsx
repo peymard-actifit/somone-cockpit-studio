@@ -48,7 +48,6 @@ export default function AIPromptInput() {
     deleteSubElement,
     updateElement,
     updateSubElement,
-    updateDomain,
     currentDomainId,
     currentElementId,
     setCurrentDomain,

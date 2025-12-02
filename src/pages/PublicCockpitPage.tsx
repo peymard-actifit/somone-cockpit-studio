@@ -4,9 +4,6 @@ import type { Cockpit, Domain } from '../types';
 import { MuiIcon } from '../components/IconPicker';
 import { STATUS_COLORS } from '../types';
 
-// Composants simplifiés pour l'affichage en lecture seule
-import ElementTile from '../components/ElementTile';
-
 export default function PublicCockpitPage() {
   const { publicId } = useParams();
   const [cockpit, setCockpit] = useState<Cockpit | null>(null);
