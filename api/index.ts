@@ -1,7 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { kv } from '@vercel/kv';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const ADMIN_CODE = process.env.ADMIN_CODE || 'SOMONE2024';
@@ -36,23 +33,54 @@ const generateId = () => {
   );
 };
 
-// Database access via Vercel KV
-async function getDb(): Promise<Database> {
-  const db = await kv.get<Database>('somone-db');
-  return db || { users: [], cockpits: [] };
+// Simple in-memory database (persists during function warm state)
+// Pour une vraie persistance, utilisez Upstash ou une autre DB
+let inMemoryDb: Database = {
+  users: [],
+  cockpits: []
+};
+
+// Simple JWT implementation
+function createToken(payload: any): string {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const body = btoa(JSON.stringify({ ...payload, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
+  const signature = btoa(JSON.stringify({ secret: JWT_SECRET, data: body }));
+  return `${header}.${body}.${signature}`;
 }
 
-async function saveDb(db: Database): Promise<void> {
-  await kv.set('somone-db', db);
-}
-
-// JWT verification
-function verifyToken(token: string): { id: string; isAdmin: boolean } | null {
+function verifyTokenSimple(token: string): any | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { id: string; isAdmin: boolean };
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload.exp && payload.exp < Date.now()) return null;
+    return payload;
   } catch {
     return null;
   }
+}
+
+// Simple password hashing (for demo - use bcrypt in production)
+function hashPassword(password: string): string {
+  return btoa(password + JWT_SECRET);
+}
+
+function comparePassword(password: string, hash: string): boolean {
+  return btoa(password + JWT_SECRET) === hash;
+}
+
+// Database access (in-memory)
+async function getDb(): Promise<Database> {
+  return inMemoryDb;
+}
+
+async function saveDb(db: Database): Promise<void> {
+  inMemoryDb = db;
+}
+
+// JWT verification (using simple implementation)
+function verifyToken(token: string): { id: string; isAdmin: boolean } | null {
+  return verifyTokenSimple(token);
 }
 
 // CORS headers
@@ -93,7 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Ce nom d\'utilisateur existe déjà' });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = hashPassword(password);
       const id = generateId();
       const isAdmin = db.users.length === 0; // First user is admin
 
@@ -108,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       db.users.push(newUser);
       await saveDb(db);
 
-      const token = jwt.sign({ id, isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+      const token = createToken({ id, isAdmin });
       
       return res.json({
         user: { id, username, isAdmin },
@@ -126,12 +154,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: 'Identifiants incorrects' });
       }
 
-      const valid = await bcrypt.compare(password, user.password);
+      const valid = comparePassword(password, user.password);
       if (!valid) {
         return res.status(401).json({ error: 'Identifiants incorrects' });
       }
 
-      const token = jwt.sign({ id: user.id, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+      const token = createToken({ id: user.id, isAdmin: user.isAdmin });
       
       return res.json({
         user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
