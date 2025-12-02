@@ -233,9 +233,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // =====================
     
     if (path === '/debug' && method === 'GET') {
+      let redisError = null;
+      let testWrite = false;
+      
+      // Test write to Redis
+      try {
+        await redis.set('test-key', { test: true, time: Date.now() });
+        const testRead = await redis.get('test-key');
+        testWrite = !!testRead;
+      } catch (e: any) {
+        redisError = e.message;
+      }
+      
       const db = await getDb();
       return res.json({
-        redis_configured: !!(redisUrl && redisToken),
+        redis_url_set: !!redisUrl,
+        redis_token_set: !!redisToken,
+        redis_url_preview: redisUrl ? redisUrl.substring(0, 30) + '...' : 'NOT SET',
+        redis_write_test: testWrite,
+        redis_error: redisError,
         users_count: db.users.length,
         cockpits_count: db.cockpits.length,
         published_cockpits: db.cockpits
