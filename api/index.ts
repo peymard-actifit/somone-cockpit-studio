@@ -229,6 +229,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // =====================
+    // DEBUG ROUTE (temporary)
+    // =====================
+    
+    if (path === '/debug' && method === 'GET') {
+      const db = await getDb();
+      return res.json({
+        redis_configured: !!(redisUrl && redisToken),
+        users_count: db.users.length,
+        cockpits_count: db.cockpits.length,
+        published_cockpits: db.cockpits
+          .filter(c => c.data?.isPublished)
+          .map(c => ({ 
+            name: c.name, 
+            publicId: c.data?.publicId,
+            isPublished: c.data?.isPublished 
+          })),
+        all_cockpits: db.cockpits.map(c => ({
+          name: c.name,
+          publicId: c.data?.publicId,
+          isPublished: c.data?.isPublished
+        }))
+      });
+    }
+
+    // =====================
     // PUBLIC COCKPIT ROUTE
     // =====================
     

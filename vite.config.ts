@@ -4,6 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  cacheDir: path.resolve(process.env.TEMP || 'C:/Temp', 'vite-cache-somone'),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -19,6 +20,8 @@ export default defineConfig({
     },
   },
 })
+
+
 
 
 

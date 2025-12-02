@@ -95,3 +95,5 @@ Vérifiez que JWT_SECRET est bien configuré dans les variables d'environnement.
 ### Les données disparaissent
 Vérifiez que Vercel KV est bien connecté. Les données en développement local ne sont pas synchronisées avec Vercel.
 
+
+
