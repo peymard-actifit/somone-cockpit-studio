@@ -1,0 +1,850 @@
+import { useState, useRef, useEffect } from 'react';
+import { useCockpitStore } from '../store/cockpitStore';
+import { useAuthStore } from '../store/authStore';
+import { MuiIcon } from './IconPicker';
+import type { TileStatus } from '../types';
+import * as XLSX from 'xlsx';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+interface AIAction {
+  type: string;
+  params: Record<string, any>;
+}
+
+interface AIResponse {
+  message: string;
+  actions?: AIAction[];
+}
+
+export default function AIPromptInput() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [prompt, setPrompt] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [aiStatus, setAiStatus] = useState<{ configured: boolean; model: string } | null>(null);
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { token } = useAuthStore();
+  const {
+    currentCockpit,
+    addDomain,
+    deleteDomain,
+    addCategory,
+    deleteCategory,
+    addElement,
+    deleteElement,
+    addSubCategory,
+    deleteSubCategory,
+    addSubElement,
+    deleteSubElement,
+    updateElement,
+    updateSubElement,
+    updateDomain,
+    currentDomainId,
+    currentElementId,
+    setCurrentDomain,
+    setCurrentElement,
+  } = useCockpitStore();
+  
+  // Vérifier le statut de l'API OpenAI au montage
+  useEffect(() => {
+    const checkAIStatus = async () => {
+      try {
+        const response = await fetch('/api/ai/status', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const status = await response.json();
+          setAiStatus(status);
+        }
+      } catch (error) {
+        console.error('Erreur vérification statut IA:', error);
+      }
+    };
+    if (token) {
+      checkAIStatus();
+    }
+  }, [token]);
+  
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+  
+  useEffect(() => {
+    if (isExpanded && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isExpanded]);
+
+  const addMessage = (role: 'user' | 'assistant', content: string) => {
+    setMessages(prev => [...prev, {
+      id: crypto.randomUUID(),
+      role,
+      content,
+      timestamp: new Date(),
+    }]);
+  };
+
+  // Lire un fichier uploadé
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const maxSize = 5 * 1024 * 1024; // 5 MB max
+    if (file.size > maxSize) {
+      addMessage('assistant', `❌ Fichier trop volumineux (max 5 MB). Taille: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      return;
+    }
+    
+    try {
+      let content = '';
+      const fileName = file.name.toLowerCase();
+      
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        // Fichier Excel - conversion en texte lisible
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        
+        // Convertir toutes les feuilles en texte
+        const sheets: string[] = [];
+        workbook.SheetNames.forEach(sheetName => {
+          const worksheet = workbook.Sheets[sheetName];
+          const csvData = XLSX.utils.sheet_to_csv(worksheet);
+          sheets.push(`=== Feuille: ${sheetName} ===\n${csvData}`);
+        });
+        content = sheets.join('\n\n');
+        
+        addMessage('assistant', `📊 Fichier Excel "${file.name}" lu avec succès (${workbook.SheetNames.length} feuille(s): ${workbook.SheetNames.join(', ')})`);
+        
+      } else if (fileName.endsWith('.json')) {
+        // Fichier JSON
+        const text = await file.text();
+        const json = JSON.parse(text);
+        content = JSON.stringify(json, null, 2);
+      } else if (fileName.endsWith('.csv')) {
+        // Fichier CSV
+        content = await file.text();
+      } else if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
+        // Fichier texte
+        content = await file.text();
+      } else {
+        // Essayer de lire comme texte
+        content = await file.text();
+      }
+      
+      // Limiter la taille du contenu (GPT a des limites de tokens)
+      if (content.length > 100000) {
+        content = content.substring(0, 100000) + '\n\n... (contenu tronqué, fichier trop long pour GPT)';
+      }
+      
+      setAttachedFile({ name: file.name, content });
+      addMessage('assistant', `📎 Fichier "${file.name}" attaché. Posez votre question sur ce fichier.`);
+      
+    } catch (error) {
+      console.error('Erreur lecture fichier:', error);
+      addMessage('assistant', `❌ Erreur lors de la lecture du fichier: ${error instanceof Error ? error.message : 'Format non supporté'}`);
+    }
+    
+    // Reset input
+    e.target.value = '';
+  };
+
+  // Retirer le fichier attaché
+  const removeAttachedFile = () => {
+    setAttachedFile(null);
+  };
+
+  // Fonctions utilitaires pour trouver des IDs par nom
+  const findDomainByName = (name: string) => {
+    return currentCockpit?.domains.find(d => 
+      d.name.toLowerCase() === name.toLowerCase()
+    );
+  };
+  
+  const findCategoryByName = (name: string, domainId?: string) => {
+    const domains = domainId 
+      ? currentCockpit?.domains.filter(d => d.id === domainId)
+      : currentCockpit?.domains;
+    for (const domain of domains || []) {
+      const cat = domain.categories.find(c => 
+        c.name.toLowerCase() === name.toLowerCase()
+      );
+      if (cat) return cat;
+    }
+    return null;
+  };
+  
+  const findElementByName = (name: string) => {
+    for (const domain of currentCockpit?.domains || []) {
+      for (const category of domain.categories) {
+        const el = category.elements.find(e => 
+          e.name.toLowerCase() === name.toLowerCase()
+        );
+        if (el) return el;
+      }
+    }
+    return null;
+  };
+  
+  const findSubCategoryByName = (name: string, elementId?: string) => {
+    for (const domain of currentCockpit?.domains || []) {
+      for (const category of domain.categories) {
+        for (const element of category.elements) {
+          if (elementId && element.id !== elementId) continue;
+          const sc = element.subCategories.find(sc => 
+            sc.name.toLowerCase() === name.toLowerCase()
+          );
+          if (sc) return sc;
+        }
+      }
+    }
+    return null;
+  };
+  
+  const findSubElementByName = (name: string) => {
+    for (const domain of currentCockpit?.domains || []) {
+      for (const category of domain.categories) {
+        for (const element of category.elements) {
+          for (const subCategory of element.subCategories) {
+            const se = subCategory.subElements.find(se => 
+              se.name.toLowerCase() === name.toLowerCase()
+            );
+            if (se) return se;
+          }
+        }
+      }
+    }
+    return null;
+  };
+  
+  // Vérifier si un ID existe dans le cockpit
+  const domainExists = (id: string) => currentCockpit?.domains.some(d => d.id === id);
+  const categoryExists = (id: string) => {
+    for (const domain of currentCockpit?.domains || []) {
+      if (domain.categories.some(c => c.id === id)) return true;
+    }
+    return false;
+  };
+  const elementExists = (id: string) => {
+    for (const domain of currentCockpit?.domains || []) {
+      for (const category of domain.categories) {
+        if (category.elements.some(e => e.id === id)) return true;
+      }
+    }
+    return false;
+  };
+
+  // Exécuter une action retournée par l'IA
+  const executeAction = (action: AIAction): string => {
+    console.log('🤖 Exécution action:', action.type, action.params);
+    
+    try {
+      switch (action.type) {
+        case 'addDomain':
+          if (currentCockpit && currentCockpit.domains.length < 6) {
+            addDomain(action.params.name.toUpperCase());
+            return `✅ Domaine "${action.params.name.toUpperCase()}" créé`;
+          }
+          return '❌ Maximum 6 domaines atteint';
+          
+        case 'deleteDomain': {
+          let domainId = action.params.domainId;
+          // Si l'ID n'existe pas, chercher par nom
+          if (!domainId || !domainExists(domainId)) {
+            const domain = findDomainByName(action.params.name || action.params.domainName || '');
+            domainId = domain?.id;
+          }
+          if (domainId && domainExists(domainId)) {
+            deleteDomain(domainId);
+            return `✅ Domaine supprimé`;
+          }
+          return '❌ Domaine non trouvé';
+        }
+          
+        case 'addCategory': {
+          // Trouver le domaine: par ID, par nom, ou utiliser le courant
+          let domainId = action.params.domainId;
+          if (!domainId || !domainExists(domainId)) {
+            if (action.params.domainName) {
+              domainId = findDomainByName(action.params.domainName)?.id;
+            }
+          }
+          domainId = domainId || currentDomainId;
+          
+          if (domainId) {
+            addCategory(domainId, action.params.name, action.params.orientation || 'horizontal');
+            return `✅ Catégorie "${action.params.name}" créée`;
+          }
+          return '❌ Aucun domaine sélectionné. Sélectionnez un domaine d\'abord.';
+        }
+          
+        case 'deleteCategory': {
+          let categoryId = action.params.categoryId;
+          if (!categoryId || !categoryExists(categoryId)) {
+            const cat = findCategoryByName(action.params.name || action.params.categoryName || '');
+            categoryId = cat?.id;
+          }
+          if (categoryId) {
+            deleteCategory(categoryId);
+            return `✅ Catégorie supprimée`;
+          }
+          return '❌ Catégorie non trouvée';
+        }
+          
+        case 'addElement': {
+          // Trouver la catégorie: par ID, par nom, ou première du domaine courant
+          let categoryId = action.params.categoryId;
+          if (!categoryId || !categoryExists(categoryId)) {
+            if (action.params.categoryName) {
+              categoryId = findCategoryByName(action.params.categoryName)?.id;
+            }
+          }
+          if (!categoryId && currentDomainId) {
+            const domain = currentCockpit?.domains.find(d => d.id === currentDomainId);
+            categoryId = domain?.categories[0]?.id;
+          }
+          
+          if (categoryId) {
+            addElement(categoryId, action.params.name);
+            return `✅ Élément "${action.params.name}" créé`;
+          }
+          return '❌ Aucune catégorie disponible. Créez une catégorie d\'abord.';
+        }
+          
+        case 'addElements': {
+          const names = action.params.names || [];
+          let categoryId = action.params.categoryId;
+          
+          if (!categoryId || !categoryExists(categoryId)) {
+            if (action.params.categoryName) {
+              categoryId = findCategoryByName(action.params.categoryName)?.id;
+            }
+          }
+          if (!categoryId && currentDomainId) {
+            const domain = currentCockpit?.domains.find(d => d.id === currentDomainId);
+            categoryId = domain?.categories[0]?.id;
+          }
+          
+          if (categoryId && names.length > 0) {
+            names.forEach((name: string) => addElement(categoryId!, name));
+            return `✅ ${names.length} éléments créés`;
+          }
+          return '❌ Aucune catégorie disponible ou liste vide';
+        }
+          
+        case 'deleteElement': {
+          let elementId = action.params.elementId;
+          if (!elementId || !elementExists(elementId)) {
+            const el = findElementByName(action.params.name || action.params.elementName || '');
+            elementId = el?.id;
+          }
+          if (elementId) {
+            deleteElement(elementId);
+            return `✅ Élément supprimé`;
+          }
+          return '❌ Élément non trouvé';
+        }
+          
+        case 'updateElement': {
+          let elementId = action.params.elementId;
+          if (!elementId || !elementExists(elementId)) {
+            const el = findElementByName(action.params.name || action.params.elementName || '');
+            elementId = el?.id;
+          }
+          elementId = elementId || currentElementId;
+          
+          if (elementId) {
+            updateElement(elementId, action.params.updates || action.params);
+            return `✅ Élément mis à jour`;
+          }
+          return '❌ Aucun élément sélectionné';
+        }
+          
+        case 'updateStatus': {
+          const status = action.params.status as TileStatus;
+          
+          if (action.params.elementId || action.params.elementName) {
+            let elementId = action.params.elementId;
+            if (!elementId || !elementExists(elementId)) {
+              elementId = findElementByName(action.params.elementName)?.id;
+            }
+            if (elementId) {
+              updateElement(elementId, { status });
+              return `✅ Statut → ${status}`;
+            }
+          }
+          
+          if (action.params.subElementId || action.params.subElementName) {
+            let subEl = action.params.subElementId 
+              ? null 
+              : findSubElementByName(action.params.subElementName);
+            const subElementId = action.params.subElementId || subEl?.id;
+            if (subElementId) {
+              updateSubElement(subElementId, { status });
+              return `✅ Statut → ${status}`;
+            }
+          }
+          
+          if (currentElementId) {
+            updateElement(currentElementId, { status });
+            return `✅ Statut → ${status}`;
+          }
+          return '❌ Aucun élément sélectionné';
+        }
+          
+        case 'addSubCategory': {
+          const elementId = action.params.elementId || currentElementId;
+          if (elementId) {
+            addSubCategory(elementId, action.params.name, action.params.orientation || 'horizontal');
+            return `✅ Sous-catégorie "${action.params.name}" créée`;
+          }
+          return '❌ Aucun élément sélectionné. Cliquez sur un élément d\'abord.';
+        }
+          
+        case 'deleteSubCategory': {
+          let subCategoryId = action.params.subCategoryId;
+          if (!subCategoryId) {
+            const sc = findSubCategoryByName(action.params.name || action.params.subCategoryName || '');
+            subCategoryId = sc?.id;
+          }
+          if (subCategoryId) {
+            deleteSubCategory(subCategoryId);
+            return `✅ Sous-catégorie supprimée`;
+          }
+          return '❌ Sous-catégorie non trouvée';
+        }
+          
+        case 'addSubElement': {
+          let subCategoryId = action.params.subCategoryId;
+          if (!subCategoryId && action.params.subCategoryName) {
+            subCategoryId = findSubCategoryByName(action.params.subCategoryName)?.id;
+          }
+          if (subCategoryId) {
+            addSubElement(subCategoryId, action.params.name);
+            return `✅ Sous-élément "${action.params.name}" créé`;
+          }
+          return '❌ Aucune sous-catégorie disponible';
+        }
+          
+        case 'addSubElements': {
+          const names = action.params.names || [];
+          let subCategoryId = action.params.subCategoryId;
+          if (!subCategoryId && action.params.subCategoryName) {
+            subCategoryId = findSubCategoryByName(action.params.subCategoryName)?.id;
+          }
+          if (subCategoryId && names.length > 0) {
+            names.forEach((name: string) => addSubElement(subCategoryId!, name));
+            return `✅ ${names.length} sous-éléments créés`;
+          }
+          return '❌ Paramètres invalides pour addSubElements';
+        }
+          
+        case 'deleteSubElement': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId) {
+            const se = findSubElementByName(action.params.name || action.params.subElementName || '');
+            subElementId = se?.id;
+          }
+          if (subElementId) {
+            deleteSubElement(subElementId);
+            return `✅ Sous-élément supprimé`;
+          }
+          return '❌ Sous-élément non trouvé';
+        }
+          
+        case 'selectDomain': {
+          let domainId = action.params.domainId;
+          if (!domainId || !domainExists(domainId)) {
+            domainId = findDomainByName(action.params.name || action.params.domainName || '')?.id;
+          }
+          if (domainId) {
+            setCurrentDomain(domainId);
+            return `✅ Domaine sélectionné`;
+          }
+          return '❌ Domaine non trouvé';
+        }
+          
+        case 'selectElement': {
+          let elementId = action.params.elementId;
+          if (!elementId || !elementExists(elementId)) {
+            elementId = findElementByName(action.params.name || action.params.elementName || '')?.id;
+          }
+          if (elementId) {
+            setCurrentElement(elementId);
+            return `✅ Élément sélectionné`;
+          }
+          return '❌ Élément non trouvé';
+        }
+          
+        default:
+          console.warn('Action non reconnue:', action.type);
+          return `⚠️ Action non reconnue: ${action.type}`;
+      }
+    } catch (error) {
+      console.error('❌ Erreur exécution action:', action.type, error);
+      return `❌ Erreur: ${error instanceof Error ? error.message : 'inconnue'}`;
+    }
+  };
+  
+  // Exécuter plusieurs actions
+  const executeActions = (actions: AIAction[]): string => {
+    if (!actions || actions.length === 0) return '';
+    
+    const results = actions.map(action => executeAction(action));
+    return results.join('\n');
+  };
+
+  // Appeler l'API OpenAI avec l'historique complet
+  const callOpenAI = async (userMessage: string, conversationHistory: Message[]): Promise<AIResponse> => {
+    const cockpitContext = {
+      cockpitName: currentCockpit?.name,
+      currentDomainId,
+      currentElementId,
+      domains: currentCockpit?.domains.map(d => ({
+        id: d.id,
+        name: d.name,
+        categories: d.categories.map(c => ({
+          id: c.id,
+          name: c.name,
+          elements: c.elements.map(e => ({
+            id: e.id,
+            name: e.name,
+            status: e.status,
+            subCategories: e.subCategories.map(sc => ({
+              id: sc.id,
+              name: sc.name,
+              subElements: sc.subElements.map(se => ({
+                id: se.id,
+                name: se.name,
+                status: se.status,
+              }))
+            }))
+          }))
+        }))
+      }))
+    };
+    
+    // Construire l'historique des messages pour GPT
+    const history = conversationHistory.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+    
+    // Construire le message avec le fichier attaché si présent
+    let fullMessage = userMessage;
+    if (attachedFile) {
+      fullMessage = `[FICHIER ATTACHÉ: ${attachedFile.name}]\n\nContenu du fichier:\n\`\`\`\n${attachedFile.content}\n\`\`\`\n\nQuestion de l'utilisateur: ${userMessage}`;
+    }
+    
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        message: fullMessage,
+        cockpitContext,
+        history, // Envoyer l'historique complet
+      }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erreur API');
+    }
+    
+    return response.json();
+  };
+
+  // Fallback local (pattern matching basique)
+  const parseLocalCommand = (userPrompt: string): string => {
+    const lowerPrompt = userPrompt.toLowerCase();
+    
+    // Ajouter un domaine
+    if (lowerPrompt.includes('ajoute') && lowerPrompt.includes('domaine')) {
+      const match = userPrompt.match(/domaine\s+[«"']?([^»"']+)[»"']?/i);
+      if (match) {
+        const name = match[1].trim().replace(/[«»"']/g, '');
+        if (currentCockpit && currentCockpit.domains.length < 6) {
+          addDomain(name.toUpperCase());
+          return `✅ Domaine "${name.toUpperCase()}" ajouté !`;
+        }
+        return `❌ Maximum 6 domaines atteint.`;
+      }
+    }
+    
+    // Ajouter une catégorie
+    if (lowerPrompt.includes('ajoute') && lowerPrompt.includes('catégorie')) {
+      const match = userPrompt.match(/catégorie\s+[«"']?([^»"']+)[»"']?/i);
+      if (match && currentDomainId) {
+        const name = match[1].trim().replace(/[«»"']/g, '');
+        const orientation = lowerPrompt.includes('vertical') ? 'vertical' : 'horizontal';
+        addCategory(currentDomainId, name, orientation);
+        return `✅ Catégorie "${name}" ajoutée !`;
+      }
+      return `❌ Sélectionnez d'abord un domaine.`;
+    }
+    
+    // Changer statut
+    if (lowerPrompt.includes('statut') || lowerPrompt.includes('couleur')) {
+      let status: TileStatus | null = null;
+      if (lowerPrompt.includes('fatal') || lowerPrompt.includes('violet')) status = 'fatal';
+      else if (lowerPrompt.includes('critique') || lowerPrompt.includes('rouge')) status = 'critique';
+      else if (lowerPrompt.includes('mineur') || lowerPrompt.includes('orange')) status = 'mineur';
+      else if (lowerPrompt.includes('ok') || lowerPrompt.includes('vert')) status = 'ok';
+      else if (lowerPrompt.includes('déconnecté') || lowerPrompt.includes('gris')) status = 'deconnecte';
+      
+      if (status && currentElementId) {
+        updateElement(currentElementId, { status });
+        return `✅ Statut changé en "${status}" !`;
+      }
+    }
+    
+    return `💡 Mode local: Commande non reconnue. L'IA complète nécessite une clé API OpenAI.`;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim() || isLoading) return;
+    
+    const userPrompt = prompt.trim();
+    setPrompt('');
+    addMessage('user', userPrompt);
+    setIsLoading(true);
+    
+    try {
+      if (aiStatus?.configured) {
+        // Utiliser l'API OpenAI avec l'historique
+        const result = await callOpenAI(userPrompt, messages);
+        
+        // Exécuter les actions si présentes
+        let actionResult = '';
+        if (result.actions && result.actions.length > 0) {
+          actionResult = '\n\n' + executeActions(result.actions);
+        }
+        
+        addMessage('assistant', result.message + actionResult);
+        // Reset le fichier attaché après utilisation
+        setAttachedFile(null);
+      } else {
+        // Fallback local
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const response = parseLocalCommand(userPrompt);
+        addMessage('assistant', response);
+      }
+    } catch (error) {
+      console.error('Erreur IA:', error);
+      addMessage('assistant', `❌ Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    }
+    
+    setIsLoading(false);
+    
+    // Remettre le focus sur le champ de saisie après la réponse
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
+
+  if (!isExpanded) {
+    return (
+      <button
+        onClick={() => setIsExpanded(true)}
+        className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-all shadow-lg ${
+          aiStatus?.configured 
+            ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-purple-500/25'
+            : 'bg-slate-600 hover:bg-slate-500'
+        }`}
+        title={aiStatus?.configured ? 'Assistant IA OpenAI' : 'Assistant IA (mode local)'}
+      >
+        <MuiIcon name="Sparkles" size={16} />
+        <span className="font-medium">IA</span>
+        {aiStatus?.configured && <span className="text-xs opacity-75">GPT</span>}
+      </button>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {/* Panneau de chat */}
+      <div className="absolute right-0 top-full mt-2 w-96 bg-[#1E293B] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+        {/* Header */}
+        <div className={`flex items-center justify-between px-4 py-3 ${
+          aiStatus?.configured 
+            ? 'bg-gradient-to-r from-violet-600 to-purple-600'
+            : 'bg-slate-700'
+        }`}>
+          <div className="flex items-center gap-2">
+            <MuiIcon name="Sparkles" size={20} className="text-white" />
+            <span className="font-semibold text-white">Assistant IA</span>
+            {aiStatus?.configured && (
+              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full text-white">
+                {aiStatus.model}
+              </span>
+            )}
+            {!aiStatus?.configured && (
+              <span className="text-xs bg-yellow-500/30 px-2 py-0.5 rounded-full text-yellow-200">
+                Mode local
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setMessages([])}
+              className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors text-xs"
+            >
+              Effacer
+            </button>
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors"
+            >
+              <MuiIcon name="X" size={16} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Avertissement si pas configuré */}
+        {!aiStatus?.configured && (
+          <div className="px-4 py-2 bg-yellow-500/10 border-b border-yellow-500/20">
+            <p className="text-xs text-yellow-300">
+              ⚠️ Pour activer l'IA complète, ajoutez <code className="bg-black/30 px-1 rounded">OPENAI_API_KEY</code> à vos variables d'environnement.
+            </p>
+          </div>
+        )}
+        
+        {/* Messages */}
+        <div className="h-64 overflow-y-auto p-4 space-y-3">
+          {messages.length === 0 && (
+            <div className="text-center text-slate-500 text-sm py-8">
+              <div className="mx-auto mb-3"><MuiIcon name="Sparkles" size={32} className="text-slate-600" /></div>
+              <p>Demandez-moi de modifier votre maquette !</p>
+              <p className="mt-2 text-xs">
+                {aiStatus?.configured 
+                  ? 'Ex: "Crée un domaine EXPLOITATION avec 3 catégories"'
+                  : 'Ex: "Ajoute le domaine EXPLOITATION"'
+                }
+              </p>
+            </div>
+          )}
+          
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[85%] px-3 py-2 rounded-xl text-sm ${
+                  msg.role === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-700 text-slate-200'
+                }`}
+              >
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              </div>
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-slate-700 px-4 py-2 rounded-xl flex items-center gap-2">
+                <div className="animate-spin"><MuiIcon name="Loader2" size={16} className="text-slate-400" /></div>
+                <span className="text-xs text-slate-400">
+                  {aiStatus?.configured ? 'GPT réfléchit...' : 'Traitement...'}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+        
+        {/* Fichier attaché */}
+        {attachedFile && (
+          <div className="px-3 py-2 border-t border-slate-700 bg-slate-800/50">
+            <div className="flex items-center gap-2 text-sm">
+              <MuiIcon name="FileSpreadsheet" size={16} className="text-blue-400" />
+              <span className="text-slate-300 flex-1 truncate">{attachedFile.name}</span>
+              <span className="text-xs text-slate-500">
+                {attachedFile.content.length > 1024 * 1024 
+                  ? `${(attachedFile.content.length / 1024 / 1024).toFixed(2)} MB`
+                  : `${(attachedFile.content.length / 1024).toFixed(1)} KB`
+                }
+              </span>
+              <button
+                onClick={removeAttachedFile}
+                className="p-1 text-slate-500 hover:text-red-400 transition-colors"
+                title="Retirer le fichier"
+              >
+                <MuiIcon name="X" size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Input */}
+        <form onSubmit={handleSubmit} className="p-3 border-t border-slate-700">
+          <div className="flex items-center gap-2">
+            {/* Bouton upload fichier */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileUpload}
+              accept=".txt,.csv,.json,.md,.xml,.xlsx,.xls"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-colors"
+              title="Attacher un fichier (Excel, CSV, JSON, TXT...)"
+            >
+              <MuiIcon name="Plus" size={16} />
+            </button>
+            
+            <input
+              ref={inputRef}
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={attachedFile ? "Question sur le fichier..." : (aiStatus?.configured ? "Demandez n'importe quoi..." : "Tapez une commande...")}
+              className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 placeholder-slate-500"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!prompt.trim() || isLoading}
+              className="p-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              <MuiIcon name="SendIcon" size={16} />
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      {/* Bouton quand ouvert */}
+      <button
+        onClick={() => setIsExpanded(false)}
+        className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg ${
+          aiStatus?.configured 
+            ? 'bg-gradient-to-r from-violet-600 to-purple-600'
+            : 'bg-slate-600'
+        }`}
+      >
+        <MuiIcon name="Sparkles" size={16} />
+        <span className="font-medium">IA</span>
+        <MuiIcon name="ChevronUp" size={16} />
+      </button>
+    </div>
+  );
+}
