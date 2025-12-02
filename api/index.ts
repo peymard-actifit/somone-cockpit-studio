@@ -1,7 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { Redis } from '@upstash/redis';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const ADMIN_CODE = process.env.ADMIN_CODE || 'SOMONE2024';
+
+// Upstash Redis client
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '',
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '',
+});
 
 // Types
 interface User {
@@ -33,13 +40,6 @@ const generateId = () => {
   );
 };
 
-// Simple in-memory database (persists during function warm state)
-// Pour une vraie persistance, utilisez Upstash ou une autre DB
-let inMemoryDb: Database = {
-  users: [],
-  cockpits: []
-};
-
 // Simple JWT implementation
 function createToken(payload: any): string {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
@@ -69,13 +69,25 @@ function comparePassword(password: string, hash: string): boolean {
   return btoa(password + JWT_SECRET) === hash;
 }
 
-// Database access (in-memory)
+// Database access via Upstash Redis
+const DB_KEY = 'somone-cockpit-db';
+
 async function getDb(): Promise<Database> {
-  return inMemoryDb;
+  try {
+    const db = await redis.get<Database>(DB_KEY);
+    return db || { users: [], cockpits: [] };
+  } catch (error) {
+    console.error('Redis get error:', error);
+    return { users: [], cockpits: [] };
+  }
 }
 
 async function saveDb(db: Database): Promise<void> {
-  inMemoryDb = db;
+  try {
+    await redis.set(DB_KEY, db);
+  } catch (error) {
+    console.error('Redis set error:', error);
+  }
 }
 
 // JWT verification (using simple implementation)
