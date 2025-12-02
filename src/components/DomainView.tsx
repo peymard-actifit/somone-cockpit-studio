@@ -10,9 +10,11 @@ import { useConfirm } from '../contexts/ConfirmContext';
 
 interface DomainViewProps {
   domain: Domain;
+  onElementClick?: (elementId: string) => void;
+  readOnly?: boolean;
 }
 
-export default function DomainView({ domain }: DomainViewProps) {
+export default function DomainView({ domain, onElementClick, readOnly = false }: DomainViewProps) {
   const { addCategory, deleteCategory, addElement, updateDomain } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -66,12 +68,12 @@ export default function DomainView({ domain }: DomainViewProps) {
   
   // Vue carte dynamique
   if (domain.templateType === 'map') {
-    return <MapView domain={domain} />;
+    return <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />;
   }
   
   // Vue avec image de fond
   if (domain.templateType === 'background') {
-    return <BackgroundView domain={domain} />;
+    return <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />;
   }
   
   const handleAddCategory = () => {
@@ -207,11 +209,11 @@ export default function DomainView({ domain }: DomainViewProps) {
               >
                 <div className="flex flex-col gap-3">
                   {category.elements.map((element) => (
-                    <ElementTile key={element.id} element={element} />
+                    <ElementTile key={element.id} element={element} onElementClick={onElementClick} readOnly={readOnly} />
                   ))}
                   
                   {/* Bouton ajouter élément */}
-                  {addingElementToCategory !== category.id ? (
+                  {!readOnly && addingElementToCategory !== category.id ? (
                     <button
                       onClick={() => setAddingElementToCategory(category.id)}
                       className="flex items-center justify-center gap-2 border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] rounded-xl transition-colors bg-[#F5F7FA]/50 py-4"
@@ -265,7 +267,7 @@ export default function DomainView({ domain }: DomainViewProps) {
       {/* Catégories HORIZONTALES : affichées de manière classique */}
       <div className="space-y-10">
         {horizontalCategories.map((category) => (
-          <CategorySection key={category.id} category={category} />
+          <CategorySection key={category.id} category={category} onElementClick={onElementClick} readOnly={readOnly} />
         ))}
       </div>
       

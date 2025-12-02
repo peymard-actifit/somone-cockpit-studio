@@ -33,9 +33,11 @@ interface ElementCluster {
 
 interface BackgroundViewProps {
   domain: Domain;
+  onElementClick?: (elementId: string) => void;
+  readOnly?: boolean;
 }
 
-export default function BackgroundView({ domain }: BackgroundViewProps) {
+export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const { setCurrentElement, updateElement, updateDomain, addCategory, addElement } = useCockpitStore();

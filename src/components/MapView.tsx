@@ -34,9 +34,11 @@ interface PointCluster {
 
 interface MapViewProps {
   domain: Domain;
+  onElementClick?: (elementId: string) => void;
+  readOnly?: boolean;
 }
 
-export default function MapView({ domain }: MapViewProps) {
+export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { updateDomain, addMapElement, deleteMapElement, updateMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement } = useCockpitStore();
   const { token } = useAuthStore();

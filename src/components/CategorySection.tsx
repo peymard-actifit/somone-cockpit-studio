@@ -7,11 +7,13 @@ import { useConfirm } from '../contexts/ConfirmContext';
 
 interface CategorySectionProps {
   category: Category;
+  onElementClick?: (elementId: string) => void;
+  readOnly?: boolean;
 }
 
 // Ce composant gère uniquement les catégories HORIZONTALES
 // Les catégories VERTICALES sont gérées directement dans DomainView
-export default function CategorySection({ category }: CategorySectionProps) {
+export default function CategorySection({ category, onElementClick, readOnly = false }: CategorySectionProps) {
   const { addElement, deleteCategory } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingElement, setIsAddingElement] = useState(false);
@@ -42,75 +44,79 @@ export default function CategorySection({ category }: CategorySectionProps) {
         <div className="flex-1" />
         
         {/* Bouton supprimer catégorie */}
-        <button
-          onClick={async () => {
-            const confirmed = await confirm({
-              title: 'Supprimer la catégorie',
-              message: `Voulez-vous supprimer la catégorie "${category.name}" et tous ses éléments ?`,
-            });
-            if (confirmed) {
-              deleteCategory(category.id);
-            }
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all border border-[#E57373]/30 hover:border-[#E57373]"
-          title="Supprimer la catégorie"
-        >
-          <MuiIcon name="Trash2" size={16} />
-          <span>Supprimer</span>
-        </button>
+        {!readOnly && (
+          <button
+            onClick={async () => {
+              const confirmed = await confirm({
+                title: 'Supprimer la catégorie',
+                message: `Voulez-vous supprimer la catégorie "${category.name}" et tous ses éléments ?`,
+              });
+              if (confirmed) {
+                deleteCategory(category.id);
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all border border-[#E57373]/30 hover:border-[#E57373]"
+            title="Supprimer la catégorie"
+          >
+            <MuiIcon name="Trash2" size={16} />
+            <span>Supprimer</span>
+          </button>
+        )}
       </div>
       
       {/* Conteneur blanc pour les éléments - Style PDF SOMONE */}
       <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm">
         <div className="flex flex-row flex-wrap gap-4">
           {category.elements.map((element) => (
-            <ElementTile key={element.id} element={element} />
+            <ElementTile key={element.id} element={element} onElementClick={onElementClick} readOnly={readOnly} />
           ))}
           
           {/* Bouton ajouter élément */}
-          {!isAddingElement ? (
-            <button
-              onClick={() => setIsAddingElement(true)}
-              className="flex items-center justify-center gap-2 border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] rounded-xl transition-colors bg-[#F5F7FA]/50 px-8 py-6 min-w-[180px] min-h-[120px]"
-            >
-              <MuiIcon name="Plus" size={24} />
-              <span className="font-medium">Ajouter un élément</span>
-            </button>
-          ) : (
-            <div className="bg-[#F5F7FA] border border-[#E2E8F0] rounded-xl p-4 min-w-[220px]">
-              <input
-                type="text"
-                value={newElementName}
-                onChange={(e) => setNewElementName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddElement();
-                  if (e.key === 'Escape') {
-                    setIsAddingElement(false);
-                    setNewElementName('');
-                  }
-                }}
-                placeholder="Nom de l'élément"
-                className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F] mb-3"
-                autoFocus
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleAddElement}
-                  className="flex-1 px-4 py-2 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  Ajouter
-                </button>
-                <button
-                  onClick={() => {
-                    setIsAddingElement(false);
-                    setNewElementName('');
+          {!readOnly && (
+            !isAddingElement ? (
+              <button
+                onClick={() => setIsAddingElement(true)}
+                className="flex items-center justify-center gap-2 border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] rounded-xl transition-colors bg-[#F5F7FA]/50 px-8 py-6 min-w-[180px] min-h-[120px]"
+              >
+                <MuiIcon name="Plus" size={24} />
+                <span className="font-medium">Ajouter un élément</span>
+              </button>
+            ) : (
+              <div className="bg-[#F5F7FA] border border-[#E2E8F0] rounded-xl p-4 min-w-[220px]">
+                <input
+                  type="text"
+                  value={newElementName}
+                  onChange={(e) => setNewElementName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddElement();
+                    if (e.key === 'Escape') {
+                      setIsAddingElement(false);
+                      setNewElementName('');
+                    }
                   }}
-                  className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F] text-sm transition-colors"
-                >
-                  Annuler
-                </button>
+                  placeholder="Nom de l'élément"
+                  className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F] mb-3"
+                  autoFocus
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleAddElement}
+                    className="flex-1 px-4 py-2 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Ajouter
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAddingElement(false);
+                      setNewElementName('');
+                    }}
+                    className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F] text-sm transition-colors"
+                  >
+                    Annuler
+                  </button>
+                </div>
               </div>
-            </div>
+            )
           )}
         </div>
       </div>

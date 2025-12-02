@@ -14,9 +14,10 @@ interface SubElementTileProps {
     element: string;
     subCategory: string;
   };
+  readOnly?: boolean;
 }
 
-export default function SubElementTile({ subElement, breadcrumb }: SubElementTileProps) {
+export default function SubElementTile({ subElement, breadcrumb, readOnly = false }: SubElementTileProps) {
   const [showAlert, setShowAlert] = useState(false);
   const { deleteSubElement } = useCockpitStore();
   const confirm = useConfirm();
@@ -24,6 +25,7 @@ export default function SubElementTile({ subElement, breadcrumb }: SubElementTil
   
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (readOnly) return;
     const confirmed = await confirm({
       title: 'Supprimer le sous-élément',
       message: `Voulez-vous supprimer le sous-élément "${subElement.name}" ?`,
@@ -94,13 +96,15 @@ export default function SubElementTile({ subElement, breadcrumb }: SubElementTil
         )}
         
         {/* Bouton supprimer (visible au survol) */}
-        <button
-          onClick={handleDelete}
-          className="absolute top-1 left-1 p-1 bg-white/20 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/30"
-          title="Supprimer le sous-élément"
-        >
-          <MuiIcon name="Trash2" size={12} />
-        </button>
+        {!readOnly && (
+          <button
+            onClick={handleDelete}
+            className="absolute top-1 left-1 p-1 bg-white/20 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/30"
+            title="Supprimer le sous-élément"
+          >
+            <MuiIcon name="Trash2" size={12} />
+          </button>
+        )}
       </button>
       
       {/* Popup d'alerte */}

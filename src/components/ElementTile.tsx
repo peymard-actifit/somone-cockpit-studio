@@ -7,15 +7,18 @@ import { useConfirm } from '../contexts/ConfirmContext';
 interface ElementTileProps {
   element: Element;
   mini?: boolean;
+  onElementClick?: (elementId: string) => void;
+  readOnly?: boolean;
 }
 
-export default function ElementTile({ element, mini = false }: ElementTileProps) {
+export default function ElementTile({ element, mini = false, onElementClick, readOnly = false }: ElementTileProps) {
   const { setCurrentElement, deleteElement } = useCockpitStore();
   const confirm = useConfirm();
   const colors = STATUS_COLORS[element.status];
   
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (readOnly) return;
     const confirmed = await confirm({
       title: 'Supprimer l\'élément',
       message: `Voulez-vous supprimer l'élément "${element.name}" ?`,
@@ -26,7 +29,11 @@ export default function ElementTile({ element, mini = false }: ElementTileProps)
   };
   
   const handleClick = () => {
-    setCurrentElement(element.id);
+    if (onElementClick) {
+      onElementClick(element.id);
+    } else {
+      setCurrentElement(element.id);
+    }
   };
   
   if (mini) {
@@ -144,13 +151,15 @@ export default function ElementTile({ element, mini = false }: ElementTileProps)
       )}
       
       {/* Bouton supprimer (visible au survol) - en haut à droite */}
-      <button
-        onClick={handleDelete}
-        className="absolute top-2 right-2 p-1 bg-[#E57373] text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 shadow-sm"
-        title="Supprimer l'élément"
-      >
-        <MuiIcon name="Trash2" size={12} />
-      </button>
+      {!readOnly && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-2 right-2 p-1 bg-[#E57373] text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 shadow-sm"
+          title="Supprimer l'élément"
+        >
+          <MuiIcon name="Trash2" size={12} />
+        </button>
+      )}
     </button>
   );
 }
