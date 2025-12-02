@@ -5,9 +5,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const ADMIN_CODE = process.env.ADMIN_CODE || 'SOMONE2024';
 
 // Upstash Redis client
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+
+console.log('Redis URL configured:', redisUrl ? 'YES' : 'NO');
+console.log('Redis Token configured:', redisToken ? 'YES' : 'NO');
+
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '',
+  url: redisUrl,
+  token: redisToken,
 });
 
 // Types
@@ -229,13 +235,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const publicMatch = path.match(/^\/public\/cockpit\/([^/]+)$/);
     if (publicMatch && method === 'GET') {
       const publicId = publicMatch[1];
+      console.log('Looking for public cockpit:', publicId);
+      
       const db = await getDb();
+      console.log('Database has', db.cockpits.length, 'cockpits');
+      
+      // Log all published cockpits
+      const publishedCockpits = db.cockpits.filter(c => c.data?.isPublished);
+      console.log('Published cockpits:', publishedCockpits.map(c => ({ name: c.name, publicId: c.data?.publicId })));
+      
       const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
       
       if (!cockpit) {
+        console.log('Cockpit not found for publicId:', publicId);
         return res.status(404).json({ error: 'Maquette non trouvée ou non publiée' });
       }
       
+      console.log('Found cockpit:', cockpit.name);
       return res.json({
         id: cockpit.id,
         name: cockpit.name,
