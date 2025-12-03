@@ -15,12 +15,15 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
     updateDomain,
     deleteDomain,
     updateElement,
+    deleteElement,
     updateSubElement,
+    deleteSubElement,
     updateCockpit,
     currentCockpit,
     zones,
     addZone,
-    deleteZone
+    deleteZone,
+    setCurrentElement
   } = useCockpitStore();
   const confirm = useConfirm();
   
@@ -41,6 +44,8 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
     return (
       <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg">
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+          <div className="flex items-start justify-between">
+            <div>
           <button
             onClick={() => setSelectedSubElement(null)}
             className="flex items-center gap-2 text-[#64748B] hover:text-[#1E3A5F] mb-2"
@@ -50,6 +55,24 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
           </button>
           <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition sous-élément</h3>
           <p className="text-sm text-[#64748B]">{selectedSubElement.name}</p>
+            </div>
+            <button
+              onClick={async () => {
+                const confirmed = await confirm({
+                  title: 'Supprimer le sous-élément',
+                  message: `Voulez-vous supprimer le sous-élément "${selectedSubElement.name}" ?`,
+                });
+                if (confirmed) {
+                  deleteSubElement(selectedSubElement.id);
+                  setSelectedSubElement(null);
+                }
+              }}
+              className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Supprimer ce sous-élément"
+            >
+              <MuiIcon name="Trash2" size={18} />
+            </button>
+          </div>
         </div>
         
         {/* Propriétés du sous-élément */}
@@ -263,8 +286,28 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
     return (
       <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg">
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+          <div className="flex items-start justify-between">
+            <div>
           <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition élément</h3>
           <p className="text-sm text-[#64748B]">{element.name}</p>
+            </div>
+            <button
+              onClick={async () => {
+                const confirmed = await confirm({
+                  title: 'Supprimer l\'élément',
+                  message: `Voulez-vous supprimer l'élément "${element.name}" et tous ses sous-éléments ?`,
+                });
+                if (confirmed) {
+                  deleteElement(element.id);
+                  setCurrentElement(null);
+                }
+              }}
+              className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Supprimer cet élément"
+            >
+              <MuiIcon name="Trash2" size={18} />
+            </button>
+          </div>
         </div>
         
         {/* Propriétés */}

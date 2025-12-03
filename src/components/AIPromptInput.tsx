@@ -108,7 +108,35 @@ export default function AIPromptInput() {
       let content = '';
       const fileName = file.name.toLowerCase();
       
-      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      if (fileName.endsWith('.pdf')) {
+        // Fichier PDF - extraction du texte avec chargement dynamique
+        try {
+          const pdfjsLib = await import('pdfjs-dist');
+          // Configurer le worker avec unpkg CDN (supporte toutes les versions)
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+          
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          
+          const textParts: string[] = [];
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .map((item: any) => item.str)
+              .join(' ');
+            textParts.push(`=== Page ${i} ===\n${pageText}`);
+          }
+          content = textParts.join('\n\n');
+          
+          addMessage('assistant', `📄 Fichier PDF "${file.name}" lu avec succès (${pdf.numPages} page(s))`);
+        } catch (pdfError) {
+          console.error('Erreur lecture PDF:', pdfError);
+          addMessage('assistant', `❌ Erreur lors de la lecture du PDF: ${pdfError instanceof Error ? pdfError.message : 'Format non supporté'}`);
+          return;
+        }
+        
+      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
         // Fichier Excel - conversion en texte lisible
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -771,7 +799,11 @@ export default function AIPromptInput() {
         {attachedFile && (
           <div className="px-3 py-2 border-t border-slate-700 bg-slate-800/50">
             <div className="flex items-center gap-2 text-sm">
-              <MuiIcon name="FileSpreadsheet" size={16} className="text-blue-400" />
+              <MuiIcon 
+                name={attachedFile.name.toLowerCase().endsWith('.pdf') ? 'FileText' : 'FileSpreadsheet'} 
+                size={16} 
+                className={attachedFile.name.toLowerCase().endsWith('.pdf') ? 'text-red-400' : 'text-blue-400'} 
+              />
               <span className="text-slate-300 flex-1 truncate">{attachedFile.name}</span>
               <span className="text-xs text-slate-500">
                 {attachedFile.content.length > 1024 * 1024 
@@ -798,7 +830,7 @@ export default function AIPromptInput() {
               ref={fileInputRef}
               type="file"
               onChange={handleFileUpload}
-              accept=".txt,.csv,.json,.md,.xml,.xlsx,.xls"
+              accept=".txt,.csv,.json,.md,.xml,.xlsx,.xls,.pdf"
               className="hidden"
             />
             <button
@@ -806,7 +838,7 @@ export default function AIPromptInput() {
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
               className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-colors"
-              title="Attacher un fichier (Excel, CSV, JSON, TXT...)"
+              title="Attacher un fichier (PDF, Excel, CSV, JSON, TXT...)"
             >
               <MuiIcon name="Plus" size={16} />
             </button>

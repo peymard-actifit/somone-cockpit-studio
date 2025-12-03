@@ -573,6 +573,210 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ]);
     }
 
+    // =====================
+    // AI ROUTES
+    // =====================
+    
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    
+    // AI Status
+    if (path === '/ai/status' && method === 'GET') {
+      return res.json({
+        configured: !!OPENAI_API_KEY,
+        model: OPENAI_API_KEY ? 'gpt-4o-mini' : 'none'
+      });
+    }
+    
+    // AI Chat
+    if (path === '/ai/chat' && method === 'POST') {
+      if (!OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API key not configured' });
+      }
+      
+      const { message, cockpitContext, history } = req.body;
+      
+      const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, une application de création de tableaux de bord visuels.
+
+STRUCTURE DU COCKPIT:
+- Cockpit contient des Domaines (onglets principaux, max 6)
+- Domaines contiennent des Catégories (groupes d'éléments)
+- Catégories contiennent des Éléments (tuiles avec statut coloré)
+- Éléments contiennent des Sous-catégories
+- Sous-catégories contiennent des Sous-éléments
+
+STATUTS DISPONIBLES: ok (vert), mineur (orange), critique (rouge), fatal (violet), deconnecte (gris)
+
+ACTIONS DISPONIBLES (retourne-les dans le champ "actions"):
+- addDomain: { name: string }
+- deleteDomain: { domainId?: string, name?: string }
+- addCategory: { domainId?: string, domainName?: string, name: string, orientation?: 'horizontal'|'vertical' }
+- deleteCategory: { categoryId?: string, name?: string }
+- addElement: { categoryId?: string, categoryName?: string, name: string }
+- addElements: { categoryId?: string, categoryName?: string, names: string[] }
+- deleteElement: { elementId?: string, name?: string }
+- updateElement: { elementId?: string, name?: string, updates: { status?, value?, unit?, icon? } }
+- updateStatus: { elementId?: string, elementName?: string, subElementId?: string, subElementName?: string, status: string }
+- addSubCategory: { elementId?: string, name: string, orientation?: 'horizontal'|'vertical' }
+- deleteSubCategory: { subCategoryId?: string, name?: string }
+- addSubElement: { subCategoryId?: string, subCategoryName?: string, name: string }
+- addSubElements: { subCategoryId?: string, subCategoryName?: string, names: string[] }
+- deleteSubElement: { subElementId?: string, name?: string }
+- selectDomain: { domainId?: string, name?: string }
+- selectElement: { elementId?: string, name?: string }
+
+CONTEXTE ACTUEL DU COCKPIT:
+${JSON.stringify(cockpitContext, null, 2)}
+
+INSTRUCTIONS:
+1. Réponds en français de manière concise et professionnelle
+2. Si l'utilisateur demande une modification, inclus les actions appropriées dans ta réponse
+3. Si tu exécutes des actions, explique ce que tu as fait
+4. Tu peux créer plusieurs éléments en une seule fois avec addElements
+5. Utilise les IDs existants quand disponibles, sinon utilise les noms`;
+
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
+        { role: 'user', content: message }
+      ];
+      
+      try {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages,
+            temperature: 0.7,
+            max_tokens: 2000,
+          }),
+        });
+        
+        if (!openaiResponse.ok) {
+          const error = await openaiResponse.json();
+          console.error('OpenAI error:', error);
+          return res.status(500).json({ error: 'Erreur OpenAI: ' + (error.error?.message || 'inconnue') });
+        }
+        
+        const data = await openaiResponse.json();
+        const assistantMessage = data.choices[0]?.message?.content || '';
+        
+        // Essayer d'extraire les actions du message
+        let actions: any[] = [];
+        try {
+          // Chercher un bloc JSON dans la réponse
+          const jsonMatch = assistantMessage.match(/```json\n?([\s\S]*?)\n?```/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[1]);
+            if (parsed.actions) actions = parsed.actions;
+          } else {
+            // Chercher un objet JSON direct
+            const directMatch = assistantMessage.match(/\{[\s\S]*"actions"[\s\S]*\}/);
+            if (directMatch) {
+              const parsed = JSON.parse(directMatch[0]);
+              if (parsed.actions) actions = parsed.actions;
+            }
+          }
+        } catch (e) {
+          // Pas d'actions parsables, c'est ok
+        }
+        
+        // Nettoyer le message des blocs JSON
+        let cleanMessage = assistantMessage
+          .replace(/```json\n?[\s\S]*?\n?```/g, '')
+          .replace(/\{[\s\S]*"actions"[\s\S]*\}/g, '')
+          .trim();
+        
+        return res.json({
+          message: cleanMessage || assistantMessage,
+          actions
+        });
+        
+      } catch (error: any) {
+        console.error('AI Chat error:', error);
+        return res.status(500).json({ error: 'Erreur serveur IA: ' + error.message });
+      }
+    }
+    
+    // AI Analyze Map
+    if (path === '/ai/analyze-map' && method === 'POST') {
+      if (!OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API key not configured' });
+      }
+      
+      const { imageUrl, imageBase64 } = req.body;
+      
+      const imageContent = imageBase64 
+        ? { type: 'image_url', image_url: { url: imageBase64 } }
+        : { type: 'image_url', image_url: { url: imageUrl } };
+      
+      try {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content: `Tu es un expert en géographie et cartographie. Analyse cette image de carte et détermine les coordonnées GPS des coins de l'image.
+
+Réponds UNIQUEMENT avec un JSON valide de ce format:
+{
+  "detected": true/false,
+  "region": "Nom de la région/pays",
+  "confidence": "high/medium/low",
+  "description": "Description courte",
+  "topLeft": { "lat": number, "lng": number },
+  "bottomRight": { "lat": number, "lng": number },
+  "reason": "Explication si non détecté"
+}`
+              },
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'Analyse cette carte et donne-moi les coordonnées GPS des coins.' },
+                  imageContent
+                ]
+              }
+            ],
+            max_tokens: 500,
+          }),
+        });
+        
+        if (!openaiResponse.ok) {
+          const error = await openaiResponse.json();
+          return res.status(500).json({ error: 'Erreur OpenAI Vision: ' + (error.error?.message || 'inconnue') });
+        }
+        
+        const data = await openaiResponse.json();
+        const content = data.choices[0]?.message?.content || '';
+        
+        // Parser le JSON de la réponse
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const result = JSON.parse(jsonMatch[0]);
+            return res.json(result);
+          }
+        } catch (e) {
+          console.error('Parse error:', e);
+        }
+        
+        return res.json({ detected: false, reason: 'Impossible de parser la réponse' });
+        
+      } catch (error: any) {
+        console.error('AI Analyze Map error:', error);
+        return res.status(500).json({ error: 'Erreur analyse carte: ' + error.message });
+      }
+    }
+
     // Route not found
     return res.status(404).json({ error: 'Route non trouvée' });
 

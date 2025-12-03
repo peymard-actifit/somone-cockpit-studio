@@ -98,6 +98,9 @@ export interface Element {
   positionY?: number;  // Position Y en % de l'image
   width?: number;      // Largeur en % de l'image
   height?: number;     // Hauteur en % de l'image
+  // Image de fond pour la vue élément
+  backgroundImage?: string;
+  backgroundMode?: BackgroundMode;
 }
 
 // Sous-catégorie

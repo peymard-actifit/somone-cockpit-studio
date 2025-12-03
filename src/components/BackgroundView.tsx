@@ -37,10 +37,19 @@ interface BackgroundViewProps {
   readOnly?: boolean;
 }
 
-export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
+export default function BackgroundView({ domain, onElementClick, readOnly = false }: BackgroundViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const { setCurrentElement, updateElement, updateDomain, addCategory, addElement } = useCockpitStore();
+  
+  // Handler de clic sur un élément : utilise onElementClick si fourni, sinon setCurrentElement
+  const handleElementClick = (elementId: string) => {
+    if (onElementClick) {
+      onElementClick(elementId);
+    } else {
+      setCurrentElement(elementId);
+    }
+  };
   
   // État du zoom et position (comme MapView)
   const [scale, setScale] = useState(1);
@@ -83,7 +92,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Limites de zoom
   const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 4;
+  const MAX_ZOOM = 8;
   const ZOOM_STEP = 0.25;
   
   // Récupérer tous les éléments du domaine avec position et taille
@@ -190,7 +199,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       const width = Math.abs(drawEnd.x - drawStart.x);
       const height = Math.abs(drawEnd.y - drawStart.y);
       
-      if (width > 1 && height > 1) {
+      if (width > 0.1 && height > 0.1) {
         setDrawnRect({ x, y, width, height });
         setIsDrawing(false);
         setShowAddModal(true);
@@ -416,7 +425,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   };
   
   return (
-    <div className="relative min-h-full bg-[#F5F7FA] overflow-hidden">
+    <div className="relative bg-[#F5F7FA] overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: '400px' }}>
       {/* Header - Style PDF SOMONE mode clair */}
       <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
@@ -446,8 +455,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
       </div>
       
-      {/* Mode dessin actif */}
-      {isDrawing && (
+      {/* Mode dessin actif - seulement en mode studio */}
+      {!readOnly && isDrawing && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 bg-[#1E3A5F] text-white rounded-lg px-4 py-2 shadow-lg flex items-center gap-2">
           <MuiIcon name="Pencil" size={16} />
           <span className="text-sm font-medium">Dessinez un rectangle sur l'image</span>
@@ -463,7 +472,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       {/* Conteneur de la vue avec zoom/pan */}
       <div
         ref={containerRef}
-        className={`w-full h-[calc(100vh-180px)] overflow-hidden ${
+        className={`w-full h-full overflow-hidden ${
           isDrawing ? 'cursor-crosshair' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         onWheel={handleWheel}
@@ -504,16 +513,20 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
               <div className="mx-auto mb-4"><MuiIcon name="ImageIcon" size={64} className="text-[#CBD5E1]" /></div>
               <p className="text-[#64748B]">Aucune image de fond configurée</p>
-                <p className="text-sm text-[#94A3B8] mt-2 mb-4">
-                  Ajoutez une image depuis un fichier ou une URL
-                </p>
-                <button
-                  onClick={() => setShowConfigModal(true)}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
-                >
-                  Configurer l'image
-                </button>
-              </div>
+              {!readOnly && (
+                <>
+                  <p className="text-sm text-[#94A3B8] mt-2 mb-4">
+                    Ajoutez une image depuis un fichier ou une URL
+                  </p>
+                  <button
+                    onClick={() => setShowConfigModal(true)}
+                    className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
+                  >
+                    Configurer l'image
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
           
@@ -534,27 +547,56 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           {clusters.map((cluster) => {
             const colors = STATUS_COLORS[cluster.worstStatus];
             
+            // Centre du cluster
+            const centerX = cluster.bounds.x + cluster.bounds.width / 2;
+            const centerY = cluster.bounds.y + cluster.bounds.height / 2;
+            
+            // Taille du cluster = max 3% de la carte (rond)
+            const clusterSize = 3;
+            
+            // Handler pour zoomer sur le cluster au clic
+            const handleClusterClick = () => {
+              // Zoom +100% (doubler l'échelle actuelle, plafonné à MAX_ZOOM)
+              const newScale = Math.min(MAX_ZOOM, scale + 1);
+              
+              // Centrer la vue sur le cluster
+              const container = containerRef.current;
+              if (container) {
+                const containerRect = container.getBoundingClientRect();
+                
+                // Calculer le décalage pour centrer le cluster
+                // Le cluster est à (centerX%, centerY%) - on calcule le décalage depuis le centre (50%)
+                const offsetX = (0.5 - centerX / 100) * containerRect.width * newScale;
+                const offsetY = (0.5 - centerY / 100) * containerRect.height * newScale;
+                
+                setPosition({ x: offsetX, y: offsetY });
+              }
+              
+              setScale(newScale);
+            };
+            
             return (
               <div
                 key={cluster.id}
                 className="absolute z-10 group"
                 style={{
-                  left: `${cluster.bounds.x}%`,
-                  top: `${cluster.bounds.y}%`,
-                  width: `${cluster.bounds.width}%`,
-                  height: `${cluster.bounds.height}%`,
+                  left: `${centerX - clusterSize / 2}%`,
+                  top: `${centerY - clusterSize / 2}%`,
+                  width: `${clusterSize}%`,
+                  height: `${clusterSize}%`,
                 }}
                 onMouseEnter={() => setHoveredElement(cluster.id)}
                 onMouseLeave={() => setHoveredElement(null)}
+                onClick={handleClusterClick}
               >
                 <div 
-                  className="w-full h-full rounded-sm cursor-pointer hover:brightness-110 transition-all flex items-center justify-center"
+                  className="w-full h-full rounded-full cursor-pointer hover:brightness-110 hover:scale-110 transition-all flex items-center justify-center"
                   style={{ 
                     backgroundColor: colors.hex,
                     boxShadow: `0 2px 8px ${colors.hex}50`
                   }}
                 >
-                  <span className="text-white font-bold text-lg">{cluster.count}</span>
+                  <span className="text-white font-bold text-sm">{cluster.count}</span>
                 </div>
                 
                 {/* Tooltip cluster */}
@@ -562,7 +604,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50 pointer-events-none">
                     <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-3 py-2 whitespace-nowrap">
                       <p className="font-medium text-sm">{cluster.count} éléments groupés</p>
-                      <p className="text-xs text-[#94A3B8] mt-1">Zoomez pour voir les détails</p>
+                      <p className="text-xs text-[#94A3B8] mt-1">Cliquez pour zoomer (+100%)</p>
                       <div className="text-xs mt-1 space-y-0.5">
                         {cluster.elements.slice(0, 3).map(e => (
                           <div key={e.id} className="flex items-center gap-1">
@@ -607,7 +649,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 {hasIcon ? (
                   <div 
                     className="w-full h-full flex items-center justify-center cursor-pointer hover:scale-110 transition-all"
-                    onClick={() => setCurrentElement(element.id)}
+                    onClick={() => handleElementClick(element.id)}
                     style={{ color: colors.hex }}
                   >
                     <MuiIcon name={element.icon!} size={iconSize} />
@@ -615,7 +657,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 ) : (
                   <div 
                     className="w-full h-full rounded-sm cursor-pointer hover:brightness-110 transition-all"
-                    onClick={() => setCurrentElement(element.id)}
+                    onClick={() => handleElementClick(element.id)}
                     style={{ 
                       backgroundColor: colors.hex,
                       boxShadow: `0 2px 8px ${colors.hex}50`
@@ -623,8 +665,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   />
                 )}
                 
-                {/* Bouton d'édition au survol - en bas, centré, à l'intérieur */}
-                {hoveredElement === element.id && (
+                {/* Bouton d'édition au survol - SEULEMENT en mode studio (pas readOnly) */}
+                {!readOnly && hoveredElement === element.id && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -683,25 +725,27 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         </div>
       </div>
       
-      {/* Boutons d'action */}
-      <div className="absolute bottom-4 right-4 z-20 flex gap-2">
-        <button
-          onClick={() => setShowConfigModal(true)}
-          className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
-        >
-          <MuiIcon name="SettingsIcon" size={20} />
-          Configurer
-        </button>
-        <button 
-          onClick={startDrawingMode}
-          disabled={!domain.backgroundImage}
-          className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          title={!domain.backgroundImage ? 'Configurez d\'abord une image de fond' : 'Dessinez un rectangle pour ajouter un élément'}
-        >
-          <MuiIcon name="Plus" size={20} />
-          Ajouter un élément
-        </button>
-      </div>
+      {/* Boutons d'action - seulement en mode studio */}
+      {!readOnly && (
+        <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+          <button
+            onClick={() => setShowConfigModal(true)}
+            className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
+          >
+            <MuiIcon name="SettingsIcon" size={20} />
+            Configurer
+          </button>
+          <button 
+            onClick={startDrawingMode}
+            disabled={!domain.backgroundImage}
+            className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!domain.backgroundImage ? 'Configurez d\'abord une image de fond' : 'Dessinez un rectangle pour ajouter un élément'}
+          >
+            <MuiIcon name="Plus" size={20} />
+            Ajouter un élément
+          </button>
+        </div>
+      )}
       
       {/* Modal Configuration Image */}
       {showConfigModal && (

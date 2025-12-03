@@ -38,9 +38,18 @@ interface MapViewProps {
   readOnly?: boolean;
 }
 
-export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: MapViewProps) {
+export default function MapView({ domain, onElementClick, readOnly = false }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { updateDomain, addMapElement, deleteMapElement, updateMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement } = useCockpitStore();
+  
+  // Handler de clic sur un élément : utilise onElementClick si fourni, sinon setCurrentElement
+  const handleElementNavigate = (elementId: string) => {
+    if (onElementClick) {
+      onElementClick(elementId);
+    } else {
+      setCurrentElement(elementId);
+    }
+  };
   const { token } = useAuthStore();
   const confirm = useConfirm();
   
@@ -101,7 +110,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   
   // Limites de zoom
   const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 4;
+  const MAX_ZOOM = 8;
   const ZOOM_STEP = 0.25;
   
   // Reset zoom et position quand l'image change
@@ -398,9 +407,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const handlePointClick = (point: MapElement) => {
     if (point.elementId) {
       // Si le point est lié à un élément, naviguer vers cet élément
-      setCurrentElement(point.elementId);
-    } else {
-      // Créer un Element pour ce point
+      handleElementNavigate(point.elementId);
+    } else if (!readOnly) {
+      // Créer un Element pour ce point (seulement en mode édition)
       createElementFromPoint(point);
     }
   };
@@ -530,7 +539,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const { clusters, singlePoints } = calculateClusters();
   
   return (
-    <div className="relative min-h-full bg-[#F5F7FA] overflow-hidden">
+    <div className="relative bg-[#F5F7FA] overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: '400px' }}>
       {/* Header */}
       <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
@@ -540,7 +549,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         <p className="text-sm text-[#64748B] mt-1">
           {(domain.mapElements?.length || 0)} point(s) sur la carte
         </p>
-        {!hasMapBounds && mapImageUrl && (
+        {!readOnly && !hasMapBounds && mapImageUrl && (
           <p className="text-xs text-[#FFB74D] mt-1 flex items-center gap-1">
             <MuiIcon name="AlertTriangleIcon" size={12} />
             Configurez les coordonnées GPS
@@ -569,7 +578,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       {/* Conteneur de la carte */}
       <div
         ref={containerRef}
-        className={`w-full h-[calc(100vh-180px)] overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`w-full h-full overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -601,24 +610,50 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
                 <MuiIcon name="MapPinIcon" size={48} className="text-[#94A3B8] mx-auto mb-4" />
                 <p className="text-[#64748B] font-medium mb-2">Aucune carte configurée</p>
-                <p className="text-sm text-[#94A3B8] mb-4">Configurez l'image et les coordonnées GPS</p>
-                <button
-                  onClick={() => setShowConfigModal(true)}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
-                >
-                  Configurer la carte
-                </button>
+                {!readOnly && (
+                  <>
+                    <p className="text-sm text-[#94A3B8] mb-4">Configurez l'image et les coordonnées GPS</p>
+                    <button
+                      onClick={() => setShowConfigModal(true)}
+                      className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
+                    >
+                      Configurer la carte
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
           
-          {/* Clusters de points (quand on dézoome) */}
+          {/* Clusters de points (quand on dézoome) - cliquables pour zoomer */}
           {clusters.map((cluster) => {
             const colors = STATUS_COLORS[cluster.worstStatus];
             
-            // Taille dynamique inversement proportionnelle au zoom
-            const clusterSize = 48 / scale;
+            // Taille dynamique basée sur le nombre d'éléments ET inversement proportionnelle au zoom
+            const baseSize = Math.min(80, Math.max(40, cluster.count * 8));
+            const clusterSize = baseSize / scale;
             const fontSize = Math.max(10, Math.round(16 / scale));
+            
+            // Handler pour zoomer sur le cluster
+            const handleClusterClick = () => {
+              // Zoom +100% (ajouter 1 à l'échelle actuelle)
+              const newScale = Math.min(MAX_ZOOM, scale + 1);
+              
+              // Centrer la vue sur le cluster
+              const container = containerRef.current;
+              if (container) {
+                const containerRect = container.getBoundingClientRect();
+                
+                // Calculer la position pour centrer le cluster
+                // Le cluster est à (center.x%, center.y%) - on calcule le décalage depuis le centre (50%)
+                const offsetX = (0.5 - cluster.center.x / 100) * containerRect.width * newScale;
+                const offsetY = (0.5 - cluster.center.y / 100) * containerRect.height * newScale;
+                
+                setPosition({ x: offsetX, y: offsetY });
+              }
+              
+              setScale(newScale);
+            };
             
             return (
               <div
@@ -627,10 +662,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 style={{ left: `${cluster.center.x}%`, top: `${cluster.center.y}%` }}
                 onMouseEnter={() => setHoveredPoint(cluster.id)}
                 onMouseLeave={() => setHoveredPoint(null)}
+                onClick={handleClusterClick}
               >
                 {/* Cercle cluster */}
                 <div 
-                  className="rounded-full shadow-lg flex items-center justify-center font-bold text-white hover:brightness-110 transition-all"
+                  className="rounded-full shadow-lg flex items-center justify-center font-bold text-white hover:scale-110 hover:brightness-110 transition-all"
                   style={{ 
                     width: `${clusterSize}px`,
                     height: `${clusterSize}px`,
@@ -663,7 +699,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                           marginTop: `${3 / scale}px`
                         }}
                       >
-                        Zoomez pour voir les détails
+                        Cliquez pour zoomer (+100%)
                       </div>
                     </div>
                     <div 
@@ -782,48 +818,50 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   </div>
                 )}
                 
-                {/* Boutons d'action (édition + suppression) - taille dynamique */}
-                <div 
-                  className="absolute flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ 
-                    top: `${-4 / scale}px`, 
-                    right: `${-8 / scale}px`,
-                    gap: `${2 / scale}px`
-                  }}
-                >
-                  {/* Bouton éditer */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditPoint(point);
-                    }}
-                    className="bg-[#1E3A5F] text-white rounded-full hover:bg-[#2C4A6E] flex items-center justify-center"
+                {/* Boutons d'action (édition + suppression) - taille dynamique - masqués en lecture seule */}
+                {!readOnly && (
+                  <div 
+                    className="absolute flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     style={{ 
-                      width: `${18 / scale}px`, 
-                      height: `${18 / scale}px`,
-                      padding: `${2 / scale}px`
+                      top: `${-4 / scale}px`, 
+                      right: `${-8 / scale}px`,
+                      gap: `${2 / scale}px`
                     }}
-                    title="Modifier"
                   >
-                    <MuiIcon name="Pencil" size={Math.max(8, Math.round(10 / scale))} />
-                  </button>
-                  {/* Bouton supprimer */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeletePoint(point.id, point.name);
-                    }}
-                    className="bg-red-500 text-white rounded-full hover:bg-red-600 flex items-center justify-center"
-                    style={{ 
-                      width: `${18 / scale}px`, 
-                      height: `${18 / scale}px`,
-                      padding: `${2 / scale}px`
-                    }}
-                    title="Supprimer"
-                  >
-                    <MuiIcon name="X" size={Math.max(8, Math.round(10 / scale))} />
-                  </button>
-                </div>
+                    {/* Bouton éditer */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditPoint(point);
+                      }}
+                      className="bg-[#1E3A5F] text-white rounded-full hover:bg-[#2C4A6E] flex items-center justify-center"
+                      style={{ 
+                        width: `${18 / scale}px`, 
+                        height: `${18 / scale}px`,
+                        padding: `${2 / scale}px`
+                      }}
+                      title="Modifier"
+                    >
+                      <MuiIcon name="Pencil" size={Math.max(8, Math.round(10 / scale))} />
+                    </button>
+                    {/* Bouton supprimer */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePoint(point.id, point.name);
+                      }}
+                      className="bg-red-500 text-white rounded-full hover:bg-red-600 flex items-center justify-center"
+                      style={{ 
+                        width: `${18 / scale}px`, 
+                        height: `${18 / scale}px`,
+                        padding: `${2 / scale}px`
+                      }}
+                      title="Supprimer"
+                    >
+                      <MuiIcon name="X" size={Math.max(8, Math.round(10 / scale))} />
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -850,25 +888,27 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         </div>
       </div>
       
-      {/* Boutons d'action */}
-      <div className="absolute bottom-4 right-4 z-20 flex gap-2">
-        <button
-          onClick={() => setShowConfigModal(true)}
-          className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
-        >
-          <MuiIcon name="SettingsIcon" size={20} />
-          Configurer
-        </button>
-        <button
-          onClick={() => setShowAddPointModal(true)}
-          disabled={!hasMapBounds}
-          className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] text-white rounded-xl hover:bg-[#2C4A6E] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          title={!hasMapBounds ? 'Configurez d\'abord les coordonnées GPS de la carte' : 'Ajouter un point'}
-        >
-          <MuiIcon name="Plus" size={20} />
-          Ajouter un point
-        </button>
-      </div>
+      {/* Boutons d'action (masqués en mode lecture seule) */}
+      {!readOnly && (
+        <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+          <button
+            onClick={() => setShowConfigModal(true)}
+            className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
+          >
+            <MuiIcon name="SettingsIcon" size={20} />
+            Configurer
+          </button>
+          <button
+            onClick={() => setShowAddPointModal(true)}
+            disabled={!hasMapBounds}
+            className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] text-white rounded-xl hover:bg-[#2C4A6E] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!hasMapBounds ? 'Configurez d\'abord les coordonnées GPS de la carte' : 'Ajouter un point'}
+          >
+            <MuiIcon name="Plus" size={20} />
+            Ajouter un point
+          </button>
+        </div>
+      )}
       
       {/* Modal Configuration */}
       {showConfigModal && (

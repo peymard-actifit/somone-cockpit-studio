@@ -222,8 +222,8 @@ export default function HomePage() {
               
               {/* Info */}
               <div className="p-5">
-                <h3 className="text-lg font-semibold text-white mb-2 truncate">
-                  {cockpit.name}
+                <h3 className="text-lg font-semibold text-[#1E3A5F] mb-2 truncate">
+                  {cockpit.name || 'Sans nom'}
                 </h3>
                 <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
                   <MuiIcon name="Clock" size={16} />

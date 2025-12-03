@@ -166,7 +166,7 @@ export default function PublicCockpitPage() {
       </header>
       
       {/* Contenu principal */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-auto">
         {currentElement && currentCategory ? (
           // Vue Element (sous-éléments)
           <div className="h-full flex flex-col">
@@ -189,6 +189,7 @@ export default function PublicCockpitPage() {
               <ElementView 
                 element={currentElement}
                 readOnly={true}
+                onBack={handleBackToDomain}
               />
             </div>
           </div>
