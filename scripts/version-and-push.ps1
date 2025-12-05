@@ -87,5 +87,5 @@ if ($tracker.changeCount -eq 0 -and $tracker.lastVersion) {
     git push origin $tracker.lastVersion
 }
 
-Write-Host "`n✓ Terminé! Changements: $($tracker.changeCount)/$changeThreshold" -ForegroundColor Green
+Write-Host "`nTermine! Changements: $($tracker.changeCount)/$changeThreshold" -ForegroundColor Green
 
