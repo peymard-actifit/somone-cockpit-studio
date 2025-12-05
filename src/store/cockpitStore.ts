@@ -40,6 +40,8 @@ interface CockpitState {
   addElement: (categoryId: string, name: string) => void;
   updateElement: (elementId: string, updates: Partial<Element>) => void;
   deleteElement: (elementId: string) => void;
+  moveElement: (elementId: string, fromCategoryId: string, toCategoryId: string) => void;
+  reorderElement: (elementId: string, categoryId: string, newIndex: number) => void;
   
   addSubCategory: (elementId: string, name: string, orientation: 'horizontal' | 'vertical') => void;
   updateSubCategory: (subCategoryId: string, updates: Partial<SubCategory>) => void;
@@ -48,6 +50,8 @@ interface CockpitState {
   addSubElement: (subCategoryId: string, name: string) => void;
   updateSubElement: (subElementId: string, updates: Partial<SubElement>) => void;
   deleteSubElement: (subElementId: string) => void;
+  moveSubElement: (subElementId: string, fromSubCategoryId: string, toSubCategoryId: string) => void;
+  reorderSubElement: (subElementId: string, subCategoryId: string, newIndex: number) => void;
   
   // Zones
   addZone: (name: string) => void;
@@ -57,7 +61,11 @@ interface CockpitState {
   addMapElement: (domainId: string, name: string, gps: GpsCoords, status?: TileStatus, icon?: string) => void;
   updateMapElement: (mapElementId: string, updates: Partial<MapElement>) => void;
   deleteMapElement: (mapElementId: string) => void;
+  cloneMapElement: (mapElementId: string) => void;
   updateMapBounds: (domainId: string, bounds: MapBounds) => void;
+  
+  // Clone Element (pour BackgroundView)
+  cloneElement: (elementId: string) => void;
   
   // Export
   exportToExcel: () => Promise<Blob | null>;
@@ -644,6 +652,230 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     get().triggerAutoSave();
   },
 
+  moveElement: (elementId: string, fromCategoryId: string, toCategoryId: string) => {
+    if (fromCategoryId === toCategoryId) return; // Pas besoin de déplacer si même catégorie
+    
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      let elementToMove: Element | null = null;
+      
+      // Trouver l'élément à déplacer dans tous les domaines
+      for (const domain of state.currentCockpit.domains) {
+        for (const category of domain.categories) {
+          if (category.id === fromCategoryId) {
+            const element = category.elements.find(e => e.id === elementId);
+            if (element) {
+              elementToMove = element;
+              break;
+            }
+          }
+        }
+        if (elementToMove) break;
+      }
+      
+      if (!elementToMove) return state;
+      
+      // Retirer de la catégorie source et ajouter à la catégorie destination
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d => ({
+            ...d,
+            categories: d.categories.map(c => {
+              if (c.id === fromCategoryId) {
+                // Retirer l'élément
+                return {
+                  ...c,
+                  elements: c.elements.filter(e => e.id !== elementId),
+                };
+              }
+              if (c.id === toCategoryId) {
+                // Ajouter l'élément avec le nouveau categoryId
+                const newOrder = c.elements.length;
+                return {
+                  ...c,
+                  elements: [...c.elements, { ...elementToMove!, categoryId: toCategoryId, order: newOrder }],
+                };
+              }
+              return c;
+            }),
+          })),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+    get().triggerAutoSave();
+  },
+
+  moveSubElement: (subElementId: string, fromSubCategoryId: string, toSubCategoryId: string) => {
+    if (fromSubCategoryId === toSubCategoryId) return; // Pas besoin de déplacer si même sous-catégorie
+    
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      let subElementToMove: SubElement | null = null;
+      
+      // Trouver le sous-élément à déplacer dans tous les domaines
+      for (const domain of state.currentCockpit.domains) {
+        for (const category of domain.categories) {
+          for (const element of category.elements) {
+            for (const subCategory of element.subCategories) {
+              if (subCategory.id === fromSubCategoryId) {
+                const subElement = subCategory.subElements.find(se => se.id === subElementId);
+                if (subElement) {
+                  subElementToMove = subElement;
+                  break;
+                }
+              }
+            }
+            if (subElementToMove) break;
+          }
+          if (subElementToMove) break;
+        }
+        if (subElementToMove) break;
+      }
+      
+      if (!subElementToMove) return state;
+      
+      // Retirer de la sous-catégorie source et ajouter à la sous-catégorie destination
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d => ({
+            ...d,
+            categories: d.categories.map(c => ({
+              ...c,
+              elements: c.elements.map(e => ({
+                ...e,
+                subCategories: e.subCategories.map(sc => {
+                  if (sc.id === fromSubCategoryId) {
+                    // Retirer le sous-élément
+                    return {
+                      ...sc,
+                      subElements: sc.subElements.filter(se => se.id !== subElementId),
+                    };
+                  }
+                  if (sc.id === toSubCategoryId) {
+                    // Ajouter le sous-élément avec le nouveau subCategoryId
+                    const newOrder = sc.subElements.length;
+                    return {
+                      ...sc,
+                      subElements: [...sc.subElements, { ...subElementToMove!, subCategoryId: toSubCategoryId, order: newOrder }],
+                    };
+                  }
+                  return sc;
+                }),
+              })),
+            })),
+          })),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+    get().triggerAutoSave();
+  },
+
+  reorderElement: (elementId: string, categoryId: string, newIndex: number) => {
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d => ({
+            ...d,
+            categories: d.categories.map(c => {
+              if (c.id !== categoryId) return c;
+              
+              const elements = [...c.elements];
+              const currentIndex = elements.findIndex(e => e.id === elementId);
+              
+              if (currentIndex === -1 || currentIndex === newIndex) return c;
+              
+              // Retirer l'élément de sa position actuelle
+              const [element] = elements.splice(currentIndex, 1);
+              
+              // Ajuster l'index cible si on déplace vers l'arrière
+              // (car après avoir retiré l'élément, les indices après lui sont décalés)
+              const adjustedIndex = currentIndex < newIndex ? newIndex - 1 : newIndex;
+              
+              // Insérer à la nouvelle position (bornée entre 0 et la longueur)
+              const finalIndex = Math.max(0, Math.min(adjustedIndex, elements.length));
+              elements.splice(finalIndex, 0, element);
+              
+              // Mettre à jour les ordres
+              const updatedElements = elements.map((e, idx) => ({
+                ...e,
+                order: idx,
+              }));
+              
+              return {
+                ...c,
+                elements: updatedElements,
+              };
+            }),
+          })),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+    get().triggerAutoSave();
+  },
+
+  reorderSubElement: (subElementId: string, subCategoryId: string, newIndex: number) => {
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d => ({
+            ...d,
+            categories: d.categories.map(c => ({
+              ...c,
+              elements: c.elements.map(e => ({
+                ...e,
+                subCategories: e.subCategories.map(sc => {
+                  if (sc.id !== subCategoryId) return sc;
+                  
+                  const subElements = [...sc.subElements];
+                  const currentIndex = subElements.findIndex(se => se.id === subElementId);
+                  
+                  if (currentIndex === -1 || currentIndex === newIndex) return sc;
+                  
+                  // Retirer le sous-élément de sa position actuelle
+                  const [subElement] = subElements.splice(currentIndex, 1);
+                  
+                  // Ajuster l'index cible si on déplace vers l'arrière
+                  // (car après avoir retiré le sous-élément, les indices après lui sont décalés)
+                  const adjustedIndex = currentIndex < newIndex ? newIndex - 1 : newIndex;
+                  
+                  // Insérer à la nouvelle position (bornée entre 0 et la longueur)
+                  const finalIndex = Math.max(0, Math.min(adjustedIndex, subElements.length));
+                  subElements.splice(finalIndex, 0, subElement);
+                  
+                  // Mettre à jour les ordres
+                  const updatedSubElements = subElements.map((se, idx) => ({
+                    ...se,
+                    order: idx,
+                  }));
+                  
+                  return {
+                    ...sc,
+                    subElements: updatedSubElements,
+                  };
+                }),
+              })),
+            })),
+          })),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+    get().triggerAutoSave();
+  },
+
   addZone: (name: string) => {
     const newZone: Zone = {
       id: generateId(),
@@ -716,6 +948,109 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
             mapElements: (d.mapElements || []).filter(me => me.id !== mapElementId),
+          })),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+    get().triggerAutoSave();
+  },
+
+  cloneMapElement: (mapElementId: string) => {
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      let elementToClone: MapElement | null = null;
+      let domainId: string | null = null;
+      
+      // Trouver l'élément à cloner
+      for (const domain of state.currentCockpit.domains) {
+        const element = (domain.mapElements || []).find(me => me.id === mapElementId);
+        if (element) {
+          elementToClone = element;
+          domainId = domain.id;
+          break;
+        }
+      }
+      
+      if (!elementToClone || !domainId) return state;
+      
+      // Créer un clone avec un nouveau nom et un nouvel ID
+      const clonedElement: MapElement = {
+        ...elementToClone,
+        id: generateId(),
+        name: `${elementToClone.name} (copie)`,
+      };
+      
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d => {
+            if (d.id !== domainId) return d;
+            return {
+              ...d,
+              mapElements: [...(d.mapElements || []), clonedElement],
+            };
+          }),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+    get().triggerAutoSave();
+  },
+
+  cloneElement: (elementId: string) => {
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      let elementToClone: Element | null = null;
+      let categoryId: string | null = null;
+      
+      // Trouver l'élément à cloner
+      for (const domain of state.currentCockpit.domains) {
+        for (const category of domain.categories) {
+          const element = category.elements.find(e => e.id === elementId);
+          if (element) {
+            elementToClone = element;
+            categoryId = category.id;
+            break;
+          }
+        }
+        if (elementToClone) break;
+      }
+      
+      if (!elementToClone || !categoryId) return state;
+      
+      // Décaler légèrement la position du clone (2% vers la droite et le bas)
+      const offsetX = elementToClone.positionX !== undefined ? Math.min(95, (elementToClone.positionX || 0) + 2) : undefined;
+      const offsetY = elementToClone.positionY !== undefined ? Math.min(95, (elementToClone.positionY || 0) + 2) : undefined;
+      
+      // Créer un clone avec un nouveau nom, un nouvel ID et réinitialiser les sous-catégories
+      const clonedElement: Element = {
+        ...elementToClone,
+        id: generateId(),
+        categoryId,
+        name: `${elementToClone.name} (copie)`,
+        subCategories: [], // Ne pas cloner les sous-catégories
+        order: 0, // Sera mis à jour dans le code ci-dessous
+        // Préserver position et taille si présentes, avec décalage
+        positionX: offsetX,
+        positionY: offsetY,
+      };
+      
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d => ({
+            ...d,
+            categories: d.categories.map(c => {
+              if (c.id !== categoryId) return c;
+              const newOrder = c.elements.length;
+              return {
+                ...c,
+                elements: [...c.elements, { ...clonedElement, order: newOrder }],
+              };
+            }),
           })),
           updatedAt: new Date().toISOString(),
         },

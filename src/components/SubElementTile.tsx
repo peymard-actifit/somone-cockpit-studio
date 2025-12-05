@@ -15,13 +15,77 @@ interface SubElementTileProps {
     subCategory: string;
   };
   readOnly?: boolean;
+  subCategoryId?: string; // Pour le drag and drop
+  index?: number; // Index dans la sous-catégorie pour le réordonnancement
+  totalElements?: number; // Nombre total de sous-éléments dans la sous-catégorie
+  onReorder?: (draggedSubElementId: string, targetIndex: number) => void; // Callback pour réordonner
 }
 
-export default function SubElementTile({ subElement, breadcrumb, readOnly = false }: SubElementTileProps) {
+export default function SubElementTile({ subElement, breadcrumb, readOnly = false, subCategoryId, index, totalElements, onReorder }: SubElementTileProps) {
   const [showAlert, setShowAlert] = useState(false);
   const { deleteSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const colors = STATUS_COLORS[subElement.status];
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // Gestion du drag and drop
+  const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
+    if (readOnly || !subCategoryId) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/subelement', JSON.stringify({
+      subElementId: subElement.id,
+      subCategoryId: subCategoryId,
+    }));
+    e.currentTarget.style.opacity = '0.5';
+    setIsDragging(true);
+  };
+  
+  const handleDragEnd = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.opacity = '1';
+    setIsDraggingOver(false);
+    setIsDragging(false);
+  };
+  
+  // Gestion du drop sur cette tuile (pour réordonnancement)
+  const handleDragOver = (e: React.DragEvent) => {
+    if (readOnly || !subCategoryId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDraggingOver(true);
+  };
+  
+  const handleDragLeave = () => {
+    setIsDraggingOver(false);
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    if (readOnly || !subCategoryId || !onReorder || typeof index === 'undefined') return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    
+    try {
+      const data = e.dataTransfer.getData('application/subelement');
+      if (!data) return;
+      
+      const { subElementId: draggedSubElementId, subCategoryId: fromSubCategoryId } = JSON.parse(data);
+      
+      // Si c'est la même sous-catégorie et un sous-élément différent, c'est un réordonnancement
+      if (fromSubCategoryId === subCategoryId && draggedSubElementId !== subElement.id && onReorder) {
+        // Déterminer la position selon la position de la souris
+        const rect = e.currentTarget.getBoundingClientRect();
+        const mouseY = e.clientY - rect.top;
+        const isBefore = mouseY < rect.height / 2;
+        
+        // Placer avant ou après selon la position de la souris
+        const targetIndex = isBefore ? index : Math.min((index || 0) + 1, totalElements || 0);
+        onReorder(draggedSubElementId, targetIndex);
+      }
+    } catch (error) {
+      console.error('Erreur lors du drop:', error);
+    }
+  };
   
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -50,14 +114,25 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
       <button
         onClick={handleClick}
         disabled={!hasAlert}
+        draggable={!readOnly && !!subCategoryId}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={`
           group relative overflow-hidden
           min-w-[150px] px-4 py-3
           rounded-lg
           shadow-sm hover:shadow-md
           transition-all duration-200
-          ${hasAlert ? 'hover:scale-[1.02] cursor-pointer' : 'cursor-default'}
           text-left
+          ${!readOnly && subCategoryId 
+            ? (isDragging ? 'cursor-grabbing' : 'cursor-grab')
+            : (hasAlert ? 'cursor-pointer' : 'cursor-default')
+          }
+          ${hasAlert ? 'hover:scale-[1.02]' : ''}
+          ${isDraggingOver ? 'ring-2 ring-white/50 ring-offset-2' : ''}
         `}
         style={{
           backgroundColor: colors.hex,

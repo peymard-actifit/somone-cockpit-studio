@@ -14,16 +14,52 @@ interface CategorySectionProps {
 // Ce composant gère uniquement les catégories HORIZONTALES
 // Les catégories VERTICALES sont gérées directement dans DomainView
 export default function CategorySection({ category, onElementClick, readOnly = false }: CategorySectionProps) {
-  const { addElement, deleteCategory } = useCockpitStore();
+  const { addElement, deleteCategory, moveElement, reorderElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingElement, setIsAddingElement] = useState(false);
   const [newElementName, setNewElementName] = useState('');
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   
   const handleAddElement = () => {
     if (newElementName.trim()) {
       addElement(category.id, newElementName.trim());
       setNewElementName('');
       setIsAddingElement(false);
+    }
+  };
+  
+  // Gestion du drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    if (readOnly) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDraggingOver(true);
+  };
+  
+  const handleDragLeave = () => {
+    setIsDraggingOver(false);
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    if (readOnly) return;
+    e.preventDefault();
+    setIsDraggingOver(false);
+    
+    try {
+      const data = e.dataTransfer.getData('application/element');
+      if (!data) return;
+      
+      const { elementId, categoryId: fromCategoryId } = JSON.parse(data);
+      
+      // Si c'est une autre catégorie, déplacer l'élément à la fin
+      if (fromCategoryId !== category.id) {
+        moveElement(elementId, fromCategoryId, category.id);
+      }
+      // Si c'est la même catégorie mais drop sur le conteneur (pas sur une tuile), 
+      // cela signifie qu'on veut le déplacer à la fin - pas besoin de faire quoi que ce soit
+      // car le réordonnancement est géré par le drop sur les tuiles individuelles
+    } catch (error) {
+      console.error('Erreur lors du drop:', error);
     }
   };
   
@@ -65,10 +101,30 @@ export default function CategorySection({ category, onElementClick, readOnly = f
       </div>
       
       {/* Conteneur blanc pour les éléments - Style PDF SOMONE */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm">
+      <div 
+        className={`bg-white rounded-xl border p-6 shadow-sm transition-all ${
+          isDraggingOver ? 'border-[#1E3A5F] border-2 bg-[#F5F7FA]' : 'border-[#E2E8F0]'
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <div className="flex flex-row flex-wrap gap-4">
-          {category.elements.map((element) => (
-            <ElementTile key={element.id} element={element} onElementClick={onElementClick} readOnly={readOnly} />
+          {category.elements.map((element, index) => (
+            <ElementTile 
+              key={element.id} 
+              element={element} 
+              onElementClick={onElementClick} 
+              readOnly={readOnly}
+              categoryId={category.id}
+              index={index}
+              totalElements={category.elements.length}
+              onReorder={(draggedElementId, targetIndex) => {
+                if (!readOnly) {
+                  reorderElement(draggedElementId, category.id, targetIndex);
+                }
+              }}
+            />
           ))}
           
           {/* Bouton ajouter élément */}

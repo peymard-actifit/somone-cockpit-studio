@@ -160,8 +160,11 @@ export default function StudioPage() {
       
       {/* Contenu principal */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Zone de prévisualisation */}
-        <main className={`flex-1 overflow-auto transition-all ${showEditor ? 'mr-80' : ''}`}>
+        {/* Zone de prévisualisation - largeur fixe pour éviter le décalage des éléments */}
+        <main 
+          className="overflow-auto transition-all"
+          style={{ width: showEditor ? 'calc(100% - 320px)' : '100%' }}
+        >
           {currentElementId && currentElement ? (
             <ElementView element={currentElement} domain={currentDomain!} />
           ) : currentDomain ? (

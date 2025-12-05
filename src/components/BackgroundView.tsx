@@ -41,8 +41,12 @@ interface BackgroundViewProps {
 export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, deleteElement, cloneElement } = useCockpitStore();
   const confirm = useConfirm();
+  
+  // État pour stocker la position et taille réelle de l'image dans le conteneur
+  const [imageBounds, setImageBounds] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   
   // État du zoom et position (comme MapView)
   const [scale, setScale] = useState(1);
@@ -151,17 +155,139 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setPosition({ x: 0, y: 0 });
   };
   
-  // Convertir position écran en position % sur l'image
-  const screenToImagePercent = (clientX: number, clientY: number) => {
+  // Calculer la position et taille réelle de l'image dans le conteneur (avec object-contain)
+  const calculateImageBounds = useCallback(() => {
     const container = imageContainerRef.current;
-    if (!container) return { x: 0, y: 0 };
+    const img = imageRef.current;
+    if (!container || !img || !domain.backgroundImage) {
+      setImageBounds(null);
+      return;
+    }
     
-    const rect = container.getBoundingClientRect();
-    const x = ((clientX - rect.left) / rect.width) * 100;
-    const y = ((clientY - rect.top) / rect.height) * 100;
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Dimensions naturelles de l'image
+    const imgNaturalWidth = img.naturalWidth;
+    const imgNaturalHeight = img.naturalHeight;
+    
+    if (imgNaturalWidth === 0 || imgNaturalHeight === 0) {
+      setImageBounds(null);
+      return;
+    }
+    
+    // Calculer les dimensions avec object-contain
+    const containerAspect = containerWidth / containerHeight;
+    const imageAspect = imgNaturalWidth / imgNaturalHeight;
+    
+    let displayedWidth: number;
+    let displayedHeight: number;
+    
+    if (imageAspect > containerAspect) {
+      // L'image est plus large : elle est limitée par la largeur
+      displayedWidth = containerWidth;
+      displayedHeight = containerWidth / imageAspect;
+    } else {
+      // L'image est plus haute : elle est limitée par la hauteur
+      displayedHeight = containerHeight;
+      displayedWidth = containerHeight * imageAspect;
+    }
+    
+    // Position centrée
+    const x = (containerWidth - displayedWidth) / 2;
+    const y = (containerHeight - displayedHeight) / 2;
+    
+    setImageBounds({ x, y, width: displayedWidth, height: displayedHeight });
+  }, [domain.backgroundImage]);
+  
+  // Mettre à jour les bounds quand l'image charge ou que le conteneur change
+  useEffect(() => {
+    if (!domain.backgroundImage) {
+      setImageBounds(null);
+      return;
+    }
+    
+    const container = imageContainerRef.current;
+    const img = imageRef.current;
+    
+    if (!container || !img) return;
+    
+    // Attendre que l'image soit chargée
+    if (img.complete) {
+      calculateImageBounds();
+    } else {
+      img.onload = calculateImageBounds;
+    }
+    
+    // Recalculer lors du resize
+    const resizeObserver = new ResizeObserver(calculateImageBounds);
+    resizeObserver.observe(container);
+    
+    return () => {
+      resizeObserver.disconnect();
+      if (img) {
+        img.onload = null;
+      }
+    };
+  }, [domain.backgroundImage, calculateImageBounds]);
+  
+  // Convertir position écran en position % relative à l'image (0-100% de l'image elle-même)
+  const screenToImagePercent = useCallback((clientX: number, clientY: number) => {
+    const container = imageContainerRef.current;
+    if (!container || !imageBounds) return { x: 0, y: 0 };
+    
+    const containerRect = container.getBoundingClientRect();
+    const containerX = clientX - containerRect.left;
+    const containerY = clientY - containerRect.top;
+    
+    // Coordonnées relatives à l'image
+    const imageX = containerX - imageBounds.x;
+    const imageY = containerY - imageBounds.y;
+    
+    // Convertir en pourcentage par rapport à l'image
+    const x = (imageX / imageBounds.width) * 100;
+    const y = (imageY / imageBounds.height) * 100;
     
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
-  };
+  }, [imageBounds]);
+  
+  // Convertir position % relative à l'image (0-100% de l'image) en position % dans le conteneur
+  const imagePercentToContainerPercent = useCallback((imageX: number, imageY: number) => {
+    if (!imageBounds || !imageContainerRef.current) {
+      return { x: imageX, y: imageY };
+    }
+    
+    const container = imageContainerRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Position absolue dans le conteneur
+    const absoluteX = imageBounds.x + (imageX / 100) * imageBounds.width;
+    const absoluteY = imageBounds.y + (imageY / 100) * imageBounds.height;
+    
+    // Convertir en pourcentage du conteneur
+    return {
+      x: (absoluteX / containerWidth) * 100,
+      y: (absoluteY / containerHeight) * 100,
+    };
+  }, [imageBounds]);
+
+  // Convertir taille % relative à l'image (0-100% de l'image) en taille % dans le conteneur
+  const imageSizePercentToContainerSizePercent = useCallback((imagePercent: number, isWidth: boolean = true) => {
+    if (!imageBounds || !imageContainerRef.current) {
+      return imagePercent;
+    }
+    
+    const container = imageContainerRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const containerSize = isWidth ? containerRect.width : containerRect.height;
+    const imageSize = isWidth ? imageBounds.width : imageBounds.height;
+    
+    // Convertir la taille de % de l'image à % du conteneur
+    return imagePercent * (imageSize / containerSize);
+  }, [imageBounds]);
   
   // Début du drag de la vue ou du dessin
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -608,7 +734,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         className={`w-full flex-1 overflow-hidden ${
           isDrawing ? 'cursor-crosshair' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
-        style={{ minHeight: '400px' }}
+        style={{ minHeight: '400px', height: _readOnly ? '100%' : undefined }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -628,12 +754,19 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           {/* Image de fond */}
           {domain.backgroundImage ? (
             <img 
+              ref={imageRef}
               src={domain.backgroundImage}
               alt="Fond"
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               draggable={false}
+              onLoad={() => {
+                calculateImageBounds();
+                if (_readOnly) {
+                  console.log(`[BackgroundView] Image chargée avec succès pour le domaine "${domain.name}"`);
+                }
+              }}
               onError={(e) => {
-                console.error('Erreur chargement image de fond');
+                console.error(`[BackgroundView] Erreur chargement image de fond pour le domaine "${domain.name}"`, domain.backgroundImage?.substring(0, 50));
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
@@ -662,37 +795,53 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           
           {/* Rectangle en cours de dessin */}
           {isDrawing && drawStart.x !== 0 && (
-            <div
-              className="absolute border-2 border-dashed border-[#1E3A5F] bg-[#1E3A5F]/10 pointer-events-none"
-              style={{
-                left: `${Math.min(drawStart.x, drawEnd.x)}%`,
-                top: `${Math.min(drawStart.y, drawEnd.y)}%`,
-                width: `${Math.abs(drawEnd.x - drawStart.x)}%`,
-                height: `${Math.abs(drawEnd.y - drawStart.y)}%`,
-              }}
-            />
+            (() => {
+              const minX = Math.min(drawStart.x, drawEnd.x);
+              const minY = Math.min(drawStart.y, drawEnd.y);
+              const width = Math.abs(drawEnd.x - drawStart.x);
+              const height = Math.abs(drawEnd.y - drawStart.y);
+              const containerPos = imagePercentToContainerPercent(minX, minY);
+              const containerWidth = imageSizePercentToContainerSizePercent(width, true);
+              const containerHeight = imageSizePercentToContainerSizePercent(height, false);
+              
+              return (
+                <div
+                  className="absolute border-2 border-dashed border-[#1E3A5F] bg-[#1E3A5F]/10 pointer-events-none"
+                  style={{
+                    left: `${containerPos.x}%`,
+                    top: `${containerPos.y}%`,
+                    width: `${containerWidth}%`,
+                    height: `${containerHeight}%`,
+                  }}
+                />
+              );
+            })()
           )}
           
           {/* Clusters d'éléments */}
           {clusters.map((cluster) => {
             const colors = STATUS_COLORS[cluster.worstStatus];
             
-            // Centre du cluster
+            // Centre du cluster (en % de l'image)
             const centerX = cluster.bounds.x + cluster.bounds.width / 2;
             const centerY = cluster.bounds.y + cluster.bounds.height / 2;
             
-            // Taille du cluster = max 3% de la carte (rond)
+            // Taille du cluster = 3% de l'image (rond)
             const clusterSize = 3;
+            
+            // Convertir en coordonnées conteneur
+            const containerPos = imagePercentToContainerPercent(centerX, centerY);
+            const containerClusterSize = imageSizePercentToContainerSizePercent(clusterSize, true);
             
             return (
               <div
                 key={cluster.id}
                 className="absolute z-10 group"
                 style={{
-                  left: `${centerX - clusterSize / 2}%`,
-                  top: `${centerY - clusterSize / 2}%`,
-                  width: `${clusterSize}%`,
-                  height: `${clusterSize}%`,
+                  left: `${containerPos.x - containerClusterSize / 2}%`,
+                  top: `${containerPos.y - containerClusterSize / 2}%`,
+                  width: `${containerClusterSize}%`,
+                  height: `${containerClusterSize}%`,
                 }}
                 onMouseEnter={() => setHoveredElement(cluster.id)}
                 onMouseLeave={() => setHoveredElement(null)}
@@ -737,15 +886,24 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             const colors = STATUS_COLORS[element.status];
             const hasIcon = !!element.icon;
             
+            // Convertir les positions et tailles relatives à l'image en positions dans le conteneur
+            const containerPos = imagePercentToContainerPercent(
+              element.positionX || 0,
+              element.positionY || 0
+            );
+            // Les largeurs/hauteurs sont aussi en % de l'image, donc on doit convertir
+            const containerWidthPercent = imageSizePercentToContainerSizePercent(element.width || 0, true);
+            const containerHeightPercent = imageSizePercentToContainerSizePercent(element.height || 0, false);
+            
             return (
               <div
                 key={element.id}
                 className="absolute z-10 group"
                 style={{
-                  left: `${element.positionX}%`,
-                  top: `${element.positionY}%`,
-                  width: `${element.width}%`,
-                  height: `${element.height}%`,
+                  left: `${containerPos.x}%`,
+                  top: `${containerPos.y}%`,
+                  width: `${containerWidthPercent}%`,
+                  height: `${containerHeightPercent}%`,
                 }}
                 onMouseEnter={() => setHoveredElement(element.id)}
                 onMouseLeave={() => setHoveredElement(null)}
@@ -803,25 +961,42 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   />
                 )}
                 
-                {/* Bouton d'édition au survol - en dessous de l'élément */}
+                {/* Boutons d'action au survol - en dessous de l'élément */}
                 {hoveredElement === element.id && !_readOnly && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openEditModal(element);
-                    }}
-                    className="absolute top-full left-1/2 transform -translate-x-1/2 mt-0 flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all z-20 shadow-md border border-[#E2E8F0]"
-                    style={{
-                      padding: '4px 8px',
-                      minWidth: '24px',
-                      minHeight: '24px',
-                    }}
-                    title="Modifier"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                    </svg>
-                  </button>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-0 flex items-center gap-1 z-20">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditModal(element);
+                      }}
+                      className="flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all shadow-md border border-[#E2E8F0]"
+                      style={{
+                        padding: '4px 8px',
+                        minWidth: '24px',
+                        minHeight: '24px',
+                      }}
+                      title="Modifier"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cloneElement(element.id);
+                      }}
+                      className="flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all shadow-md border border-[#E2E8F0]"
+                      style={{
+                        padding: '4px 8px',
+                        minWidth: '24px',
+                        minHeight: '24px',
+                      }}
+                      title="Cloner"
+                    >
+                      <MuiIcon name="CopyIcon" size={16} className="text-[#1E3A5F]" />
+                    </button>
+                  </div>
                 )}
                 
                 {/* Tooltip au survol */}
@@ -1182,7 +1357,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       
       {/* Modal Éditer Élément */}
       {showEditModal && editingElement && (
-        <Modal title="Modifier l'élément" onClose={() => { setShowEditModal(false); setEditingElement(null); }}>
+        <Modal title="Modifier l'élément" maxWidth="max-w-xl" onClose={() => { setShowEditModal(false); setEditingElement(null); }}>
           <div className="space-y-4">
             {/* Nom */}
             <div>
@@ -1313,15 +1488,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             </div>
             
             {/* Boutons */}
-            <div className="flex justify-between gap-3 pt-4 border-t border-[#E2E8F0]">
+            <div className="flex flex-wrap justify-between gap-2 pt-4 border-t border-[#E2E8F0]">
               <button
                 onClick={() => setCurrentElement(editingElement.id)}
-                className="px-4 py-2 text-[#1E3A5F] hover:bg-[#F5F7FA] rounded-lg flex items-center gap-2"
+                className="px-3 py-2 text-[#1E3A5F] hover:bg-[#F5F7FA] rounded-lg flex items-center gap-2 text-sm"
               >
                 <MuiIcon name="ExternalLink" size={16} />
-                Voir détails
+                <span className="whitespace-nowrap">Voir détails</span>
               </button>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => {
                     if (editingElement) {
@@ -1330,32 +1505,32 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                       setEditingElement(null);
                     }
                   }}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2"
+                  className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2 text-sm"
                   title="Créer une copie de cet élément"
                 >
                   <MuiIcon name="CopyIcon" size={16} />
-                  Cloner
+                  <span className="whitespace-nowrap">Cloner</span>
                 </button>
                 <button
                   onClick={handleDeleteElement}
-                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
+                  className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm"
                 >
                   <MuiIcon name="Trash2" size={16} />
-                  Supprimer
+                  <span className="whitespace-nowrap">Supprimer</span>
                 </button>
                 <button
                   onClick={() => { setShowEditModal(false); setEditingElement(null); }}
-                  className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"
+                  className="px-3 py-2 text-[#64748B] hover:text-[#1E3A5F] text-sm whitespace-nowrap"
                 >
                   Annuler
                 </button>
                 <button
                   onClick={handleSaveEdit}
                   disabled={!editForm.name.trim()}
-                  className="px-6 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
                 >
                   <MuiIcon name="Check" size={16} />
-                  Enregistrer
+                  <span className="whitespace-nowrap">Enregistrer</span>
                 </button>
               </div>
             </div>
@@ -1367,10 +1542,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 }
 
 // Composant Modal
-function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+function Modal({ title, children, onClose, maxWidth = 'max-w-lg' }: { title: string; children: React.ReactNode; onClose: () => void; maxWidth?: string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className={`bg-white rounded-xl shadow-2xl w-full ${maxWidth} overflow-hidden`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
           <h3 className="text-lg font-semibold text-[#1E3A5F]">{title}</h3>
           <button onClick={onClose} className="p-1 text-[#94A3B8] hover:text-[#1E3A5F]">

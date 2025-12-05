@@ -18,11 +18,15 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
 // Base de données JSON simple
 const dataDir = join(__dirname, '..', 'data');
-const dbPath = join(dataDir, 'db.json');
 
 // Créer le dossier data s'il n'existe pas
 if (!existsSync(dataDir)) {
   mkdirSync(dataDir, { recursive: true });
+}
+
+// Fonction pour obtenir le chemin de la base de données
+function getDbPath(): string {
+  return join(dataDir, 'db.json');
 }
 
 interface User {
@@ -59,6 +63,7 @@ interface Database {
 
 // Charger ou initialiser la base de données
 function loadDb(): Database {
+  const dbPath = getDbPath();
   if (existsSync(dbPath)) {
     try {
       const data = readFileSync(dbPath, 'utf-8');
@@ -71,10 +76,8 @@ function loadDb(): Database {
 }
 
 function saveDb(db: Database): void {
-  writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+  writeFileSync(getDbPath(), JSON.stringify(db, null, 2), 'utf-8');
 }
-
-let db = loadDb();
 
 // Middleware
 app.use(cors());
@@ -122,6 +125,7 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
   }
   
+  const db = loadDb();
   const existing = db.users.find(u => u.username === username);
   if (existing) {
     return res.status(400).json({ error: 'Cet identifiant est déjà utilisé' });
@@ -153,6 +157,7 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   
+  const db = loadDb();
   const user = db.users.find(u => u.username === username);
   
   if (!user) {
@@ -179,6 +184,7 @@ app.post('/api/auth/change-password', authMiddleware, async (req: AuthRequest, r
     return res.status(400).json({ error: 'Ancien et nouveau mot de passe requis' });
   }
   
+  const db = loadDb();
   const user = db.users.find(u => u.id === req.user!.id);
   if (!user) {
     return res.status(404).json({ error: 'Utilisateur non trouvé' });
@@ -198,6 +204,7 @@ app.post('/api/auth/change-password', authMiddleware, async (req: AuthRequest, r
 app.post('/api/auth/toggle-admin', authMiddleware, (req: AuthRequest, res) => {
   const { code } = req.body;
   
+  const db = loadDb();
   const user = db.users.find(u => u.id === req.user!.id);
   if (!user) {
     return res.status(404).json({ error: 'Utilisateur non trouvé' });
@@ -221,6 +228,7 @@ app.post('/api/auth/toggle-admin', authMiddleware, (req: AuthRequest, res) => {
 
 // Routes: Cockpits
 app.get('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
+  const db = loadDb();
   let cockpits;
   
   if (req.user!.isAdmin) {
@@ -244,6 +252,7 @@ app.get('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
 });
 
 app.get('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
+  const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
   
   if (!cockpit) {
@@ -273,6 +282,7 @@ app.post('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'Nom requis' });
   }
   
+  const db = loadDb();
   const id = generateId();
   const now = new Date().toISOString();
   
@@ -299,6 +309,7 @@ app.post('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
 });
 
 app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
+  const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
   
   if (!cockpit) {
@@ -309,11 +320,24 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
   
-  const { name, domains, zones, logo, scrollingBanner } = req.body;
+  const { name, domains, zones, logo, scrollingBanner, publicId, isPublished, publishedAt } = req.body;
   const now = new Date().toISOString();
   
   cockpit.name = name || cockpit.name;
-  cockpit.data = { domains, zones, logo, scrollingBanner };
+  
+  // Préserver les données existantes et fusionner avec les nouvelles
+  const existingData = cockpit.data || {};
+  cockpit.data = {
+    ...existingData,
+    domains: domains || existingData.domains || [],
+    zones: zones || existingData.zones || [],
+    logo: logo !== undefined ? logo : existingData.logo,
+    scrollingBanner: scrollingBanner !== undefined ? scrollingBanner : existingData.scrollingBanner,
+    publicId: publicId !== undefined ? publicId : existingData.publicId,
+    isPublished: isPublished !== undefined ? isPublished : existingData.isPublished,
+    publishedAt: publishedAt !== undefined ? publishedAt : existingData.publishedAt,
+  };
+  
   cockpit.updatedAt = now;
   
   saveDb(db);
@@ -324,6 +348,7 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
 app.post('/api/cockpits/:id/duplicate', authMiddleware, (req: AuthRequest, res) => {
   const { name } = req.body;
   
+  const db = loadDb();
   const original = db.cockpits.find(c => c.id === req.params.id);
   
   if (!original) {
@@ -360,6 +385,7 @@ app.post('/api/cockpits/:id/duplicate', authMiddleware, (req: AuthRequest, res) 
 });
 
 app.delete('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
+  const db = loadDb();
   const cockpitIndex = db.cockpits.findIndex(c => c.id === req.params.id);
   
   if (cockpitIndex === -1) {
@@ -380,6 +406,7 @@ app.delete('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
 
 // Publier un cockpit
 app.post('/api/cockpits/:id/publish', authMiddleware, (req: AuthRequest, res) => {
+  const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
   
   if (!cockpit) {
@@ -408,6 +435,7 @@ app.post('/api/cockpits/:id/publish', authMiddleware, (req: AuthRequest, res) =>
 
 // Dépublier un cockpit
 app.post('/api/cockpits/:id/unpublish', authMiddleware, (req: AuthRequest, res) => {
+  const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
   
   if (!cockpit) {
@@ -426,6 +454,7 @@ app.post('/api/cockpits/:id/unpublish', authMiddleware, (req: AuthRequest, res) 
 
 // Route publique pour accéder à un cockpit publié (sans authentification)
 app.get('/api/public/cockpit/:publicId', (req, res) => {
+  const db = loadDb();
   const cockpit = db.cockpits.find(c => c.data?.publicId === req.params.publicId && c.data?.isPublished);
   
   if (!cockpit) {
@@ -434,18 +463,28 @@ app.get('/api/public/cockpit/:publicId', (req, res) => {
   
   const data = cockpit.data || { domains: [], zones: [] };
   
-  res.json({
+  // Retourner directement toutes les données du cockpit sans modification
+  // Les domaines contiennent déjà toutes leurs propriétés, y compris backgroundImage
+  const response = {
     id: cockpit.id,
     name: cockpit.name,
     createdAt: cockpit.createdAt,
     updatedAt: cockpit.updatedAt,
     publicId: data.publicId,
-    ...data,
-  });
+    isPublished: data.isPublished,
+    publishedAt: data.publishedAt,
+    domains: data.domains || [],
+    zones: data.zones || [],
+    logo: data.logo,
+    scrollingBanner: data.scrollingBanner,
+  };
+  
+  res.json(response);
 });
 
 // Export Excel
 app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
+  const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
   
   if (!cockpit) {
@@ -612,6 +651,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
 
 // Templates
 app.get('/api/templates', authMiddleware, (_req: AuthRequest, res) => {
+  const db = loadDb();
   res.json(db.templates.map(t => ({
     id: t.id,
     name: t.name,
@@ -626,7 +666,10 @@ app.get('/api/templates', authMiddleware, (_req: AuthRequest, res) => {
 app.post('/api/ai/chat', authMiddleware, async (req: AuthRequest, res) => {
   const { message, cockpitContext, history = [] } = req.body;
   
-  if (!OPENAI_API_KEY) {
+  // Vérifier la clé API - essayer plusieurs méthodes
+  const apiKey = process.env.OPENAI_API_KEY || OPENAI_API_KEY;
+  
+  if (!apiKey) {
     return res.status(500).json({ 
       error: 'Clé API OpenAI non configurée. Ajoutez OPENAI_API_KEY dans vos variables d\'environnement.' 
     });
@@ -711,7 +754,7 @@ Statuts: ok (vert), mineur (orange), critique (rouge), fatal (violet), deconnect
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -763,11 +806,160 @@ app.get('/api/ai/status', authMiddleware, (_req: AuthRequest, res) => {
   });
 });
 
+// API Assistant IA publique pour les cockpits publiés (sans authentification, sécurisée par publicId)
+app.post('/api/public/ai/chat/:publicId', async (req, res) => {
+  const { publicId } = req.params;
+  const { message, history = [] } = req.body;
+  
+  // Vérifier que le cockpit existe et est publié
+  const db = loadDb();
+  const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
+  
+  if (!cockpit) {
+    return res.status(404).json({ error: 'Cockpit non trouvé ou non publié' });
+  }
+  
+  // Vérifier la clé API - essayer plusieurs méthodes
+  const apiKey = process.env.OPENAI_API_KEY || OPENAI_API_KEY;
+  
+  if (!apiKey) {
+    console.error('[AI Chat Public] OPENAI_API_KEY non configurée');
+    return res.status(500).json({ 
+      error: 'Clé API OpenAI non configurée. L\'assistant IA n\'est pas disponible.' 
+    });
+  }
+  
+  try {
+    const cockpitContext = {
+      name: cockpit.name,
+      domains: (cockpit.data?.domains || []).map((d: any) => ({
+        name: d.name,
+        templateType: d.templateType,
+        categories: (d.categories || []).map((c: any) => ({
+          name: c.name,
+          elements: (c.elements || []).map((e: any) => ({
+            name: e.name,
+            status: e.status,
+            value: e.value,
+            unit: e.unit,
+          })),
+        })),
+      })),
+    };
+    
+    const systemPrompt = `Tu es un assistant IA pour le cockpit SOMONE "${cockpit.name}". Tu aides les utilisateurs à comprendre et analyser les données du cockpit en mode consultation.
+
+CONTEXTE DU COCKPIT:
+${JSON.stringify(cockpitContext, null, 2)}
+
+RÈGLES IMPORTANTES:
+1. Tu es en MODE CONSULTATION SEULEMENT - tu ne peux pas modifier le cockpit
+2. Réponds TOUJOURS en français et sois concis
+3. Aide les utilisateurs à comprendre les données, les statuts, et les métriques
+4. Tu peux analyser les tendances, identifier les problèmes, suggérer des observations
+5. Ne propose pas d'actions de modification, seulement des analyses et conseils
+
+EXEMPLES DE QUESTIONS:
+- "Combien d'éléments sont en statut critique ?"
+- "Quels sont les domaines du cockpit ?"
+- "Analyse les données du cockpit"
+- "Y a-t-il des alertes ?"
+
+Réponds de manière claire et utile.`;
+    
+    // Construire les messages avec l'historique
+    const chatMessages: Array<{ role: string; content: string }> = [
+      { role: 'system', content: systemPrompt }
+    ];
+    
+    // Ajouter l'historique de la conversation (limité aux 20 derniers messages)
+    const recentHistory = history.slice(-20);
+    for (const msg of recentHistory) {
+      chatMessages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      });
+    }
+    
+    // Ajouter le nouveau message
+    chatMessages.push({ role: 'user', content: message });
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: chatMessages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Erreur OpenAI (public):', errorData);
+      return res.status(500).json({ error: 'Erreur lors de la communication avec OpenAI' });
+    }
+    
+    const data = await response.json();
+    const aiMessage = data.choices[0]?.message?.content || 'Désolé, je n\'ai pas pu générer de réponse.';
+    
+    res.json({
+      message: aiMessage,
+    });
+    
+  } catch (error) {
+    console.error('Erreur API IA publique:', error);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
+  }
+});
+
+// Endpoint pour vérifier si l'API OpenAI est configurée (version publique)
+app.get('/api/public/ai/status/:publicId', (req, res) => {
+  const { publicId } = req.params;
+  
+  // Vérifier que le cockpit existe et est publié
+  const db = loadDb();
+  const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
+  
+  if (!cockpit) {
+    return res.status(404).json({ error: 'Cockpit non trouvé ou non publié' });
+  }
+  
+  // Vérifier la clé API - essayer plusieurs méthodes
+  const envKey = process.env.OPENAI_API_KEY;
+  const constKey = OPENAI_API_KEY;
+  const hasKey = !!(envKey || constKey);
+  const keyLength = (envKey || constKey || '').length;
+  const keyPrefix = (envKey || constKey || '').substring(0, 7);
+  
+  console.log(`[AI Status] PublicId: ${publicId}, Has Key: ${hasKey}, Length: ${keyLength}, Prefix: ${keyPrefix}`);
+  console.log(`[AI Status] envKey exists: ${!!envKey}, constKey exists: ${!!constKey}`);
+  
+  res.json({ 
+    configured: hasKey,
+    model: 'gpt-4o-mini',
+    debug: process.env.NODE_ENV === 'development' ? {
+      hasKey,
+      keyLength,
+      keyPrefix,
+      envVarExists: !!envKey,
+      constKeyExists: !!constKey,
+    } : undefined
+  });
+});
+
 // Endpoint pour analyser une image de carte et détecter les coordonnées GPS
 app.post('/api/ai/analyze-map', authMiddleware, async (req: AuthRequest, res) => {
   const { imageUrl } = req.body;
   
-  if (!OPENAI_API_KEY) {
+  // Vérifier la clé API - essayer plusieurs méthodes
+  const apiKey = process.env.OPENAI_API_KEY || OPENAI_API_KEY;
+  
+  if (!apiKey) {
     return res.status(500).json({ 
       error: 'Clé API OpenAI non configurée.' 
     });
@@ -784,7 +976,7 @@ app.post('/api/ai/analyze-map', authMiddleware, async (req: AuthRequest, res) =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'gpt-4o',
@@ -886,11 +1078,28 @@ Si tu ne reconnais pas la carte:
   }
 });
 
+
 app.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
-  if (OPENAI_API_KEY) {
-    console.log('🤖 Assistant IA OpenAI activé');
+  console.log(`📦 Environnement: ${process.env.NODE_ENV || 'production'}`);
+  
+  // Diagnostic de la clé API
+  const hasKey = !!OPENAI_API_KEY;
+  const keyLength = OPENAI_API_KEY ? OPENAI_API_KEY.length : 0;
+  const keyPrefix = OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 10) + '...' : 'none';
+  
+  console.log(`🔑 OPENAI_API_KEY présente: ${hasKey}`);
+  if (hasKey) {
+    console.log(`✅ Assistant IA OpenAI activé (clé de ${keyLength} caractères, préfixe: ${keyPrefix})`);
   } else {
-    console.log('⚠️  Assistant IA désactivé (OPENAI_API_KEY non configurée)');
+    console.log('⚠️  Assistant IA désactivé - OPENAI_API_KEY non configurée');
+    console.log('💡 Pour activer: Ajoutez OPENAI_API_KEY dans les variables d\'environnement Vercel');
+  }
+  
+  // Vérifier aussi process.env directement
+  if (process.env.OPENAI_API_KEY) {
+    console.log(`📝 Variable d'environnement process.env.OPENAI_API_KEY détectée`);
+  } else {
+    console.log(`⚠️  Variable d'environnement process.env.OPENAI_API_KEY NON détectée`);
   }
 });

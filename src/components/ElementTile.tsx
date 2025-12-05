@@ -3,18 +3,109 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS } from '../types';
 import { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { useState, useRef, useEffect } from 'react';
 
 interface ElementTileProps {
   element: Element;
   mini?: boolean;
   onElementClick?: (elementId: string) => void;
   readOnly?: boolean;
+  categoryId?: string; // Pour le drag and drop
+  index?: number; // Index dans la catégorie pour le réordonnancement
+  totalElements?: number; // Nombre total d'éléments dans la catégorie
+  onReorder?: (draggedElementId: string, targetIndex: number) => void; // Callback pour réordonner
 }
 
-export default function ElementTile({ element, mini = false, onElementClick, readOnly = false }: ElementTileProps) {
+export default function ElementTile({ element, mini = false, onElementClick, readOnly = false, categoryId, index, totalElements, onReorder }: ElementTileProps) {
   const { setCurrentElement, deleteElement } = useCockpitStore();
   const confirm = useConfirm();
   const colors = STATUS_COLORS[element.status];
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const isOkStatus = element.status === 'ok';
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  
+  // Convertir la couleur hex en rgba pour avoir 20% d'opacité (80% de transparence - plus clair)
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+  
+  // Appliquer le style de fond quand le statut change
+  useEffect(() => {
+    if (!buttonRef.current || mini) return;
+    if (isOkStatus) {
+      buttonRef.current.style.backgroundColor = '#FFFFFF';
+    } else {
+      buttonRef.current.style.backgroundColor = hexToRgba(colors.hex, 0.2);
+    }
+  }, [element.status, colors.hex, isOkStatus, mini]);
+  
+  // Gestion du drag and drop
+  const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
+    if (readOnly || mini || !categoryId) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/element', JSON.stringify({
+      elementId: element.id,
+      categoryId: categoryId,
+    }));
+    e.currentTarget.style.opacity = '0.5';
+    setIsDragging(true);
+  };
+  
+  const handleDragEnd = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.opacity = '1';
+    setIsDraggingOver(false);
+    setIsDragging(false);
+    // Réinitialiser le style de fond
+    if (isOkStatus) {
+      e.currentTarget.style.backgroundColor = '#FFFFFF';
+    } else {
+      e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.2);
+    }
+  };
+  
+  // Gestion du drop sur cette tuile (pour réordonnancement)
+  const handleDragOver = (e: React.DragEvent) => {
+    if (readOnly || mini || !categoryId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDraggingOver(true);
+  };
+  
+  const handleDragLeave = () => {
+    setIsDraggingOver(false);
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    if (readOnly || mini || !categoryId || !onReorder || typeof index === 'undefined') return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    
+    try {
+      const data = e.dataTransfer.getData('application/element');
+      if (!data) return;
+      
+      const { elementId: draggedElementId, categoryId: fromCategoryId } = JSON.parse(data);
+      
+      // Si c'est la même catégorie et un élément différent, c'est un réordonnancement
+      if (fromCategoryId === categoryId && draggedElementId !== element.id && onReorder) {
+        // Déterminer la position selon la position de la souris
+        const rect = e.currentTarget.getBoundingClientRect();
+        const mouseY = e.clientY - rect.top;
+        const isBefore = mouseY < rect.height / 2;
+        
+        // Placer avant ou après selon la position de la souris
+        const targetIndex = isBefore ? index : Math.min((index || 0) + 1, totalElements || 0);
+        onReorder(draggedElementId, targetIndex);
+      }
+    } catch (error) {
+      console.error('Erreur lors du drop:', error);
+    }
+  };
   
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,23 +144,56 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   }
   
   // Tuile standard conforme au PDF SOMONE - Fond blanc avec barre de couleur À GAUCHE
+  // Si le statut n'est pas "ok", le fond est rempli avec la couleur du statut à 20% d'opacité (80% de transparence - plus clair)
+  
   return (
     <button
+      ref={buttonRef}
       onClick={handleClick}
-      className="
+      draggable={!readOnly && !mini && !!categoryId}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`
         group relative
         w-[200px] h-[140px]
-        bg-white hover:bg-[#FAFBFC]
-        border border-[#E2E8F0] hover:border-[#CBD5E1]
-        rounded-xl
+        border rounded-xl
         shadow-sm hover:shadow-md
         transition-all duration-200
         hover:scale-[1.02]
-        cursor-pointer
         text-left
         flex
         overflow-hidden
-      "
+        ${!readOnly && !mini && categoryId 
+          ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') 
+          : 'cursor-pointer'
+        }
+        ${isDraggingOver ? 'border-[#1E3A5F] border-2 ring-2 ring-[#1E3A5F]/20' : 'border-[#E2E8F0] hover:border-[#CBD5E1]'}
+      `}
+      style={{
+        backgroundColor: isOkStatus ? '#FFFFFF' : hexToRgba(colors.hex, 0.2),
+        transition: 'background-color 0.2s ease-out',
+      } as React.CSSProperties & { backgroundColor?: string }}
+      onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+        if (!isDragging) {
+          if (isOkStatus) {
+            e.currentTarget.style.backgroundColor = '#FAFBFC';
+          } else {
+            e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.3);
+          }
+        }
+      }}
+      onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+        if (!isDragging) {
+          if (isOkStatus) {
+            e.currentTarget.style.backgroundColor = '#FFFFFF';
+          } else {
+            e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.2);
+          }
+        }
+      }}
     >
       {/* Barre de couleur À GAUCHE - Style PDF SOMONE */}
       <div 

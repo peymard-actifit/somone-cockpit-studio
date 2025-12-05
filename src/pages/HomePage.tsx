@@ -53,7 +53,7 @@ export default function HomePage() {
       return window.location.origin;
     }
     // En développement, utiliser l'URL Vercel si disponible
-    return 'https://somone-cockpit.vercel.app';
+    return 'https://somone-cockpit-studio.vercel.app';
   };
   
   const handlePublish = async (id: string) => {

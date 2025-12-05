@@ -55,8 +55,8 @@ Cliquez sur "Deploy" ou poussez un nouveau commit sur GitHub.
 
 Une fois déployé, vos URLs seront :
 
-- **Application principale** : `https://votre-projet.vercel.app`
-- **URLs publiques des cockpits** : `https://votre-projet.vercel.app/public/{publicId}`
+- **Application principale** : `https://somone-cockpit-studio.vercel.app`
+- **URLs publiques des cockpits** : `https://somone-cockpit-studio.vercel.app/public/{publicId}`
 
 ## Déploiement en ligne de commande (Alternative)
 
@@ -94,6 +94,9 @@ Vérifiez que JWT_SECRET est bien configuré dans les variables d'environnement.
 
 ### Les données disparaissent
 Vérifiez que Vercel KV est bien connecté. Les données en développement local ne sont pas synchronisées avec Vercel.
+
+
+
 
 
 

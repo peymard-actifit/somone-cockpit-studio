@@ -732,8 +732,16 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               src={mapImageUrl}
               alt="Carte"
               className="absolute inset-0 w-full h-full object-contain"
+              onLoad={() => {
+                if (_readOnly) {
+                  console.log(`[MapView] Image de carte chargée avec succès pour le domaine "${domain.name}"`);
+                }
+              }}
               onError={(e) => {
-                console.error('Erreur chargement image carte');
+                console.error(`[MapView] Erreur chargement image carte pour le domaine "${domain.name}"`, mapImageUrl?.substring(0, 50));
+                if (_readOnly) {
+                  console.error(`[MapView] Image de carte non chargée - longueur: ${mapImageUrl?.length || 0} caractères`);
+                }
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
@@ -961,25 +969,42 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   </div>
                 )}
                 
-                {/* Bouton d'édition au survol - en dessous du point */}
+                {/* Boutons d'action au survol - en dessous du point */}
                 {hoveredPoint === point.id && !_readOnly && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditPoint(point);
-                    }}
-                    className="absolute top-full left-1/2 transform -translate-x-1/2 mt-0 flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all z-20 shadow-md border border-[#E2E8F0]"
-                    style={{
-                      padding: `${4 / scale}px ${8 / scale}px`,
-                      minWidth: `${24 / scale}px`,
-                      minHeight: `${24 / scale}px`,
-                    }}
-                    title="Modifier"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: `${16 / scale}px`, height: `${16 / scale}px` }}>
-                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                    </svg>
-                  </button>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-0 flex items-center gap-1 z-20">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditPoint(point);
+                      }}
+                      className="flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all shadow-md border border-[#E2E8F0]"
+                      style={{
+                        padding: `${4 / scale}px ${8 / scale}px`,
+                        minWidth: `${24 / scale}px`,
+                        minHeight: `${24 / scale}px`,
+                      }}
+                      title="Modifier"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: `${16 / scale}px`, height: `${16 / scale}px` }}>
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cloneMapElement(point.id);
+                      }}
+                      className="flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all shadow-md border border-[#E2E8F0]"
+                      style={{
+                        padding: `${4 / scale}px ${8 / scale}px`,
+                        minWidth: `${24 / scale}px`,
+                        minHeight: `${24 / scale}px`,
+                      }}
+                      title="Cloner"
+                    >
+                      <MuiIcon name="CopyIcon" size={16 / scale} className="text-[#1E3A5F]" />
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -1487,7 +1512,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       
       {/* Modal d'édition d'un point */}
       {showEditPointModal && (
-        <Modal title="Modifier l'élément" onClose={() => { setShowEditPointModal(false); setEditingPointId(null); setShowEditIconPicker(false); }}>
+        <Modal title="Modifier l'élément" maxWidth="max-w-xl" onClose={() => { setShowEditPointModal(false); setEditingPointId(null); setShowEditIconPicker(false); }}>
           <div className="space-y-4">
             {/* Nom */}
             <div>
@@ -1594,7 +1619,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             </div>
             
             {/* Boutons */}
-            <div className="flex justify-between gap-3 pt-4 border-t border-[#E2E8F0]">
+            <div className="flex flex-wrap justify-between gap-2 pt-4 border-t border-[#E2E8F0]">
               <button
                 onClick={async () => {
                   const point = domain.mapElements?.find(p => p.id === editingPointId);
@@ -1611,12 +1636,12 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     }
                   }
                 }}
-                className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
+                className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm"
               >
                 <MuiIcon name="Trash2" size={16} />
-                Supprimer
+                <span className="whitespace-nowrap">Supprimer</span>
               </button>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => {
                     if (editingPointId) {
@@ -1626,11 +1651,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                       setShowEditIconPicker(false);
                     }
                   }}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2"
+                  className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2 text-sm"
                   title="Créer une copie de ce point"
                 >
                   <MuiIcon name="CopyIcon" size={16} />
-                  Cloner
+                  <span className="whitespace-nowrap">Cloner</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1638,17 +1663,17 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     setEditingPointId(null);
                     setShowEditIconPicker(false);
                   }}
-                  className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"
+                  className="px-3 py-2 text-[#64748B] hover:text-[#1E3A5F] text-sm whitespace-nowrap"
                 >
                   Annuler
                 </button>
                 <button
                   onClick={handleSaveEditPoint}
                   disabled={!editForm.name.trim() || !editForm.lat || !editForm.lng}
-                  className="px-6 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
                 >
                   <MuiIcon name="Check" size={16} />
-                  Enregistrer
+                  <span className="whitespace-nowrap">Enregistrer</span>
                 </button>
               </div>
             </div>
@@ -1660,10 +1685,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 }
 
 // Composant Modal
-function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+function Modal({ title, children, onClose, maxWidth = 'max-w-lg' }: { title: string; children: React.ReactNode; onClose: () => void; maxWidth?: string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className={`bg-white rounded-xl shadow-2xl w-full ${maxWidth} overflow-hidden`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
           <h3 className="text-lg font-semibold text-[#1E3A5F]">{title}</h3>
           <button onClick={onClose} className="p-1 text-[#94A3B8] hover:text-[#1E3A5F]">

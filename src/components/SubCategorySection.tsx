@@ -13,16 +13,47 @@ interface SubCategorySectionProps {
 }
 
 export default function SubCategorySection({ subCategory, element, domain, readOnly = false }: SubCategorySectionProps) {
-  const { addSubElement, deleteSubCategory } = useCockpitStore();
+  const { addSubElement, deleteSubCategory, moveSubElement, reorderSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubElement, setIsAddingSubElement] = useState(false);
   const [newSubElementName, setNewSubElementName] = useState('');
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   
   const handleAddSubElement = () => {
     if (newSubElementName.trim()) {
       addSubElement(subCategory.id, newSubElementName.trim());
       setNewSubElementName('');
       setIsAddingSubElement(false);
+    }
+  };
+  
+  // Gestion du drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    if (readOnly) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDraggingOver(true);
+  };
+  
+  const handleDragLeave = () => {
+    setIsDraggingOver(false);
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    if (readOnly) return;
+    e.preventDefault();
+    setIsDraggingOver(false);
+    
+    try {
+      const data = e.dataTransfer.getData('application/subelement');
+      if (!data) return;
+      
+      const { subElementId, subCategoryId: fromSubCategoryId } = JSON.parse(data);
+      if (fromSubCategoryId !== subCategory.id) {
+        moveSubElement(subElementId, fromSubCategoryId, subCategory.id);
+      }
+    } catch (error) {
+      console.error('Erreur lors du drop:', error);
     }
   };
   
@@ -69,13 +100,20 @@ export default function SubCategorySection({ subCategory, element, domain, readO
       </div>
       
       {/* Grille de sous-éléments */}
-      <div className={`
-        ${subCategory.orientation === 'vertical' 
-          ? 'flex flex-col gap-3' 
-          : 'flex flex-row flex-wrap gap-3'
-        }
-      `}>
-        {subCategory.subElements.map((subElement) => (
+      <div 
+        className={`
+          ${subCategory.orientation === 'vertical' 
+            ? 'flex flex-col gap-3' 
+            : 'flex flex-row flex-wrap gap-3'
+          }
+          transition-all rounded-lg p-2
+          ${isDraggingOver ? 'bg-[#F5F7FA] border-2 border-[#1E3A5F]' : ''}
+        `}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {subCategory.subElements.map((subElement, index) => (
           <SubElementTile 
             key={subElement.id} 
             subElement={subElement}
@@ -86,6 +124,14 @@ export default function SubCategorySection({ subCategory, element, domain, readO
               subCategory: subCategory.name,
             }}
             readOnly={readOnly}
+            subCategoryId={subCategory.id}
+            index={index}
+            totalElements={subCategory.subElements.length}
+            onReorder={(draggedSubElementId, targetIndex) => {
+              if (!readOnly) {
+                reorderSubElement(draggedSubElementId, subCategory.id, targetIndex);
+              }
+            }}
           />
         ))}
         

@@ -4,6 +4,7 @@ import type { Cockpit, Element, Category } from '../types';
 import { MuiIcon } from '../components/IconPicker';
 import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
+import PublicAIChat from '../components/PublicAIChat';
 
 export default function PublicCockpitPage() {
   const { publicId } = useParams();
@@ -34,7 +35,18 @@ export default function PublicCockpitPage() {
         }
         
         const data = await response.json();
-        console.log('Cockpit data loaded:', data.name, 'Domains:', data.domains?.length);
+        
+        // Diagnostic : vérifier les images dans les domaines
+        if (data.domains) {
+          data.domains.forEach((domain: any) => {
+            if (domain.backgroundImage) {
+              console.log(`✅ Domain "${domain.name}" (${domain.templateType}): image présente (${domain.backgroundImage.length} caractères)`);
+            } else {
+              console.warn(`❌ Domain "${domain.name}" (${domain.templateType}): PAS d'image de fond`);
+            }
+          });
+        }
+        
         setCockpit(data);
         
         // Sélectionner le premier domaine par défaut
@@ -123,9 +135,16 @@ export default function PublicCockpitPage() {
                 <p className="text-xs text-slate-500">Mode consultation</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-              <MuiIcon name="Eye" size={16} className="text-blue-400" />
-              <span className="text-sm text-blue-400">Lecture seule</span>
+            <div className="flex items-center gap-3">
+              {/* Assistant IA */}
+              {publicId && cockpit && (
+                <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
+              )}
+              
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                <MuiIcon name="Eye" size={16} className="text-blue-400" />
+                <span className="text-sm text-blue-400">Lecture seule</span>
+              </div>
             </div>
           </div>
         </div>
@@ -166,7 +185,7 @@ export default function PublicCockpitPage() {
       </header>
       
       {/* Contenu principal */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-hidden">
         {currentElement && currentCategory ? (
           // Vue Element (sous-éléments)
           <div className="h-full flex flex-col">
