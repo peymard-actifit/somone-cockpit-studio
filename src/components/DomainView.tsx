@@ -15,13 +15,14 @@ interface DomainViewProps {
 }
 
 export default function DomainView({ domain, onElementClick, readOnly = false }: DomainViewProps) {
-  const { addCategory, deleteCategory, addElement, updateDomain } = useCockpitStore();
+  const { addCategory, deleteCategory, addElement, updateDomain, moveElement, reorderElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryOrientation, setNewCategoryOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
   const [addingElementToCategory, setAddingElementToCategory] = useState<string | null>(null);
   const [newElementName, setNewElementName] = useState('');
+  const [draggingOverCategoryId, setDraggingOverCategoryId] = useState<string | null>(null);
   
   // Modal de configuration de l'image de fond
   const [showBgConfigModal, setShowBgConfigModal] = useState(false);
@@ -68,12 +69,20 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   
   // Vue carte dynamique
   if (domain.templateType === 'map') {
-    return <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />;
+    return (
+      <div className="h-full">
+        <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />
+      </div>
+    );
   }
   
   // Vue avec image de fond
   if (domain.templateType === 'background') {
-    return <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />;
+    return (
+      <div className="h-full">
+        <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />
+      </div>
+    );
   }
   
   const handleAddCategory = () => {
@@ -200,15 +209,64 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
           
           {/* Tuiles des catégories verticales - en colonnes */}
           <div className="flex">
-            {verticalCategories.map((category) => (
-              <div 
-                key={category.id} 
-                className="flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0"
-              >
-                <div className="flex flex-col gap-3">
-                  {category.elements.map((element) => (
-                    <ElementTile key={element.id} element={element} onElementClick={onElementClick} readOnly={readOnly} />
-                  ))}
+            {verticalCategories.map((category) => {
+              // Gestion du drag and drop pour cette catégorie
+              const handleDragOver = (e: React.DragEvent) => {
+                if (readOnly) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                setDraggingOverCategoryId(category.id);
+              };
+              
+              const handleDragLeave = () => {
+                setDraggingOverCategoryId(null);
+              };
+              
+              const handleDrop = (e: React.DragEvent) => {
+                if (readOnly) return;
+                e.preventDefault();
+                setDraggingOverCategoryId(null);
+                
+                try {
+                  const data = e.dataTransfer.getData('application/element');
+                  if (!data) return;
+                  
+                  const { elementId, categoryId: fromCategoryId } = JSON.parse(data);
+                  if (fromCategoryId !== category.id) {
+                    moveElement(elementId, fromCategoryId, category.id);
+                  }
+                } catch (error) {
+                  console.error('Erreur lors du drop:', error);
+                }
+              };
+              
+              return (
+                <div 
+                  key={category.id} 
+                  className={`flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 transition-all ${
+                    draggingOverCategoryId === category.id ? 'bg-[#F5F7FA] border-[#1E3A5F] border-2' : ''
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <div className="flex flex-col gap-3">
+                    {category.elements.map((element, index) => (
+                      <ElementTile 
+                        key={element.id} 
+                        element={element} 
+                        onElementClick={onElementClick} 
+                        readOnly={readOnly}
+                        categoryId={category.id}
+                        index={index}
+                        totalElements={category.elements.length}
+                        onReorder={(draggedElementId, targetIndex) => {
+                          if (!readOnly) {
+                            reorderElement(draggedElementId, category.id, targetIndex);
+                          }
+                        }}
+                      />
+                    ))}
                   
                   {/* Bouton ajouter élément */}
                   {!readOnly && addingElementToCategory !== category.id && (
@@ -257,8 +315,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

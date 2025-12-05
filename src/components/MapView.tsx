@@ -38,18 +38,10 @@ interface MapViewProps {
   readOnly?: boolean;
 }
 
-export default function MapView({ domain, onElementClick, readOnly = false }: MapViewProps) {
+export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { updateDomain, addMapElement, deleteMapElement, updateMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement } = useCockpitStore();
-  
-  // Handler de clic sur un élément : utilise onElementClick si fourni, sinon setCurrentElement
-  const handleElementNavigate = (elementId: string) => {
-    if (onElementClick) {
-      onElementClick(elementId);
-    } else {
-      setCurrentElement(elementId);
-    }
-  };
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const { updateDomain, addMapElement, deleteMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement } = useCockpitStore();
   const { token } = useAuthStore();
   const confirm = useConfirm();
   
@@ -68,6 +60,11 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
+  // État pour le drag d'un point
+  const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
+  const pointDragStartPosRef = useRef<{ pointId: string; x: number; y: number } | null>(null);
+  const hasDraggedPointRef = useRef<boolean>(false);
+  
   // Modales
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showAddPointModal, setShowAddPointModal] = useState(false);
@@ -81,6 +78,7 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
     topLeftLng: domain.mapBounds?.topLeft.lng?.toString() || '',
     bottomRightLat: domain.mapBounds?.bottomRight.lat?.toString() || '',
     bottomRightLng: domain.mapBounds?.bottomRight.lng?.toString() || '',
+    enableClustering: domain.enableClustering !== false, // Par défaut true
   });
   
   // Formulaire ajout point
@@ -127,6 +125,7 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
       topLeftLng: domain.mapBounds?.topLeft.lng?.toString() || '',
       bottomRightLat: domain.mapBounds?.bottomRight.lat?.toString() || '',
       bottomRightLng: domain.mapBounds?.bottomRight.lng?.toString() || '',
+      enableClustering: domain.enableClustering !== false,
     });
   }, [domain]);
   
@@ -154,6 +153,36 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
     return { x, y };
   };
   
+  // Convertir position % sur l'image en coordonnées GPS (inverse de gpsToPosition)
+  const positionToGps = (pos: { x: number; y: number }): GpsCoords | null => {
+    if (!domain.mapBounds) return null;
+    
+    const { topLeft, bottomRight } = domain.mapBounds;
+    
+    // Vérifier que les bounds sont valides
+    if (!topLeft || !bottomRight) return null;
+    if (topLeft.lat === bottomRight.lat || topLeft.lng === bottomRight.lng) return null;
+    
+    // Conversion inverse
+    const lng = topLeft.lng + (pos.x / 100) * (bottomRight.lng - topLeft.lng);
+    const lat = topLeft.lat - (pos.y / 100) * (topLeft.lat - bottomRight.lat);
+    
+    return { lat, lng };
+  };
+  
+  // Convertir position de la souris en position relative dans l'image (en tenant compte du zoom et pan)
+  const mouseToImagePosition = (clientX: number, clientY: number): { x: number; y: number } | null => {
+    if (!containerRef.current || !imageContainerRef.current) return null;
+    
+    const imageRect = imageContainerRef.current.getBoundingClientRect();
+    
+    // Position de la souris relative au conteneur transformé
+    const relativeX = ((clientX - imageRect.left) / imageRect.width) * 100;
+    const relativeY = ((clientY - imageRect.top) / imageRect.height) * 100;
+    
+    return { x: Math.max(0, Math.min(100, relativeX)), y: Math.max(0, Math.min(100, relativeY)) };
+  };
+  
   // Zoom avec la molette
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -172,6 +201,8 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
   // Début du drag
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
+    // Ne pas démarrer le drag de la vue si on drague un point
+    if (draggingPointId) return;
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -181,16 +212,45 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
   
   // Pendant le drag
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    // Drag d'un point
+    if (draggingPointId) {
+      // Marquer qu'un drag a eu lieu
+      if (pointDragStartPosRef.current) {
+        const dragDistance = Math.sqrt(
+          Math.pow(e.clientX - pointDragStartPosRef.current.x, 2) + 
+          Math.pow(e.clientY - pointDragStartPosRef.current.y, 2)
+        );
+        if (dragDistance > 5) {
+          hasDraggedPointRef.current = true;
+        }
+      }
+      const imagePos = mouseToImagePosition(e.clientX, e.clientY);
+      if (imagePos) {
+        const newGps = positionToGps(imagePos);
+        if (newGps) {
+          updateMapElement(draggingPointId, { gps: newGps });
+        }
+      }
+      return;
+    }
+    
+    // Drag de la vue
     if (!isDragging) return;
     setPosition({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y,
     });
-  }, [isDragging, dragStart]);
+  }, [isDragging, dragStart, draggingPointId, mouseToImagePosition, positionToGps, updateMapElement]);
   
   // Fin du drag
   const handleMouseUp = () => {
     setIsDragging(false);
+    // Réinitialiser après un court délai pour permettre au onClick de vérifier le flag
+    setTimeout(() => {
+      setDraggingPointId(null);
+      pointDragStartPosRef.current = null;
+      hasDraggedPointRef.current = false;
+    }, 100);
   };
   
   // Double-clic pour zoomer
@@ -275,8 +335,11 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
   
   // Sauvegarder la configuration de la carte
   const handleSaveConfig = () => {
-    // Sauvegarder l'URL de l'image
-    updateDomain(domain.id, { backgroundImage: configForm.imageUrl });
+    // Sauvegarder l'URL de l'image et le clustering
+    updateDomain(domain.id, { 
+      backgroundImage: configForm.imageUrl,
+      enableClustering: configForm.enableClustering,
+    });
     
     // Sauvegarder les coordonnées GPS si toutes sont remplies
     const lat1 = parseFloat(configForm.topLeftLat);
@@ -360,17 +423,6 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
     }
   };
   
-  // Supprimer un point
-  const handleDeletePoint = async (pointId: string, pointName: string) => {
-    const confirmed = await confirm({
-      title: 'Supprimer le point',
-      message: `Voulez-vous supprimer le point "${pointName}" ?`,
-    });
-    if (confirmed) {
-      deleteMapElement(pointId);
-    }
-  };
-  
   // Ouvrir l'édition d'un point
   const handleEditPoint = (point: MapElement) => {
     setEditingPointId(point.id);
@@ -407,9 +459,9 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
   const handlePointClick = (point: MapElement) => {
     if (point.elementId) {
       // Si le point est lié à un élément, naviguer vers cet élément
-      handleElementNavigate(point.elementId);
-    } else if (!readOnly) {
-      // Créer un Element pour ce point (seulement en mode édition)
+      setCurrentElement(point.elementId);
+    } else {
+      // Créer un Element pour ce point
       createElementFromPoint(point);
     }
   };
@@ -462,12 +514,58 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
   };
   
   const mapImageUrl = domain.backgroundImage;
+  
+  // Diagnostic en mode read-only
+  useEffect(() => {
+    if (_readOnly) {
+      if (!mapImageUrl) {
+        console.warn(`[MapView] Domain "${domain.name}": backgroundImage est ${mapImageUrl}`);
+      } else {
+        console.log(`[MapView] Domain "${domain.name}": backgroundImage présente (${mapImageUrl.length} caractères)`);
+      }
+    }
+  }, [domain.name, mapImageUrl, _readOnly]);
   const hasMapBounds = domain.mapBounds?.topLeft && domain.mapBounds?.bottomRight;
+  
+  // État local pour le toggle (réactif) - avec localStorage en mode readOnly
+  const getInitialClustering = (): boolean => {
+    if (_readOnly) {
+      const localValue = localStorage.getItem(`clustering-${domain.id}`);
+      if (localValue !== null) {
+        return localValue === 'true';
+      }
+    }
+    return domain.enableClustering !== false;
+  };
+  
+  const [localClustering, setLocalClustering] = useState(getInitialClustering);
+  
+  // Synchroniser avec le domaine quand il change
+  useEffect(() => {
+    if (_readOnly) {
+      const localValue = localStorage.getItem(`clustering-${domain.id}`);
+      if (localValue !== null) {
+        setLocalClustering(localValue === 'true');
+      } else {
+        setLocalClustering(domain.enableClustering !== false);
+      }
+    } else {
+      setLocalClustering(domain.enableClustering !== false);
+    }
+  }, [domain.id, domain.enableClustering, _readOnly]);
   
   // Calculer les clusters de points en fonction du niveau de zoom
   const calculateClusters = (): { clusters: PointCluster[]; singlePoints: MapElement[] } => {
     const points = domain.mapElements || [];
     if (points.length === 0) return { clusters: [], singlePoints: [] };
+    
+    // Vérifier si le clustering est activé
+    const clusteringEnabled = localClustering;
+    
+    // Si le clustering est désactivé, retourner tous les points individuellement
+    if (!clusteringEnabled) {
+      return { clusters: [], singlePoints: points };
+    }
     
     // Distance de clustering en % (augmente quand on dézoome)
     const clusterDistance = 15 / scale; // Plus on dézoome, plus la distance est grande
@@ -539,7 +637,7 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
   const { clusters, singlePoints } = calculateClusters();
   
   return (
-    <div className="relative bg-[#F5F7FA] overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: '400px' }}>
+    <div className="relative h-full bg-[#F5F7FA] overflow-hidden flex flex-col">
       {/* Header */}
       <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
@@ -549,7 +647,7 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
         <p className="text-sm text-[#64748B] mt-1">
           {(domain.mapElements?.length || 0)} point(s) sur la carte
         </p>
-        {!readOnly && !hasMapBounds && mapImageUrl && (
+        {!_readOnly && !hasMapBounds && mapImageUrl && (
           <p className="text-xs text-[#FFB74D] mt-1 flex items-center gap-1">
             <MuiIcon name="AlertTriangleIcon" size={12} />
             Configurez les coordonnées GPS
@@ -565,7 +663,7 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
         <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
           <MuiIcon name="Minus" size={20} />
         </button>
-        <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title="Réinitialiser">
+        <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Réinitialiser">
           <MuiIcon name="Maximize2" size={20} />
         </button>
       </div>
@@ -575,10 +673,43 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
         <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
       </div>
       
+      {/* Toggle regroupement - Visible dans le studio et les cockpits publiés */}
+      <div className="absolute top-20 right-4 z-30 bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
+        <div className="flex items-center gap-1.5">
+          <MuiIcon name="Layers" size={12} className="text-[#1E3A5F]" />
+          <button
+            onClick={() => {
+              const newValue = !localClustering;
+              setLocalClustering(newValue);
+              
+              if (_readOnly) {
+                // En mode readOnly, sauvegarder dans localStorage
+                localStorage.setItem(`clustering-${domain.id}`, String(newValue));
+              } else {
+                // En mode studio, sauvegarder dans le domaine
+                updateDomain(domain.id, { enableClustering: newValue });
+              }
+            }}
+            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+              localClustering ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+            }`}
+            role="switch"
+            aria-checked={localClustering}
+            title={localClustering ? 'Désactiver le regroupement' : 'Activer le regroupement'}
+          >
+            <span
+              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
+                localClustering ? 'translate-x-3.5' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+      
       {/* Conteneur de la carte */}
       <div
         ref={containerRef}
-        className={`w-full h-full overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`w-full flex-1 overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -587,11 +718,12 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
         onDoubleClick={handleDoubleClick}
       >
         <div
+          ref={imageContainerRef}
           className="w-full h-full relative"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center',
-            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+            transition: isDragging || draggingPointId ? 'none' : 'transform 0.1s ease-out',
           }}
         >
           {/* Image de fond */}
@@ -610,17 +742,13 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
               <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
                 <MuiIcon name="MapPinIcon" size={48} className="text-[#94A3B8] mx-auto mb-4" />
                 <p className="text-[#64748B] font-medium mb-2">Aucune carte configurée</p>
-                {!readOnly && (
-                  <>
-                    <p className="text-sm text-[#94A3B8] mb-4">Configurez l'image et les coordonnées GPS</p>
-                    <button
-                      onClick={() => setShowConfigModal(true)}
-                      className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
-                    >
-                      Configurer la carte
-                    </button>
-                  </>
-                )}
+                <p className="text-sm text-[#94A3B8] mb-4">Configurez l'image et les coordonnées GPS</p>
+                <button
+                  onClick={() => setShowConfigModal(true)}
+                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
+                >
+                  Configurer la carte
+                </button>
               </div>
             </div>
           )}
@@ -760,16 +888,31 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
                 onMouseEnter={() => setHoveredPoint(point.id)}
                 onMouseLeave={() => setHoveredPoint(null)}
               >
-                {/* Icône colorée - toujours cliquable */}
+                {/* Icône colorée - draggable en mode studio */}
                 <div 
-                  className="rounded-full shadow-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110"
+                  className={`rounded-full shadow-lg flex items-center justify-center transition-all hover:brightness-110 ${
+                    !_readOnly ? 'cursor-move' : 'cursor-pointer'
+                  }`}
                   style={{ 
                     width: `${dynamicSize}px`,
                     height: `${dynamicSize}px`,
                     backgroundColor: colors.hex,
                     boxShadow: `0 4px 12px ${colors.hex}50`
                   }}
-                  onClick={() => handlePointClick(point)}
+                  onMouseDown={(e) => {
+                    if (!_readOnly && e.button === 0) {
+                      e.stopPropagation();
+                      setDraggingPointId(point.id);
+                      pointDragStartPosRef.current = { pointId: point.id, x: e.clientX, y: e.clientY };
+                    }
+                  }}
+                  onClick={() => {
+                    // Ne pas ouvrir si un drag a eu lieu
+                    if (hasDraggedPointRef.current) {
+                      return;
+                    }
+                    handlePointClick(point);
+                  }}
                 >
                   <MuiIcon name={iconName} size={iconSize} className="text-white" />
                 </div>
@@ -818,49 +961,25 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
                   </div>
                 )}
                 
-                {/* Boutons d'action (édition + suppression) - taille dynamique - masqués en lecture seule */}
-                {!readOnly && (
-                  <div 
-                    className="absolute flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ 
-                      top: `${-4 / scale}px`, 
-                      right: `${-8 / scale}px`,
-                      gap: `${2 / scale}px`
+                {/* Bouton d'édition au survol - en dessous du point */}
+                {hoveredPoint === point.id && !_readOnly && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditPoint(point);
                     }}
+                    className="absolute top-full left-1/2 transform -translate-x-1/2 mt-0 flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all z-20 shadow-md border border-[#E2E8F0]"
+                    style={{
+                      padding: `${4 / scale}px ${8 / scale}px`,
+                      minWidth: `${24 / scale}px`,
+                      minHeight: `${24 / scale}px`,
+                    }}
+                    title="Modifier"
                   >
-                    {/* Bouton éditer */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditPoint(point);
-                      }}
-                      className="bg-[#1E3A5F] text-white rounded-full hover:bg-[#2C4A6E] flex items-center justify-center"
-                      style={{ 
-                        width: `${18 / scale}px`, 
-                        height: `${18 / scale}px`,
-                        padding: `${2 / scale}px`
-                      }}
-                      title="Modifier"
-                    >
-                      <MuiIcon name="Pencil" size={Math.max(8, Math.round(10 / scale))} />
-                    </button>
-                    {/* Bouton supprimer */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePoint(point.id, point.name);
-                      }}
-                      className="bg-red-500 text-white rounded-full hover:bg-red-600 flex items-center justify-center"
-                      style={{ 
-                        width: `${18 / scale}px`, 
-                        height: `${18 / scale}px`,
-                        padding: `${2 / scale}px`
-                      }}
-                      title="Supprimer"
-                    >
-                      <MuiIcon name="X" size={Math.max(8, Math.round(10 / scale))} />
-                    </button>
-                  </div>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: `${16 / scale}px`, height: `${16 / scale}px` }}>
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                    </svg>
+                  </button>
                 )}
               </div>
             );
@@ -889,7 +1008,7 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
       </div>
       
       {/* Boutons d'action (masqués en mode lecture seule) */}
-      {!readOnly && (
+      {!_readOnly && (
         <div className="absolute bottom-4 right-4 z-20 flex gap-2">
           <button
             onClick={() => setShowConfigModal(true)}
@@ -1099,6 +1218,38 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+            
+            {/* Options d'affichage */}
+            <div className="p-4 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+              <h4 className="font-medium text-[#1E3A5F] mb-3 flex items-center gap-2">
+                <MuiIcon name="SettingsIcon" size={16} />
+                Options d'affichage
+              </h4>
+              
+              {/* Toggle regroupement */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-sm font-medium text-[#1E3A5F]">Regroupement des points</label>
+                  <p className="text-xs text-[#64748B] mt-1">
+                    Regrouper les points proches en clusters pour améliorer la lisibilité
+                  </p>
+                </div>
+                <button
+                  onClick={() => setConfigForm({ ...configForm, enableClustering: !configForm.enableClustering })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    configForm.enableClustering ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                  }`}
+                  role="switch"
+                  aria-checked={configForm.enableClustering}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      configForm.enableClustering ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
             </div>
             
@@ -1443,25 +1594,63 @@ export default function MapView({ domain, onElementClick, readOnly = false }: Ma
             </div>
             
             {/* Boutons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-[#E2E8F0]">
+            <div className="flex justify-between gap-3 pt-4 border-t border-[#E2E8F0]">
               <button
-                onClick={() => {
-                  setShowEditPointModal(false);
-                  setEditingPointId(null);
-                  setShowEditIconPicker(false);
+                onClick={async () => {
+                  const point = domain.mapElements?.find(p => p.id === editingPointId);
+                  if (point) {
+                    const confirmed = await confirm({
+                      title: 'Supprimer le point',
+                      message: `Voulez-vous supprimer le point "${point.name}" ?`,
+                    });
+                    if (confirmed) {
+                      deleteMapElement(editingPointId!);
+                      setShowEditPointModal(false);
+                      setEditingPointId(null);
+                      setShowEditIconPicker(false);
+                    }
+                  }
                 }}
-                className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"
+                className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
               >
-                Annuler
+                <MuiIcon name="Trash2" size={16} />
+                Supprimer
               </button>
-              <button
-                onClick={handleSaveEditPoint}
-                disabled={!editForm.name.trim() || !editForm.lat || !editForm.lng}
-                className="px-6 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <MuiIcon name="Check" size={16} />
-                Enregistrer
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    if (editingPointId) {
+                      cloneMapElement(editingPointId);
+                      setShowEditPointModal(false);
+                      setEditingPointId(null);
+                      setShowEditIconPicker(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2"
+                  title="Créer une copie de ce point"
+                >
+                  <MuiIcon name="CopyIcon" size={16} />
+                  Cloner
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditPointModal(false);
+                    setEditingPointId(null);
+                    setShowEditIconPicker(false);
+                  }}
+                  className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSaveEditPoint}
+                  disabled={!editForm.name.trim() || !editForm.lat || !editForm.lng}
+                  className="px-6 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <MuiIcon name="Check" size={16} />
+                  Enregistrer
+                </button>
+              </div>
             </div>
           </div>
         </Modal>

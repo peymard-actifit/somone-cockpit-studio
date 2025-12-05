@@ -97,7 +97,8 @@ export default function HomePage() {
             </div>
           </div>
           
-          {/* User Menu */}
+          <div className="flex items-center gap-4">
+            {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -147,6 +148,7 @@ export default function HomePage() {
                 </div>
               </>
             )}
+          </div>
           </div>
         </div>
       </header>

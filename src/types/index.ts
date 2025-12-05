@@ -64,6 +64,7 @@ export interface Domain {
   backgroundImage?: string;
   backgroundMode?: BackgroundMode;  // 'behind' = en fond, 'overlay' = au-dessus (sans gêner les clics)
   mapBounds?: MapBounds;  // Coordonnées GPS des coins de la carte
+  enableClustering?: boolean;  // Activer/désactiver le regroupement des éléments (défaut: true)
   categories: Category[];
   mapElements?: MapElement[];
 }

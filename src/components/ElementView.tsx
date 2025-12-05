@@ -14,13 +14,14 @@ interface ElementViewProps {
 }
 
 export default function ElementView({ element, domain, readOnly = false, onBack }: ElementViewProps) {
-  const { setCurrentElement, addSubCategory, addSubElement, deleteSubCategory, updateElement } = useCockpitStore();
+  const { setCurrentElement, addSubCategory, addSubElement, deleteSubCategory, updateElement, reorderSubElement, moveSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState('');
   const [newSubCategoryOrientation, setNewSubCategoryOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
   const [addingSubElementToSubCategory, setAddingSubElementToSubCategory] = useState<string | null>(null);
   const [newSubElementName, setNewSubElementName] = useState('');
+  const [draggingOverSubCategoryId, setDraggingOverSubCategoryId] = useState<string | null>(null);
   
   // Modal de configuration de l'image de fond
   const [showBgConfigModal, setShowBgConfigModal] = useState(false);
@@ -86,6 +87,36 @@ export default function ElementView({ element, domain, readOnly = false, onBack 
       addSubElement(subCategoryId, newSubElementName.trim());
       setNewSubElementName('');
       setAddingSubElementToSubCategory(null);
+    }
+  };
+  
+  // Handlers de drag-and-drop pour les sous-catégories verticales
+  const handleDragOver = (e: React.DragEvent, subCategoryId: string) => {
+    if (readOnly) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDraggingOverSubCategoryId(subCategoryId);
+  };
+  
+  const handleDragLeave = () => {
+    setDraggingOverSubCategoryId(null);
+  };
+  
+  const handleDrop = (e: React.DragEvent, subCategoryId: string) => {
+    if (readOnly) return;
+    e.preventDefault();
+    setDraggingOverSubCategoryId(null);
+    
+    try {
+      const data = e.dataTransfer.getData('application/subelement');
+      if (!data) return;
+      
+      const { subElementId, subCategoryId: fromSubCategoryId } = JSON.parse(data);
+      if (fromSubCategoryId !== subCategoryId) {
+        moveSubElement(subElementId, fromSubCategoryId, subCategoryId);
+      }
+    } catch (error) {
+      console.error('Erreur lors du drop:', error);
     }
   };
   
@@ -240,10 +271,15 @@ export default function ElementView({ element, domain, readOnly = false, onBack 
               {verticalSubCategories.map((subCategory) => (
                 <div 
                   key={subCategory.id} 
-                  className="flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0"
+                  className={`flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 transition-all rounded-lg ${
+                    draggingOverSubCategoryId === subCategory.id ? 'bg-[#F5F7FA] border-2 border-[#1E3A5F]' : ''
+                  }`}
+                  onDragOver={(e) => handleDragOver(e, subCategory.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, subCategory.id)}
                 >
                   <div className="flex flex-col gap-3">
-                    {subCategory.subElements.map((subElement) => (
+                    {subCategory.subElements.map((subElement, index) => (
                       <SubElementTile 
                         key={subElement.id} 
                         subElement={subElement}
@@ -254,6 +290,14 @@ export default function ElementView({ element, domain, readOnly = false, onBack 
                           subCategory: subCategory.name,
                         }}
                         readOnly={readOnly}
+                        subCategoryId={subCategory.id}
+                        index={index}
+                        totalElements={subCategory.subElements.length}
+                        onReorder={(draggedSubElementId, targetIndex) => {
+                          if (!readOnly) {
+                            reorderSubElement(draggedSubElementId, subCategory.id, targetIndex);
+                          }
+                        }}
                       />
                     ))}
                     
