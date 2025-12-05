@@ -293,14 +293,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       
       console.log('Found cockpit:', cockpit.name);
-      return res.json({
+      
+      // Construire explicitement la réponse pour garantir que toutes les données sont incluses
+      const data = cockpit.data || {};
+      const domains = data.domains || [];
+      
+      // Log des images pour débogage
+      domains.forEach((domain: any) => {
+        if (domain.backgroundImage) {
+          console.log(`[Public API] Domain "${domain.name}" (${domain.templateType}): backgroundImage présente (${domain.backgroundImage.length} caractères)`);
+        } else {
+          console.warn(`[Public API] Domain "${domain.name}" (${domain.templateType}): PAS d'image de fond`);
+        }
+      });
+      
+      const response = {
         id: cockpit.id,
         name: cockpit.name,
         createdAt: cockpit.createdAt,
         updatedAt: cockpit.updatedAt,
-        publicId: cockpit.data.publicId,
-        ...cockpit.data,
-      });
+        publicId: data.publicId,
+        isPublished: data.isPublished,
+        publishedAt: data.publishedAt,
+        domains: domains,
+        zones: data.zones || [],
+        logo: data.logo,
+        scrollingBanner: data.scrollingBanner,
+      };
+      
+      return res.json(response);
     }
 
     // All other routes require authentication
@@ -410,20 +431,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { name, domains, zones, logo, scrollingBanner } = req.body;
       const now = new Date().toISOString();
       
-      // Preserve publication info
-      const existingPublicId = cockpit.data?.publicId;
-      const existingIsPublished = cockpit.data?.isPublished;
-      const existingPublishedAt = cockpit.data?.publishedAt;
-
       cockpit.name = name || cockpit.name;
-      cockpit.data = { 
-        domains, 
-        zones, 
-        logo, 
-        scrollingBanner,
-        publicId: existingPublicId,
-        isPublished: existingIsPublished,
-        publishedAt: existingPublishedAt
+      
+      // Faire un merge au lieu de remplacer complètement
+      // Préserver toutes les données existantes si elles ne sont pas dans la requête
+      if (!cockpit.data) {
+        cockpit.data = { domains: [], zones: [] };
+      }
+      
+      cockpit.data = {
+        domains: domains !== undefined ? domains : cockpit.data.domains || [],
+        zones: zones !== undefined ? zones : cockpit.data.zones || [],
+        logo: logo !== undefined ? logo : cockpit.data.logo,
+        scrollingBanner: scrollingBanner !== undefined ? scrollingBanner : cockpit.data.scrollingBanner,
+        // Préserver les infos de publication
+        publicId: cockpit.data.publicId,
+        isPublished: cockpit.data.isPublished,
+        publishedAt: cockpit.data.publishedAt,
       };
       cockpit.updatedAt = now;
 

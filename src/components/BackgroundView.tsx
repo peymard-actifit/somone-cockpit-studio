@@ -252,42 +252,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
   }, [imageBounds]);
   
-  // Convertir position % relative à l'image (0-100% de l'image) en position % dans le conteneur
-  const imagePercentToContainerPercent = useCallback((imageX: number, imageY: number) => {
-    if (!imageBounds || !imageContainerRef.current) {
-      return { x: imageX, y: imageY };
-    }
-    
-    const container = imageContainerRef.current;
-    const containerRect = container.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const containerHeight = containerRect.height;
-    
-    // Position absolue dans le conteneur
-    const absoluteX = imageBounds.x + (imageX / 100) * imageBounds.width;
-    const absoluteY = imageBounds.y + (imageY / 100) * imageBounds.height;
-    
-    // Convertir en pourcentage du conteneur
-    return {
-      x: (absoluteX / containerWidth) * 100,
-      y: (absoluteY / containerHeight) * 100,
-    };
-  }, [imageBounds]);
-
-  // Convertir taille % relative à l'image (0-100% de l'image) en taille % dans le conteneur
-  const imageSizePercentToContainerSizePercent = useCallback((imagePercent: number, isWidth: boolean = true) => {
-    if (!imageBounds || !imageContainerRef.current) {
-      return imagePercent;
-    }
-    
-    const container = imageContainerRef.current;
-    const containerRect = container.getBoundingClientRect();
-    const containerSize = isWidth ? containerRect.width : containerRect.height;
-    const imageSize = isWidth ? imageBounds.width : imageBounds.height;
-    
-    // Convertir la taille de % de l'image à % du conteneur
-    return imagePercent * (imageSize / containerSize);
-  }, [imageBounds]);
   
   // Début du drag de la vue ou du dessin
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -795,27 +759,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           
           {/* Rectangle en cours de dessin */}
           {isDrawing && drawStart.x !== 0 && (
-            (() => {
-              const minX = Math.min(drawStart.x, drawEnd.x);
-              const minY = Math.min(drawStart.y, drawEnd.y);
-              const width = Math.abs(drawEnd.x - drawStart.x);
-              const height = Math.abs(drawEnd.y - drawStart.y);
-              const containerPos = imagePercentToContainerPercent(minX, minY);
-              const containerWidth = imageSizePercentToContainerSizePercent(width, true);
-              const containerHeight = imageSizePercentToContainerSizePercent(height, false);
-              
-              return (
-                <div
-                  className="absolute border-2 border-dashed border-[#1E3A5F] bg-[#1E3A5F]/10 pointer-events-none"
-                  style={{
-                    left: `${containerPos.x}%`,
-                    top: `${containerPos.y}%`,
-                    width: `${containerWidth}%`,
-                    height: `${containerHeight}%`,
-                  }}
-                />
-              );
-            })()
+            <div
+              className="absolute border-2 border-dashed border-[#1E3A5F] bg-[#1E3A5F]/10 pointer-events-none"
+              style={{
+                left: `${Math.min(drawStart.x, drawEnd.x)}%`,
+                top: `${Math.min(drawStart.y, drawEnd.y)}%`,
+                width: `${Math.abs(drawEnd.x - drawStart.x)}%`,
+                height: `${Math.abs(drawEnd.y - drawStart.y)}%`,
+              }}
+            />
           )}
           
           {/* Clusters d'éléments */}
@@ -829,19 +781,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             // Taille du cluster = 3% de l'image (rond)
             const clusterSize = 3;
             
-            // Convertir en coordonnées conteneur
-            const containerPos = imagePercentToContainerPercent(centerX, centerY);
-            const containerClusterSize = imageSizePercentToContainerSizePercent(clusterSize, true);
-            
             return (
               <div
                 key={cluster.id}
-                className="absolute z-10 group"
+                className="absolute z-10 group transform -translate-x-1/2 -translate-y-1/2"
                 style={{
-                  left: `${containerPos.x - containerClusterSize / 2}%`,
-                  top: `${containerPos.y - containerClusterSize / 2}%`,
-                  width: `${containerClusterSize}%`,
-                  height: `${containerClusterSize}%`,
+                  left: `${centerX}%`,
+                  top: `${centerY}%`,
+                  width: `${clusterSize}%`,
+                  height: `${clusterSize}%`,
                 }}
                 onMouseEnter={() => setHoveredElement(cluster.id)}
                 onMouseLeave={() => setHoveredElement(null)}
@@ -886,24 +834,18 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             const colors = STATUS_COLORS[element.status];
             const hasIcon = !!element.icon;
             
-            // Convertir les positions et tailles relatives à l'image en positions dans le conteneur
-            const containerPos = imagePercentToContainerPercent(
-              element.positionX || 0,
-              element.positionY || 0
-            );
-            // Les largeurs/hauteurs sont aussi en % de l'image, donc on doit convertir
-            const containerWidthPercent = imageSizePercentToContainerSizePercent(element.width || 0, true);
-            const containerHeightPercent = imageSizePercentToContainerSizePercent(element.height || 0, false);
-            
+            // Utiliser directement les positions en pourcentage de l'image (0-100%)
+            // Les éléments sont dans le même conteneur transformé que l'image,
+            // donc ils restent fixes par rapport à l'image même lors du zoom/pan
             return (
               <div
                 key={element.id}
                 className="absolute z-10 group"
                 style={{
-                  left: `${containerPos.x}%`,
-                  top: `${containerPos.y}%`,
-                  width: `${containerWidthPercent}%`,
-                  height: `${containerHeightPercent}%`,
+                  left: `${element.positionX || 0}%`,
+                  top: `${element.positionY || 0}%`,
+                  width: `${element.width || 0}%`,
+                  height: `${element.height || 0}%`,
                 }}
                 onMouseEnter={() => setHoveredElement(element.id)}
                 onMouseLeave={() => setHoveredElement(null)}

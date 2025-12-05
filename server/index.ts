@@ -454,14 +454,30 @@ app.post('/api/cockpits/:id/unpublish', authMiddleware, (req: AuthRequest, res) 
 
 // Route publique pour accéder à un cockpit publié (sans authentification)
 app.get('/api/public/cockpit/:publicId', (req, res) => {
+  const publicId = req.params.publicId;
+  console.log('[Public API] Recherche cockpit avec publicId:', publicId);
+  
   const db = loadDb();
-  const cockpit = db.cockpits.find(c => c.data?.publicId === req.params.publicId && c.data?.isPublished);
+  const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
   
   if (!cockpit) {
+    console.log('[Public API] Cockpit non trouvé pour publicId:', publicId);
     return res.status(404).json({ error: 'Maquette non trouvée ou non publiée' });
   }
   
+  console.log('[Public API] Cockpit trouvé:', cockpit.name);
   const data = cockpit.data || { domains: [], zones: [] };
+  
+  // Diagnostic : vérifier les images dans les domaines
+  if (data.domains && Array.isArray(data.domains)) {
+    data.domains.forEach((domain: any, index: number) => {
+      const hasBackgroundImage = !!(domain.backgroundImage);
+      const imageLength = domain.backgroundImage ? domain.backgroundImage.length : 0;
+      console.log(`[Public API] Domaine ${index + 1} "${domain.name}" (${domain.templateType}): backgroundImage=${hasBackgroundImage} (${imageLength} caractères)`);
+    });
+  } else {
+    console.warn('[Public API] data.domains n\'est pas un tableau:', typeof data.domains);
+  }
   
   // Retourner directement toutes les données du cockpit sans modification
   // Les domaines contiennent déjà toutes leurs propriétés, y compris backgroundImage
