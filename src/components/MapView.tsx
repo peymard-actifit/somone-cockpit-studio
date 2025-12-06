@@ -64,6 +64,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
   const pointDragStartPosRef = useRef<{ pointId: string; x: number; y: number } | null>(null);
   const hasDraggedPointRef = useRef<boolean>(false);
+  const preventClickRef = useRef<boolean>(false); // Pour empêcher le onClick après un drag
   
   // Modales
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -264,16 +265,23 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     
     setIsDragging(false);
     
+    // Si on a fait un drag, marquer pour empêcher le onClick
+    if (wasDraggingPoint) {
+      preventClickRef.current = true;
+      // Réinitialiser après un court délai pour permettre au onClick de vérifier le flag
+      setTimeout(() => {
+        preventClickRef.current = false;
+      }, 300);
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+    
     // Réinitialiser immédiatement pour éviter les conflits
     setDraggingPointId(null);
     pointDragStartPosRef.current = null;
     hasDraggedPointRef.current = false;
-    
-    // Si on a fait un drag, empêcher le onClick qui pourrait suivre
-    if (wasDraggingPoint && e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
   };
   
   // Double-clic pour zoomer
@@ -938,11 +946,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     }
                   }}
                   onClick={(e) => {
-                    // Ne pas ouvrir si un drag a eu lieu (le flag est vérifié dans handleMouseUp)
-                    // Mais on peut aussi vérifier si on vient de finir un drag
                     e.stopPropagation();
-                    // Le onClick sera toujours appelé, mais on peut le laisser si pas de drag significatif
-                    // La vraie protection est dans handleMouseUp qui empêche l'event
+                    // Ne pas ouvrir si un drag a eu lieu
+                    if (preventClickRef.current) {
+                      return;
+                    }
                     handlePointClick(point);
                   }}
                 >

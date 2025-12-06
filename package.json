@@ -10,7 +10,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "push": "powershell -ExecutionPolicy Bypass -File scripts/version-and-push.ps1",
-    "push:unix": "bash scripts/version-and-push.sh"
+    "push:unix": "bash scripts/version-and-push.sh",
+    "deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
+    "deploy:unix": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

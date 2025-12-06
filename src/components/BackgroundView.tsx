@@ -58,6 +58,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const [draggingElementId, setDraggingElementId] = useState<string | null>(null);
   const elementDragStartPosRef = useRef<{ elementId: string; x: number; y: number } | null>(null);
   const hasDraggedElementRef = useRef<boolean>(false);
+  const preventClickRef = useRef<boolean>(false); // Pour empêcher le onClick après un drag
   
   // Modal de configuration
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -355,16 +356,23 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     
     setIsDragging(false);
     
+    // Si on a fait un drag, marquer pour empêcher le onClick
+    if (wasDraggingElement) {
+      preventClickRef.current = true;
+      // Réinitialiser après un court délai pour permettre au onClick de vérifier le flag
+      setTimeout(() => {
+        preventClickRef.current = false;
+      }, 300);
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+    
     // Réinitialiser immédiatement pour éviter les conflits
     setDraggingElementId(null);
     elementDragStartPosRef.current = null;
     hasDraggedElementRef.current = false;
-    
-    // Si on a fait un drag, empêcher le onClick qui pourrait suivre
-    if (wasDraggingElement && e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
   };
   
   // Double-clic pour zoomer
@@ -906,8 +914,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Le onClick sera toujours appelé, mais on peut le laisser si pas de drag significatif
-                      // La vraie protection est dans handleMouseUp qui empêche l'event
+                      // Ne pas ouvrir si un drag a eu lieu
+                      if (preventClickRef.current) {
+                        return;
+                      }
                       setCurrentElement(element.id);
                     }}
                     style={{ color: colors.hex }}
@@ -931,8 +941,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Le onClick sera toujours appelé, mais on peut le laisser si pas de drag significatif
-                      // La vraie protection est dans handleMouseUp qui empêche l'event
+                      // Ne pas ouvrir si un drag a eu lieu
+                      if (preventClickRef.current) {
+                        return;
+                      }
                       setCurrentElement(element.id);
                     }}
                     style={{ 
