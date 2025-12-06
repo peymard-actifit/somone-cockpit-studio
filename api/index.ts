@@ -1288,6 +1288,17 @@ INSTRUCTIONS:
         cockpit.data = { domains: [], zones: [] };
       }
       
+      // Log AVANT publication pour vérifier les données
+      console.log(`[PUBLISH] 🚀 Publication du cockpit "${cockpit.name}" (${id})`);
+      console.log(`[PUBLISH] Domaines avant publication: ${(cockpit.data.domains || []).length}`);
+      (cockpit.data.domains || []).forEach((d: any, idx: number) => {
+        const hasBg = d.backgroundImage && typeof d.backgroundImage === 'string' && d.backgroundImage.trim().length > 0;
+        const hasMapBounds = d.mapBounds && d.mapBounds.topLeft && d.mapBounds.bottomRight;
+        console.log(`[PUBLISH] Domain[${idx}] "${d.name}": ` +
+          `bg=${hasBg ? `✅(${d.backgroundImage.length})` : '❌'}, ` +
+          `bounds=${hasMapBounds ? '✅' : '❌'}`);
+      });
+      
       if (!cockpit.data.publicId) {
         cockpit.data.publicId = generateId().replace(/-/g, '').substring(0, 12);
       }
@@ -1296,6 +1307,16 @@ INSTRUCTIONS:
       cockpit.data.publishedAt = new Date().toISOString();
       
       await saveDb(db);
+      
+      // Vérifier APRÈS sauvegarde que tout est bien là
+      const savedCockpit = db.cockpits.find(c => c.id === id);
+      if (savedCockpit && savedCockpit.data) {
+        console.log(`[PUBLISH] ✅ Après sauvegarde - Cockpit publié avec ${(savedCockpit.data.domains || []).length} domaines`);
+        (savedCockpit.data.domains || []).forEach((d: any, idx: number) => {
+          const hasBg = d.backgroundImage && typeof d.backgroundImage === 'string' && d.backgroundImage.trim().length > 0;
+          console.log(`[PUBLISH] Published[${idx}] "${d.name}": bg=${hasBg ? `✅(${d.backgroundImage.length})` : '❌'}`);
+        });
+      }
 
       return res.json({
         success: true,
