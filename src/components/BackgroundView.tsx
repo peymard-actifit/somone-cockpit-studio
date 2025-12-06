@@ -282,6 +282,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     // Ne pas démarrer le drag de la vue si on drague un élément
     if (draggingElementId) return;
     
+    // Ne pas démarrer le drag si le clic est sur un élément ou un bouton d'action
+    const target = e.target as HTMLElement;
+    const isElement = target.closest('[data-element-tile]') || target.closest('.cursor-move');
+    const isActionButton = target.closest('button');
+    
+    if (isElement || isActionButton) {
+      return;
+    }
+    
     if (isDrawing) {
       const pos = screenToImagePercent(e.clientX, e.clientY);
       setDrawStart(pos);
@@ -300,6 +309,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     // Drag d'un élément
     if (draggingElementId) {
+      // Arrêter le drag de la vue si elle est en cours
+      if (isDragging) {
+        setIsDragging(false);
+      }
+      
       // Marquer qu'un drag a eu lieu
       if (elementDragStartPosRef.current) {
         const dragDistance = Math.sqrt(
@@ -327,7 +341,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     if (isDrawing && drawStart.x !== 0) {
       const pos = screenToImagePercent(e.clientX, e.clientY);
       setDrawEnd(pos);
-    } else if (isDragging) {
+    } else if (isDragging && !draggingElementId) {
       setPosition({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y,
@@ -889,6 +903,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             return (
               <div
                 key={element.id}
+                data-element-tile="true"
                 className="absolute z-10 group"
                 style={{
                   left: `${left}px`,
@@ -908,6 +923,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     onMouseDown={(e) => {
                       if (!_readOnly && e.button === 0) {
                         e.stopPropagation();
+                        e.preventDefault();
+                        // Arrêter le drag de la vue si elle est en cours
+                        setIsDragging(false);
                         setDraggingElementId(element.id);
                         elementDragStartPosRef.current = { elementId: element.id, x: e.clientX, y: e.clientY };
                       }
@@ -935,6 +953,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     onMouseDown={(e) => {
                       if (!_readOnly && e.button === 0) {
                         e.stopPropagation();
+                        e.preventDefault();
+                        // Arrêter le drag de la vue si elle est en cours
+                        setIsDragging(false);
                         setDraggingElementId(element.id);
                         elementDragStartPosRef.current = { elementId: element.id, x: e.clientX, y: e.clientY };
                       }

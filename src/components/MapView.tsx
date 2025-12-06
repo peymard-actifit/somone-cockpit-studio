@@ -218,8 +218,19 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   // Début du drag
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
+    
     // Ne pas démarrer le drag de la vue si on drague un point
     if (draggingPointId) return;
+    
+    // Ne pas démarrer le drag si le clic est sur un point ou un bouton d'action
+    const target = e.target as HTMLElement;
+    const isPointElement = target.closest('[data-point-element]') || target.closest('.cursor-move');
+    const isActionButton = target.closest('button');
+    
+    if (isPointElement || isActionButton) {
+      return;
+    }
+    
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -231,6 +242,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     // Drag d'un point
     if (draggingPointId) {
+      // Arrêter le drag de la vue si elle est en cours
+      if (isDragging) {
+        setIsDragging(false);
+      }
+      
       // Marquer qu'un drag a eu lieu
       if (pointDragStartPosRef.current) {
         const dragDistance = Math.sqrt(
@@ -251,8 +267,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       return;
     }
     
-    // Drag de la vue
-    if (!isDragging) return;
+    // Drag de la vue - s'assurer qu'on ne drague pas un point
+    if (!isDragging || draggingPointId) return;
     setPosition({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y,
@@ -929,6 +945,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               >
                 {/* Icône colorée - draggable en mode studio */}
                 <div 
+                  data-point-element="true"
                   className={`rounded-full shadow-lg flex items-center justify-center transition-all hover:brightness-110 ${
                     !_readOnly ? 'cursor-move' : 'cursor-pointer'
                   }`}
@@ -941,6 +958,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   onMouseDown={(e) => {
                     if (!_readOnly && e.button === 0) {
                       e.stopPropagation();
+                      e.preventDefault();
+                      // Arrêter le drag de la vue si elle est en cours
+                      setIsDragging(false);
                       setDraggingPointId(point.id);
                       pointDragStartPosRef.current = { pointId: point.id, x: e.clientX, y: e.clientY };
                     }
