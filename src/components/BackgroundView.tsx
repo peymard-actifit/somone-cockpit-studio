@@ -776,32 +776,43 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           {/* Image de fond */}
           {domain.backgroundImage && domain.backgroundImage.trim() ? (
             <img 
-              key={`bg-image-${domain.id}-${domain.backgroundImage.substring(0, 20)}`}
+              key={`bg-image-${domain.id}-${domain.backgroundImage.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               ref={imageRef}
               src={domain.backgroundImage}
               alt="Fond"
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               draggable={false}
-              style={{ minWidth: '1px', minHeight: '1px' }}
+              style={{ 
+                minWidth: '1px', 
+                minHeight: '1px',
+                zIndex: 0,
+                opacity: 1,
+                display: 'block'
+              }}
+              crossOrigin="anonymous"
               onLoad={(e) => {
                 const img = e.target as HTMLImageElement;
                 console.log(`[BackgroundView] ✅ Image chargée avec succès pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
+                console.log(`[BackgroundView] Image src length: ${domain.backgroundImage?.length || 0}`);
+                console.log(`[BackgroundView] Image element computed style:`, window.getComputedStyle(img).display);
                 calculateImageBounds();
                 if (_readOnly) {
-                  console.log(`[BackgroundView READ-ONLY] Image chargée avec succès pour le domaine "${domain.name}"`);
+                  console.log(`[BackgroundView READ-ONLY] ✅ Image chargée avec succès pour le domaine "${domain.name}"`);
                 }
               }}
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
-                console.error(`[BackgroundView] ❌ Erreur chargement image de fond pour le domaine "${domain.name}"`);
+                console.error(`[BackgroundView] ❌ ERREUR chargement image de fond pour le domaine "${domain.name}"`);
                 console.error(`[BackgroundView] URL preview:`, domain.backgroundImage?.substring(0, 100));
                 console.error(`[BackgroundView] Longueur totale:`, domain.backgroundImage?.length || 0);
                 console.error(`[BackgroundView] Type:`, typeof domain.backgroundImage);
                 console.error(`[BackgroundView] Starts with data:`, domain.backgroundImage?.startsWith('data:'));
+                console.error(`[BackgroundView] Image element:`, img);
                 if (_readOnly) {
-                  console.error(`[BackgroundView READ-ONLY] Image non chargée - longueur: ${domain.backgroundImage?.length || 0} caractères`);
+                  console.error(`[BackgroundView READ-ONLY] ❌ Image non chargée - longueur: ${domain.backgroundImage?.length || 0} caractères`);
                 }
-                img.style.display = 'none';
+                // Ne pas cacher l'image en cas d'erreur - laisser visible pour debug
+                // img.style.display = 'none';
               }}
             />
           ) : (

@@ -783,29 +783,40 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           {/* Image de fond */}
           {mapImageUrl && mapImageUrl.trim() ? (
             <img 
-              key={`map-image-${domain.id}-${mapImageUrl.substring(0, 20)}`}
+              key={`map-image-${domain.id}-${mapImageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               src={mapImageUrl}
               alt="Carte"
               className="absolute inset-0 w-full h-full object-contain"
-              style={{ minWidth: '1px', minHeight: '1px' }}
+              style={{ 
+                minWidth: '1px', 
+                minHeight: '1px',
+                zIndex: 0,
+                opacity: 1,
+                display: 'block'
+              }}
+              crossOrigin="anonymous"
               onLoad={(e) => {
                 const img = e.target as HTMLImageElement;
                 console.log(`[MapView] ✅ Image chargée avec succès pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
+                console.log(`[MapView] Image src length: ${mapImageUrl?.length || 0}`);
+                console.log(`[MapView] Image element computed style:`, window.getComputedStyle(img).display);
                 if (_readOnly) {
-                  console.log(`[MapView READ-ONLY] Image de carte chargée avec succès pour le domaine "${domain.name}"`);
+                  console.log(`[MapView READ-ONLY] ✅ Image de carte chargée avec succès pour le domaine "${domain.name}"`);
                 }
               }}
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
-                console.error(`[MapView] ❌ Erreur chargement image carte pour le domaine "${domain.name}"`);
+                console.error(`[MapView] ❌ ERREUR chargement image carte pour le domaine "${domain.name}"`);
                 console.error(`[MapView] URL preview:`, mapImageUrl?.substring(0, 100));
                 console.error(`[MapView] Longueur totale:`, mapImageUrl?.length || 0);
                 console.error(`[MapView] Type:`, typeof mapImageUrl);
                 console.error(`[MapView] Starts with data:`, mapImageUrl?.startsWith('data:'));
+                console.error(`[MapView] Image element:`, img);
                 if (_readOnly) {
-                  console.error(`[MapView READ-ONLY] Image de carte non chargée - longueur: ${mapImageUrl?.length || 0} caractères`);
+                  console.error(`[MapView READ-ONLY] ❌ Image de carte non chargée - longueur: ${mapImageUrl?.length || 0} caractères`);
                 }
-                img.style.display = 'none';
+                // Ne pas cacher l'image en cas d'erreur - laisser visible pour debug
+                // img.style.display = 'none';
               }}
             />
           ) : (
