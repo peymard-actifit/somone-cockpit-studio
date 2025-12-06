@@ -23,7 +23,7 @@ export default function StudioPage() {
     error
   } = useCockpitStore();
   
-  const [showEditor, setShowEditor] = useState(true);
+  const [showEditor, setShowEditor] = useState(false); // Masqué par défaut
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   

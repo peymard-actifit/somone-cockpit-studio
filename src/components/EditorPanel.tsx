@@ -4,6 +4,7 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import IconPicker, { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
+import ElementTile from './ElementTile';
 
 interface EditorPanelProps {
   domain: Domain | undefined;
@@ -307,6 +308,18 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
             >
               <MuiIcon name="Trash2" size={18} />
             </button>
+          </div>
+        </div>
+        
+        {/* Prévisualisation de l'élément */}
+        <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+          <h4 className="text-sm font-medium text-[#64748B] mb-3">Aperçu</h4>
+          <div className="flex justify-center">
+            <ElementTile 
+              element={element} 
+              mini={false}
+              readOnly={true}
+            />
           </div>
         </div>
         
