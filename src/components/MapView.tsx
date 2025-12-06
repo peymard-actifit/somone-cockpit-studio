@@ -20,8 +20,8 @@ const STATUS_PRIORITY: Record<TileStatus, number> = {
   fatal: 6,
   critique: 5,
   mineur: 4,
-  information: 3,
-  ok: 2,
+  ok: 3,
+  information: 2,
   deconnecte: 1,
   herite: 0,
 };

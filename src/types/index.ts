@@ -182,8 +182,8 @@ export const STATUS_PRIORITY_MAP: Record<TileStatus, number> = {
   fatal: 6,
   critique: 5,
   mineur: 4,
-  information: 3,
-  ok: 2,
+  ok: 3,
+  information: 2, // Moins prioritaire que OK pour que l'héritée affiche vert quand il n'y a que des informations
   deconnecte: 1,
   herite: 0, // Ne compte pas dans le calcul, sera calculé dynamiquement
 };
