@@ -248,23 +248,49 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       clearTimeout(autoSaveTimeout);
     }
     
-    const timeout = setTimeout(async () => {
-      if (!currentCockpit) return;
-      
-      const token = useAuthStore.getState().token;
-      try {
-        await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(currentCockpit),
-        });
-      } catch (error) {
-        console.error('Erreur auto-save:', error);
-      }
-    }, 1000);
+      const timeout = setTimeout(async () => {
+        if (!currentCockpit) return;
+        
+        const token = useAuthStore.getState().token;
+        try {
+          // Envoyer uniquement les champs attendus par l'API PUT
+          // L'API fait un merge profond, donc on envoie les domains avec TOUTES leurs propriétés
+          const payload: any = {
+            name: currentCockpit.name,
+            domains: currentCockpit.domains || [],
+            logo: currentCockpit.logo,
+            scrollingBanner: currentCockpit.scrollingBanner,
+          };
+          // Ajouter zones si disponible (peut ne pas être dans le type Cockpit mais dans les données)
+          if ((currentCockpit as any).zones) {
+            payload.zones = (currentCockpit as any).zones;
+          }
+          
+          console.log('[Auto-save] Envoi des données:', {
+            name: payload.name,
+            domainsCount: payload.domains.length,
+            zonesCount: payload.zones.length,
+            domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length
+          });
+          
+          // Log des images dans les domaines
+          payload.domains.forEach((d: any, idx: number) => {
+            const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
+            console.log(`[Auto-save] Domain[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+          });
+          
+          await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+        } catch (error) {
+          console.error('Erreur auto-save:', error);
+        }
+      }, 1000);
     
     set({ autoSaveTimeout: timeout });
   },
@@ -1084,13 +1110,52 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     if (!currentCockpit) return null;
     
     try {
-      const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}/export`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      // Télécharger les deux versions : FR et EN
+      const downloadFile = async (lang: string) => {
+        const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}/export/${lang}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        
+        if (!response.ok) throw new Error(`Erreur export ${lang}`);
+        
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Extraire le nom du fichier depuis Content-Disposition
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let fileName = `${currentCockpit.name}_${lang}.xlsx`;
+        if (contentDisposition) {
+          const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+          if (fileNameMatch && fileNameMatch[1]) {
+            fileName = fileNameMatch[1].replace(/['"]/g, '');
+            // Décoder le nom de fichier
+            try {
+              fileName = decodeURIComponent(fileName);
+            } catch (e) {
+              // Si échec du décodage, utiliser tel quel
+            }
+          }
+        }
+        
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
       
-      if (!response.ok) throw new Error('Erreur export');
+      // Télécharger la version FR d'abord
+      await downloadFile('FR');
       
-      return await response.blob();
+      // Attendre un peu avant de télécharger la version EN (pour laisser le temps de traduire)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Télécharger la version EN
+      await downloadFile('EN');
+      
+      return null; // Retourne null car les fichiers sont téléchargés directement
     } catch (error) {
       set({ error: 'Erreur lors de l\'export Excel' });
       return null;

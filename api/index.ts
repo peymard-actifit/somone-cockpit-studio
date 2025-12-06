@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const ADMIN_CODE = process.env.ADMIN_CODE || 'SOMONE2024';
+const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
 
 // Upstash Redis client
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
@@ -932,6 +933,16 @@ INSTRUCTIONS:
       
       const data = cockpit.data || { domains: [], zones: [] };
       
+      // Log pour vérifier les images dans les domaines
+      console.log(`[GET /cockpits/:id] Cockpit "${cockpit.name}" - Domaines avec images:`);
+      (data.domains || []).forEach((d: any, idx: number) => {
+        const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
+        console.log(`[GET] Domain[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+        if (hasBg) {
+          console.log(`[GET]   Preview: ${d.backgroundImage.substring(0, 50)}...`);
+        }
+      });
+      
       return res.json({
         id: cockpit.id,
         name: cockpit.name,
@@ -1095,6 +1106,13 @@ INSTRUCTIONS:
         });
       }
       
+      // Log final pour vérifier ce qui est sauvegardé
+      console.log(`[PUT /cockpits/:id] Sauvegarde finale - Domaines avec images:`);
+      mergedDomains.forEach((d: any, idx: number) => {
+        const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
+        console.log(`[PUT] Final[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+      });
+      
       cockpit.data = {
         domains: mergedDomains,
         zones: zones !== undefined ? zones : cockpit.data.zones || [],
@@ -1108,6 +1126,16 @@ INSTRUCTIONS:
       cockpit.updatedAt = now;
 
       await saveDb(db);
+      
+      // Vérifier après sauvegarde
+      const savedCockpit = db.cockpits.find(c => c.id === cockpit.id);
+      if (savedCockpit && savedCockpit.data) {
+        console.log(`[PUT /cockpits/:id] ✅ Après sauvegarde - Domaines avec images:`);
+        (savedCockpit.data.domains || []).forEach((d: any, idx: number) => {
+          const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
+          console.log(`[PUT] Saved[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+        });
+      }
 
       return res.json({ success: true });
     }
@@ -1240,8 +1268,78 @@ INSTRUCTIONS:
       return res.json({ success: true });
     }
 
+    // Fonction utilitaire pour traduire avec DeepL
+    const translateWithDeepL = async (text: string, targetLang: string = 'EN'): Promise<string> => {
+      if (!DEEPL_API_KEY || !text || text.trim() === '') {
+        return text; // Retourner le texte original si pas de clé API ou texte vide
+      }
+      
+      try {
+        // Détecter la langue source (FR par défaut)
+        const sourceLang = 'FR';
+        
+        const response = await fetch('https://api-free.deepl.com/v2/translate', {
+          method: 'POST',
+          headers: {
+            'Authorization': `DeepL-Auth-Key ${DEEPL_API_KEY}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            text: text,
+            source_lang: sourceLang,
+            target_lang: targetLang,
+            preserve_formatting: '1',
+          }),
+        });
+        
+        if (!response.ok) {
+          console.error(`DeepL API error: ${response.status} ${response.statusText}`);
+          return text; // Retourner le texte original en cas d'erreur
+        }
+        
+        const data = await response.json();
+        return data.translations?.[0]?.text || text;
+      } catch (error: any) {
+        console.error('Erreur traduction DeepL:', error);
+        return text; // Retourner le texte original en cas d'erreur
+      }
+    };
+    
+    // Traduire un objet de données récursivement - seulement les champs textuels de contenu
+    const translateDataRecursively = async (data: any, targetLang: string = 'EN'): Promise<any> => {
+      if (typeof data === 'string' && data.trim() !== '') {
+        return await translateWithDeepL(data, targetLang);
+      } else if (Array.isArray(data)) {
+        return Promise.all(data.map(item => translateDataRecursively(item, targetLang)));
+      } else if (data && typeof data === 'object') {
+        const translated: any = {};
+        for (const [key, value] of Object.entries(data)) {
+          // Ne traduire que les champs de texte de contenu
+          if (key === 'name' || key === 'description' || key === 'actions') {
+            // Traduire ces champs
+            translated[key] = await translateDataRecursively(value, targetLang);
+          } else if (key === 'value' && typeof value === 'string' && value.trim() !== '') {
+            // Traduire les valeurs textuelles (mais pas les nombres)
+            const numValue = parseFloat(value);
+            if (isNaN(numValue)) {
+              // C'est du texte, traduire
+              translated[key] = await translateWithDeepL(value, targetLang);
+            } else {
+              // C'est un nombre, ne pas traduire
+              translated[key] = value;
+            }
+          } else {
+            // Tous les autres champs (IDs, ordres, statuts, etc.) ne pas traduire
+            translated[key] = value;
+          }
+        }
+        return translated;
+      }
+      return data;
+    };
+    
     // Export Excel
-    const exportMatch = path.match(/^\/cockpits\/([^/]+)\/export$/);
+    const exportMatch = path.match(/^\/cockpits\/([^/]+)\/export(?:\/([^/]+))?$/);
     if (exportMatch && method === 'GET') {
       const id = exportMatch[1];
       const db = await getDb();
@@ -1255,13 +1353,22 @@ INSTRUCTIONS:
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
       
+      const requestedLang = exportMatch[2] || 'FR'; // Par défaut FR (original)
       const data = cockpit.data || { domains: [], zones: [] };
+      
+      // Si on demande la version EN, traduire les données
+      let dataToExport = data;
+      if (requestedLang === 'EN' && DEEPL_API_KEY) {
+        console.log('[Excel Export] Traduction en cours...');
+        dataToExport = await translateDataRecursively(JSON.parse(JSON.stringify(data)), 'EN');
+        console.log('[Excel Export] Traduction terminée');
+      }
       
       // Créer le workbook Excel
       const wb = XLSX.utils.book_new();
       
       // Onglet Domaines
-      const domainsData = (data.domains || []).map((d: any) => ({
+      const domainsData = (dataToExport.domains || []).map((d: any) => ({
         'ID': d.id,
         'Nom': d.name,
         'Type': d.templateType,
@@ -1273,7 +1380,7 @@ INSTRUCTIONS:
       
       // Onglet Catégories
       const categoriesData: any[] = [];
-      (data.domains || []).forEach((d: any) => {
+      (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           categoriesData.push({
             'ID': c.id,
@@ -1290,7 +1397,7 @@ INSTRUCTIONS:
       
       // Onglet Éléments
       const elementsData: any[] = [];
-      (data.domains || []).forEach((d: any) => {
+      (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             elementsData.push({
@@ -1315,7 +1422,7 @@ INSTRUCTIONS:
       
       // Onglet Sous-catégories
       const subCategoriesData: any[] = [];
-      (data.domains || []).forEach((d: any) => {
+      (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
@@ -1338,7 +1445,7 @@ INSTRUCTIONS:
       
       // Onglet Sous-éléments
       const subElementsData: any[] = [];
-      (data.domains || []).forEach((d: any) => {
+      (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
@@ -1365,7 +1472,7 @@ INSTRUCTIONS:
       
       // Onglet Alertes
       const alertsData: any[] = [];
-      (data.domains || []).forEach((d: any) => {
+      (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
@@ -1394,7 +1501,7 @@ INSTRUCTIONS:
       XLSX.utils.book_append_sheet(wb, wsAlerts, 'Alertes');
       
       // Onglet Zones
-      const zonesData = (data.zones || []).map((z: any) => ({
+      const zonesData = (dataToExport.zones || []).map((z: any) => ({
         'ID': z.id,
         'Nom': z.name,
       }));
@@ -1406,7 +1513,8 @@ INSTRUCTIONS:
         const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         
         // Encoder le nom du fichier pour éviter les problèmes avec les caractères spéciaux
-        const encodedFileName = encodeURIComponent(cockpit.name.replace(/[^\w\s-]/g, '')).replace(/'/g, '%27');
+        const langSuffix = requestedLang === 'EN' ? '_EN' : '_FR';
+        const encodedFileName = encodeURIComponent(cockpit.name.replace(/[^\w\s-]/g, '') + langSuffix).replace(/'/g, '%27');
         
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}.xlsx"; filename*=UTF-8''${encodedFileName}.xlsx`);
@@ -1419,6 +1527,121 @@ INSTRUCTIONS:
       }
     }
 
+    // =====================
+    // TRANSLATION ROUTES
+    // =====================
+    
+    // Obtenir les langues disponibles DeepL
+    if (path === '/translation/languages' && method === 'GET') {
+      return res.json({
+        languages: [
+          { code: 'FR', name: 'Français (Originale)' },
+          { code: 'EN', name: 'English' },
+          { code: 'DE', name: 'Deutsch' },
+          { code: 'ES', name: 'Español' },
+          { code: 'IT', name: 'Italiano' },
+          { code: 'PT', name: 'Português' },
+          { code: 'RU', name: 'Русский' },
+          { code: 'JA', name: '日本語' },
+          { code: 'ZH', name: '中文' },
+          { code: 'NL', name: 'Nederlands' },
+          { code: 'PL', name: 'Polski' },
+          { code: 'AR', name: 'العربية' },
+        ]
+      });
+    }
+    
+    // Traduire un cockpit
+    if (path.match(/^\/cockpits\/([^/]+)\/translate$/) && method === 'POST') {
+      const match = path.match(/^\/cockpits\/([^/]+)\/translate$/);
+      if (!match) {
+        return res.status(400).json({ error: 'ID manquant' });
+      }
+      const id = match[1];
+      const { targetLang, preserveOriginals } = req.body || {};
+      
+      if (!targetLang || targetLang === 'FR') {
+        // Si FR ou pas de langue, retourner les données originales
+        const db = await getDb();
+        const cockpit = db.cockpits.find(c => c.id === id);
+        if (!cockpit) {
+          return res.status(404).json({ error: 'Maquette non trouvée' });
+        }
+        if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+          return res.status(403).json({ error: 'Accès non autorisé' });
+        }
+        return res.json({ translatedData: cockpit.data || { domains: [], zones: [] } });
+      }
+      
+      if (!DEEPL_API_KEY) {
+        return res.status(400).json({ error: 'DeepL API key not configured' });
+      }
+      
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.id === id);
+      
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+      
+      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+        return res.status(403).json({ error: 'Accès non autorisé' });
+      }
+      
+      const data = cockpit.data || { domains: [], zones: [] };
+      
+      try {
+        // Si preserveOriginals est true, stocker les originaux dans cockpit.data.originals
+        if (preserveOriginals && !cockpit.data.originals) {
+          cockpit.data.originals = JSON.parse(JSON.stringify(data));
+          await saveDb(db);
+        }
+        
+        // Traduire les données
+        console.log(`[Translation] Traduction en cours vers ${targetLang}...`);
+        const translatedData = await translateDataRecursively(JSON.parse(JSON.stringify(data)), targetLang);
+        console.log(`[Translation] Traduction terminée`);
+        
+        return res.json({ translatedData });
+      } catch (error: any) {
+        console.error('Erreur traduction:', error);
+        return res.status(500).json({ error: 'Erreur lors de la traduction: ' + error.message });
+      }
+    }
+    
+    // Restaurer les textes originaux
+    if (path.match(/^\/cockpits\/([^/]+)\/restore-originals$/) && method === 'POST') {
+      const match = path.match(/^\/cockpits\/([^/]+)\/restore-originals$/);
+      if (!match) {
+        return res.status(400).json({ error: 'ID manquant' });
+      }
+      const id = match[1];
+      
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.id === id);
+      
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+      
+      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+        return res.status(403).json({ error: 'Accès non autorisé' });
+      }
+      
+      if (!cockpit.data.originals) {
+        return res.status(400).json({ error: 'Aucun texte original sauvegardé' });
+      }
+      
+      // Restaurer les originaux
+      const originals = cockpit.data.originals;
+      cockpit.data = { ...cockpit.data, ...originals };
+      delete cockpit.data.originals; // Supprimer les originaux après restauration
+      cockpit.updatedAt = new Date().toISOString();
+      await saveDb(db);
+      
+      return res.json({ success: true, data: cockpit.data });
+    }
+    
     // =====================
     // TEMPLATES ROUTE
     // =====================

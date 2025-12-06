@@ -1,0 +1,192 @@
+import { useState, useEffect } from 'react';
+import { useCockpitStore } from '../store/cockpitStore';
+import { MuiIcon } from './IconPicker';
+// Composant Modal simple pour la traduction
+const Modal = ({ title, children, onClose, onConfirm, confirmText, isLoading }: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  onConfirm?: () => void;
+  confirmText?: string;
+  isLoading?: boolean;
+}) => (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 max-w-lg w-full mx-4">
+      <div className="p-6 border-b border-slate-700">
+        <h2 className="text-xl font-semibold text-white">{title}</h2>
+      </div>
+      <div className="p-6">
+        {children}
+      </div>
+      <div className="p-6 border-t border-slate-700 flex justify-end gap-3">
+        <button
+          onClick={onClose}
+          disabled={isLoading}
+          className="px-4 py-2 text-slate-300 hover:text-white rounded-lg transition-colors disabled:opacity-50"
+        >
+          Annuler
+        </button>
+        {onConfirm && (
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {isLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+            {confirmText || 'Confirmer'}
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+interface Language {
+  code: string;
+  name: string;
+}
+
+export default function TranslationButton({ cockpitId }: { cockpitId: string }) {
+  const [showModal, setShowModal] = useState(false);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [selectedLang, setSelectedLang] = useState<string>('FR');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const { currentCockpit, fetchCockpit, updateCockpit } = useCockpitStore();
+  
+  useEffect(() => {
+    // Charger les langues disponibles
+    fetch('/api/translation/languages')
+      .then(res => res.json())
+      .then(data => setLanguages(data.languages || []))
+      .catch(err => console.error('Erreur chargement langues:', err));
+  }, []);
+  
+  const handleTranslate = async () => {
+    if (selectedLang === 'FR') {
+      // Restaurer les originaux
+      try {
+        setIsTranslating(true);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/cockpits/${cockpitId}/restore-originals`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) throw new Error('Erreur restauration');
+        
+        // Recharger le cockpit
+        await fetchCockpit(cockpitId);
+        setShowModal(false);
+      } catch (error) {
+        console.error('Erreur restauration:', error);
+        alert('Erreur lors de la restauration des textes originaux');
+      } finally {
+        setIsTranslating(false);
+      }
+    } else {
+      // Traduire vers la langue sélectionnée
+      try {
+        setIsTranslating(true);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/cockpits/${cockpitId}/translate`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            targetLang: selectedLang,
+            preserveOriginals: true, // Toujours préserver les originaux
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Erreur traduction');
+        }
+        
+        const { translatedData } = await response.json();
+        
+        // Mettre à jour le cockpit avec les données traduites
+        if (currentCockpit) {
+          const updatedCockpit = {
+            ...currentCockpit,
+            domains: translatedData.domains || currentCockpit.domains,
+          } as any;
+          if (translatedData.zones) {
+            (updatedCockpit as any).zones = translatedData.zones;
+          }
+          updateCockpit(updatedCockpit);
+        }
+        
+        setShowModal(false);
+      } catch (error: any) {
+        console.error('Erreur traduction:', error);
+        alert(`Erreur lors de la traduction: ${error.message || 'Erreur inconnue'}`);
+      } finally {
+        setIsTranslating(false);
+      }
+    }
+  };
+  
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+        title="Traduire le cockpit"
+      >
+        <MuiIcon name="Languages" size={16} />
+        Traduction
+      </button>
+      
+      {showModal && (
+        <Modal
+          title="Traduire le cockpit"
+          onClose={() => setShowModal(false)}
+          onConfirm={handleTranslate}
+          confirmText={selectedLang === 'FR' ? 'Restaurer' : 'Traduire'}
+          isLoading={isTranslating}
+        >
+          <div className="space-y-4">
+            <p className="text-slate-300 text-sm">
+              Sélectionnez la langue vers laquelle traduire le cockpit. Les textes originaux seront sauvegardés automatiquement.
+            </p>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">
+                Langue de traduction
+              </label>
+              <select
+                value={selectedLang}
+                onChange={(e) => setSelectedLang(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+              >
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+              <div className="flex items-start gap-2">
+                <MuiIcon name="Info" size={16} className="text-blue-400 mt-0.5" />
+                <p className="text-xs text-blue-300">
+                  {selectedLang === 'FR' 
+                    ? 'Vous pouvez revenir aux textes originaux en sélectionnant "Français (Originale)".'
+                    : 'Les textes seront traduits dans la langue sélectionnée. Les textes originaux seront sauvegardés et pourront être restaurés à tout moment.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+

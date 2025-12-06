@@ -7,6 +7,7 @@ import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
 import EditorPanel from '../components/EditorPanel';
 import AIPromptInput from '../components/AIPromptInput';
+import TranslationButton from '../components/TranslationButton';
 import { MuiIcon } from '../components/IconPicker';
 
 export default function StudioPage() {
@@ -126,6 +127,9 @@ export default function StudioPage() {
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Bouton de traduction */}
+          <TranslationButton cockpitId={currentCockpit.id} />
+          
           {/* Assistant IA */}
           <AIPromptInput />
           

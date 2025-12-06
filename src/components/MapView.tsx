@@ -563,23 +563,31 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     }, 100);
   };
   
-  const mapImageUrl = domain.backgroundImage;
+  const mapImageUrl = domain?.backgroundImage || '';
   
   // Diagnostic en mode read-only - Vérifications approfondies
   useEffect(() => {
     if (_readOnly) {
-      console.log(`[MapView READ-ONLY] Domain "${domain.name}" (templateType: ${domain.templateType})`);
-      console.log(`[MapView READ-ONLY] Domain object keys:`, Object.keys(domain));
-      console.log(`[MapView READ-ONLY] backgroundImage type:`, typeof domain.backgroundImage);
-      console.log(`[MapView READ-ONLY] backgroundImage value:`, domain.backgroundImage ? `${domain.backgroundImage.substring(0, 50)}...` : 'null/undefined');
+      console.log(`[MapView READ-ONLY] ====================`);
+      console.log(`[MapView READ-ONLY] Domain "${domain?.name}" (templateType: ${domain?.templateType})`);
+      console.log(`[MapView READ-ONLY] Domain object keys:`, domain ? Object.keys(domain) : 'DOMAIN IS NULL');
+      console.log(`[MapView READ-ONLY] backgroundImage type:`, typeof domain?.backgroundImage);
+      console.log(`[MapView READ-ONLY] backgroundImage value:`, domain?.backgroundImage ? `${domain.backgroundImage.substring(0, 50)}...` : 'null/undefined');
+      console.log(`[MapView READ-ONLY] mapImageUrl:`, mapImageUrl ? `${mapImageUrl.substring(0, 50)}...` : 'EMPTY');
+      console.log(`[MapView READ-ONLY] mapImageUrl length:`, mapImageUrl?.length || 0);
+      console.log(`[MapView READ-ONLY] mapImageUrl.trim():`, mapImageUrl?.trim() || 'EMPTY');
       
-      if (!mapImageUrl) {
-        console.error(`[MapView READ-ONLY] ❌ Domain "${domain.name}": backgroundImage est ${mapImageUrl}`);
-        console.error(`[MapView READ-ONLY] Domain object:`, JSON.stringify(domain, null, 2).substring(0, 500));
+      if (!mapImageUrl || !mapImageUrl.trim()) {
+        console.error(`[MapView READ-ONLY] ❌ Domain "${domain?.name}": backgroundImage est ${mapImageUrl ? 'VIDE' : 'ABSENTE'}`);
+        if (domain) {
+          console.error(`[MapView READ-ONLY] Domain object (preview):`, JSON.stringify(domain, null, 2).substring(0, 1000));
+        }
       } else {
-        console.log(`[MapView READ-ONLY] ✅ Domain "${domain.name}": backgroundImage présente (${mapImageUrl.length} caractères)`);
+        console.log(`[MapView READ-ONLY] ✅ Domain "${domain?.name}": backgroundImage présente (${mapImageUrl.length} caractères)`);
         console.log(`[MapView READ-ONLY] backgroundImage starts with:`, mapImageUrl.substring(0, 30));
+        console.log(`[MapView READ-ONLY] Starts with 'data:':`, mapImageUrl.startsWith('data:'));
       }
+      console.log(`[MapView READ-ONLY] ====================`);
     }
   }, [domain, mapImageUrl, _readOnly]);
   const hasMapBounds = domain.mapBounds?.topLeft && domain.mapBounds?.bottomRight;

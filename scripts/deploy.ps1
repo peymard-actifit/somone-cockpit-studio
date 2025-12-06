@@ -24,22 +24,30 @@ while (-not $buildSuccess -and $attempt -lt $maxAttempts) {
         Start-Sleep -Seconds 5
     }
     
-    # Capturer la sortie pour analyser les erreurs
+    # Exécuter la compilation avec affichage en temps réel
     $buildOutputAll = ""
     $ErrorActionPreference = "Continue"
+    
     try {
-        # Rediriger stdout et stderr
-        $buildOutputAll = npm run build 2>&1 | Tee-Object -Variable buildOutputAllTee
-        $buildOutputAll = $buildOutputAllTee | Out-String
-        $buildExitCode = $LASTEXITCODE
-        if ($buildExitCode -ne 0) {
-            Write-Host $buildOutputAll
+        # Exécuter npm et afficher chaque ligne en temps réel tout en capturant
+        $buildOutputAll = ""
+        $outputLines = @()
+        npm run build 2>&1 | ForEach-Object {
+            # Afficher immédiatement chaque ligne
+            $line = $_.ToString()
+            Write-Host $line
+            # Capturer pour analyse d'erreurs
+            $outputLines += $line
         }
+        $buildOutputAll = $outputLines -join "`n"
+        $buildExitCode = $LASTEXITCODE
     } catch {
-        $buildOutputAll = $_.Exception.Message + "`n" + $_.ScriptStackTrace
+        $errorMsg = $_.Exception.Message
+        Write-Host $errorMsg -ForegroundColor Red
+        $buildOutputAll = $errorMsg
         $buildExitCode = 1
-        Write-Host $buildOutputAll
     }
+    
     $ErrorActionPreference = "Stop"
     
     if ($buildExitCode -eq 0) {
@@ -60,7 +68,8 @@ while (-not $buildSuccess -and $attempt -lt $maxAttempts) {
         Write-Host "Le script va relancer automatiquement la compilation..." -ForegroundColor Cyan
         
         # Afficher un résumé des erreurs
-        $errorLines = $outputString -split "`n" | Select-String -Pattern "error TS\d{4}" | Select-Object -First 3
+        $outputString = if ($buildOutputAll -is [string]) { $buildOutputAll } else { $buildOutputAll | Out-String }
+        $errorLines = ($outputString -split "`n" | Select-String -Pattern "error TS\d{4}") | Select-Object -First 3
         if ($errorLines) {
             Write-Host "Premieres erreurs detectees:" -ForegroundColor Yellow
             $errorLines | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
@@ -93,7 +102,17 @@ if ([string]::IsNullOrWhiteSpace($status)) {
 } else {
     # Ajouter tous les fichiers modifies
     Write-Host "Ajout des fichiers modifies..." -ForegroundColor Yellow
-    git add -A
+    $ErrorActionPreference = "Continue"
+    git add -A 2>&1 | ForEach-Object { 
+        $line = $_.ToString()
+        if ($line -match "warning:") {
+            Write-Host $line -ForegroundColor Yellow
+        } else {
+            Write-Host $line
+        }
+    }
+    $addExitCode = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
     
     # Creer un message de commit avec timestamp
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -101,8 +120,15 @@ if ([string]::IsNullOrWhiteSpace($status)) {
     
     # Commit
     Write-Host "Creation du commit..." -ForegroundColor Yellow
-    git commit -m $commitMessage
-    if ($LASTEXITCODE -ne 0) {
+    $ErrorActionPreference = "Continue"
+    git commit -m $commitMessage 2>&1 | ForEach-Object { 
+        $line = $_.ToString()
+        Write-Host $line
+    }
+    $commitExitCode = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
+    
+    if ($commitExitCode -ne 0) {
         Write-Host "Erreur lors du commit" -ForegroundColor Red
         exit 1
     }
@@ -112,8 +138,15 @@ if ([string]::IsNullOrWhiteSpace($status)) {
 
 # 3. Push vers GitHub
 Write-Host "Etape 3/4 : Push vers GitHub..." -ForegroundColor Yellow
-git push origin main
-if ($LASTEXITCODE -ne 0) {
+$ErrorActionPreference = "Continue"
+git push origin main 2>&1 | ForEach-Object { 
+    $line = $_.ToString()
+    Write-Host $line
+}
+$pushExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+
+if ($pushExitCode -ne 0) {
     Write-Host "Erreur lors du push" -ForegroundColor Red
     exit 1
 }
@@ -122,8 +155,15 @@ Write-Host ""
 
 # 4. Deploiement Vercel
 Write-Host "Etape 4/4 : Deploiement sur Vercel..." -ForegroundColor Yellow
-npx vercel --prod --yes --token=$VERCEL_TOKEN
-if ($LASTEXITCODE -ne 0) {
+$ErrorActionPreference = "Continue"
+npx vercel --prod --yes --token=$VERCEL_TOKEN 2>&1 | ForEach-Object { 
+    $line = $_.ToString()
+    Write-Host $line
+}
+$vercelExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+
+if ($vercelExitCode -ne 0) {
     Write-Host "Erreur lors du deploiement Vercel" -ForegroundColor Red
     exit 1
 }

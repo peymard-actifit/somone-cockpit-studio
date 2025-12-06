@@ -655,20 +655,27 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   // Diagnostic en mode read-only - Vérifications approfondies
   useEffect(() => {
     if (_readOnly) {
-      console.log(`[BackgroundView READ-ONLY] Domain "${domain.name}" (templateType: ${domain.templateType})`);
-      console.log(`[BackgroundView READ-ONLY] Domain object keys:`, Object.keys(domain));
-      console.log(`[BackgroundView READ-ONLY] backgroundImage type:`, typeof domain.backgroundImage);
-      console.log(`[BackgroundView READ-ONLY] backgroundImage value:`, domain.backgroundImage ? `${domain.backgroundImage.substring(0, 50)}...` : 'null/undefined');
+      console.log(`[BackgroundView READ-ONLY] ====================`);
+      console.log(`[BackgroundView READ-ONLY] Domain "${domain?.name}" (templateType: ${domain?.templateType})`);
+      console.log(`[BackgroundView READ-ONLY] Domain object keys:`, domain ? Object.keys(domain) : 'DOMAIN IS NULL');
+      console.log(`[BackgroundView READ-ONLY] backgroundImage type:`, typeof domain?.backgroundImage);
+      console.log(`[BackgroundView READ-ONLY] backgroundImage value:`, domain?.backgroundImage ? `${domain.backgroundImage.substring(0, 50)}...` : 'null/undefined');
+      console.log(`[BackgroundView READ-ONLY] imageUrl state:`, imageUrl ? `${imageUrl.substring(0, 50)}...` : 'EMPTY');
+      console.log(`[BackgroundView READ-ONLY] imageUrl length:`, imageUrl?.length || 0);
       
-      if (!domain.backgroundImage) {
-        console.error(`[BackgroundView READ-ONLY] ❌ Domain "${domain.name}": backgroundImage est ${domain.backgroundImage}`);
-        console.error(`[BackgroundView READ-ONLY] Domain object:`, JSON.stringify(domain, null, 2).substring(0, 500));
+      if (!domain?.backgroundImage || !domain.backgroundImage.trim()) {
+        console.error(`[BackgroundView READ-ONLY] ❌ Domain "${domain?.name}": backgroundImage est ${domain?.backgroundImage ? 'VIDE' : 'ABSENTE'}`);
+        if (domain) {
+          console.error(`[BackgroundView READ-ONLY] Domain object (preview):`, JSON.stringify(domain, null, 2).substring(0, 1000));
+        }
       } else {
-        console.log(`[BackgroundView READ-ONLY] ✅ Domain "${domain.name}": backgroundImage présente (${domain.backgroundImage.length} caractères)`);
+        console.log(`[BackgroundView READ-ONLY] ✅ Domain "${domain?.name}": backgroundImage présente (${domain.backgroundImage.length} caractères)`);
         console.log(`[BackgroundView READ-ONLY] backgroundImage starts with:`, domain.backgroundImage.substring(0, 30));
+        console.log(`[BackgroundView READ-ONLY] Starts with 'data:':`, domain.backgroundImage.startsWith('data:'));
       }
+      console.log(`[BackgroundView READ-ONLY] ====================`);
     }
-  }, [domain, _readOnly]);
+  }, [domain, imageUrl, _readOnly]);
   
   return (
     <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
