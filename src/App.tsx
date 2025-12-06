@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useAuthStore } from './store/authStore';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
@@ -90,6 +91,7 @@ function App() {
           <Route path="/public/:publicId" element={<PublicCockpitPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <SpeedInsights />
         </div>
       </ConfirmProvider>
     </ErrorBoundary>

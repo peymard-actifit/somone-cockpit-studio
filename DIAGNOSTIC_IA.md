@@ -24,7 +24,7 @@ Si l'assistant IA indique qu'il n'est pas configuré malgré l'ajout de la clé 
 
 ### Via la ligne de commande :
 ```bash
-vercel --prod --token=S9nvVp6fjX4hnLW35PuN8eED
+vercel --prod --token=wkGtxH23SiUdqfIVIRMT7fSI
 ```
 
 ## 3. Vérifier les logs Vercel
@@ -113,12 +113,12 @@ Si après avoir suivi toutes ces étapes, l'IA ne fonctionne toujours pas :
 
 ```bash
 # Redéployer en production
-vercel --prod --token=S9nvVp6fjX4hnLW35PuN8eED
+vercel --prod --token=wkGtxH23SiUdqfIVIRMT7fSI
 
 # Redéployer avec force (ignore le cache)
 vercel --prod --force --token=S9nvVp6fjX4hnLW35PuN8eED
 
 # Voir les variables d'environnement
-vercel env ls --token=S9nvVp6fjX4hnLW35PuN8eED
+vercel env ls --token=wkGtxH23SiUdqfIVIRMT7fSI
 ```
 

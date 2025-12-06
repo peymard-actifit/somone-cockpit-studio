@@ -19,7 +19,7 @@ Si l'assistant IA affiche "non configuré" malgré vos vérifications, voici un 
 
 ```bash
 # Redéployer en production
-vercel --prod --token=S9nvVp6fjX4hnLW35PuN8eED
+vercel --prod --token=wkGtxH23SiUdqfIVIRMT7fSI
 ```
 
 Ou via l'interface Vercel :
@@ -49,7 +49,7 @@ Ou via l'interface Vercel :
 
 #### Option A : Ligne de commande
 ```bash
-vercel --prod --token=S9nvVp6fjX4hnLW35PuN8eED
+vercel --prod --token=wkGtxH23SiUdqfIVIRMT7fSI
 ```
 
 #### Option B : Interface Vercel

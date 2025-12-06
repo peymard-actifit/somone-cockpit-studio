@@ -88,3 +88,6 @@ Pour modifier le seuil de 10 changements, éditez :
 - Les tags Git sont créés automatiquement et poussés vers GitHub
 - La version dans `package.json` est automatiquement mise à jour
 
+
+
+

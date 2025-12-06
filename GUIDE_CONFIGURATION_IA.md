@@ -69,7 +69,7 @@ Une fois la variable d'environnement ajoutée, vous devez redéployer l'applicat
 ### Via la ligne de commande
 
 ```bash
-vercel --prod --token=S9nvVp6fjX4hnLW35PuN8eED
+vercel --prod --token=wkGtxH23SiUdqfIVIRMT7fSI
 ```
 
 ## Étape 4 : Vérifier que ça fonctionne
