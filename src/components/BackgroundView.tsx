@@ -926,7 +926,12 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   if (preventClickRef.current) {
                     return;
                   }
-                  setCurrentElement(element.id);
+                  // Ouvrir le menu d'édition via onElementClick
+                  if (_onElementClick) {
+                    _onElementClick(element.id);
+                  } else {
+                    setCurrentElement(element.id);
+                  }
                 }}
               >
                 {/* Icône colorée OU rectangle coloré simple */}

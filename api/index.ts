@@ -603,30 +603,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Log pour diagnostic
       console.log(`[Public API] Cockpit "${cockpit.name}" trouvé`);
       console.log(`[Public API] Domains count: ${(data.domains || []).length}`);
+      console.log(`[Public API] Full cockpit.data keys:`, Object.keys(data));
       
-      // Log des images dans chaque domaine
+      // Log des images dans chaque domaine AVANT envoi
       (data.domains || []).forEach((domain: any, index: number) => {
-        const hasImage = domain.backgroundImage && domain.backgroundImage.length > 0;
+        const hasImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.length > 0;
         console.log(`[Public API] Domain[${index}] "${domain.name}": backgroundImage=${hasImage ? `PRESENTE (${domain.backgroundImage.length} chars)` : 'ABSENTE'}`);
+        console.log(`[Public API]   - backgroundImage type: ${typeof domain.backgroundImage}`);
+        console.log(`[Public API]   - backgroundImage === undefined: ${domain.backgroundImage === undefined}`);
+        console.log(`[Public API]   - backgroundImage === null: ${domain.backgroundImage === null}`);
+        console.log(`[Public API]   - Domain keys:`, Object.keys(domain));
         if (hasImage) {
           console.log(`[Public API]   Preview: ${domain.backgroundImage.substring(0, 50)}...`);
         }
       });
       
-      // Retourner les données telles quelles - PAS de transformation
-      return res.json({
+      // S'assurer que TOUS les domaines ont leurs propriétés complètes, y compris backgroundImage et mapBounds
+      const domainsWithAllProps = (data.domains || []).map((domain: any) => ({
+        ...domain, // Inclure TOUTES les propriétés, y compris backgroundImage et mapBounds
+      }));
+      
+      // Retourner les données avec tous les champs préservés
+      const response = {
         id: cockpit.id,
         name: cockpit.name,
         createdAt: cockpit.createdAt,
         updatedAt: cockpit.updatedAt,
-        domains: data.domains || [],
+        domains: domainsWithAllProps,
         zones: data.zones || [],
         logo: data.logo || null,
         scrollingBanner: data.scrollingBanner || null,
         publicId: data.publicId || null,
         isPublished: data.isPublished || false,
         publishedAt: data.publishedAt || null,
+      };
+      
+      // Log final pour vérifier ce qui est envoyé
+      console.log(`[Public API] ✅ Réponse finale - Domaines avec images:`);
+      domainsWithAllProps.forEach((domain: any, index: number) => {
+        const hasImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.length > 0;
+        console.log(`[Public API] Response[${index}] "${domain.name}": backgroundImage=${hasImage ? `PRESENTE (${domain.backgroundImage.length} chars)` : 'ABSENTE'}`);
       });
+      
+      return res.json(response);
     }
 
     // =====================
