@@ -330,25 +330,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Route pour réinitialiser le mot de passe d'un utilisateur (temporaire pour debug)
     if (path === '/debug/reset-password' && method === 'POST') {
       try {
+        console.log('[DEBUG reset-password] Début de la requête');
         const { username, newPassword } = req.body;
+        console.log('[DEBUG reset-password] Paramètres reçus:', { username, hasPassword: !!newPassword });
+        
         if (!username || !newPassword) {
           return res.status(400).json({ error: 'username et newPassword requis' });
         }
         
+        console.log('[DEBUG reset-password] Récupération de la base de données...');
         const db = await getDb();
+        console.log('[DEBUG reset-password] Base de données récupérée, users count:', db.users?.length || 0);
+        
         if (!db.users || !Array.isArray(db.users)) {
+          console.error('[DEBUG reset-password] Base de données utilisateurs invalide');
           return res.status(500).json({ error: 'Base de données utilisateurs invalide' });
         }
         
         const user = db.users.find(u => u.username === username);
         if (!user) {
-          return res.status(404).json({ error: `Utilisateur "${username}" non trouvé. Utilisateurs disponibles: ${db.users.map(u => u.username).join(', ')}` });
+          const availableUsers = db.users.map(u => u.username).join(', ');
+          console.error(`[DEBUG reset-password] Utilisateur "${username}" non trouvé. Disponibles: ${availableUsers}`);
+          return res.status(404).json({ 
+            error: `Utilisateur "${username}" non trouvé.`,
+            availableUsers: db.users.map(u => u.username)
+          });
         }
         
-        console.log(`[DEBUG] Réinitialisation mot de passe pour: ${username}`);
+        console.log(`[DEBUG reset-password] Utilisateur trouvé: ${user.username}, réinitialisation du mot de passe...`);
         const oldHash = user.password || '';
         user.password = hashPassword(newPassword);
+        
+        console.log('[DEBUG reset-password] Sauvegarde de la base de données...');
         await saveDb(db);
+        console.log('[DEBUG reset-password] Base de données sauvegardée avec succès');
         
         return res.json({ 
           success: true, 
@@ -357,10 +372,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           newHash: user.password.substring(0, 20) + '...'
         });
       } catch (error: any) {
-        console.error('[DEBUG reset-password] Error:', error);
+        console.error('[DEBUG reset-password] ERREUR:', error);
+        console.error('[DEBUG reset-password] Stack:', error.stack);
         return res.status(500).json({ 
           error: 'Erreur lors de la réinitialisation',
-          message: error.message
+          message: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
       }
     }
