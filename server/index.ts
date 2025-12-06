@@ -327,10 +327,36 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
   
   // Préserver les données existantes et fusionner avec les nouvelles
   const existingData = cockpit.data || {};
+  
+  // Si des domaines sont fournis, faire un merge intelligent pour préserver les backgroundImage
+  let mergedDomains = existingData.domains || [];
+  if (domains !== undefined && Array.isArray(domains)) {
+    // Faire un merge domaine par domaine pour préserver les backgroundImage existantes
+    mergedDomains = domains.map((newDomain: any) => {
+      // Chercher le domaine existant correspondant
+      const existingDomain = existingData.domains?.find((d: any) => d.id === newDomain.id);
+      
+      if (existingDomain) {
+        // Merge : préserver backgroundImage et mapBounds si pas fournis dans la nouvelle version
+        return {
+          ...existingDomain,
+          ...newDomain,
+          // Préserver backgroundImage si elle n'est pas dans la nouvelle version
+          backgroundImage: newDomain.backgroundImage !== undefined ? newDomain.backgroundImage : existingDomain.backgroundImage,
+          // Préserver mapBounds si pas fourni
+          mapBounds: newDomain.mapBounds !== undefined ? newDomain.mapBounds : existingDomain.mapBounds,
+        };
+      } else {
+        // Nouveau domaine, utiliser tel quel
+        return newDomain;
+      }
+    });
+  }
+  
   cockpit.data = {
     ...existingData,
-    domains: domains || existingData.domains || [],
-    zones: zones || existingData.zones || [],
+    domains: mergedDomains,
+    zones: zones !== undefined ? zones : existingData.zones || [],
     logo: logo !== undefined ? logo : existingData.logo,
     scrollingBanner: scrollingBanner !== undefined ? scrollingBanner : existingData.scrollingBanner,
     publicId: publicId !== undefined ? publicId : existingData.publicId,
@@ -468,19 +494,28 @@ app.get('/api/public/cockpit/:publicId', (req, res) => {
   console.log('[Public API] Cockpit trouvé:', cockpit.name);
   const data = cockpit.data || { domains: [], zones: [] };
   
-  // Diagnostic : vérifier les images dans les domaines
-  if (data.domains && Array.isArray(data.domains)) {
-    data.domains.forEach((domain: any, index: number) => {
-      const hasBackgroundImage = !!(domain.backgroundImage);
-      const imageLength = domain.backgroundImage ? domain.backgroundImage.length : 0;
-      console.log(`[Public API] Domaine ${index + 1} "${domain.name}" (${domain.templateType}): backgroundImage=${hasBackgroundImage} (${imageLength} caractères)`);
-    });
-  } else {
-    console.warn('[Public API] data.domains n\'est pas un tableau:', typeof data.domains);
-  }
+  // Log des images pour débogage
+  const domains = data.domains || [];
+  domains.forEach((domain: any) => {
+    if (domain.backgroundImage) {
+      console.log(`[Public API] Domain "${domain.name}" (${domain.templateType}): backgroundImage présente (${domain.backgroundImage.length} caractères)`);
+      console.log(`[Public API] backgroundImage type: ${typeof domain.backgroundImage}`);
+      console.log(`[Public API] backgroundImage preview: ${domain.backgroundImage.substring(0, 50)}...`);
+    } else {
+      console.warn(`[Public API] Domain "${domain.name}" (${domain.templateType}): PAS d'image de fond`);
+      console.warn(`[Public API] Domain keys:`, Object.keys(domain));
+    }
+  });
   
-  // Retourner directement toutes les données du cockpit sans modification
-  // Les domaines contiennent déjà toutes leurs propriétés, y compris backgroundImage
+  // Vérifier que les domaines ont bien leurs propriétés
+  const domainsWithImages = domains.map((domain: any) => {
+    // S'assurer que backgroundImage est bien présent même si c'est undefined
+    return {
+      ...domain,
+      backgroundImage: domain.backgroundImage || null, // Explicitement mettre null si absent
+    };
+  });
+  
   const response = {
     id: cockpit.id,
     name: cockpit.name,
@@ -489,11 +524,17 @@ app.get('/api/public/cockpit/:publicId', (req, res) => {
     publicId: data.publicId,
     isPublished: data.isPublished,
     publishedAt: data.publishedAt,
-    domains: data.domains || [],
+    domains: domainsWithImages,
     zones: data.zones || [],
     logo: data.logo,
     scrollingBanner: data.scrollingBanner,
   };
+  
+  // Log final pour vérification
+  console.log(`[Public API] Response domains count: ${response.domains.length}`);
+  response.domains.forEach((d: any) => {
+    console.log(`[Public API] Final domain "${d.name}": backgroundImage ${d.backgroundImage ? `présente (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+  });
   
   res.json(response);
 });

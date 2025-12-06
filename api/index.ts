@@ -458,8 +458,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         cockpit.data = { domains: [], zones: [] };
       }
       
+      // Si des domaines sont fournis, faire un merge intelligent pour préserver les backgroundImage
+      let mergedDomains = cockpit.data.domains || [];
+      if (domains !== undefined && Array.isArray(domains)) {
+        // Faire un merge domaine par domaine pour préserver les backgroundImage existantes
+        mergedDomains = domains.map((newDomain: any) => {
+          // Chercher le domaine existant correspondant
+          const existingDomain = cockpit.data.domains?.find((d: any) => d.id === newDomain.id);
+          
+          if (existingDomain) {
+            // Merge : préserver backgroundImage et mapBounds si pas fournis dans la nouvelle version
+            return {
+              ...existingDomain,
+              ...newDomain,
+              // Préserver backgroundImage si elle n'est pas dans la nouvelle version
+              backgroundImage: newDomain.backgroundImage !== undefined ? newDomain.backgroundImage : existingDomain.backgroundImage,
+              // Préserver mapBounds si pas fourni
+              mapBounds: newDomain.mapBounds !== undefined ? newDomain.mapBounds : existingDomain.mapBounds,
+            };
+          } else {
+            // Nouveau domaine, utiliser tel quel
+            return newDomain;
+          }
+        });
+      }
+      
       cockpit.data = {
-        domains: domains !== undefined ? domains : cockpit.data.domains || [],
+        domains: mergedDomains,
         zones: zones !== undefined ? zones : cockpit.data.zones || [],
         logo: logo !== undefined ? logo : cockpit.data.logo,
         scrollingBanner: scrollingBanner !== undefined ? scrollingBanner : cockpit.data.scrollingBanner,
