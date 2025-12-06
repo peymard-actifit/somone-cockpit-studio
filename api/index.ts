@@ -329,28 +329,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Route pour réinitialiser le mot de passe d'un utilisateur (temporaire pour debug)
     if (path === '/debug/reset-password' && method === 'POST') {
-      const { username, newPassword } = req.body;
-      if (!username || !newPassword) {
-        return res.status(400).json({ error: 'username et newPassword requis' });
+      try {
+        const { username, newPassword } = req.body;
+        if (!username || !newPassword) {
+          return res.status(400).json({ error: 'username et newPassword requis' });
+        }
+        
+        const db = await getDb();
+        if (!db.users || !Array.isArray(db.users)) {
+          return res.status(500).json({ error: 'Base de données utilisateurs invalide' });
+        }
+        
+        const user = db.users.find(u => u.username === username);
+        if (!user) {
+          return res.status(404).json({ error: `Utilisateur "${username}" non trouvé. Utilisateurs disponibles: ${db.users.map(u => u.username).join(', ')}` });
+        }
+        
+        console.log(`[DEBUG] Réinitialisation mot de passe pour: ${username}`);
+        const oldHash = user.password || '';
+        user.password = hashPassword(newPassword);
+        await saveDb(db);
+        
+        return res.json({ 
+          success: true, 
+          message: `Mot de passe réinitialisé pour ${username}`,
+          oldHash: oldHash ? oldHash.substring(0, 20) + '...' : 'NONE',
+          newHash: user.password.substring(0, 20) + '...'
+        });
+      } catch (error: any) {
+        console.error('[DEBUG reset-password] Error:', error);
+        return res.status(500).json({ 
+          error: 'Erreur lors de la réinitialisation',
+          message: error.message
+        });
       }
-      
-      const db = await getDb();
-      const user = db.users.find(u => u.username === username);
-      if (!user) {
-        return res.status(404).json({ error: 'Utilisateur non trouvé' });
-      }
-      
-      console.log(`[DEBUG] Réinitialisation mot de passe pour: ${username}`);
-      const oldHash = user.password;
-      user.password = hashPassword(newPassword);
-      await saveDb(db);
-      
-      return res.json({ 
-        success: true, 
-        message: `Mot de passe réinitialisé pour ${username}`,
-        oldHash: oldHash.substring(0, 20) + '...',
-        newHash: user.password.substring(0, 20) + '...'
-      });
     }
     
     if (path === '/debug' && method === 'GET') {
@@ -366,28 +378,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         redisError = e.message;
       }
       
-      const db = await getDb();
-      return res.json({
-        redis_url_set: !!redisUrl,
-        redis_token_set: !!redisToken,
-        redis_url_preview: redisUrl ? redisUrl.substring(0, 30) + '...' : 'NOT SET',
-        redis_write_test: testWrite,
-        redis_error: redisError,
-        users_count: db.users.length,
-        cockpits_count: db.cockpits.length,
-        published_cockpits: db.cockpits
-          .filter(c => c.data?.isPublished)
-          .map(c => ({ 
-            name: c.name, 
+      try {
+        const db = await getDb();
+        return res.json({
+          redis_url_set: !!redisUrl,
+          redis_token_set: !!redisToken,
+          redis_url_preview: redisUrl ? redisUrl.substring(0, 30) + '...' : 'NOT SET',
+          redis_write_test: testWrite,
+          redis_error: redisError,
+          users_count: db.users?.length || 0,
+          users: (db.users || []).map(u => ({ 
+            username: u.username, 
+            id: u.id, 
+            isAdmin: u.isAdmin, 
+            passwordHash: u.password ? u.password.substring(0, 30) + '...' : 'NO_PASSWORD'
+          })),
+          cockpits_count: db.cockpits?.length || 0,
+          published_cockpits: (db.cockpits || [])
+            .filter(c => c.data?.isPublished)
+            .map(c => ({ 
+              name: c.name, 
+              publicId: c.data?.publicId,
+              isPublished: c.data?.isPublished 
+            })),
+          all_cockpits: (db.cockpits || []).map(c => ({
+            name: c.name,
+            userId: c.userId,
             publicId: c.data?.publicId,
             isPublished: c.data?.isPublished 
-          })),
-        all_cockpits: db.cockpits.map(c => ({
-          name: c.name,
-          publicId: c.data?.publicId,
-          isPublished: c.data?.isPublished
-        }))
-      });
+          }))
+        });
+      } catch (error: any) {
+        console.error('[DEBUG] Error:', error);
+        return res.status(500).json({ 
+          error: 'Erreur lors de la récupération des données',
+          message: error.message,
+          stack: error.stack
+        });
+      }
     }
 
     // =====================
