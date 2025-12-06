@@ -338,13 +338,32 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
       
       if (existingDomain) {
         // Merge : préserver backgroundImage et mapBounds si pas fournis dans la nouvelle version
+        // Vérifier si backgroundImage est valide (pas undefined, null, ou chaîne vide)
+        const hasValidBackgroundImage = newDomain.backgroundImage !== undefined && 
+                                      newDomain.backgroundImage !== null && 
+                                      newDomain.backgroundImage !== '';
+        
+        // Vérifier si mapBounds est valide
+        const hasValidMapBounds = newDomain.mapBounds !== undefined && 
+                                 newDomain.mapBounds !== null &&
+                                 (newDomain.mapBounds.topLeft || newDomain.mapBounds.bottomRight);
+        
+        const existingHasBackgroundImage = existingDomain.backgroundImage && existingDomain.backgroundImage !== '';
+        
+        // Log pour diagnostic
+        if (existingHasBackgroundImage && !hasValidBackgroundImage) {
+          console.log(`[PUT /cockpits/:id] Préservation de backgroundImage pour domaine "${newDomain.name}" (${newDomain.id})`);
+          console.log(`[PUT /cockpits/:id]   - Ancienne longueur: ${existingDomain.backgroundImage?.length || 0}`);
+          console.log(`[PUT /cockpits/:id]   - Nouvelle valeur: ${newDomain.backgroundImage === undefined ? 'undefined' : (newDomain.backgroundImage === null ? 'null' : `"${newDomain.backgroundImage.substring(0, 20)}..."`)}`);
+        }
+        
         return {
           ...existingDomain,
           ...newDomain,
-          // Préserver backgroundImage si elle n'est pas dans la nouvelle version
-          backgroundImage: newDomain.backgroundImage !== undefined ? newDomain.backgroundImage : existingDomain.backgroundImage,
-          // Préserver mapBounds si pas fourni
-          mapBounds: newDomain.mapBounds !== undefined ? newDomain.mapBounds : existingDomain.mapBounds,
+          // Préserver backgroundImage si elle n'est pas valide dans la nouvelle version
+          backgroundImage: hasValidBackgroundImage ? newDomain.backgroundImage : (existingDomain.backgroundImage || newDomain.backgroundImage || null),
+          // Préserver mapBounds si pas valide
+          mapBounds: hasValidMapBounds ? newDomain.mapBounds : (existingDomain.mapBounds || newDomain.mapBounds || null),
         };
       } else {
         // Nouveau domaine, utiliser tel quel
