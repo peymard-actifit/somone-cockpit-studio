@@ -597,39 +597,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       console.log('Found cockpit:', cockpit.name);
       
-      // SIMPLIFICATION : Retourner directement les données telles quelles, sans transformation
       const data = cockpit.data || {};
       
       // Log pour diagnostic
-      console.log(`[Public API] Cockpit "${cockpit.name}" trouvé`);
+      console.log(`[Public API] 📦 Cockpit "${cockpit.name}" trouvé`);
       console.log(`[Public API] Domains count: ${(data.domains || []).length}`);
       console.log(`[Public API] Full cockpit.data keys:`, Object.keys(data));
       
-      // Log des images dans chaque domaine AVANT envoi
-      (data.domains || []).forEach((domain: any, index: number) => {
-        const hasImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.length > 0;
-        console.log(`[Public API] Domain[${index}] "${domain.name}": backgroundImage=${hasImage ? `PRESENTE (${domain.backgroundImage.length} chars)` : 'ABSENTE'}`);
-        console.log(`[Public API]   - backgroundImage type: ${typeof domain.backgroundImage}`);
-        console.log(`[Public API]   - backgroundImage === undefined: ${domain.backgroundImage === undefined}`);
-        console.log(`[Public API]   - backgroundImage === null: ${domain.backgroundImage === null}`);
-        console.log(`[Public API]   - Domain keys:`, Object.keys(domain));
+      // CRITIQUE : Vérifier que les domaines ont bien leurs propriétés avant envoi
+      const domainsToSend = (data.domains || []).map((domain: any) => {
+        // Créer un nouveau objet avec TOUTES les propriétés du domaine
+        const domainWithAllProps: any = {
+          ...domain, // Inclure TOUTES les propriétés existantes
+        };
+        
+        // Log de chaque domaine
+        const hasImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0;
+        const hasMapBounds = domain.mapBounds && domain.mapBounds.topLeft && domain.mapBounds.bottomRight;
+        const hasMapElements = domain.mapElements && Array.isArray(domain.mapElements) && domain.mapElements.length > 0;
+        
+        console.log(`[Public API] Domain "${domain.name}": ` +
+          `bg=${hasImage ? `✅(${domain.backgroundImage.length})` : '❌'}, ` +
+          `bounds=${hasMapBounds ? '✅' : '❌'}, ` +
+          `points=${hasMapElements ? `✅(${domain.mapElements.length})` : '❌'}`);
+        
         if (hasImage) {
           console.log(`[Public API]   Preview: ${domain.backgroundImage.substring(0, 50)}...`);
         }
+        
+        return domainWithAllProps;
       });
       
-      // S'assurer que TOUS les domaines ont leurs propriétés complètes, y compris backgroundImage et mapBounds
-      const domainsWithAllProps = (data.domains || []).map((domain: any) => ({
-        ...domain, // Inclure TOUTES les propriétés, y compris backgroundImage et mapBounds
-      }));
-      
-      // Retourner les données avec tous les champs préservés
+      // Retourner les données avec TOUS les champs préservés
       const response = {
         id: cockpit.id,
         name: cockpit.name,
         createdAt: cockpit.createdAt,
         updatedAt: cockpit.updatedAt,
-        domains: domainsWithAllProps,
+        domains: domainsToSend, // Utiliser les domaines avec toutes leurs propriétés
         zones: data.zones || [],
         logo: data.logo || null,
         scrollingBanner: data.scrollingBanner || null,
@@ -639,10 +644,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
       
       // Log final pour vérifier ce qui est envoyé
-      console.log(`[Public API] ✅ Réponse finale - Domaines avec images:`);
-      domainsWithAllProps.forEach((domain: any, index: number) => {
-        const hasImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.length > 0;
-        console.log(`[Public API] Response[${index}] "${domain.name}": backgroundImage=${hasImage ? `PRESENTE (${domain.backgroundImage.length} chars)` : 'ABSENTE'}`);
+      console.log(`[Public API] ✅ Envoi réponse avec ${domainsToSend.length} domaines:`);
+      domainsToSend.forEach((domain: any, index: number) => {
+        const hasImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0;
+        console.log(`[Public API] Send[${index}] "${domain.name}": bg=${hasImage ? `✅(${domain.backgroundImage.length})` : '❌'}`);
       });
       
       return res.json(response);
@@ -1087,48 +1092,85 @@ INSTRUCTIONS:
         cockpit.data = { domains: [], zones: [] };
       }
       
-      // SIMPLIFICATION : Merge profond pour préserver TOUTES les propriétés des domaines existants
+      // MERGE PROFOND : Préserver TOUTES les propriétés importantes des domaines existants
       let mergedDomains = cockpit.data.domains || [];
       if (domains !== undefined && Array.isArray(domains)) {
+        // Pour chaque domaine dans la requête, faire un merge intelligent
         mergedDomains = domains.map((newDomain: any) => {
           const existingDomain = cockpit.data.domains?.find((d: any) => d.id === newDomain.id);
           
           if (existingDomain) {
-            // MERGE PROFOND : Partir de l'existant et appliquer les nouvelles valeurs
-            // Mais PRÉSERVER backgroundImage et mapBounds si pas explicitement fournis ou vides
+            // MERGE INTELLIGENT : Préserver les propriétés importantes même si absentes de la requête
             const merged: any = {
-              ...existingDomain,  // D'abord toutes les propriétés existantes
-              ...newDomain,       // Puis les nouvelles propriétés
+              ...existingDomain,  // D'abord TOUTES les propriétés existantes
+              ...newDomain,       // Puis appliquer les nouvelles valeurs
             };
             
-            // FORCER la préservation si backgroundImage n'est pas valide dans newDomain
-            if (!newDomain.backgroundImage || newDomain.backgroundImage === '' || newDomain.backgroundImage === null) {
-              if (existingDomain.backgroundImage && existingDomain.backgroundImage !== '') {
+            // TOUJOURS PRÉSERVER backgroundImage si elle existe dans l'existant
+            // Sauf si newDomain en fournit explicitement une nouvelle (non vide)
+            if (existingDomain.backgroundImage && 
+                typeof existingDomain.backgroundImage === 'string' && 
+                existingDomain.backgroundImage.trim().length > 0) {
+              // Si newDomain n'a pas de backgroundImage valide, garder l'existant
+              if (!newDomain.backgroundImage || 
+                  typeof newDomain.backgroundImage !== 'string' || 
+                  newDomain.backgroundImage.trim().length === 0 ||
+                  newDomain.backgroundImage === '') {
                 merged.backgroundImage = existingDomain.backgroundImage;
-                console.log(`[PUT] Préservé backgroundImage pour "${newDomain.name}" (${existingDomain.backgroundImage.length} chars)`);
+                console.log(`[PUT] ✅ Préservé backgroundImage pour "${newDomain.name}" (${existingDomain.backgroundImage.length} chars)`);
+              } else {
+                // newDomain a une nouvelle image, l'utiliser
+                console.log(`[PUT] 🔄 Nouveau backgroundImage pour "${newDomain.name}" (${newDomain.backgroundImage.length} chars)`);
               }
             }
             
-            // FORCER la préservation si mapBounds n'est pas valide dans newDomain
-            if (!newDomain.mapBounds || (!newDomain.mapBounds.topLeft && !newDomain.mapBounds.bottomRight)) {
-              if (existingDomain.mapBounds && (existingDomain.mapBounds.topLeft || existingDomain.mapBounds.bottomRight)) {
+            // TOUJOURS PRÉSERVER mapBounds si elle existe dans l'existant
+            if (existingDomain.mapBounds && 
+                existingDomain.mapBounds.topLeft && 
+                existingDomain.mapBounds.bottomRight) {
+              // Si newDomain n'a pas de mapBounds valide, garder l'existant
+              if (!newDomain.mapBounds || 
+                  !newDomain.mapBounds.topLeft || 
+                  !newDomain.mapBounds.bottomRight) {
                 merged.mapBounds = existingDomain.mapBounds;
+                console.log(`[PUT] ✅ Préservé mapBounds pour "${newDomain.name}"`);
+              }
+            }
+            
+            // Préserver aussi mapElements si présents
+            if (existingDomain.mapElements && Array.isArray(existingDomain.mapElements)) {
+              if (!newDomain.mapElements || !Array.isArray(newDomain.mapElements) || newDomain.mapElements.length === 0) {
+                merged.mapElements = existingDomain.mapElements;
               }
             }
             
             return merged;
           } else {
-            // Nouveau domaine
+            // Nouveau domaine - utiliser tel quel
             return newDomain;
           }
         });
+        
+        // IMPORTANT : Ajouter aussi les domaines existants qui ne sont PAS dans la requête
+        // (pour éviter de les perdre)
+        const existingDomainIds = new Set(domains.map((d: any) => d.id));
+        const domainsToAdd = (cockpit.data.domains || []).filter((d: any) => !existingDomainIds.has(d.id));
+        mergedDomains = [...mergedDomains, ...domainsToAdd];
+      } else {
+        // Si domains n'est pas fourni dans la requête, garder les domaines existants intacts
+        mergedDomains = cockpit.data.domains || [];
       }
       
       // Log final pour vérifier ce qui est sauvegardé
-      console.log(`[PUT /cockpits/:id] Sauvegarde finale - Domaines avec images:`);
+      console.log(`[PUT /cockpits/:id] ✅ Sauvegarde finale - ${mergedDomains.length} domaines:`);
       mergedDomains.forEach((d: any, idx: number) => {
-        const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
-        console.log(`[PUT] Final[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+        const hasBg = d.backgroundImage && typeof d.backgroundImage === 'string' && d.backgroundImage.trim().length > 0;
+        const hasMapBounds = d.mapBounds && d.mapBounds.topLeft && d.mapBounds.bottomRight;
+        const hasMapElements = d.mapElements && Array.isArray(d.mapElements) && d.mapElements.length > 0;
+        console.log(`[PUT] Final[${idx}] "${d.name}": ` +
+          `bg=${hasBg ? `✅(${d.backgroundImage.length})` : '❌'}, ` +
+          `bounds=${hasMapBounds ? '✅' : '❌'}, ` +
+          `points=${hasMapElements ? `✅(${d.mapElements.length})` : '❌'}`);
       });
       
       cockpit.data = {

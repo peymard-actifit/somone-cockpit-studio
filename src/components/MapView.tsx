@@ -530,9 +530,25 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   };
   
   // Normaliser l'URL de l'image - s'assurer qu'elle est valide
-  const mapImageUrl = (domain?.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0) 
-    ? domain.backgroundImage.trim() 
-    : '';
+  // CRITIQUE : Vérifier explicitement la présence et le type de backgroundImage
+  const mapImageUrl = (() => {
+    if (!domain) return '';
+    if (!domain.backgroundImage) {
+      console.log(`[MapView] ❌ Domain "${domain.name}": backgroundImage est undefined/null/absent`);
+      return '';
+    }
+    if (typeof domain.backgroundImage !== 'string') {
+      console.log(`[MapView] ❌ Domain "${domain.name}": backgroundImage n'est pas une string (type: ${typeof domain.backgroundImage})`);
+      return '';
+    }
+    const trimmed = domain.backgroundImage.trim();
+    if (trimmed.length === 0) {
+      console.log(`[MapView] ❌ Domain "${domain.name}": backgroundImage est une string vide`);
+      return '';
+    }
+    console.log(`[MapView] ✅ Domain "${domain.name}": backgroundImage valide (${trimmed.length} chars, preview: ${trimmed.substring(0, 30)}...)`);
+    return trimmed;
+  })();
   
   // Diagnostic en mode read-only - Vérifications approfondies
   useEffect(() => {
