@@ -965,40 +965,57 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             return (
               <div
                 key={point.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 group"
-                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                data-point-element="true"
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 group ${
+                  !_readOnly ? 'cursor-move' : 'cursor-pointer'
+                }`}
+                style={{ 
+                  left: `${pos.x}%`, 
+                  top: `${pos.y}%`,
+                  // Zone de drag plus large que l'icône pour faciliter la saisie
+                  padding: `${Math.max(8, dynamicSize * 0.3)}px`,
+                  minWidth: `${dynamicSize * 1.6}px`,
+                  minHeight: `${dynamicSize * 1.6}px`,
+                }}
                 onMouseEnter={() => setHoveredPoint(point.id)}
                 onMouseLeave={() => setHoveredPoint(null)}
+                onMouseDown={(e) => {
+                  if (!_readOnly && e.button === 0) {
+                    // Ignorer si on clique sur un bouton d'action
+                    const target = e.target as HTMLElement;
+                    if (target.closest('button')) {
+                      return;
+                    }
+                    e.stopPropagation();
+                    e.preventDefault();
+                    // Arrêter le drag de la vue si elle est en cours
+                    setIsDragging(false);
+                    setDraggingPointId(point.id);
+                    pointDragStartPosRef.current = { pointId: point.id, x: e.clientX, y: e.clientY };
+                  }
+                }}
+                onClick={(e) => {
+                  // Ignorer si on clique sur un bouton d'action
+                  const target = e.target as HTMLElement;
+                  if (target.closest('button')) {
+                    return;
+                  }
+                  e.stopPropagation();
+                  // Ne pas ouvrir si un drag a eu lieu
+                  if (preventClickRef.current) {
+                    return;
+                  }
+                  handlePointClick(point);
+                }}
               >
                 {/* Icône colorée - draggable en mode studio */}
                 <div 
-                  data-point-element="true"
-                  className={`rounded-full shadow-lg flex items-center justify-center transition-all hover:brightness-110 ${
-                    !_readOnly ? 'cursor-move' : 'cursor-pointer'
-                  }`}
+                  className="rounded-full shadow-lg flex items-center justify-center transition-all hover:brightness-110 pointer-events-none"
                   style={{ 
                     width: `${dynamicSize}px`,
                     height: `${dynamicSize}px`,
                     backgroundColor: colors.hex,
                     boxShadow: `0 4px 12px ${colors.hex}50`
-                  }}
-                  onMouseDown={(e) => {
-                    if (!_readOnly && e.button === 0) {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      // Arrêter le drag de la vue si elle est en cours
-                      setIsDragging(false);
-                      setDraggingPointId(point.id);
-                      pointDragStartPosRef.current = { pointId: point.id, x: e.clientX, y: e.clientY };
-                    }
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Ne pas ouvrir si un drag a eu lieu
-                    if (preventClickRef.current) {
-                      return;
-                    }
-                    handlePointClick(point);
                   }}
                 >
                   <MuiIcon name={iconName} size={iconSize} className="text-white" />
@@ -1050,12 +1067,15 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 
                 {/* Boutons d'action au survol - collés au coin supérieur droit du point */}
                 {hoveredPoint === point.id && !_readOnly && (
-                  <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2">
+                  <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2 pointer-events-auto">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
                         handleEditPoint(point);
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
                       }}
                       className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{
@@ -1074,6 +1094,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                         e.stopPropagation();
                         e.preventDefault();
                         cloneMapElement(point.id);
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
                       }}
                       className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{

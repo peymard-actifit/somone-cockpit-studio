@@ -934,40 +934,52 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               <div
                 key={element.id}
                 data-element-tile="true"
-                className="absolute z-10 group"
+                className={`absolute z-10 group ${
+                  !_readOnly ? 'cursor-move' : 'cursor-pointer'
+                }`}
                 style={{
                   left: `${left}px`,
                   top: `${top}px`,
                   width: `${width}px`,
                   height: `${height}px`,
+                  minWidth: '8px',
+                  minHeight: '8px',
                 }}
                 onMouseEnter={() => setHoveredElement(element.id)}
                 onMouseLeave={() => setHoveredElement(null)}
+                onMouseDown={(e) => {
+                  if (!_readOnly && e.button === 0) {
+                    // Ignorer si on clique sur un bouton d'action
+                    const target = e.target as HTMLElement;
+                    if (target.closest('button')) {
+                      return;
+                    }
+                    e.stopPropagation();
+                    e.preventDefault();
+                    // Arrêter le drag de la vue si elle est en cours
+                    setIsDragging(false);
+                    setDraggingElementId(element.id);
+                    elementDragStartPosRef.current = { elementId: element.id, x: e.clientX, y: e.clientY };
+                  }
+                }}
+                onClick={(e) => {
+                  // Ignorer si on clique sur un bouton d'action
+                  const target = e.target as HTMLElement;
+                  if (target.closest('button')) {
+                    return;
+                  }
+                  e.stopPropagation();
+                  // Ne pas ouvrir si un drag a eu lieu
+                  if (preventClickRef.current) {
+                    return;
+                  }
+                  setCurrentElement(element.id);
+                }}
               >
                 {/* Icône colorée OU rectangle coloré simple */}
                 {hasIcon ? (
                   <div 
-                    className={`absolute inset-0 flex items-center justify-center hover:scale-110 transition-all ${
-                      !_readOnly ? 'cursor-move' : 'cursor-pointer'
-                    }`}
-                    onMouseDown={(e) => {
-                      if (!_readOnly && e.button === 0) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        // Arrêter le drag de la vue si elle est en cours
-                        setIsDragging(false);
-                        setDraggingElementId(element.id);
-                        elementDragStartPosRef.current = { elementId: element.id, x: e.clientX, y: e.clientY };
-                      }
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Ne pas ouvrir si un drag a eu lieu
-                      if (preventClickRef.current) {
-                        return;
-                      }
-                      setCurrentElement(element.id);
-                    }}
+                    className="absolute inset-0 flex items-center justify-center hover:scale-110 transition-all pointer-events-none"
                     style={{ color: colors.hex }}
                   >
                     <MuiIcon 
@@ -977,27 +989,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   </div>
                 ) : (
                   <div 
-                    className={`w-full h-full rounded-sm hover:brightness-110 transition-all ${
-                      !_readOnly ? 'cursor-move' : 'cursor-pointer'
-                    }`}
-                    onMouseDown={(e) => {
-                      if (!_readOnly && e.button === 0) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        // Arrêter le drag de la vue si elle est en cours
-                        setIsDragging(false);
-                        setDraggingElementId(element.id);
-                        elementDragStartPosRef.current = { elementId: element.id, x: e.clientX, y: e.clientY };
-                      }
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Ne pas ouvrir si un drag a eu lieu
-                      if (preventClickRef.current) {
-                        return;
-                      }
-                      setCurrentElement(element.id);
-                    }}
+                    className="w-full h-full rounded-sm hover:brightness-110 transition-all pointer-events-none"
                     style={{ 
                       backgroundColor: colors.hex,
                       boxShadow: `0 2px 8px ${colors.hex}50`
@@ -1007,12 +999,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 
                 {/* Boutons d'action au survol - collés au coin supérieur droit de l'élément */}
                 {hoveredElement === element.id && !_readOnly && (
-                  <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2">
+                  <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2 pointer-events-auto">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
                         openEditModal(element);
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
                       }}
                       className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{
@@ -1031,6 +1026,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                         e.stopPropagation();
                         e.preventDefault();
                         cloneElement(element.id);
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
                       }}
                       className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{
