@@ -791,7 +791,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           }}
         >
           {/* Image de fond */}
-          {mapImageUrl && mapImageUrl.trim() ? (
+          {/* CRITIQUE: Vérifier que l'image est valide avant de l'afficher */}
+          {mapImageUrl && mapImageUrl.trim().length > 0 && mapImageUrl.startsWith('data:image/') && isValidBase64Image(mapImageUrl) ? (
             <img 
               key={`map-image-${domain.id}-${mapImageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               src={mapImageUrl}
@@ -841,8 +842,18 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 console.error(`[MapView] URL preview:`, mapImageUrl?.substring(0, 100));
                 console.error(`[MapView] Longueur totale:`, mapImageUrl?.length || 0);
                 console.error(`[MapView] Type:`, typeof mapImageUrl);
-                console.error(`[MapView] Starts with data:`, mapImageUrl?.startsWith('data:'));
+                console.error(`[MapView] Starts with data:image/:`, mapImageUrl?.startsWith('data:image/'));
+                console.error(`[MapView] Is valid base64:`, isValidBase64Image(mapImageUrl));
+                if (mapImageUrl) {
+                  const base64Part = mapImageUrl.split(',')[1];
+                  console.error(`[MapView] Base64 part length:`, base64Part?.length || 0);
+                  console.error(`[MapView] Base64 part preview:`, base64Part?.substring(0, 50) || 'NONE');
+                  // Vérifier si c'est du base64 valide
+                  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+                  console.error(`[MapView] Base64 regex valid:`, base64Part ? base64Regex.test(base64Part) : false);
+                }
                 console.error(`[MapView] Image element:`, img);
+                console.error(`[MapView] Image element src length:`, img.src?.length || 0);
                 console.error(`[MapView] Image element styles:`, {
                   display: window.getComputedStyle(img).display,
                   width: window.getComputedStyle(img).width,
@@ -851,6 +862,13 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 });
                 if (_readOnly) {
                   console.error(`[MapView READ-ONLY] ❌ Image de carte non chargée - longueur: ${mapImageUrl?.length || 0} caractères`);
+                  console.error(`[MapView READ-ONLY] Domain backgroundImage:`, domain?.backgroundImage ? `PRESENTE (${domain.backgroundImage.length} chars)` : 'ABSENTE');
+                  console.error(`[MapView READ-ONLY] Image validity check:`, {
+                    isValid: isValidBase64Image(domain?.backgroundImage),
+                    startsWithDataImage: domain?.backgroundImage?.startsWith('data:image/'),
+                    hasComma: domain?.backgroundImage?.includes(','),
+                    base64PartLength: domain?.backgroundImage?.split(',')[1]?.length || 0
+                  });
                 }
                 // Ne pas cacher l'image en cas d'erreur - laisser visible pour debug
                 // img.style.display = 'none';
