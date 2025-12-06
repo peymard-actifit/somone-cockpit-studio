@@ -1001,40 +1001,42 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   </div>
                 )}
                 
-                {/* Boutons d'action au survol - en dessous du point */}
+                {/* Boutons d'action au survol - collés au coin supérieur droit du point */}
                 {hoveredPoint === point.id && !_readOnly && (
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-0 flex items-center gap-1 z-20">
+                  <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         handleEditPoint(point);
                       }}
-                      className="flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all shadow-md border border-[#E2E8F0]"
+                      className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{
-                        padding: `${4 / scale}px ${8 / scale}px`,
-                        minWidth: `${24 / scale}px`,
-                        minHeight: `${24 / scale}px`,
+                        padding: `${2 / scale}px`,
+                        width: `${18 / scale}px`,
+                        height: `${18 / scale}px`,
                       }}
                       title="Modifier"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: `${16 / scale}px`, height: `${16 / scale}px` }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: `${12 / scale}px`, height: `${12 / scale}px` }}>
                         <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                       </svg>
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         cloneMapElement(point.id);
                       }}
-                      className="flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all shadow-md border border-[#E2E8F0]"
+                      className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{
-                        padding: `${4 / scale}px ${8 / scale}px`,
-                        minWidth: `${24 / scale}px`,
-                        minHeight: `${24 / scale}px`,
+                        padding: `${2 / scale}px`,
+                        width: `${18 / scale}px`,
+                        height: `${18 / scale}px`,
                       }}
                       title="Cloner"
                     >
-                      <MuiIcon name="CopyIcon" size={16 / scale} className="text-[#1E3A5F]" />
+                      <MuiIcon name="CopyIcon" size={12 / scale} className="text-[#1E3A5F]" />
                     </button>
                   </div>
                 )}

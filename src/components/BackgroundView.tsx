@@ -954,40 +954,42 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   />
                 )}
                 
-                {/* Boutons d'action au survol - en dessous de l'élément */}
+                {/* Boutons d'action au survol - collés au coin supérieur droit de l'élément */}
                 {hoveredElement === element.id && !_readOnly && (
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-0 flex items-center gap-1 z-20">
+                  <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         openEditModal(element);
                       }}
-                      className="flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all shadow-md border border-[#E2E8F0]"
+                      className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{
-                        padding: '4px 8px',
-                        minWidth: '24px',
-                        minHeight: '24px',
+                        padding: '2px',
+                        width: '18px',
+                        height: '18px',
                       }}
                       title="Modifier"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
                         <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                       </svg>
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         cloneElement(element.id);
                       }}
-                      className="flex items-center justify-center bg-white rounded-sm hover:bg-gray-50 hover:scale-110 transition-all shadow-md border border-[#E2E8F0]"
+                      className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{
-                        padding: '4px 8px',
-                        minWidth: '24px',
-                        minHeight: '24px',
+                        padding: '2px',
+                        width: '18px',
+                        height: '18px',
                       }}
                       title="Cloner"
                     >
-                      <MuiIcon name="CopyIcon" size={16} className="text-[#1E3A5F]" />
+                      <MuiIcon name="CopyIcon" size={12} className="text-[#1E3A5F]" />
                     </button>
                   </div>
                 )}
