@@ -659,10 +659,27 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           console.error(`[BackgroundView READ-ONLY] Domain object (preview):`, JSON.stringify(domain, null, 2).substring(0, 1000));
         }
       } else {
+        const isValid = isValidBase64Image(domain.backgroundImage);
         console.log(`[BackgroundView READ-ONLY] ✅ Domain "${domain?.name}": backgroundImage présente (${domain.backgroundImage.length} caractères)`);
         console.log(`[BackgroundView READ-ONLY] backgroundImage starts with:`, domain.backgroundImage.substring(0, 30));
         console.log(`[BackgroundView READ-ONLY] Starts with 'data:':`, domain.backgroundImage.startsWith('data:'));
+        console.log(`[BackgroundView READ-ONLY] Starts with 'data:image/':`, domain.backgroundImage.startsWith('data:image/'));
+        console.log(`[BackgroundView READ-ONLY] Is valid base64 image:`, isValid);
+        if (!isValid) {
+          console.error(`[BackgroundView READ-ONLY] ❌ Image INVALIDE pour "${domain?.name}" - ne passera pas la validation`);
+          const base64Part = domain.backgroundImage.split(',')[1];
+          console.error(`[BackgroundView READ-ONLY] Base64 part length:`, base64Part?.length || 0);
+          console.error(`[BackgroundView READ-ONLY] Base64 part preview:`, base64Part?.substring(0, 50) || 'NONE');
+        }
       }
+      
+      // Vérifier aussi imageUrl après traitement
+      console.log(`[BackgroundView READ-ONLY] imageUrl après traitement:`, {
+        hasImageUrl: !!imageUrl,
+        imageUrlLength: imageUrl?.length || 0,
+        isValid: imageUrl ? isValidBase64Image(imageUrl) : false,
+        willRender: imageUrl && imageUrl.trim().length > 0 && imageUrl.startsWith('data:image/') && isValidBase64Image(imageUrl)
+      });
       console.log(`[BackgroundView READ-ONLY] ====================`);
     }
   }, [domain, imageUrl, _readOnly]);
@@ -770,7 +787,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         >
           {/* Image de fond */}
           {/* CRITIQUE: Vérifier explicitement que l'image est valide avant de l'afficher */}
-          {imageUrl && imageUrl.trim().length > 0 && imageUrl.startsWith('data:image/') ? (
+          {imageUrl && imageUrl.trim().length > 0 && imageUrl.startsWith('data:image/') && isValidBase64Image(imageUrl) ? (
             <img 
               key={`bg-image-${domain.id}-${imageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               ref={imageRef}

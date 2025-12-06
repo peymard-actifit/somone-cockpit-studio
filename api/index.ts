@@ -616,13 +616,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const hasMapBounds = domain.mapBounds && domain.mapBounds.topLeft && domain.mapBounds.bottomRight;
         const hasMapElements = domain.mapElements && Array.isArray(domain.mapElements) && domain.mapElements.length > 0;
         
+        // Vérifier si l'image est valide (base64)
+        const isValidBase64 = hasImage && domain.backgroundImage.startsWith('data:image/');
+        const base64Part = hasImage ? domain.backgroundImage.split(',')[1] : null;
+        const base64Valid = base64Part && /^[A-Za-z0-9+/]*={0,2}$/.test(base64Part);
+        
         console.log(`[Public API] Domain "${domain.name}": ` +
           `bg=${hasImage ? `✅(${domain.backgroundImage.length})` : '❌'}, ` +
+          `valid=${isValidBase64 && base64Valid ? '✅' : '❌'}, ` +
           `bounds=${hasMapBounds ? '✅' : '❌'}, ` +
           `points=${hasMapElements ? `✅(${domain.mapElements.length})` : '❌'}`);
         
         if (hasImage) {
           console.log(`[Public API]   Preview: ${domain.backgroundImage.substring(0, 50)}...`);
+          console.log(`[Public API]   Starts with data:image/: ${domain.backgroundImage.startsWith('data:image/')}`);
+          console.log(`[Public API]   Base64 valid: ${base64Valid ? 'YES' : 'NO'}`);
         }
         
         return domainWithAllProps;
