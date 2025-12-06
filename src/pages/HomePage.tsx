@@ -233,45 +233,45 @@ export default function HomePage() {
             {showUserMenu && (
               <>
                 <div className="fixed inset-0" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute right-0 mt-2 w-56 bg-cockpit-bg-card border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden">
-                  <div className="p-3 border-b border-slate-700/50">
-                    <p className="text-sm text-slate-400">Connecté en tant que</p>
-                    <p className="text-white font-medium">{user?.username}</p>
+                <div className="absolute right-0 mt-2 w-64 bg-cockpit-bg-card border-2 border-slate-600 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <div className="p-4 border-b border-slate-700/50 bg-slate-800/50">
+                    <p className="text-xs text-slate-300 mb-1 font-medium">Connecté en tant que</p>
+                    <p className="text-white font-bold text-lg">{user?.username}</p>
                     {user?.isAdmin && (
-                      <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">
-                        <MuiIcon name="ShieldIcon" size={12} />
+                      <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-amber-500/30 text-amber-300 text-xs rounded-full font-semibold border border-amber-500/50">
+                        <MuiIcon name="ShieldIcon" size={14} />
                         Administrateur
                       </span>
                     )}
                   </div>
-                  <div className="p-2">
+                  <div className="p-2 bg-slate-900/50">
                     <button 
                       onClick={() => {
                         setShowUserMenu(false);
                         setShowChangePasswordModal(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-slate-700/50 rounded-lg transition-colors text-left font-medium"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-blue-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-blue-500/50 mb-2"
                     >
-                      <MuiIcon name="KeyRound" size={16} />
-                      Changer le mot de passe
+                      <MuiIcon name="KeyRound" size={18} className="text-blue-400" />
+                      <span className="text-base">Changer le mot de passe</span>
                     </button>
                     <button 
                       onClick={() => {
                         setShowUserMenu(false);
                         setShowToggleAdminModal(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-slate-700/50 rounded-lg transition-colors text-left font-medium"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-amber-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-amber-500/50 mb-2"
                     >
-                      <MuiIcon name="SettingsIcon" size={16} />
-                      {user?.isAdmin ? 'Quitter le mode admin' : 'Passer administrateur'}
+                      <MuiIcon name="SettingsIcon" size={18} className="text-amber-400" />
+                      <span className="text-base">{user?.isAdmin ? 'Quitter le mode admin' : 'Passer administrateur'}</span>
                     </button>
-                    <hr className="my-2 border-slate-700/50" />
+                    <hr className="my-3 border-slate-700" />
                     <button
                       onClick={logout}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left font-medium"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-red-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-red-500/50"
                     >
-                      <MuiIcon name="LogOut" size={16} />
-                      Déconnexion
+                      <MuiIcon name="LogOut" size={18} className="text-red-400" />
+                      <span className="text-base">Déconnexion</span>
                     </button>
                   </div>
                 </div>

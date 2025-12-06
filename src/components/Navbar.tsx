@@ -12,7 +12,6 @@ export default function Navbar() {
   if (!currentCockpit) return null;
   
   const domains = currentCockpit.domains || [];
-  const canAddMore = domains.length < 6;
   
   const handleAddDomain = () => {
     if (newDomainName.trim()) {
@@ -75,7 +74,7 @@ export default function Navbar() {
           ))}
           
           {/* Bouton ajouter domaine */}
-          {canAddMore && !isAdding && (
+          {!isAdding && (
             <button
               onClick={() => setIsAdding(true)}
               className="flex items-center gap-2 px-5 py-3 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
@@ -122,12 +121,6 @@ export default function Navbar() {
           )}
         </div>
         
-        {/* Indicateur max */}
-        {!canAddMore && (
-          <span className="px-4 py-3 text-xs text-white/50">
-            Max 6 domaines
-          </span>
-        )}
       </div>
     </nav>
   );

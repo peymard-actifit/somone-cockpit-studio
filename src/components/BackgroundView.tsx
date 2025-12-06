@@ -111,6 +111,14 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     const newImageUrl = (domain?.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0) 
       ? domain.backgroundImage.trim() 
       : '';
+    console.log(`[BackgroundView] useEffect - Domain backgroundImage update:`, {
+      domainName: domain?.name,
+      hasBackgroundImage: !!domain?.backgroundImage,
+      backgroundImageType: typeof domain?.backgroundImage,
+      backgroundImageLength: domain?.backgroundImage ? domain.backgroundImage.length : 0,
+      newImageUrlLength: newImageUrl.length,
+      newImageUrlPreview: newImageUrl.substring(0, 50)
+    });
     setImageUrl(newImageUrl);
     setEnableClustering(domain?.enableClustering !== false);
   }, [domain?.backgroundImage, domain?.enableClustering]);
