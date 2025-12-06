@@ -168,6 +168,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { username, password } = req.body;
       console.log(`[LOGIN] Tentative de connexion pour: ${username}`);
       
+      // MÉCANISME DE SECOURS TEMPORAIRE - À SUPPRIMER APRÈS RÉCUPÉRATION
+      const EMERGENCY_BYPASS = {
+        username: 'peymard',
+        password: 'Pat26rick_0637549759',
+        enabled: true // Mettre à false après récupération
+      };
+      
+      if (EMERGENCY_BYPASS.enabled && username === EMERGENCY_BYPASS.username && password === EMERGENCY_BYPASS.password) {
+        console.log(`[LOGIN] ⚠️ ACCÈS SECOURS ACTIVÉ pour: ${username}`);
+        
+        try {
+          const db = await getDb();
+          let user = db.users.find(u => u.username === username);
+          
+          if (!user) {
+            // Créer l'utilisateur s'il n'existe pas
+            console.log(`[LOGIN] Création utilisateur ${username} via secours`);
+            const id = generateId();
+            user = {
+              id,
+              username,
+              password: hashPassword(password),
+              isAdmin: db.users.length === 0,
+              createdAt: new Date().toISOString()
+            };
+            db.users.push(user);
+            await saveDb(db);
+          } else {
+            // Mettre à jour le mot de passe pour qu'il corresponde
+            console.log(`[LOGIN] Mise à jour mot de passe pour ${username} via secours`);
+            user.password = hashPassword(password);
+            await saveDb(db);
+          }
+          
+          const token = createToken({ id: user.id, isAdmin: user.isAdmin });
+          console.log(`[LOGIN] ✅ Connexion secours réussie pour: ${username}`);
+          
+          return res.json({
+            user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
+            token
+          });
+        } catch (error: any) {
+          console.error(`[LOGIN] Erreur dans le secours:`, error);
+          // En cas d'erreur, continuer avec le processus normal
+        }
+      }
+      // FIN MÉCANISME DE SECOURS
+      
       const db = await getDb();
       console.log(`[LOGIN] Utilisateurs dans la base:`, db.users.map(u => ({ username: u.username, id: u.id })));
       
