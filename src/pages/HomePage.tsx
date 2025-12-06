@@ -25,6 +25,8 @@ export default function HomePage() {
   const importFileInputRef = useRef<HTMLInputElement>(null);
   const [showExportModal, setShowExportModal] = useState<string | null>(null);
   const [exportFileName, setExportFileName] = useState('');
+  const [selectedDirectory, setSelectedDirectory] = useState<FileSystemDirectoryHandle | null>(null);
+  const [useCustomDirectory, setUseCustomDirectory] = useState(false);
   
   useEffect(() => {
     fetchCockpits();
@@ -32,9 +34,11 @@ export default function HomePage() {
   
   const handleExport = async (id: string, fileName?: string) => {
     try {
-      await exportCockpit(id, fileName);
+      await exportCockpit(id, fileName, useCustomDirectory ? selectedDirectory : null);
       setShowExportModal(null);
       setExportFileName('');
+      setSelectedDirectory(null);
+      setUseCustomDirectory(false);
     } catch (error) {
       console.error('Erreur export:', error);
     }
@@ -47,8 +51,33 @@ export default function HomePage() {
       const defaultName = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}`;
       setExportFileName(defaultName);
       setShowExportModal(id);
+      setSelectedDirectory(null);
+      setUseCustomDirectory(false);
     }
   };
+  
+  const handleChooseDirectory = async () => {
+    try {
+      // Vérifier si l'API File System Access est disponible
+      if (!('showDirectoryPicker' in window)) {
+        alert('Cette fonctionnalité n\'est pas disponible dans votre navigateur. Utilisez Chrome, Edge ou un autre navigateur moderne.');
+        return;
+      }
+      
+      const directoryHandle = await (window as any).showDirectoryPicker();
+      setSelectedDirectory(directoryHandle);
+      setUseCustomDirectory(true);
+    } catch (error: any) {
+      // L'utilisateur a annulé la sélection
+      if (error.name !== 'AbortError') {
+        console.error('Erreur lors de la sélection du répertoire:', error);
+        alert('Erreur lors de la sélection du répertoire: ' + error.message);
+      }
+    }
+  };
+  
+  // Vérifier si l'API File System Access est disponible
+  const isFileSystemAccessAvailable = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -597,6 +626,8 @@ export default function HomePage() {
           onClose={() => {
             setShowExportModal(null);
             setExportFileName('');
+            setSelectedDirectory(null);
+            setUseCustomDirectory(false);
           }}
           onConfirm={() => {
             if (showExportModal) {
@@ -628,11 +659,78 @@ export default function HomePage() {
               </p>
             </div>
             
+            {/* Choix du répertoire de sauvegarde */}
+            {isFileSystemAccessAvailable && (
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-2">
+                  Répertoire de sauvegarde
+                </label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      id="export-default-dir"
+                      name="export-directory"
+                      checked={!useCustomDirectory}
+                      onChange={() => {
+                        setUseCustomDirectory(false);
+                        setSelectedDirectory(null);
+                      }}
+                      className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="export-default-dir" className="text-sm text-slate-300 cursor-pointer">
+                      Dossier de téléchargements par défaut
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      id="export-custom-dir"
+                      name="export-directory"
+                      checked={useCustomDirectory}
+                      onChange={() => {
+                        if (!selectedDirectory) {
+                          handleChooseDirectory();
+                        } else {
+                          setUseCustomDirectory(true);
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="export-custom-dir" className="text-sm text-slate-300 cursor-pointer flex-1">
+                      Choisir un répertoire personnalisé
+                    </label>
+                    {selectedDirectory && (
+                      <button
+                        onClick={handleChooseDirectory}
+                        className="px-3 py-1.5 text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-colors"
+                      >
+                        Changer
+                      </button>
+                    )}
+                  </div>
+                  {selectedDirectory && (
+                    <div className="ml-7 p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <p className="text-xs text-green-400 flex items-center gap-2">
+                        <MuiIcon name="CheckCircle" size={14} />
+                        Répertoire sélectionné: <span className="font-mono text-green-300">{(selectedDirectory as any).name}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
             <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
               <div className="flex items-start gap-2">
                 <MuiIcon name="Info" size={16} className="text-blue-400 mt-0.5" />
                 <p className="text-xs text-blue-300">
                   Le fichier contiendra toutes les données de la maquette, y compris les images de fond encodées en base64.
+                  {!isFileSystemAccessAvailable && (
+                    <span className="block mt-1 text-blue-400/80">
+                      Pour choisir un répertoire personnalisé, utilisez Chrome, Edge ou un autre navigateur moderne.
+                    </span>
+                  )}
                 </p>
               </div>
             </div>

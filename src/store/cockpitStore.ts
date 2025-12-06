@@ -69,7 +69,7 @@ interface CockpitState {
   
   // Export
   exportToExcel: () => Promise<Blob | null>;
-  exportCockpit: (id: string, fileName?: string) => Promise<void>;
+  exportCockpit: (id: string, fileName?: string, directoryHandle?: FileSystemDirectoryHandle | null) => Promise<void>;
   importCockpit: (file: File) => Promise<Cockpit | null>;
   
   // Publication
@@ -1097,7 +1097,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     }
   },
 
-  exportCockpit: async (id: string, fileName?: string) => {
+  exportCockpit: async (id: string, fileName?: string, directoryHandle?: FileSystemDirectoryHandle | null) => {
     const token = useAuthStore.getState().token;
     
     try {
@@ -1124,19 +1124,36 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
       };
       
-      // Convertir en JSON et télécharger
+      // Convertir en JSON
       const jsonStr = JSON.stringify(exportData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       
       // Utiliser le nom personnalisé ou générer un nom par défaut
       const defaultFileName = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}`;
       const finalFileName = fileName ? fileName.trim() : defaultFileName;
       // S'assurer que le nom se termine par .json
-      a.download = finalFileName.endsWith('.json') ? finalFileName : `${finalFileName}.json`;
+      const fileExtension = finalFileName.endsWith('.json') ? '' : '.json';
+      const completeFileName = `${finalFileName}${fileExtension}`;
       
+      // Si un répertoire personnalisé est sélectionné, sauvegarder dedans
+      if (directoryHandle) {
+        try {
+          const fileHandle = await directoryHandle.getFileHandle(completeFileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          return; // Succès, sortir de la fonction
+        } catch (error: any) {
+          console.error('Erreur lors de la sauvegarde dans le répertoire:', error);
+          throw new Error(`Impossible de sauvegarder dans le répertoire: ${error.message}`);
+        }
+      }
+      
+      // Sinon, utiliser le téléchargement par défaut
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = completeFileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
