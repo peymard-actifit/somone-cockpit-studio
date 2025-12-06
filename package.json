@@ -4,6 +4,8 @@
   "description": "Studio d'assemblage de maquettes de cockpit",
   "type": "module",
   "scripts": {
+    "test:images": "node scripts/test-images-flow.js",
+    "fix:images": "node scripts/fix-images-issue.js",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "vite",
     "dev:server": "tsx watch server/index.ts",

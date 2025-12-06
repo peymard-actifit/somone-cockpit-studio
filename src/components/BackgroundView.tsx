@@ -725,7 +725,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           }}
         >
           {/* Image de fond */}
-          {domain?.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0 ? (
+          {/* CRITIQUE: Vérifier explicitement domain.backgroundImage (sans ? car domain existe toujours) */}
+          {domain && domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0 ? (
             <img 
               key={`bg-image-${domain.id}-${imageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               ref={imageRef}
