@@ -331,7 +331,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (path === '/debug/fix-user' && method === 'POST') {
       try {
         console.log('[DEBUG fix-user] Début');
-        const { username, password } = req.body;
+        console.log('[DEBUG fix-user] req.body:', JSON.stringify(req.body));
+        
+        // Parser le body si nécessaire
+        let body = req.body;
+        if (typeof body === 'string') {
+          try {
+            body = JSON.parse(body);
+          } catch (e) {
+            return res.status(400).json({ error: 'Invalid JSON body' });
+          }
+        }
+        
+        const { username, password } = body;
         
         if (!username || !password) {
           return res.status(400).json({ error: 'username et password requis' });
