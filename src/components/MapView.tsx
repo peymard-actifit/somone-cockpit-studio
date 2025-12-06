@@ -781,22 +781,31 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           }}
         >
           {/* Image de fond */}
-          {mapImageUrl ? (
+          {mapImageUrl && mapImageUrl.trim() ? (
             <img 
+              key={`map-image-${domain.id}-${mapImageUrl.substring(0, 20)}`}
               src={mapImageUrl}
               alt="Carte"
               className="absolute inset-0 w-full h-full object-contain"
-              onLoad={() => {
+              style={{ minWidth: '1px', minHeight: '1px' }}
+              onLoad={(e) => {
+                const img = e.target as HTMLImageElement;
+                console.log(`[MapView] ✅ Image chargée avec succès pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
                 if (_readOnly) {
-                  console.log(`[MapView] Image de carte chargée avec succès pour le domaine "${domain.name}"`);
+                  console.log(`[MapView READ-ONLY] Image de carte chargée avec succès pour le domaine "${domain.name}"`);
                 }
               }}
               onError={(e) => {
-                console.error(`[MapView] Erreur chargement image carte pour le domaine "${domain.name}"`, mapImageUrl?.substring(0, 50));
+                const img = e.target as HTMLImageElement;
+                console.error(`[MapView] ❌ Erreur chargement image carte pour le domaine "${domain.name}"`);
+                console.error(`[MapView] URL preview:`, mapImageUrl?.substring(0, 100));
+                console.error(`[MapView] Longueur totale:`, mapImageUrl?.length || 0);
+                console.error(`[MapView] Type:`, typeof mapImageUrl);
+                console.error(`[MapView] Starts with data:`, mapImageUrl?.startsWith('data:'));
                 if (_readOnly) {
-                  console.error(`[MapView] Image de carte non chargée - longueur: ${mapImageUrl?.length || 0} caractères`);
+                  console.error(`[MapView READ-ONLY] Image de carte non chargée - longueur: ${mapImageUrl?.length || 0} caractères`);
                 }
-                (e.target as HTMLImageElement).style.display = 'none';
+                img.style.display = 'none';
               }}
             />
           ) : (

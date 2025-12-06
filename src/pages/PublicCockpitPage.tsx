@@ -36,15 +36,29 @@ export default function PublicCockpitPage() {
         
         const data = await response.json();
         
-        // Diagnostic : vérifier les images dans les domaines
-        if (data.domains) {
-          data.domains.forEach((domain: any) => {
+        // Diagnostic approfondi : vérifier les images dans les domaines
+        console.log('[PublicCockpitPage] Réponse API reçue:', {
+          domainsCount: data.domains?.length || 0,
+          cockpitName: data.name
+        });
+        
+        if (data.domains && Array.isArray(data.domains)) {
+          data.domains.forEach((domain: any, index: number) => {
+            console.log(`[PublicCockpitPage] Domaine ${index + 1}: "${domain.name}" (${domain.templateType})`);
+            console.log(`[PublicCockpitPage]   - Keys:`, Object.keys(domain));
+            console.log(`[PublicCockpitPage]   - backgroundImage type:`, typeof domain.backgroundImage);
+            
             if (domain.backgroundImage) {
-              console.log(`✅ Domain "${domain.name}" (${domain.templateType}): image présente (${domain.backgroundImage.length} caractères)`);
+              console.log(`[PublicCockpitPage] ✅ Domain "${domain.name}": image présente (${domain.backgroundImage.length} caractères)`);
+              console.log(`[PublicCockpitPage]   - Preview:`, domain.backgroundImage.substring(0, 50));
+              console.log(`[PublicCockpitPage]   - Starts with data:`, domain.backgroundImage.startsWith('data:'));
             } else {
-              console.warn(`❌ Domain "${domain.name}" (${domain.templateType}): PAS d'image de fond`);
+              console.error(`[PublicCockpitPage] ❌ Domain "${domain.name}": PAS d'image de fond`);
+              console.error(`[PublicCockpitPage]   - Domain object:`, JSON.stringify(domain, null, 2).substring(0, 300));
             }
           });
+        } else {
+          console.error('[PublicCockpitPage] ❌ data.domains n\'est pas un tableau:', typeof data.domains);
         }
         
         setCockpit(data);

@@ -774,22 +774,34 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           }}
         >
           {/* Image de fond */}
-          {domain.backgroundImage ? (
+          {domain.backgroundImage && domain.backgroundImage.trim() ? (
             <img 
+              key={`bg-image-${domain.id}-${domain.backgroundImage.substring(0, 20)}`}
               ref={imageRef}
               src={domain.backgroundImage}
               alt="Fond"
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               draggable={false}
-              onLoad={() => {
+              style={{ minWidth: '1px', minHeight: '1px' }}
+              onLoad={(e) => {
+                const img = e.target as HTMLImageElement;
+                console.log(`[BackgroundView] ✅ Image chargée avec succès pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
                 calculateImageBounds();
                 if (_readOnly) {
-                  console.log(`[BackgroundView] Image chargée avec succès pour le domaine "${domain.name}"`);
+                  console.log(`[BackgroundView READ-ONLY] Image chargée avec succès pour le domaine "${domain.name}"`);
                 }
               }}
               onError={(e) => {
-                console.error(`[BackgroundView] Erreur chargement image de fond pour le domaine "${domain.name}"`, domain.backgroundImage?.substring(0, 50));
-                (e.target as HTMLImageElement).style.display = 'none';
+                const img = e.target as HTMLImageElement;
+                console.error(`[BackgroundView] ❌ Erreur chargement image de fond pour le domaine "${domain.name}"`);
+                console.error(`[BackgroundView] URL preview:`, domain.backgroundImage?.substring(0, 100));
+                console.error(`[BackgroundView] Longueur totale:`, domain.backgroundImage?.length || 0);
+                console.error(`[BackgroundView] Type:`, typeof domain.backgroundImage);
+                console.error(`[BackgroundView] Starts with data:`, domain.backgroundImage?.startsWith('data:'));
+                if (_readOnly) {
+                  console.error(`[BackgroundView READ-ONLY] Image non chargée - longueur: ${domain.backgroundImage?.length || 0} caractères`);
+                }
+                img.style.display = 'none';
               }}
             />
           ) : (
