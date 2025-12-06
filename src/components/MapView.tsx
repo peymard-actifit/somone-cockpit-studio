@@ -15,12 +15,15 @@ const POPULAR_MAP_ICONS = [
 ];
 
 // Ordre de priorité des statuts (du plus critique au moins critique)
+// Note: Utilise maintenant STATUS_PRIORITY_MAP depuis types/index.ts
 const STATUS_PRIORITY: Record<TileStatus, number> = {
-  fatal: 5,
-  critique: 4,
-  mineur: 3,
-  deconnecte: 2,
-  ok: 1,
+  fatal: 6,
+  critique: 5,
+  mineur: 4,
+  information: 3,
+  ok: 2,
+  deconnecte: 1,
+  herite: 0,
 };
 
 // Interface pour un cluster de points

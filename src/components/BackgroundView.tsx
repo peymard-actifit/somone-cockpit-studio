@@ -1,18 +1,12 @@
 import type { Domain, Element, TileStatus } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
-import { STATUS_COLORS, STATUS_LABELS } from '../types';
+import { STATUS_COLORS, STATUS_LABELS, STATUS_PRIORITY_MAP, getEffectiveColors, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 
 // Ordre de priorité des statuts (du plus critique au moins critique)
-const STATUS_PRIORITY: Record<TileStatus, number> = {
-  fatal: 5,
-  critique: 4,
-  mineur: 3,
-  deconnecte: 2,
-  ok: 1,
-};
+const STATUS_PRIORITY: Record<TileStatus, number> = STATUS_PRIORITY_MAP;
 
 // Icônes populaires pour les éléments
 const POPULAR_ICONS = [
@@ -573,9 +567,13 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         
         // Trouver le statut le plus critique
         let worstStatus: TileStatus = 'ok';
+        let worstPriority = STATUS_PRIORITY['ok'];
         clusterElements.forEach(e => {
-          if (STATUS_PRIORITY[e.status] > STATUS_PRIORITY[worstStatus]) {
-            worstStatus = e.status;
+          const effectiveStatus: TileStatus = getEffectiveStatus(e);
+          const priority = STATUS_PRIORITY[effectiveStatus] || 0;
+          if (priority > worstPriority) {
+            worstPriority = priority;
+            worstStatus = effectiveStatus;
           }
         });
         
@@ -916,7 +914,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           
           {/* Éléments individuels (rectangles ou icônes colorés) */}
           {singleElements.map((element) => {
-            const colors = STATUS_COLORS[element.status];
+            const colors = getEffectiveColors(element);
             const hasIcon = !!element.icon;
             
             // Les positions sont stockées en pourcentage de l'image (0-100%)

@@ -135,7 +135,7 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
           onToggle={() => toggleSection('status')}
         >
           <div className="grid grid-cols-1 gap-2">
-            {(Object.keys(STATUS_COLORS) as TileStatus[]).map((status) => (
+            {(Object.keys(STATUS_COLORS) as TileStatus[]).filter(status => status !== 'herite').map((status) => (
               <button
                 key={status}
                 onClick={() => {
@@ -435,7 +435,7 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
           onToggle={() => toggleSection('status')}
         >
           <div className="grid grid-cols-1 gap-2">
-            {(Object.keys(STATUS_COLORS) as TileStatus[]).map((status) => (
+            {(Object.keys(STATUS_COLORS) as TileStatus[]).filter(status => status !== 'herite' || element.subCategories.length > 0).map((status) => (
               <button
                 key={status}
                 onClick={() => updateElement(element.id, { status })}

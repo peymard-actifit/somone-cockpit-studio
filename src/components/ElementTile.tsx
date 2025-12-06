@@ -1,6 +1,6 @@
 import type { Element } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
-import { STATUS_COLORS } from '../types';
+import { STATUS_COLORS, getEffectiveColors } from '../types';
 import { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useState, useRef, useEffect } from 'react';
@@ -19,10 +19,11 @@ interface ElementTileProps {
 export default function ElementTile({ element, mini = false, onElementClick, readOnly = false, categoryId, index, totalElements, onReorder }: ElementTileProps) {
   const { setCurrentElement, deleteElement } = useCockpitStore();
   const confirm = useConfirm();
-  const colors = STATUS_COLORS[element.status];
+  // Utiliser la couleur effective (gère le cas hérité)
+  const colors = getEffectiveColors(element);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const isOkStatus = element.status === 'ok';
+  const isOkStatus = colors.hex === STATUS_COLORS.ok.hex;
   const buttonRef = useRef<HTMLButtonElement>(null);
   
   // Convertir la couleur hex en rgba pour avoir 20% d'opacité (80% de transparence - plus clair)

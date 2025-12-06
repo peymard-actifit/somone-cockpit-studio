@@ -1,7 +1,7 @@
 // Types pour le Cockpit Studio SOMONE
 
 // Statuts possibles pour les tuiles
-export type TileStatus = 'fatal' | 'critique' | 'mineur' | 'ok' | 'deconnecte';
+export type TileStatus = 'fatal' | 'critique' | 'mineur' | 'ok' | 'deconnecte' | 'information' | 'herite';
 
 // Types de templates de vues
 export type TemplateType = 
@@ -177,13 +177,26 @@ export interface AppState {
   zones: Zone[];
 }
 
+// Ordre de priorité des statuts (du plus critique au moins critique) - pour calcul hérité
+export const STATUS_PRIORITY_MAP: Record<TileStatus, number> = {
+  fatal: 6,
+  critique: 5,
+  mineur: 4,
+  information: 3,
+  ok: 2,
+  deconnecte: 1,
+  herite: 0, // Ne compte pas dans le calcul, sera calculé dynamiquement
+};
+
 // Couleurs des statuts (exactement comme dans le PDF SOMONE - MODE CLAIR)
 export const STATUS_COLORS: Record<TileStatus, { bg: string; text: string; border: string; hex: string }> = {
   fatal: { bg: 'bg-[#8B5CF6]', text: 'text-white', border: 'border-[#7C3AED]', hex: '#8B5CF6' },      // Violet
   critique: { bg: 'bg-[#E57373]', text: 'text-white', border: 'border-[#EF5350]', hex: '#E57373' },  // Rouge rosé (PDF)
   mineur: { bg: 'bg-[#FFB74D]', text: 'text-white', border: 'border-[#FFA726]', hex: '#FFB74D' },    // Orange/Ambre (PDF)
+  information: { bg: 'bg-[#42A5F5]', text: 'text-white', border: 'border-[#2196F3]', hex: '#42A5F5' }, // Bleu (Informations)
   ok: { bg: 'bg-[#9CCC65]', text: 'text-white', border: 'border-[#8BC34A]', hex: '#9CCC65' },        // Vert lime (PDF)
   deconnecte: { bg: 'bg-[#9E9E9E]', text: 'text-white', border: 'border-[#757575]', hex: '#9E9E9E' }, // Gris (PDF)
+  herite: { bg: 'bg-[#9CCC65]', text: 'text-white', border: 'border-[#8BC34A]', hex: '#9CCC65' },     // Vert par défaut (sera calculé dynamiquement)
 };
 
 // Labels des statuts
@@ -191,8 +204,46 @@ export const STATUS_LABELS: Record<TileStatus, string> = {
   fatal: 'Fatal',
   critique: 'Critique',
   mineur: 'Mineur',
+  information: 'Informations',
   ok: 'OK',
   deconnecte: 'Déconnecté',
+  herite: 'Héritée',
 };
+
+// Fonction pour calculer la couleur héritée selon les sous-éléments
+export function getInheritedStatus(element: { subCategories: Array<{ subElements: Array<{ status: TileStatus }> }> }): TileStatus {
+  let worstStatus: TileStatus = 'ok';
+  let worstPriority = STATUS_PRIORITY_MAP['ok'];
+  
+  // Parcourir tous les sous-éléments pour trouver le statut le plus critique
+  for (const subCategory of element.subCategories) {
+    for (const subElement of subCategory.subElements) {
+      // Ignorer les statuts 'herite' dans le calcul
+      if (subElement.status === 'herite') continue;
+      
+      const priority = STATUS_PRIORITY_MAP[subElement.status] || 0;
+      if (priority > worstPriority) {
+        worstPriority = priority;
+        worstStatus = subElement.status;
+      }
+    }
+  }
+  
+  return worstStatus;
+}
+
+// Fonction pour obtenir la couleur effective d'un élément (gère le cas hérité)
+export function getEffectiveStatus(element: { status: TileStatus; subCategories: Array<{ subElements: Array<{ status: TileStatus }> }> }): TileStatus {
+  if (element.status === 'herite') {
+    return getInheritedStatus(element);
+  }
+  return element.status;
+}
+
+// Fonction pour obtenir les couleurs effectives (gère le cas hérité)
+export function getEffectiveColors(element: { status: TileStatus; subCategories: Array<{ subElements: Array<{ status: TileStatus }> }> }) {
+  const effectiveStatus = getEffectiveStatus(element);
+  return STATUS_COLORS[effectiveStatus];
+}
 
 
