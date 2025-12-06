@@ -284,7 +284,17 @@ export default function AIPromptInput() {
 
   // Exécuter une action retournée par l'IA
   const executeAction = (action: AIAction): string => {
-    console.log('🤖 Exécution action:', action.type, action.params);
+    console.log('🤖 [AIPromptInput] Exécution action:', action.type, action.params);
+    
+    if (!action.type) {
+      console.error('🤖 [AIPromptInput] Action invalide - type manquant:', action);
+      return '❌ Action invalide: type manquant';
+    }
+    
+    if (!action.params) {
+      console.warn('🤖 [AIPromptInput] Action sans params:', action.type);
+      action.params = {};
+    }
     
     try {
       switch (action.type) {
@@ -709,10 +719,19 @@ export default function AIPromptInput() {
   
   // Exécuter plusieurs actions
   const executeActions = (actions: AIAction[]): string => {
-    if (!actions || actions.length === 0) return '';
+    if (!actions || actions.length === 0) {
+      console.log('🤖 [AIPromptInput] Aucune action à exécuter');
+      return '';
+    }
     
-    const results = actions.map(action => executeAction(action));
-    return results.join('\n');
+    console.log(`🤖 [AIPromptInput] Exécution de ${actions.length} action(s)`);
+    const results = actions.map((action, index) => {
+      console.log(`🤖 [AIPromptInput] Action ${index + 1}/${actions.length}:`, action);
+      return executeAction(action);
+    });
+    const resultString = results.join('\n');
+    console.log('🤖 [AIPromptInput] Résultats des actions:', resultString);
+    return resultString;
   };
 
   // Appeler l'API OpenAI avec l'historique complet
@@ -841,8 +860,12 @@ export default function AIPromptInput() {
         
         // Exécuter les actions si présentes
         let actionResult = '';
-        if (result.actions && result.actions.length > 0) {
+        console.log('🤖 [AIPromptInput] Réponse API:', result);
+        if (result.actions && Array.isArray(result.actions) && result.actions.length > 0) {
+          console.log(`🤖 [AIPromptInput] ${result.actions.length} action(s) détectée(s) dans la réponse`);
           actionResult = '\n\n' + executeActions(result.actions);
+        } else {
+          console.log('🤖 [AIPromptInput] Aucune action dans la réponse API');
         }
         
         addMessage('assistant', result.message + actionResult);

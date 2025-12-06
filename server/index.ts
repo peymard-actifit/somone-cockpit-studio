@@ -893,42 +893,140 @@ app.post('/api/public/ai/chat/:publicId', async (req, res) => {
   }
   
   try {
+    // Construire le contexte COMPLET du cockpit (en lecture seule pour les cockpits publics)
+    const cockpitData = cockpit.data || {};
     const cockpitContext = {
       name: cockpit.name,
-      domains: (cockpit.data?.domains || []).map((d: any) => ({
+      logo: cockpitData.logo || null,
+      scrollingBanner: cockpitData.scrollingBanner || null,
+      domains: (cockpitData.domains || []).map((d: any) => ({
+        id: d.id,
         name: d.name,
         templateType: d.templateType,
+        templateName: d.templateName || null,
+        order: d.order || 0,
         categories: (d.categories || []).map((c: any) => ({
+          id: c.id,
           name: c.name,
+          orientation: c.orientation,
+          icon: c.icon || null,
+          order: c.order || 0,
           elements: (c.elements || []).map((e: any) => ({
+            id: e.id,
             name: e.name,
             status: e.status,
-            value: e.value,
-            unit: e.unit,
-          })),
+            value: e.value || null,
+            unit: e.unit || null,
+            icon: e.icon || null,
+            icon2: e.icon2 || null,
+            icon3: e.icon3 || null,
+            zone: e.zone || null,
+            order: e.order || 0,
+            positionX: e.positionX || null,
+            positionY: e.positionY || null,
+            width: e.width || null,
+            height: e.height || null,
+            subCategories: (e.subCategories || []).map((sc: any) => ({
+              id: sc.id,
+              name: sc.name,
+              orientation: sc.orientation,
+              icon: sc.icon || null,
+              order: sc.order || 0,
+              subElements: (sc.subElements || []).map((se: any) => ({
+                id: se.id,
+                name: se.name,
+                status: se.status,
+                value: se.value || null,
+                unit: se.unit || null,
+                order: se.order || 0,
+                alert: se.alert ? {
+                  id: se.alert.id,
+                  date: se.alert.date,
+                  description: se.alert.description,
+                  duration: se.alert.duration || null,
+                  ticketNumber: se.alert.ticketNumber || null,
+                  actions: se.alert.actions || null
+                } : null
+              }))
+            }))
+          }))
         })),
+        mapElements: (d.mapElements || []).map((me: any) => ({
+          id: me.id,
+          name: me.name,
+          status: me.status,
+          icon: me.icon || null,
+          gps: me.gps ? {
+            lat: me.gps.lat,
+            lng: me.gps.lng
+          } : null
+        })),
+        mapBounds: d.mapBounds || null,
+        backgroundImage: d.backgroundImage ? 'présente' : null,
+        backgroundMode: d.backgroundMode || null,
+        enableClustering: d.enableClustering !== false
       })),
+      zones: (cockpitData.zones || []).map((z: any) => ({
+        id: z.id,
+        name: z.name
+      }))
     };
     
-    const systemPrompt = `Tu es un assistant IA pour le cockpit SOMONE "${cockpit.name}". Tu aides les utilisateurs à comprendre et analyser les données du cockpit en mode consultation.
+    const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, en mode consultation d'un cockpit publié.
 
-CONTEXTE DU COCKPIT:
+Ce cockpit est en MODE LECTURE SEULE - tu ne peux QUE répondre aux questions, pas modifier le cockpit.
+
+STRUCTURE COMPLÈTE DU COCKPIT:
+- Cockpit: "${cockpitContext.name}"
+- Le cockpit peut avoir un logo et une bannière défilante
+- Le cockpit contient des Domaines (onglets principaux)
+  - Chaque domaine a un type de template (standard, map, background)
+  - Les domaines peuvent avoir une image de fond
+  - Les domaines de type "map" peuvent avoir des points GPS et des limites de carte (mapBounds)
+- Domaines contiennent des Catégories (groupes d'éléments)
+  - Les catégories ont une orientation (horizontal ou vertical)
+  - Les catégories peuvent avoir une icône
+- Catégories contiennent des Éléments (tuiles avec statut coloré)
+  - Les éléments ont un statut (ok, mineur, critique, fatal, deconnecte)
+  - Les éléments peuvent avoir une valeur et une unité
+  - Les éléments peuvent avoir jusqu'à 3 icônes (icon, icon2, icon3)
+  - Les éléments peuvent être associés à une zone
+  - Les éléments en vue "background" ont une position (positionX, positionY) et une taille (width, height)
+- Éléments contiennent des Sous-catégories
+  - Les sous-catégories ont une orientation
+  - Les sous-catégories peuvent avoir une icône
+- Sous-catégories contiennent des Sous-éléments
+  - Les sous-éléments ont un statut
+  - Les sous-éléments peuvent avoir une valeur et une unité
+  - Les sous-éléments peuvent avoir une alerte avec date, description, durée, numéro de ticket et actions
+- Le cockpit contient des Zones (groupements logiques d'éléments)
+- Les domaines de type "map" contiennent des MapElements (points sur la carte)
+  - Chaque MapElement a un nom, un statut, une icône et des coordonnées GPS (lat, lng)
+
+STATUTS DISPONIBLES: 
+- ok (vert) : tout fonctionne normalement
+- mineur (orange) : problème mineur
+- critique (rouge) : problème critique nécessitant une attention
+- fatal (violet) : problème grave
+- deconnecte (gris) : élément déconnecté ou indisponible
+
+CONTEXTE COMPLET DU COCKPIT:
 ${JSON.stringify(cockpitContext, null, 2)}
 
-RÈGLES IMPORTANTES:
-1. Tu es en MODE CONSULTATION SEULEMENT - tu ne peux pas modifier le cockpit
-2. Réponds TOUJOURS en français et sois concis
-3. Aide les utilisateurs à comprendre les données, les statuts, et les métriques
-4. Tu peux analyser les tendances, identifier les problèmes, suggérer des observations
-5. Ne propose pas d'actions de modification, seulement des analyses et conseils
-
-EXEMPLES DE QUESTIONS:
-- "Combien d'éléments sont en statut critique ?"
-- "Quels sont les domaines du cockpit ?"
-- "Analyse les données du cockpit"
-- "Y a-t-il des alertes ?"
-
-Réponds de manière claire et utile.`;
+INSTRUCTIONS:
+1. Réponds en français de manière concise et professionnelle
+2. Tu es en MODE CONSULTATION - tu ne peux QUE répondre aux questions, analyser et réfléchir
+3. Analyse TOUTES les données du cockpit : domaines, catégories, éléments, sous-éléments, zones, mapElements, alertes
+4. Tu peux :
+   - Compter les éléments par statut, par domaine, par catégorie
+   - Identifier les problèmes (éléments avec statut critique/fatal/mineur)
+   - Expliquer la structure complète du cockpit
+   - Analyser les alertes et leurs détails
+   - Décrire les zones et leur utilisation
+   - Analyser les points GPS sur les cartes
+   - Faire des recherches croisées entre zones, domaines et éléments
+   - Identifier les tendances et patterns
+5. Sois précis et utilise les données réelles du cockpit dans tes réponses`;
     
     // Construire les messages avec l'historique
     const chatMessages: Array<{ role: string; content: string }> = [
