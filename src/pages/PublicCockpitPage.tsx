@@ -50,11 +50,17 @@ export default function PublicCockpitPage() {
             
             if (domain.backgroundImage) {
               console.log(`[PublicCockpitPage] ✅ Domain "${domain.name}": image présente (${domain.backgroundImage.length} caractères)`);
-              console.log(`[PublicCockpitPage]   - Preview:`, domain.backgroundImage.substring(0, 50));
+              console.log(`[PublicCockpitPage]   - Preview:`, domain.backgroundImage.substring(0, 100));
               console.log(`[PublicCockpitPage]   - Starts with data:`, domain.backgroundImage.startsWith('data:'));
+              console.log(`[PublicCockpitPage]   - Starts with data:image:`, domain.backgroundImage.startsWith('data:image'));
+              console.log(`[PublicCockpitPage]   - Image length check:`, domain.backgroundImage.length > 100 ? 'LONGUE (>100)' : 'COURTE (<100)');
             } else {
               console.error(`[PublicCockpitPage] ❌ Domain "${domain.name}": PAS d'image de fond`);
-              console.error(`[PublicCockpitPage]   - Domain object:`, JSON.stringify(domain, null, 2).substring(0, 300));
+              console.error(`[PublicCockpitPage]   - backgroundImage value:`, domain.backgroundImage);
+              console.error(`[PublicCockpitPage]   - backgroundImage === undefined:`, domain.backgroundImage === undefined);
+              console.error(`[PublicCockpitPage]   - backgroundImage === null:`, domain.backgroundImage === null);
+              console.error(`[PublicCockpitPage]   - backgroundImage === '':`, domain.backgroundImage === '');
+              console.error(`[PublicCockpitPage]   - Domain object:`, JSON.stringify(domain, null, 2).substring(0, 500));
             }
           });
         } else {

@@ -3,7 +3,6 @@ import { Redis } from '@upstash/redis';
 import * as XLSX from 'xlsx';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
-const ADMIN_CODE = process.env.ADMIN_CODE || 'SOMONE2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
 
 // Upstash Redis client

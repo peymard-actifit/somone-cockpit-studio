@@ -108,9 +108,12 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Mettre à jour l'URL et le clustering quand le domaine change
   useEffect(() => {
-    setImageUrl(domain.backgroundImage || '');
-    setEnableClustering(domain.enableClustering !== false);
-  }, [domain.backgroundImage, domain.enableClustering]);
+    const newImageUrl = (domain?.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0) 
+      ? domain.backgroundImage.trim() 
+      : '';
+    setImageUrl(newImageUrl);
+    setEnableClustering(domain?.enableClustering !== false);
+  }, [domain?.backgroundImage, domain?.enableClustering]);
   
   // Gérer l'upload de fichier
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,7 +160,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     const container = containerRef.current; // Conteneur parent (pas transformé)
     const imageContainer = imageContainerRef.current; // Conteneur transformé
     const img = imageRef.current;
-    if (!container || !imageContainer || !img || !domain.backgroundImage) {
+    const bgImage = domain?.backgroundImage;
+    if (!container || !imageContainer || !img || !bgImage || typeof bgImage !== 'string' || bgImage.trim().length === 0) {
       setImageBounds(null);
       return;
     }
@@ -231,7 +235,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         img.onload = null;
       }
     };
-  }, [domain.backgroundImage, calculateImageBounds]);
+  }, [domain?.backgroundImage, calculateImageBounds]);
   
   // Convertir position écran en position % relative à l'image (0-100% de l'image elle-même)
   // Doit tenir compte du zoom et pan du conteneur transformé
@@ -779,11 +783,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           }}
         >
           {/* Image de fond */}
-          {domain.backgroundImage && domain.backgroundImage.trim() ? (
+          {domain?.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0 ? (
             <img 
-              key={`bg-image-${domain.id}-${domain.backgroundImage.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
+              key={`bg-image-${domain.id}-${imageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               ref={imageRef}
-              src={domain.backgroundImage}
+              src={imageUrl}
               alt="Fond"
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               draggable={false}
@@ -808,13 +812,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
                 console.error(`[BackgroundView] ❌ ERREUR chargement image de fond pour le domaine "${domain.name}"`);
-                console.error(`[BackgroundView] URL preview:`, domain.backgroundImage?.substring(0, 100));
-                console.error(`[BackgroundView] Longueur totale:`, domain.backgroundImage?.length || 0);
-                console.error(`[BackgroundView] Type:`, typeof domain.backgroundImage);
-                console.error(`[BackgroundView] Starts with data:`, domain.backgroundImage?.startsWith('data:'));
+                console.error(`[BackgroundView] URL preview:`, imageUrl?.substring(0, 100) || 'EMPTY');
+                console.error(`[BackgroundView] Longueur totale:`, imageUrl?.length || 0);
+                console.error(`[BackgroundView] Type:`, typeof imageUrl);
+                console.error(`[BackgroundView] Starts with data:`, imageUrl?.startsWith('data:'));
+                console.error(`[BackgroundView] Domain backgroundImage:`, domain?.backgroundImage ? `${typeof domain.backgroundImage} (${domain.backgroundImage.length} chars)` : 'ABSENT');
                 console.error(`[BackgroundView] Image element:`, img);
                 if (_readOnly) {
-                  console.error(`[BackgroundView READ-ONLY] ❌ Image non chargée - longueur: ${domain.backgroundImage?.length || 0} caractères`);
+                  console.error(`[BackgroundView READ-ONLY] ❌ Image non chargée - imageUrl length: ${imageUrl?.length || 0} caractères`);
+                  console.error(`[BackgroundView READ-ONLY] Domain backgroundImage:`, domain?.backgroundImage ? 'PRESENTE' : 'ABSENTE');
                 }
                 // Ne pas cacher l'image en cas d'erreur - laisser visible pour debug
                 // img.style.display = 'none';

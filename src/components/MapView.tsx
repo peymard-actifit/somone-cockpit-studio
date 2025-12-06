@@ -563,7 +563,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     }, 100);
   };
   
-  const mapImageUrl = domain?.backgroundImage || '';
+  // Normaliser l'URL de l'image - s'assurer qu'elle est valide
+  const mapImageUrl = (domain?.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0) 
+    ? domain.backgroundImage.trim() 
+    : '';
   
   // Diagnostic en mode read-only - Vérifications approfondies
   useEffect(() => {
@@ -817,6 +820,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 const container = imageContainerRef.current;
                 console.log(`[MapView] ✅ Image chargée avec succès pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
                 console.log(`[MapView] Image src length: ${mapImageUrl?.length || 0}`);
+                console.log(`[MapView] Image src preview: ${mapImageUrl?.substring(0, 50) || 'EMPTY'}`);
+                console.log(`[MapView] Domain backgroundImage type:`, typeof domain?.backgroundImage);
+                console.log(`[MapView] Domain backgroundImage length:`, domain?.backgroundImage ? domain.backgroundImage.length : 'N/A');
                 console.log(`[MapView] Image element computed style:`, {
                   display: window.getComputedStyle(img).display,
                   width: window.getComputedStyle(img).width,
