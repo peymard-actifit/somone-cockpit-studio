@@ -745,7 +745,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             } : null
           })),
           mapBounds: d.mapBounds || null,
-          backgroundImage: d.backgroundImage ? 'présente' : null,
+          backgroundImage: d.backgroundImage ? (typeof d.backgroundImage === 'string' && d.backgroundImage.length > 100 ? `présente (${d.backgroundImage.length} caractères)` : 'présente') : null,
           backgroundMode: d.backgroundMode || null,
           enableClustering: d.enableClustering !== false
         })),
@@ -800,7 +800,13 @@ INSTRUCTIONS:
 1. Réponds en français de manière concise et professionnelle
 2. Tu es en MODE CONSULTATION - tu ne peux QUE répondre aux questions, analyser et réfléchir
 3. Analyse TOUTES les données du cockpit : domaines, catégories, éléments, sous-éléments, zones, mapElements, alertes
-4. Tu peux :
+4. IMPORTANT pour les vues "map" et "background" :
+   - Si backgroundImage est marqué "présente", cela signifie qu'une image de fond est configurée pour ce domaine
+   - L'image de fond peut être affichée MÊME S'IL N'Y A PAS d'éléments de carte (mapElements)
+   - Les mapElements sont des POINTS SUR LA CARTE, pas l'image de fond elle-même
+   - L'absence de mapElements ne signifie PAS que l'image de fond est absente ou ne s'affiche pas
+   - Si backgroundImage est "présente", l'image DEVRAIT s'afficher dans la vue, même sans points GPS
+5. Tu peux :
    - Compter les éléments par statut, par domaine, par catégorie
    - Identifier les problèmes (éléments avec statut critique/fatal/mineur)
    - Expliquer la structure complète du cockpit
@@ -809,7 +815,8 @@ INSTRUCTIONS:
    - Analyser les points GPS sur les cartes
    - Faire des recherches croisées entre zones, domaines et éléments
    - Identifier les tendances et patterns
-5. Sois précis et utilise les données réelles du cockpit dans tes réponses`;
+   - Distinguer entre l'image de fond d'un domaine (qui peut être affichée seule) et les éléments de carte (points GPS)
+6. Sois précis et utilise les données réelles du cockpit dans tes réponses`;
 
       const messages = [
         { role: 'system', content: systemPrompt },
@@ -962,10 +969,19 @@ INSTRUCTIONS:
                 idMap.set(oldId, generateId());
               }
               newObj[key] = idMap.get(oldId);
-            } else if (key === 'cockpitId' || key === 'domainId' || key === 'categoryId' || key === 'elementId' || key === 'subCategoryId' || key === 'subElementId' || key === 'userId') {
+            } else if (key === 'cockpitId' || key === 'domainId' || key === 'categoryId' || key === 'elementId' || key === 'subCategoryId' || key === 'subElementId' || key === 'userId' || key === 'subElementId') {
               // Remplacer les IDs de référence si on a le mapping
               const oldId = value as string;
-              newObj[key] = idMap.get(oldId) || value;
+              if (oldId && idMap.has(oldId)) {
+                newObj[key] = idMap.get(oldId);
+              } else if (oldId && typeof oldId === 'string') {
+                // Si l'ID n'est pas dans le mapping, générer un nouvel ID (cas des références orphelines)
+                const newId = generateId();
+                idMap.set(oldId, newId);
+                newObj[key] = newId;
+              } else {
+                newObj[key] = value;
+              }
             } else {
               newObj[key] = regenerateIds(value, idMap);
             }
