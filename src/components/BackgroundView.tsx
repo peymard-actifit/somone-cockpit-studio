@@ -3,7 +3,6 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS, STATUS_PRIORITY_MAP, getEffectiveColors, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useConfirm } from '../contexts/ConfirmContext';
 
 // Ordre de priorité des statuts (du plus critique au moins critique)
 const STATUS_PRIORITY: Record<TileStatus, number> = STATUS_PRIORITY_MAP;
@@ -36,8 +35,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, deleteElement, cloneElement } = useCockpitStore();
-  const confirm = useConfirm();
+  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement } = useCockpitStore();
   
   // État pour stocker la position et taille réelle de l'image dans le conteneur
   const [imageBounds, setImageBounds] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
@@ -74,16 +72,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     icon: '',
   });
   
-  // Modal d'édition d'élément existant
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingElement, setEditingElement] = useState<Element | null>(null);
-  const [editForm, setEditForm] = useState({
-    name: '',
-    status: 'ok' as TileStatus,
-    icon: '',
-    width: 0,
-    height: 0,
-  });
+  // Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel
   
   // Tooltip au survol
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
@@ -607,62 +596,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   const { clusters, singleElements } = calculateClusters();
   
-  // Ouvrir le modal d'édition
-  const openEditModal = (element: Element) => {
-    setEditingElement(element);
-    setEditForm({
-      name: element.name,
-      status: element.status,
-      icon: element.icon || '',
-      width: element.width || 5,
-      height: element.height || 5,
-    });
-    setShowEditModal(true);
-  };
-  
-  // Sauvegarder les modifications d'un élément
-  const handleSaveEdit = () => {
-    if (!editingElement) return;
-    
-    // Calculer le nouveau centre pour garder la position centrée
-    const oldWidth = editingElement.width || 5;
-    const oldHeight = editingElement.height || 5;
-    const oldCenterX = (editingElement.positionX || 0) + oldWidth / 2;
-    const oldCenterY = (editingElement.positionY || 0) + oldHeight / 2;
-    
-    // Nouvelle position pour garder le centre
-    const newX = oldCenterX - editForm.width / 2;
-    const newY = oldCenterY - editForm.height / 2;
-    
-    updateElement(editingElement.id, {
-      name: editForm.name,
-      status: editForm.status,
-      icon: editForm.icon || undefined,
-      positionX: Math.max(0, newX),
-      positionY: Math.max(0, newY),
-      width: editForm.width,
-      height: editForm.height,
-    });
-    
-    setShowEditModal(false);
-    setEditingElement(null);
-  };
-  
-  // Supprimer un élément
-  const handleDeleteElement = async () => {
-    if (!editingElement) return;
-    
-    const confirmed = await confirm({
-      title: 'Supprimer l\'élément',
-      message: `Voulez-vous supprimer l'élément "${editingElement.name}" ?`,
-    });
-    
-    if (confirmed) {
-      deleteElement(editingElement.id);
-      setShowEditModal(false);
-      setEditingElement(null);
-    }
-  };
+  // Les fonctions d'édition ont été déplacées vers EditorPanel
   
   // Diagnostic en mode read-only - Vérifications approfondies
   useEffect(() => {
@@ -1019,27 +953,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 {/* Boutons d'action au survol - collés au coin supérieur droit de l'élément */}
                 {hoveredElement === element.id && !_readOnly && (
                   <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2 pointer-events-auto">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        openEditModal(element);
-                      }}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                      }}
-                      className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
-                      style={{
-                        padding: '2px',
-                        width: '18px',
-                        height: '18px',
-                      }}
-                      title="Modifier"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                      </svg>
-                    </button>
+                    {/* Bouton crayon supprimé - l'édition se fait maintenant via le menu de droite */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1418,193 +1332,12 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         </Modal>
       )}
       
-      {/* Modal Éditer Élément */}
-      {showEditModal && editingElement && (
-        <Modal title="Modifier l'élément" maxWidth="max-w-xl" onClose={() => { setShowEditModal(false); setEditingElement(null); }}>
-          <div className="space-y-4">
-            {/* Nom */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Nom de l'élément</label>
-              <input
-                type="text"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-              />
-            </div>
-            
-            {/* Statut (couleur) */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Statut (couleur)</label>
-              <div className="grid grid-cols-5 gap-2">
-                {(['ok', 'mineur', 'critique', 'fatal', 'deconnecte'] as TileStatus[]).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setEditForm({ ...editForm, status })}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
-                      editForm.status === status
-                        ? 'border-[#1E3A5F] ring-2 ring-[#1E3A5F]/20'
-                        : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
-                    }`}
-                  >
-                    <div 
-                      className="w-8 h-8 rounded"
-                      style={{ backgroundColor: STATUS_COLORS[status].hex }}
-                    />
-                    <span className="text-[10px] text-[#64748B]">{STATUS_LABELS[status]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Icône */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                Icône
-                <span className="text-xs text-[#94A3B8] ml-2">Icône colorée ou rectangle</span>
-              </label>
-              <div className="flex flex-wrap gap-2 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] max-h-32 overflow-y-auto">
-                <button
-                  onClick={() => setEditForm({ ...editForm, icon: '' })}
-                  className={`p-2 rounded-lg border transition-all ${
-                    !editForm.icon
-                      ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
-                      : 'border-transparent hover:bg-white'
-                  }`}
-                  title="Aucune icône (rectangle)"
-                >
-                  <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[editForm.status].hex }} />
-                </button>
-                {POPULAR_ICONS.map((iconName) => (
-                  <button
-                    key={iconName}
-                    onClick={() => setEditForm({ ...editForm, icon: iconName })}
-                    className={`p-2 rounded-lg border transition-all ${
-                      editForm.icon === iconName
-                        ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
-                        : 'border-transparent hover:bg-white'
-                    }`}
-                    title={iconName}
-                    style={{ color: STATUS_COLORS[editForm.status].hex }}
-                  >
-                    <MuiIcon name={iconName} size={24} />
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Taille */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                Taille
-                <span className="text-xs text-[#94A3B8] ml-2">Le centre reste fixe lors du redimensionnement</span>
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-[#64748B] mb-1">Largeur (%)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="50"
-                    step="0.5"
-                    value={editForm.width}
-                    onChange={(e) => setEditForm({ ...editForm, width: parseFloat(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-[#64748B] mb-1">Hauteur (%)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="50"
-                    step="0.5"
-                    value={editForm.height}
-                    onChange={(e) => setEditForm({ ...editForm, height: parseFloat(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                  />
-                </div>
-              </div>
-              {/* Prévisualisation taille */}
-              <div className="mt-3 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
-                <div className="flex items-center justify-center h-20">
-                  {editForm.icon ? (
-                    <span style={{ color: STATUS_COLORS[editForm.status].hex }}>
-                      <MuiIcon 
-                        name={editForm.icon} 
-                        size={Math.min(editForm.width, editForm.height) * 2} 
-                      />
-                    </span>
-                  ) : (
-                    <div 
-                      className="rounded"
-                      style={{ 
-                        backgroundColor: STATUS_COLORS[editForm.status].hex,
-                        width: `${editForm.width * 2}px`,
-                        height: `${editForm.height * 2}px`,
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Boutons */}
-            <div className="flex flex-wrap justify-between gap-2 pt-4 border-t border-[#E2E8F0]">
-              <button
-                onClick={() => setCurrentElement(editingElement.id)}
-                className="px-3 py-2 text-[#1E3A5F] hover:bg-[#F5F7FA] rounded-lg flex items-center gap-2 text-sm"
-              >
-                <MuiIcon name="ExternalLink" size={16} />
-                <span className="whitespace-nowrap">Voir détails</span>
-              </button>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    if (editingElement) {
-                      cloneElement(editingElement.id);
-                      setShowEditModal(false);
-                      setEditingElement(null);
-                    }
-                  }}
-                  className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2 text-sm"
-                  title="Créer une copie de cet élément"
-                >
-                  <MuiIcon name="CopyIcon" size={16} />
-                  <span className="whitespace-nowrap">Cloner</span>
-                </button>
-                <button
-                  onClick={handleDeleteElement}
-                  className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm"
-                >
-                  <MuiIcon name="Trash2" size={16} />
-                  <span className="whitespace-nowrap">Supprimer</span>
-                </button>
-                <button
-                  onClick={() => { setShowEditModal(false); setEditingElement(null); }}
-                  className="px-3 py-2 text-[#64748B] hover:text-[#1E3A5F] text-sm whitespace-nowrap"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={!editForm.name.trim()}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
-                >
-                  <MuiIcon name="Check" size={16} />
-                  <span className="whitespace-nowrap">Enregistrer</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel */}
     </div>
   );
 }
 
-// Composant Modal
+// Composant Modal (utilisé pour les modals de configuration et d'ajout)
 function Modal({ title, children, onClose, maxWidth = 'max-w-lg' }: { title: string; children: React.ReactNode; onClose: () => void; maxWidth?: string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>

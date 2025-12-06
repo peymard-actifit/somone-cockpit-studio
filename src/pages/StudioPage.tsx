@@ -21,7 +21,8 @@ export default function StudioPage() {
     fetchCockpit, 
     exportToExcel,
     isLoading,
-    error
+    error,
+    setCurrentElement
   } = useCockpitStore();
   
   const [showEditor, setShowEditor] = useState(false); // Masqué par défaut
@@ -95,6 +96,13 @@ export default function StudioPage() {
       }
     }
   }
+  
+  // Handler pour cliquer sur un élément dans MapView ou BackgroundView
+  const handleElementClick = (elementId: string) => {
+    setCurrentElement(elementId);
+    setShowEditor(true); // Ouvrir le menu d'édition
+    setSelectedSubElementId(null); // Réinitialiser la sélection de sous-élément
+  };
   
   return (
     <div className="min-h-screen bg-[#F5F7FA] flex flex-col">
@@ -181,7 +189,7 @@ export default function StudioPage() {
               }}
             />
           ) : currentDomain ? (
-            <DomainView domain={currentDomain} />
+            <DomainView domain={currentDomain} onElementClick={handleElementClick} />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-[#64748B]">Sélectionnez ou créez un domaine</p>

@@ -531,6 +531,107 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           </Section>
         )}
         
+        {/* Propriétés de position (pour BackgroundView/MapView) */}
+        {element.positionX !== undefined && element.positionY !== undefined && (
+          <Section 
+            title="Position et taille" 
+            iconName="Move" 
+            isOpen={activeSection === 'position'}
+            onToggle={() => toggleSection('position')}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-[#64748B] mb-1">Largeur (%)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    step="0.5"
+                    value={element.width || 5}
+                    onChange={(e) => {
+                      const newWidth = parseFloat(e.target.value) || 1;
+                      const oldWidth = element.width || 5;
+                      const oldCenterX = (element.positionX || 0) + oldWidth / 2;
+                      const newX = oldCenterX - newWidth / 2;
+                      updateElement(element.id, { 
+                        width: newWidth,
+                        positionX: Math.max(0, newX)
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-[#64748B] mb-1">Hauteur (%)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    step="0.5"
+                    value={element.height || 5}
+                    onChange={(e) => {
+                      const newHeight = parseFloat(e.target.value) || 1;
+                      const oldHeight = element.height || 5;
+                      const oldCenterY = (element.positionY || 0) + oldHeight / 2;
+                      const newY = oldCenterY - newHeight / 2;
+                      updateElement(element.id, { 
+                        height: newHeight,
+                        positionY: Math.max(0, newY)
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-[#64748B] mb-2">
+                  Icône pour rectangle
+                  <span className="text-xs text-[#94A3B8] ml-2">Icône colorée ou rectangle</span>
+                </label>
+                <div className="flex flex-wrap gap-2 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] max-h-32 overflow-y-auto">
+                  <button
+                    onClick={() => updateElement(element.id, { icon: '' })}
+                    className={`p-2 rounded-lg border transition-all ${
+                      !element.icon
+                        ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                        : 'border-transparent hover:bg-white'
+                    }`}
+                    title="Aucune icône (rectangle)"
+                  >
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[element.status].hex }} />
+                  </button>
+                  {[
+                    'Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Building2',
+                    'MapPin', 'Navigation', 'Truck', 'Package', 'ShoppingCart', 'Users',
+                    'Server', 'Database', 'Wifi', 'Radio', 'Cpu', 'HardDrive',
+                    'AlertTriangle', 'Shield', 'Lock', 'Key', 'Eye', 'Camera',
+                    'Zap', 'Activity', 'Thermometer', 'Droplet', 'Wind', 'Sun',
+                  ].map((iconName) => (
+                    <button
+                      key={iconName}
+                      onClick={() => updateElement(element.id, { icon: iconName })}
+                      className={`p-2 rounded-lg border transition-all ${
+                        element.icon === iconName
+                          ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                          : 'border-transparent hover:bg-white'
+                      }`}
+                      title={iconName}
+                      style={{ color: STATUS_COLORS[element.status].hex }}
+                    >
+                      <MuiIcon name={iconName} size={24} />
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-[#94A3B8] mt-2">
+                  Le centre reste fixe lors du redimensionnement
+                </p>
+              </div>
+            </div>
+          </Section>
+        )}
+        
         {/* Zone */}
         <Section 
           title="Zone" 
