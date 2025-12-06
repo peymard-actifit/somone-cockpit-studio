@@ -11,9 +11,10 @@ interface ElementViewProps {
   domain?: Domain;
   readOnly?: boolean;
   onBack?: () => void;
+  onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition d'un sous-élément
 }
 
-export default function ElementView({ element, domain, readOnly = false, onBack }: ElementViewProps) {
+export default function ElementView({ element, domain, readOnly = false, onBack, onSubElementClick }: ElementViewProps) {
   const { setCurrentElement, addSubCategory, addSubElement, deleteSubCategory, updateElement, reorderSubElement, moveSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
@@ -298,6 +299,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack 
                             reorderSubElement(draggedSubElementId, subCategory.id, targetIndex);
                           }
                         }}
+                        onSubElementClick={onSubElementClick}
                       />
                     ))}
                     
@@ -363,6 +365,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack 
               element={element}
               domain={domain}
               readOnly={readOnly}
+              onSubElementClick={onSubElementClick}
             />
           ))}
         </div>

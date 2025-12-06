@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { SubElement } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
@@ -19,15 +19,18 @@ interface SubElementTileProps {
   index?: number; // Index dans la sous-catégorie pour le réordonnancement
   totalElements?: number; // Nombre total de sous-éléments dans la sous-catégorie
   onReorder?: (draggedSubElementId: string, targetIndex: number) => void; // Callback pour réordonner
+  onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition
 }
 
-export default function SubElementTile({ subElement, breadcrumb, readOnly = false, subCategoryId, index, totalElements, onReorder }: SubElementTileProps) {
+export default function SubElementTile({ subElement, breadcrumb, readOnly = false, subCategoryId, index, totalElements, onReorder, onSubElementClick }: SubElementTileProps) {
   const [showAlert, setShowAlert] = useState(false);
   const { deleteSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const colors = STATUS_COLORS[subElement.status];
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const hasDraggedRef = useRef<boolean>(false); // Pour distinguer drag du clic
+  const preventClickRef = useRef<boolean>(false); // Pour empêcher le onClick après un drag
   
   // Gestion du drag and drop
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
@@ -39,12 +42,24 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
     }));
     e.currentTarget.style.opacity = '0.5';
     setIsDragging(true);
+    hasDraggedRef.current = false; // Réinitialiser au début du drag
+    preventClickRef.current = false;
   };
   
   const handleDragEnd = (e: React.DragEvent<HTMLButtonElement>) => {
     e.currentTarget.style.opacity = '1';
     setIsDraggingOver(false);
     setIsDragging(false);
+    
+    // Si on a vraiment déplacé (drag), empêcher le clic
+    if (hasDraggedRef.current) {
+      preventClickRef.current = true;
+      // Réinitialiser après un court délai
+      setTimeout(() => {
+        preventClickRef.current = false;
+        hasDraggedRef.current = false;
+      }, 300);
+    }
   };
   
   // Gestion du drop sur cette tuile (pour réordonnancement)
@@ -81,9 +96,17 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         // Placer avant ou après selon la position de la souris
         const targetIndex = isBefore ? index : Math.min((index || 0) + 1, totalElements || 0);
         onReorder(draggedSubElementId, targetIndex);
+        hasDraggedRef.current = true; // On a fait un drag
       }
     } catch (error) {
       console.error('Erreur lors du drop:', error);
+    }
+  };
+  
+  // Gérer le mouvement de la souris pendant le drag pour détecter si on a vraiment déplacé
+  const handleMouseMove = () => {
+    if (isDragging) {
+      hasDraggedRef.current = true;
     }
   };
   
@@ -102,8 +125,27 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
   // Les tuiles vertes et grises ne montrent pas d'alerte
   const hasAlert = ['fatal', 'critique', 'mineur'].includes(subElement.status);
   
-  const handleClick = () => {
-    if (hasAlert) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Ne pas ouvrir le menu si on vient de faire un drag
+    if (preventClickRef.current) {
+      return;
+    }
+    
+    // Si en mode lecture seule, juste ouvrir l'alerte si présente
+    if (readOnly) {
+      if (hasAlert) {
+        setShowAlert(true);
+      }
+      return;
+    }
+    
+    // En mode édition, ouvrir le menu d'édition du sous-élément
+    if (onSubElementClick) {
+      onSubElementClick(subElement.id);
+    } else if (hasAlert) {
+      // Fallback : ouvrir l'alerte si pas de callback
       setShowAlert(true);
     }
   };
@@ -113,13 +155,14 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
     <>
       <button
         onClick={handleClick}
-        disabled={!hasAlert}
+        disabled={readOnly && !hasAlert}
         draggable={!readOnly && !!subCategoryId}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onMouseMove={handleMouseMove}
         className={`
           group relative overflow-hidden
           min-w-[150px] px-4 py-3

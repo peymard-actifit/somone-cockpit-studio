@@ -9,15 +9,80 @@ Write-Host ""
 # Token Vercel
 $VERCEL_TOKEN = "wkGtxH23SiUdqfIVIRMT7fSI"
 
-# 1. Build
+# 1. Build avec retry automatique en cas d'erreurs TypeScript
 Write-Host "Etape 1/4 : Compilation du projet..." -ForegroundColor Yellow
-npm run build
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Erreur lors de la compilation" -ForegroundColor Red
+$maxAttempts = 10
+$attempt = 0
+$buildSuccess = $false
+
+while (-not $buildSuccess -and $attempt -lt $maxAttempts) {
+    $attempt++
+    if ($attempt -gt 1) {
+        Write-Host ""
+        Write-Host "Tentative $attempt/$maxAttempts : Nouvelle compilation..." -ForegroundColor Yellow
+        Write-Host "Attente de 5 secondes pour permettre la correction des erreurs..." -ForegroundColor Cyan
+        Start-Sleep -Seconds 5
+    }
+    
+    # Capturer la sortie pour analyser les erreurs
+    $buildOutputAll = ""
+    $ErrorActionPreference = "Continue"
+    try {
+        # Rediriger stdout et stderr
+        $buildOutputAll = npm run build 2>&1 | Tee-Object -Variable buildOutputAllTee
+        $buildOutputAll = $buildOutputAllTee | Out-String
+        $buildExitCode = $LASTEXITCODE
+        if ($buildExitCode -ne 0) {
+            Write-Host $buildOutputAll
+        }
+    } catch {
+        $buildOutputAll = $_.Exception.Message + "`n" + $_.ScriptStackTrace
+        $buildExitCode = 1
+        Write-Host $buildOutputAll
+    }
+    $ErrorActionPreference = "Stop"
+    
+    if ($buildExitCode -eq 0) {
+        $buildSuccess = $true
+        Write-Host "Compilation reussie" -ForegroundColor Green
+        Write-Host ""
+        break
+    }
+    
+    # Vérifier s'il y a des erreurs TypeScript
+    $hasTypeScriptErrors = $false
+    if ($buildOutputAll -match "error TS\d{4}" -or $buildOutputAll -match "Found \d+ error") {
+        $hasTypeScriptErrors = $true
+    }
+    
+    if ($hasTypeScriptErrors) {
+        Write-Host "Erreurs TypeScript detectees lors de la compilation (tentative $attempt/$maxAttempts)" -ForegroundColor Yellow
+        Write-Host "Le script va relancer automatiquement la compilation..." -ForegroundColor Cyan
+        
+        # Afficher un résumé des erreurs
+        $errorLines = $outputString -split "`n" | Select-String -Pattern "error TS\d{4}" | Select-Object -First 3
+        if ($errorLines) {
+            Write-Host "Premieres erreurs detectees:" -ForegroundColor Yellow
+            $errorLines | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+        }
+        
+        if ($attempt -ge $maxAttempts) {
+            Write-Host ""
+            Write-Host "Nombre maximum de tentatives atteint ($maxAttempts)" -ForegroundColor Red
+            Write-Host "Veuillez corriger les erreurs TypeScript manuellement" -ForegroundColor Red
+            exit 1
+        }
+    } else {
+        # Erreur non-TypeScript, arrêter immédiatement
+        Write-Host "Erreur lors de la compilation (non-TypeScript)" -ForegroundColor Red
+        exit 1
+    }
+}
+
+if (-not $buildSuccess) {
+    Write-Host "Echec de la compilation apres $maxAttempts tentatives" -ForegroundColor Red
     exit 1
 }
-Write-Host "Compilation reussie" -ForegroundColor Green
-Write-Host ""
 
 # 2. Verifier s'il y a des changements
 Write-Host "Etape 2/4 : Verification des changements..." -ForegroundColor Yellow

@@ -10,9 +10,10 @@ interface SubCategorySectionProps {
   element: ElementType;
   domain?: Domain;
   readOnly?: boolean;
+  onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition d'un sous-élément
 }
 
-export default function SubCategorySection({ subCategory, element, domain, readOnly = false }: SubCategorySectionProps) {
+export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick }: SubCategorySectionProps) {
   const { addSubElement, deleteSubCategory, moveSubElement, reorderSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubElement, setIsAddingSubElement] = useState(false);
@@ -127,6 +128,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
             subCategoryId={subCategory.id}
             index={index}
             totalElements={subCategory.subElements.length}
+            onSubElementClick={onSubElementClick}
             onReorder={(draggedSubElementId, targetIndex) => {
               if (!readOnly) {
                 reorderSubElement(draggedSubElementId, subCategory.id, targetIndex);

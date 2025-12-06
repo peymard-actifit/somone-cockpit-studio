@@ -26,6 +26,7 @@ export default function StudioPage() {
   const [showEditor, setShowEditor] = useState(false); // Masqué par défaut
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedSubElementId, setSelectedSubElementId] = useState<string | null>(null);
   
   useEffect(() => {
     if (cockpitId) {
@@ -166,7 +167,15 @@ export default function StudioPage() {
           style={{ width: showEditor ? 'calc(100% - 320px)' : '100%' }}
         >
           {currentElementId && currentElement ? (
-            <ElementView element={currentElement} domain={currentDomain!} />
+            <ElementView 
+              element={currentElement} 
+              domain={currentDomain!} 
+              onSubElementClick={(subElementId) => {
+                // Ouvrir le menu d'édition et sélectionner le sous-élément
+                setShowEditor(true);
+                setSelectedSubElementId(subElementId);
+              }}
+            />
           ) : currentDomain ? (
             <DomainView domain={currentDomain} />
           ) : (
@@ -181,6 +190,8 @@ export default function StudioPage() {
           <EditorPanel 
             domain={currentDomain} 
             element={currentElement}
+            selectedSubElementId={selectedSubElementId}
+            onSelectSubElement={(subElementId) => setSelectedSubElementId(subElementId)}
           />
         )}
       </div>

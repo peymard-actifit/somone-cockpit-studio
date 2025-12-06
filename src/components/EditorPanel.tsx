@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Domain, Element, SubElement, TileStatus, TemplateType, Alert } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
@@ -9,9 +9,11 @@ import ElementTile from './ElementTile';
 interface EditorPanelProps {
   domain: Domain | undefined;
   element: Element | null;
+  onSelectSubElement?: (subElementId: string) => void; // Callback pour sélectionner un sous-élément
+  selectedSubElementId?: string | null; // ID du sous-élément à sélectionner depuis l'extérieur
 }
 
-export default function EditorPanel({ domain, element }: EditorPanelProps) {
+export default function EditorPanel({ domain, element, selectedSubElementId }: EditorPanelProps) {
   const { 
     updateDomain,
     deleteDomain,
@@ -40,15 +42,43 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
   // Trouver tous les sous-éléments de l'élément courant
   const allSubElements: SubElement[] = element?.subCategories?.flatMap(sc => sc.subElements) || [];
   
+  // Ouvrir automatiquement la section "Statut (couleur)" quand on sélectionne un sous-élément
+  useEffect(() => {
+    if (selectedSubElement && activeSection !== 'status') {
+      setActiveSection('status');
+    }
+  }, [selectedSubElement]);
+  
+  // Sélectionner automatiquement un sous-élément depuis l'extérieur (depuis un clic dans ElementView)
+  useEffect(() => {
+    if (selectedSubElementId && element) {
+      // Trouver le sous-élément dans l'élément courant
+      for (const subCategory of element.subCategories) {
+        const foundSubElement = subCategory.subElements.find(se => se.id === selectedSubElementId);
+        if (foundSubElement) {
+          setSelectedSubElement(foundSubElement);
+          setActiveSection('status'); // Ouvrir automatiquement la section statut
+          break;
+        }
+      }
+    }
+  }, [selectedSubElementId, element]);
+  
   // Édition d'un sous-élément
   if (selectedSubElement) {
+    // Ouvrir automatiquement la section "Statut (couleur)" pour les sous-éléments
+    const subElementActiveSection = activeSection || 'status';
+    
     return (
       <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg">
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
           <div className="flex items-start justify-between">
             <div>
           <button
-            onClick={() => setSelectedSubElement(null)}
+            onClick={() => {
+              setSelectedSubElement(null);
+              setActiveSection(null);
+            }}
             className="flex items-center gap-2 text-[#64748B] hover:text-[#1E3A5F] mb-2"
           >
             <div className="rotate-180"><MuiIcon name="ChevronRightIcon" size={16} /></div>
@@ -132,7 +162,7 @@ export default function EditorPanel({ domain, element }: EditorPanelProps) {
         <Section 
           title="Statut (couleur)" 
           iconName="Palette" 
-          isOpen={activeSection === 'status'}
+          isOpen={subElementActiveSection === 'status'}
           onToggle={() => toggleSection('status')}
         >
           <div className="grid grid-cols-1 gap-2">
