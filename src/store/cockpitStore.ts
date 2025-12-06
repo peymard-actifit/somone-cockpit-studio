@@ -1287,6 +1287,51 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     set({ isLoading: true });
     
     try {
+      // FORCER une sauvegarde complète et synchrone avant publication
+      const currentCockpit = get().currentCockpit;
+      if (currentCockpit && currentCockpit.id === id) {
+        // Annuler l'auto-save en attente
+        const { autoSaveTimeout } = get();
+        if (autoSaveTimeout) {
+          clearTimeout(autoSaveTimeout);
+          set({ autoSaveTimeout: null });
+        }
+        
+        // Sauvegarder IMMÉDIATEMENT toutes les données actuelles
+        const payload: any = {
+          name: currentCockpit.name,
+          domains: currentCockpit.domains || [],
+          logo: currentCockpit.logo,
+          scrollingBanner: currentCockpit.scrollingBanner,
+        };
+        if ((currentCockpit as any).zones) {
+          payload.zones = (currentCockpit as any).zones;
+        }
+        
+        console.log('[Publish] 💾 Sauvegarde forcée avant publication:', {
+          name: payload.name,
+          domainsCount: payload.domains.length,
+          domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length
+        });
+        
+        // Sauvegarder immédiatement
+        const saveResponse = await fetch(`${API_URL}/cockpits/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        
+        if (!saveResponse.ok) {
+          throw new Error('Erreur lors de la sauvegarde avant publication');
+        }
+        
+        // Attendre un peu pour que la DB soit à jour
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
       const response = await fetch(`${API_URL}/cockpits/${id}/publish`, {
         method: 'POST',
         headers: { 
