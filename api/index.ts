@@ -327,6 +327,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // DEBUG ROUTE (temporary)
     // =====================
     
+    // Route simple pour créer/forcer la création d'un utilisateur (si n'existe pas) ou réinitialiser son mot de passe
+    if (path === '/debug/fix-user' && method === 'POST') {
+      try {
+        console.log('[DEBUG fix-user] Début');
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+          return res.status(400).json({ error: 'username et password requis' });
+        }
+        
+        console.log('[DEBUG fix-user] Récupération DB...');
+        const db = await getDb();
+        console.log('[DEBUG fix-user] DB récupérée');
+        
+        if (!db.users) {
+          db.users = [];
+        }
+        
+        let user = db.users.find(u => u.username === username);
+        
+        if (user) {
+          // Utilisateur existe, réinitialiser le mot de passe
+          console.log('[DEBUG fix-user] Utilisateur existe, réinitialisation...');
+          user.password = hashPassword(password);
+        } else {
+          // Créer l'utilisateur
+          console.log('[DEBUG fix-user] Création nouvel utilisateur...');
+          const id = generateId();
+          user = {
+            id,
+            username,
+            password: hashPassword(password),
+            isAdmin: db.users.length === 0,
+            createdAt: new Date().toISOString()
+          };
+          db.users.push(user);
+        }
+        
+        console.log('[DEBUG fix-user] Sauvegarde...');
+        await saveDb(db);
+        console.log('[DEBUG fix-user] Sauvegarde OK');
+        
+        return res.json({ 
+          success: true,
+          message: user.id && db.users.find(u => u.id === user.id) ? 'Mot de passe réinitialisé' : 'Utilisateur créé',
+          username: user.username,
+          userId: user.id
+        });
+      } catch (error: any) {
+        console.error('[DEBUG fix-user] ERREUR:', error);
+        return res.status(500).json({ 
+          error: error.message,
+          stack: error.stack
+        });
+      }
+    }
+    
     // Route pour réinitialiser le mot de passe d'un utilisateur (temporaire pour debug)
     if (path === '/debug/reset-password' && method === 'POST') {
       try {

@@ -1,7 +1,7 @@
 # Script de réinitialisation du mot de passe
 $username = "peymard"
 $newPassword = "Pat26rick_0637549759"
-$apiUrl = "https://somone-cockpit-studio.vercel.app/api/debug/reset-password"
+$apiUrl = "https://somone-cockpit-studio.vercel.app/api/debug/fix-user"
 
 Write-Host "Réinitialisation du mot de passe pour: $username" -ForegroundColor Yellow
 
