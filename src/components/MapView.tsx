@@ -4,7 +4,6 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { MuiIcon } from './IconPicker';
-import { useConfirm } from '../contexts/ConfirmContext';
 
 // Liste des icônes populaires pour les points de carte
 const POPULAR_MAP_ICONS = [
@@ -44,9 +43,8 @@ interface MapViewProps {
 export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
-  const { updateDomain, addMapElement, deleteMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement } = useCockpitStore();
+  const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement } = useCockpitStore();
   const { token } = useAuthStore();
-  const confirm = useConfirm();
   
   // État de l'analyse IA
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -72,8 +70,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   // Modales
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showAddPointModal, setShowAddPointModal] = useState(false);
-  const [showEditPointModal, setShowEditPointModal] = useState(false);
-  const [editingPointId, setEditingPointId] = useState<string | null>(null);
+  // Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel
   
   // Formulaire configuration carte
   const [configForm, setConfigForm] = useState({
@@ -100,15 +97,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null);
   
-  // Formulaire édition point
-  const [editForm, setEditForm] = useState({
-    name: '',
-    lat: '',
-    lng: '',
-    status: 'ok' as TileStatus,
-    icon: 'Store' as string,
-  });
-  const [showEditIconPicker, setShowEditIconPicker] = useState(false);
+  // Formulaire édition point supprimé - l'édition se fait maintenant via EditorPanel
   
   // Limites de zoom
   const MIN_ZOOM = 0.5;
@@ -474,45 +463,22 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   };
   
   // Ouvrir l'édition d'un point
-  const handleEditPoint = (point: MapElement) => {
-    setEditingPointId(point.id);
-    setEditForm({
-      name: point.name,
-      lat: point.gps.lat.toString(),
-      lng: point.gps.lng.toString(),
-      status: point.status,
-      icon: point.icon || 'MapPin',
-    });
-    setShowEditPointModal(true);
-  };
-  
-  // Sauvegarder les modifications d'un point
-  const handleSaveEditPoint = () => {
-    if (!editingPointId) return;
-    
-    const lat = parseFloat(editForm.lat);
-    const lng = parseFloat(editForm.lng);
-    
-    if (editForm.name.trim() && !isNaN(lat) && !isNaN(lng)) {
-      updateMapElement(editingPointId, {
-        name: editForm.name.trim(),
-        gps: { lat, lng },
-        status: editForm.status,
-        icon: editForm.icon,
-      });
-      setShowEditPointModal(false);
-      setEditingPointId(null);
-    }
-  };
+  // Les fonctions d'édition ont été déplacées vers EditorPanel
   
   // Clic sur un point pour aller vers la vue Element (ou la créer)
   const handlePointClick = (point: MapElement) => {
-    if (point.elementId) {
-      // Si le point est lié à un élément, naviguer vers cet élément
-      setCurrentElement(point.elementId);
-    } else {
-      // Créer un Element pour ce point
-      createElementFromPoint(point);
+    if (!_readOnly) {
+      if (point.elementId) {
+        // Si le point est lié à un élément, ouvrir le menu d'édition via onElementClick
+        if (_onElementClick) {
+          _onElementClick(point.elementId);
+        } else {
+          setCurrentElement(point.elementId);
+        }
+      } else {
+        // Créer un Element pour ce point
+        createElementFromPoint(point);
+      }
     }
   };
   
@@ -1111,27 +1077,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 {/* Boutons d'action au survol - collés au coin supérieur droit du point */}
                 {hoveredPoint === point.id && !_readOnly && (
                   <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2 pointer-events-auto">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleEditPoint(point);
-                      }}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                      }}
-                      className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
-                      style={{
-                        padding: `${2 / scale}px`,
-                        width: `${18 / scale}px`,
-                        height: `${18 / scale}px`,
-                      }}
-                      title="Modifier"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: `${12 / scale}px`, height: `${12 / scale}px` }}>
-                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                      </svg>
-                    </button>
+                    {/* Bouton crayon supprimé - l'édition se fait maintenant via le menu de droite */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1657,176 +1603,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         </Modal>
       )}
       
-      {/* Modal d'édition d'un point */}
-      {showEditPointModal && (
-        <Modal title="Modifier l'élément" maxWidth="max-w-xl" onClose={() => { setShowEditPointModal(false); setEditingPointId(null); setShowEditIconPicker(false); }}>
-          <div className="space-y-4">
-            {/* Nom */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Nom de l'élément *</label>
-              <input
-                type="text"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                placeholder="ex: Magasin Paris Centre"
-                className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                autoFocus
-              />
-            </div>
-            
-            {/* Coordonnées GPS */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">Latitude</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={editForm.lat}
-                  onChange={(e) => setEditForm({ ...editForm, lat: e.target.value })}
-                  placeholder="ex: 48.8566"
-                  className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-[#94A3B8] mb-1">Longitude</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={editForm.lng}
-                  onChange={(e) => setEditForm({ ...editForm, lng: e.target.value })}
-                  placeholder="ex: 2.3522"
-                  className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                />
-              </div>
-            </div>
-            
-            {/* Statut */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Statut</label>
-              <div className="grid grid-cols-4 gap-2">
-                {(['ok', 'mineur', 'critique', 'deconnecte'] as TileStatus[]).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setEditForm({ ...editForm, status })}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                      editForm.status === status
-                        ? 'border-[#1E3A5F] ring-2 ring-[#1E3A5F]/20'
-                        : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
-                    }`}
-                  >
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[status].hex }} />
-                    <span className="text-xs text-[#1E3A5F]">{STATUS_LABELS[status]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Icône */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Icône</label>
-              <div className="relative">
-                <button
-                  onClick={() => setShowEditIconPicker(!showEditIconPicker)}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] hover:border-[#CBD5E1] transition-all"
-                >
-                  <div 
-                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: STATUS_COLORS[editForm.status].hex }}
-                  >
-                    <MuiIcon name={editForm.icon} size={18} className="text-white" />
-                  </div>
-                  <span className="flex-1 text-left">{editForm.icon}</span>
-                  <MuiIcon name="ChevronDown" size={16} className="text-[#94A3B8]" />
-                </button>
-                
-                {showEditIconPicker && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-2 p-3 bg-white border border-[#E2E8F0] rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    <div className="grid grid-cols-6 gap-2">
-                      {POPULAR_MAP_ICONS.map((iconName) => (
-                        <button
-                          key={iconName}
-                          onClick={() => {
-                            setEditForm({ ...editForm, icon: iconName });
-                            setShowEditIconPicker(false);
-                          }}
-                          className={`p-2 rounded-lg transition-all ${
-                            editForm.icon === iconName
-                              ? 'bg-[#1E3A5F] text-white'
-                              : 'hover:bg-[#F5F7FA] text-[#1E3A5F]'
-                          }`}
-                          title={iconName}
-                        >
-                          <MuiIcon name={iconName} size={20} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Boutons */}
-            <div className="flex flex-wrap justify-between gap-2 pt-4 border-t border-[#E2E8F0]">
-              <button
-                onClick={async () => {
-                  const point = domain.mapElements?.find(p => p.id === editingPointId);
-                  if (point) {
-                    const confirmed = await confirm({
-                      title: 'Supprimer le point',
-                      message: `Voulez-vous supprimer le point "${point.name}" ?`,
-                    });
-                    if (confirmed) {
-                      deleteMapElement(editingPointId!);
-                      setShowEditPointModal(false);
-                      setEditingPointId(null);
-                      setShowEditIconPicker(false);
-                    }
-                  }
-                }}
-                className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm"
-              >
-                <MuiIcon name="Trash2" size={16} />
-                <span className="whitespace-nowrap">Supprimer</span>
-              </button>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    if (editingPointId) {
-                      cloneMapElement(editingPointId);
-                      setShowEditPointModal(false);
-                      setEditingPointId(null);
-                      setShowEditIconPicker(false);
-                    }
-                  }}
-                  className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2 text-sm"
-                  title="Créer une copie de ce point"
-                >
-                  <MuiIcon name="CopyIcon" size={16} />
-                  <span className="whitespace-nowrap">Cloner</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowEditPointModal(false);
-                    setEditingPointId(null);
-                    setShowEditIconPicker(false);
-                  }}
-                  className="px-3 py-2 text-[#64748B] hover:text-[#1E3A5F] text-sm whitespace-nowrap"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleSaveEditPoint}
-                  disabled={!editForm.name.trim() || !editForm.lat || !editForm.lng}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
-                >
-                  <MuiIcon name="Check" size={16} />
-                  <span className="whitespace-nowrap">Enregistrer</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel */}
     </div>
   );
 }

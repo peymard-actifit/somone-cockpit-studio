@@ -26,7 +26,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     zones,
     addZone,
     deleteZone,
-    setCurrentElement
+    setCurrentElement,
+    updateMapElement,
+    deleteMapElement,
+    cloneMapElement
   } = useCockpitStore();
   const confirm = useConfirm();
   
@@ -631,6 +634,141 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </Section>
         )}
+        
+        {/* Point de carte GPS (si l'élément est lié à un MapElement) */}
+        {domain && element && (() => {
+          const mapElement = domain.mapElements?.find(me => me.elementId === element.id);
+          return mapElement ? (
+            <Section 
+              title="Point de carte (GPS)" 
+              iconName="MapPinIcon" 
+              isOpen={activeSection === 'gps'}
+              onToggle={() => toggleSection('gps')}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-[#64748B] mb-1">Nom du point</label>
+                  <input
+                    type="text"
+                    value={mapElement.name}
+                    onChange={(e) => updateMapElement(mapElement.id, { name: e.target.value.trim() })}
+                    className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-[#64748B] mb-1">Latitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={mapElement.gps.lat}
+                      onChange={(e) => {
+                        const lat = parseFloat(e.target.value);
+                        if (!isNaN(lat)) {
+                          updateMapElement(mapElement.id, { gps: { ...mapElement.gps, lat } });
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                      placeholder="ex: 48.8566"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#64748B] mb-1">Longitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={mapElement.gps.lng}
+                      onChange={(e) => {
+                        const lng = parseFloat(e.target.value);
+                        if (!isNaN(lng)) {
+                          updateMapElement(mapElement.id, { gps: { ...mapElement.gps, lng } });
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                      placeholder="ex: 2.3522"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-[#64748B] mb-2">Statut</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['ok', 'mineur', 'critique', 'fatal', 'deconnecte', 'information'] as TileStatus[]).map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => updateMapElement(mapElement.id, { status })}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                          mapElement.status === status 
+                            ? `${STATUS_COLORS[status].bg} text-white` 
+                            : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                        }`}
+                      >
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: STATUS_COLORS[status].hex }}
+                        />
+                        <span className="text-sm">{STATUS_LABELS[status]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-[#64748B] mb-2">Icône du point</label>
+                  <div className="flex flex-wrap gap-2 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] max-h-32 overflow-y-auto">
+                    {[
+                      'Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Building2',
+                      'MapPin', 'Navigation', 'Truck', 'Package', 'ShoppingCart', 'Users',
+                      'Server', 'Database', 'Wifi', 'Radio', 'Cpu', 'HardDrive',
+                      'AlertTriangle', 'Shield', 'Lock', 'Key', 'Eye', 'Camera',
+                      'Zap', 'Activity', 'Thermometer', 'Droplet', 'Wind', 'Sun',
+                    ].map((iconName) => (
+                      <button
+                        key={iconName}
+                        onClick={() => updateMapElement(mapElement.id, { icon: iconName })}
+                        className={`p-2 rounded-lg border transition-all ${
+                          mapElement.icon === iconName
+                            ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                            : 'border-transparent hover:bg-white'
+                        }`}
+                        title={iconName}
+                        style={{ color: STATUS_COLORS[mapElement.status].hex }}
+                      >
+                        <MuiIcon name={iconName} size={24} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
+                  <button
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Supprimer le point de carte',
+                        message: `Voulez-vous supprimer le point "${mapElement.name}" de la carte ?`,
+                      });
+                      if (confirmed) {
+                        deleteMapElement(mapElement.id);
+                      }
+                    }}
+                    className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm"
+                  >
+                    <MuiIcon name="Trash2" size={16} />
+                    <span>Supprimer le point</span>
+                  </button>
+                  <button
+                    onClick={() => cloneMapElement(mapElement.id)}
+                    className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2 text-sm"
+                  >
+                    <MuiIcon name="CopyIcon" size={16} />
+                    <span>Cloner le point</span>
+                  </button>
+                </div>
+              </div>
+            </Section>
+          ) : null;
+        })()}
         
         {/* Zone */}
         <Section 
