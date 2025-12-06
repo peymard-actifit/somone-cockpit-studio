@@ -6,7 +6,7 @@ import { MuiIcon } from '../components/IconPicker';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, changePassword, toggleAdmin, isLoading: authLoading, error: authError, clearError } = useAuthStore();
   const { cockpits, fetchCockpits, createCockpit, duplicateCockpit, deleteCockpit, publishCockpit, unpublishCockpit, isLoading } = useCockpitStore();
   
   const [showNewModal, setShowNewModal] = useState(false);
@@ -16,6 +16,12 @@ export default function HomePage() {
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [newName, setNewName] = useState('');
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showToggleAdminModal, setShowToggleAdminModal] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [adminCode, setAdminCode] = useState('');
   
   useEffect(() => {
     fetchCockpits();
@@ -84,6 +90,47 @@ export default function HomePage() {
     });
   };
 
+  const handleChangePassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) return;
+    if (newPassword !== confirmPassword) return;
+    
+    clearError();
+    const success = await changePassword(oldPassword, newPassword);
+    if (success) {
+      setShowChangePasswordModal(false);
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      // Afficher un message de succès (optionnel)
+      alert('Mot de passe changé avec succès');
+    }
+  };
+
+  const handleToggleAdmin = async () => {
+    // Si l'utilisateur est déjà admin, on peut quitter sans code
+    if (user?.isAdmin) {
+      clearError();
+      const success = await toggleAdmin('');
+      if (success) {
+        setShowToggleAdminModal(false);
+        setAdminCode('');
+        // Le store met à jour automatiquement le user
+      }
+      return;
+    }
+    
+    // Sinon, nécessite le code
+    if (!adminCode) return;
+    
+    clearError();
+    const success = await toggleAdmin(adminCode);
+    if (success) {
+      setShowToggleAdminModal(false);
+      setAdminCode('');
+      // Le store met à jour automatiquement le user
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cockpit-bg-dark via-slate-900 to-cockpit-bg-dark">
       {/* Header */}
@@ -128,11 +175,23 @@ export default function HomePage() {
                     )}
                   </div>
                   <div className="p-2">
-                    <button className="w-full flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors text-left">
+                    <button 
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        setShowChangePasswordModal(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors text-left"
+                    >
                       <MuiIcon name="KeyRound" size={16} />
                       Changer le mot de passe
                     </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors text-left">
+                    <button 
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        setShowToggleAdminModal(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors text-left"
+                    >
                       <MuiIcon name="SettingsIcon" size={16} />
                       {user?.isAdmin ? 'Quitter le mode admin' : 'Passer administrateur'}
                     </button>
@@ -443,6 +502,191 @@ export default function HomePage() {
                   </>
                 );
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Changer le mot de passe */}
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
+            <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MuiIcon name="KeyRound" size={20} className="text-blue-400" />
+                Changer le mot de passe
+              </h3>
+              <button
+                onClick={() => {
+                  setShowChangePasswordModal(false);
+                  setOldPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  clearError();
+                }}
+                className="p-1 text-slate-500 hover:text-white transition-colors"
+              >
+                <MuiIcon name="X" size={20} />
+              </button>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              {authError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                  <p className="text-sm text-red-400">{authError}</p>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">Ancien mot de passe</label>
+                <input
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  placeholder="Entrez votre ancien mot de passe"
+                  autoFocus
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">Nouveau mot de passe</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  placeholder="Entrez votre nouveau mot de passe"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">Confirmer le nouveau mot de passe</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  placeholder="Confirmez votre nouveau mot de passe"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleChangePassword();
+                    }
+                  }}
+                />
+              </div>
+              
+              {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                  <p className="text-sm text-amber-400">Les mots de passe ne correspondent pas</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-700/50">
+              <button
+                onClick={() => {
+                  setShowChangePasswordModal(false);
+                  setOldPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  clearError();
+                }}
+                className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                disabled={authLoading}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleChangePassword}
+                disabled={authLoading || !oldPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {authLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+                Changer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Toggle Admin */}
+      {showToggleAdminModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
+            <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MuiIcon name="SettingsIcon" size={20} className="text-blue-400" />
+                {user?.isAdmin ? 'Quitter le mode administrateur' : 'Activer le mode administrateur'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowToggleAdminModal(false);
+                  setAdminCode('');
+                  clearError();
+                }}
+                className="p-1 text-slate-500 hover:text-white transition-colors"
+              >
+                <MuiIcon name="X" size={20} />
+              </button>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              {authError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                  <p className="text-sm text-red-400">{authError}</p>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                <MuiIcon name="Info" size={20} className="text-amber-400" />
+                <p className="text-sm text-amber-300">
+                  {user?.isAdmin 
+                    ? 'Vous allez quitter le mode administrateur. Vous perdrez les privilèges d\'administration.'
+                    : 'Entrez le code administrateur pour activer les privilèges d\'administration.'}
+                </p>
+              </div>
+              
+              {!user?.isAdmin && (
+                <div>
+                  <label className="block text-sm text-slate-400 mb-2">Code administrateur</label>
+                  <input
+                    type="password"
+                    value={adminCode}
+                    onChange={(e) => setAdminCode(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    placeholder="Entrez le code administrateur"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleToggleAdmin();
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-700/50">
+              <button
+                onClick={() => {
+                  setShowToggleAdminModal(false);
+                  setAdminCode('');
+                  clearError();
+                }}
+                className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                disabled={authLoading}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleToggleAdmin}
+                disabled={authLoading || (!user?.isAdmin && !adminCode)}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {authLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+                {user?.isAdmin ? 'Quitter le mode admin' : 'Activer'}
+              </button>
             </div>
           </div>
         </div>

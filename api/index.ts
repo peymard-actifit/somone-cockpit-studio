@@ -212,6 +212,88 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // Change password
+    if (path === '/auth/change-password' && method === 'POST') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const user = db.users.find(u => u.id === decoded.id);
+      
+      if (!user) {
+        return res.status(401).json({ error: 'Utilisateur non trouvé' });
+      }
+
+      const { oldPassword, newPassword } = req.body;
+      
+      if (!oldPassword || !newPassword) {
+        return res.status(400).json({ error: 'Ancien et nouveau mot de passe requis' });
+      }
+
+      const valid = comparePassword(oldPassword, user.password);
+      if (!valid) {
+        return res.status(401).json({ error: 'Ancien mot de passe incorrect' });
+      }
+
+      user.password = hashPassword(newPassword);
+      await saveDb(db);
+
+      return res.json({ success: true });
+    }
+
+    // Toggle admin
+    if (path === '/auth/toggle-admin' && method === 'POST') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const user = db.users.find(u => u.id === decoded.id);
+      
+      if (!user) {
+        return res.status(401).json({ error: 'Utilisateur non trouvé' });
+      }
+
+      const { code } = req.body;
+      
+      // Si l'utilisateur est déjà admin, il peut quitter le mode admin sans code
+      if (user.isAdmin) {
+        user.isAdmin = false;
+        await saveDb(db);
+        return res.json({ isAdmin: false });
+      }
+
+      // Sinon, nécessite le code pour activer le mode admin
+      // Code secret pour activer/désactiver le mode admin (à changer en production)
+      const ADMIN_CODE = process.env.ADMIN_CODE || '12411241';
+      
+      if (code !== ADMIN_CODE) {
+        return res.status(403).json({ error: 'Code administrateur incorrect' });
+      }
+
+      user.isAdmin = true;
+      await saveDb(db);
+
+      return res.json({ isAdmin: true });
+    }
+
     // =====================
     // PROTECTED ROUTES
     // =====================

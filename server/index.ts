@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-change-in-production';
-const ADMIN_CODE = process.env.ADMIN_CODE || 'SOMONE2024';
+const ADMIN_CODE = process.env.ADMIN_CODE || '12411241';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
 // Base de données JSON simple
