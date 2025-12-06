@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
+import * as XLSX from 'xlsx';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const ADMIN_CODE = process.env.ADMIN_CODE || 'SOMONE2024';
@@ -582,6 +583,175 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await saveDb(db);
 
       return res.json({ success: true });
+    }
+
+    // Export Excel
+    const exportMatch = path.match(/^\/cockpits\/([^/]+)\/export$/);
+    if (exportMatch && method === 'GET') {
+      const id = exportMatch[1];
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.id === id);
+      
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+      
+      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+        return res.status(403).json({ error: 'Accès non autorisé' });
+      }
+      
+      const data = cockpit.data || { domains: [], zones: [] };
+      
+      // Créer le workbook Excel
+      const wb = XLSX.utils.book_new();
+      
+      // Onglet Domaines
+      const domainsData = (data.domains || []).map((d: any) => ({
+        'ID': d.id,
+        'Nom': d.name,
+        'Type': d.templateType,
+        'Template': d.templateName || '',
+        'Ordre': d.order,
+      }));
+      const wsDomainsData = XLSX.utils.json_to_sheet(domainsData.length ? domainsData : [{ 'ID': '', 'Nom': '', 'Type': '', 'Template': '', 'Ordre': '' }]);
+      XLSX.utils.book_append_sheet(wb, wsDomainsData, 'Domaines');
+      
+      // Onglet Catégories
+      const categoriesData: any[] = [];
+      (data.domains || []).forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          categoriesData.push({
+            'ID': c.id,
+            'Domaine': d.name,
+            'Nom': c.name,
+            'Icône': c.icon || '',
+            'Orientation': c.orientation,
+            'Ordre': c.order,
+          });
+        });
+      });
+      const wsCategoriesData = XLSX.utils.json_to_sheet(categoriesData.length ? categoriesData : [{ 'ID': '', 'Domaine': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }]);
+      XLSX.utils.book_append_sheet(wb, wsCategoriesData, 'Catégories');
+      
+      // Onglet Éléments
+      const elementsData: any[] = [];
+      (data.domains || []).forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            elementsData.push({
+              'ID': e.id,
+              'Domaine': d.name,
+              'Catégorie': c.name,
+              'Nom': e.name,
+              'Valeur': e.value || '',
+              'Unité': e.unit || '',
+              'Icône': e.icon || '',
+              'Icône 2': e.icon2 || '',
+              'Icône 3': e.icon3 || '',
+              'Statut': e.status,
+              'Zone': e.zone || '',
+              'Ordre': e.order,
+            });
+          });
+        });
+      });
+      const wsElements = XLSX.utils.json_to_sheet(elementsData.length ? elementsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Icône': '', 'Icône 2': '', 'Icône 3': '', 'Statut': '', 'Zone': '', 'Ordre': '' }]);
+      XLSX.utils.book_append_sheet(wb, wsElements, 'Éléments');
+      
+      // Onglet Sous-catégories
+      const subCategoriesData: any[] = [];
+      (data.domains || []).forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            (e.subCategories || []).forEach((sc: any) => {
+              subCategoriesData.push({
+                'ID': sc.id,
+                'Domaine': d.name,
+                'Catégorie': c.name,
+                'Élément': e.name,
+                'Nom': sc.name,
+                'Icône': sc.icon || '',
+                'Orientation': sc.orientation,
+                'Ordre': sc.order,
+              });
+            });
+          });
+        });
+      });
+      const wsSubCategories = XLSX.utils.json_to_sheet(subCategoriesData.length ? subCategoriesData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }]);
+      XLSX.utils.book_append_sheet(wb, wsSubCategories, 'Sous-catégories');
+      
+      // Onglet Sous-éléments
+      const subElementsData: any[] = [];
+      (data.domains || []).forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            (e.subCategories || []).forEach((sc: any) => {
+              (sc.subElements || []).forEach((se: any) => {
+                subElementsData.push({
+                  'ID': se.id,
+                  'Domaine': d.name,
+                  'Catégorie': c.name,
+                  'Élément': e.name,
+                  'Sous-catégorie': sc.name,
+                  'Nom': se.name,
+                  'Valeur': se.value || '',
+                  'Unité': se.unit || '',
+                  'Statut': se.status,
+                  'Ordre': se.order,
+                });
+              });
+            });
+          });
+        });
+      });
+      const wsSubElements = XLSX.utils.json_to_sheet(subElementsData.length ? subElementsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Statut': '', 'Ordre': '' }]);
+      XLSX.utils.book_append_sheet(wb, wsSubElements, 'Sous-éléments');
+      
+      // Onglet Alertes
+      const alertsData: any[] = [];
+      (data.domains || []).forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            (e.subCategories || []).forEach((sc: any) => {
+              (sc.subElements || []).forEach((se: any) => {
+                if (se.alert) {
+                  alertsData.push({
+                    'ID': se.alert.id,
+                    'Domaine': d.name,
+                    'Catégorie': c.name,
+                    'Élément': e.name,
+                    'Sous-catégorie': sc.name,
+                    'Sous-élément': se.name,
+                    'Date': se.alert.date,
+                    'Description': se.alert.description,
+                    'Durée': se.alert.duration || '',
+                    'Ticket': se.alert.ticketNumber || '',
+                    'Actions': se.alert.actions || '',
+                  });
+                }
+              });
+            });
+          });
+        });
+      });
+      const wsAlerts = XLSX.utils.json_to_sheet(alertsData.length ? alertsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Date': '', 'Description': '', 'Durée': '', 'Ticket': '', 'Actions': '' }]);
+      XLSX.utils.book_append_sheet(wb, wsAlerts, 'Alertes');
+      
+      // Onglet Zones
+      const zonesData = (data.zones || []).map((z: any) => ({
+        'ID': z.id,
+        'Nom': z.name,
+      }));
+      const wsZones = XLSX.utils.json_to_sheet(zonesData.length ? zonesData : [{ 'ID': '', 'Nom': '' }]);
+      XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
+      
+      // Générer le buffer
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${cockpit.name}.xlsx"`);
+      return res.send(buffer);
     }
 
     // =====================

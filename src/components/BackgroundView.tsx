@@ -155,15 +155,20 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setPosition({ x: 0, y: 0 });
   };
   
-  // Calculer la position et taille réelle de l'image dans le conteneur (avec object-contain)
+  // Calculer la position et taille réelle de l'image dans le conteneur transformé (avec object-contain)
+  // Les bounds sont calculés dans le système de coordonnées du conteneur transformé (imageContainerRef)
+  // qui a les dimensions du conteneur parent AVANT transformation, mais avec la transformation appliquée visuellement
   const calculateImageBounds = useCallback(() => {
-    const container = imageContainerRef.current;
+    const container = containerRef.current; // Conteneur parent (pas transformé)
+    const imageContainer = imageContainerRef.current; // Conteneur transformé
     const img = imageRef.current;
-    if (!container || !img || !domain.backgroundImage) {
+    if (!container || !imageContainer || !img || !domain.backgroundImage) {
       setImageBounds(null);
       return;
     }
     
+    // Utiliser les dimensions du conteneur parent (pas transformé) car le conteneur transformé
+    // a les mêmes dimensions de base (100% width/height) mais avec transform appliqué
     const containerRect = container.getBoundingClientRect();
     const containerWidth = containerRect.width;
     const containerHeight = containerRect.height;
@@ -194,7 +199,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       displayedWidth = containerHeight * imageAspect;
     }
     
-    // Position centrée
+    // Position centrée dans le conteneur transformé
+    // Les bounds sont dans le système de coordonnées du conteneur transformé (même dimensions que le parent)
     const x = (containerWidth - displayedWidth) / 2;
     const y = (containerHeight - displayedHeight) / 2;
     
@@ -233,24 +239,39 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   }, [domain.backgroundImage, calculateImageBounds]);
   
   // Convertir position écran en position % relative à l'image (0-100% de l'image elle-même)
+  // Doit tenir compte du zoom et pan du conteneur transformé
+  // Avec transform: translate(x, y) scale(s) et transform-origin: center center
+  // L'image utilise object-contain donc elle a des bounds spécifiques dans le conteneur transformé
   const screenToImagePercent = useCallback((clientX: number, clientY: number) => {
-    const container = imageContainerRef.current;
-    if (!container || !imageBounds) return { x: 0, y: 0 };
+    const container = containerRef.current;
+    const imageContainer = imageContainerRef.current;
+    if (!container || !imageContainer || !imageBounds) return { x: 0, y: 0 };
     
     const containerRect = container.getBoundingClientRect();
-    const containerX = clientX - containerRect.left;
-    const containerY = clientY - containerRect.top;
     
-    // Coordonnées relatives à l'image
-    const imageX = containerX - imageBounds.x;
-    const imageY = containerY - imageBounds.y;
+    // Position de la souris relative au conteneur (pas transformé - coordonnées de l'écran)
+    const mouseX = clientX - containerRect.left;
+    const mouseY = clientY - containerRect.top;
+    
+    // Centre du conteneur (point d'origine de la transformation)
+    const containerCenterX = containerRect.width / 2;
+    const containerCenterY = containerRect.height / 2;
+    
+    // Convertir en coordonnées locales du conteneur AVANT transformation
+    // Inverser la transformation: point = center + ((mouse - center) - translate) / scale
+    const localX = containerCenterX + ((mouseX - containerCenterX) - position.x) / scale;
+    const localY = containerCenterY + ((mouseY - containerCenterY) - position.y) / scale;
+    
+    // Coordonnées relatives à l'image (imageBounds est calculé dans le conteneur AVANT transformation)
+    const imageX = localX - imageBounds.x;
+    const imageY = localY - imageBounds.y;
     
     // Convertir en pourcentage par rapport à l'image
     const x = (imageX / imageBounds.width) * 100;
     const y = (imageY / imageBounds.height) * 100;
     
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
-  }, [imageBounds]);
+  }, [imageBounds, scale, position]);
   
   
   // Début du drag de la vue ou du dessin
@@ -314,7 +335,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   }, [isDragging, dragStart, isDrawing, drawStart, draggingElementId, positionedElements, updateElement, screenToImagePercent]);
   
   // Fin du drag de la vue ou du dessin
-  const handleMouseUp = () => {
+  const handleMouseUp = (e?: React.MouseEvent) => {
     if (isDrawing && drawStart.x !== 0) {
       const x = Math.min(drawStart.x, drawEnd.x);
       const y = Math.min(drawStart.y, drawEnd.y);
@@ -329,13 +350,21 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       setDrawStart({ x: 0, y: 0 });
       setDrawEnd({ x: 0, y: 0 });
     }
+    
+    const wasDraggingElement = !!draggingElementId && hasDraggedElementRef.current;
+    
     setIsDragging(false);
-    // Réinitialiser après un court délai pour permettre au onClick de vérifier le flag
-    setTimeout(() => {
-      setDraggingElementId(null);
-      elementDragStartPosRef.current = null;
-      hasDraggedElementRef.current = false;
-    }, 100);
+    
+    // Réinitialiser immédiatement pour éviter les conflits
+    setDraggingElementId(null);
+    elementDragStartPosRef.current = null;
+    hasDraggedElementRef.current = false;
+    
+    // Si on a fait un drag, empêcher le onClick qui pourrait suivre
+    if (wasDraggingElement && e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
   
   // Double-clic pour zoomer
@@ -758,38 +787,42 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         )}
           
           {/* Rectangle en cours de dessin */}
-          {isDrawing && drawStart.x !== 0 && (
+          {isDrawing && drawStart.x !== 0 && imageBounds && (
             <div
               className="absolute border-2 border-dashed border-[#1E3A5F] bg-[#1E3A5F]/10 pointer-events-none"
               style={{
-                left: `${Math.min(drawStart.x, drawEnd.x)}%`,
-                top: `${Math.min(drawStart.y, drawEnd.y)}%`,
-                width: `${Math.abs(drawEnd.x - drawStart.x)}%`,
-                height: `${Math.abs(drawEnd.y - drawStart.y)}%`,
+                left: `${imageBounds.x + Math.min(drawStart.x, drawEnd.x) * imageBounds.width / 100}px`,
+                top: `${imageBounds.y + Math.min(drawStart.y, drawEnd.y) * imageBounds.height / 100}px`,
+                width: `${Math.abs(drawEnd.x - drawStart.x) * imageBounds.width / 100}px`,
+                height: `${Math.abs(drawEnd.y - drawStart.y) * imageBounds.height / 100}px`,
               }}
             />
           )}
           
           {/* Clusters d'éléments */}
           {clusters.map((cluster) => {
+            if (!imageBounds) return null;
+            
             const colors = STATUS_COLORS[cluster.worstStatus];
             
             // Centre du cluster (en % de l'image)
             const centerX = cluster.bounds.x + cluster.bounds.width / 2;
             const centerY = cluster.bounds.y + cluster.bounds.height / 2;
             
-            // Taille du cluster = 3% de l'image (rond)
-            const clusterSize = 3;
+            // Convertir en pixels dans le conteneur transformé
+            const left = imageBounds.x + centerX * imageBounds.width / 100;
+            const top = imageBounds.y + centerY * imageBounds.height / 100;
+            const clusterSize = 3 * imageBounds.width / 100; // 3% de l'image en pixels
             
             return (
               <div
                 key={cluster.id}
                 className="absolute z-10 group transform -translate-x-1/2 -translate-y-1/2"
                 style={{
-                  left: `${centerX}%`,
-                  top: `${centerY}%`,
-                  width: `${clusterSize}%`,
-                  height: `${clusterSize}%`,
+                  left: `${left}px`,
+                  top: `${top}px`,
+                  width: `${clusterSize}px`,
+                  height: `${clusterSize}px`,
                 }}
                 onMouseEnter={() => setHoveredElement(cluster.id)}
                 onMouseLeave={() => setHoveredElement(null)}
@@ -834,18 +867,26 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             const colors = STATUS_COLORS[element.status];
             const hasIcon = !!element.icon;
             
-            // Utiliser directement les positions en pourcentage de l'image (0-100%)
-            // Les éléments sont dans le même conteneur transformé que l'image,
-            // donc ils restent fixes par rapport à l'image même lors du zoom/pan
+            // Les positions sont stockées en pourcentage de l'image (0-100%)
+            // Mais il faut les convertir en position absolue dans le conteneur transformé
+            // en tenant compte de imageBounds (position et taille de l'image avec object-contain)
+            if (!imageBounds) return null;
+            
+            // Convertir les pourcentages de l'image en pixels dans le conteneur transformé
+            const left = imageBounds.x + (element.positionX || 0) * imageBounds.width / 100;
+            const top = imageBounds.y + (element.positionY || 0) * imageBounds.height / 100;
+            const width = (element.width || 0) * imageBounds.width / 100;
+            const height = (element.height || 0) * imageBounds.height / 100;
+            
             return (
               <div
                 key={element.id}
                 className="absolute z-10 group"
                 style={{
-                  left: `${element.positionX || 0}%`,
-                  top: `${element.positionY || 0}%`,
-                  width: `${element.width || 0}%`,
-                  height: `${element.height || 0}%`,
+                  left: `${left}px`,
+                  top: `${top}px`,
+                  width: `${width}px`,
+                  height: `${height}px`,
                 }}
                 onMouseEnter={() => setHoveredElement(element.id)}
                 onMouseLeave={() => setHoveredElement(null)}
@@ -863,11 +904,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                         elementDragStartPosRef.current = { elementId: element.id, x: e.clientX, y: e.clientY };
                       }
                     }}
-                    onClick={() => {
-                      // Ne pas ouvrir si un drag a eu lieu
-                      if (hasDraggedElementRef.current) {
-                        return;
-                      }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Le onClick sera toujours appelé, mais on peut le laisser si pas de drag significatif
+                      // La vraie protection est dans handleMouseUp qui empêche l'event
                       setCurrentElement(element.id);
                     }}
                     style={{ color: colors.hex }}
@@ -889,11 +929,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                         elementDragStartPosRef.current = { elementId: element.id, x: e.clientX, y: e.clientY };
                       }
                     }}
-                    onClick={() => {
-                      // Ne pas ouvrir si un drag a eu lieu
-                      if (hasDraggedElementRef.current) {
-                        return;
-                      }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Le onClick sera toujours appelé, mais on peut le laisser si pas de drag significatif
+                      // La vraie protection est dans handleMouseUp qui empêche l'event
                       setCurrentElement(element.id);
                     }}
                     style={{ 

@@ -171,17 +171,33 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   };
   
   // Convertir position de la souris en position relative dans l'image (en tenant compte du zoom et pan)
-  const mouseToImagePosition = (clientX: number, clientY: number): { x: number; y: number } | null => {
+  // Avec transform: translate(x, y) scale(s) et transform-origin: center center
+  // La transformation CSS: point_transformed = center + (point - center) * scale + translate
+  // Pour inverser: point = center + ((point_transformed - center) - translate) / scale
+  const mouseToImagePosition = useCallback((clientX: number, clientY: number): { x: number; y: number } | null => {
     if (!containerRef.current || !imageContainerRef.current) return null;
     
-    const imageRect = imageContainerRef.current.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
     
-    // Position de la souris relative au conteneur transformé
-    const relativeX = ((clientX - imageRect.left) / imageRect.width) * 100;
-    const relativeY = ((clientY - imageRect.top) / imageRect.height) * 100;
+    // Position de la souris relative au conteneur (pas transformé - coordonnées de l'écran)
+    const mouseX = clientX - containerRect.left;
+    const mouseY = clientY - containerRect.top;
+    
+    // Centre du conteneur (point d'origine de la transformation)
+    const containerCenterX = containerRect.width / 2;
+    const containerCenterY = containerRect.height / 2;
+    
+    // Convertir en coordonnées locales du conteneur AVANT transformation
+    // Inverser la transformation: point = center + ((mouse - center) - translate) / scale
+    const localX = containerCenterX + ((mouseX - containerCenterX) - position.x) / scale;
+    const localY = containerCenterY + ((mouseY - containerCenterY) - position.y) / scale;
+    
+    // Convertir en pourcentage par rapport au conteneur (l'image occupe 100% du conteneur)
+    const relativeX = (localX / containerRect.width) * 100;
+    const relativeY = (localY / containerRect.height) * 100;
     
     return { x: Math.max(0, Math.min(100, relativeX)), y: Math.max(0, Math.min(100, relativeY)) };
-  };
+  }, [scale, position]);
   
   // Zoom avec la molette
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -243,14 +259,21 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   }, [isDragging, dragStart, draggingPointId, mouseToImagePosition, positionToGps, updateMapElement]);
   
   // Fin du drag
-  const handleMouseUp = () => {
+  const handleMouseUp = (e?: React.MouseEvent) => {
+    const wasDraggingPoint = !!draggingPointId && hasDraggedPointRef.current;
+    
     setIsDragging(false);
-    // Réinitialiser après un court délai pour permettre au onClick de vérifier le flag
-    setTimeout(() => {
-      setDraggingPointId(null);
-      pointDragStartPosRef.current = null;
-      hasDraggedPointRef.current = false;
-    }, 100);
+    
+    // Réinitialiser immédiatement pour éviter les conflits
+    setDraggingPointId(null);
+    pointDragStartPosRef.current = null;
+    hasDraggedPointRef.current = false;
+    
+    // Si on a fait un drag, empêcher le onClick qui pourrait suivre
+    if (wasDraggingPoint && e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
   
   // Double-clic pour zoomer
@@ -914,11 +937,12 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                       pointDragStartPosRef.current = { pointId: point.id, x: e.clientX, y: e.clientY };
                     }
                   }}
-                  onClick={() => {
-                    // Ne pas ouvrir si un drag a eu lieu
-                    if (hasDraggedPointRef.current) {
-                      return;
-                    }
+                  onClick={(e) => {
+                    // Ne pas ouvrir si un drag a eu lieu (le flag est vérifié dans handleMouseUp)
+                    // Mais on peut aussi vérifier si on vient de finir un drag
+                    e.stopPropagation();
+                    // Le onClick sera toujours appelé, mais on peut le laisser si pas de drag significatif
+                    // La vraie protection est dans handleMouseUp qui empêche l'event
                     handlePointClick(point);
                   }}
                 >
