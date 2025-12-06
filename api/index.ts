@@ -645,12 +645,33 @@ INSTRUCTIONS:
     
     // List cockpits
     if (path === '/cockpits' && method === 'GET') {
+      if (!currentUser) {
+        console.error('[GET /cockpits] User not authenticated');
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+      
       const db = await getDb();
+      
+      // Diagnostic logs
+      console.log(`[GET /cockpits] User ID: ${currentUser.id}, username: ${currentUser.username}, isAdmin: ${currentUser.isAdmin}`);
+      console.log(`[GET /cockpits] Total cockpits in DB: ${db.cockpits.length}`);
+      if (db.cockpits.length > 0) {
+        console.log(`[GET /cockpits] Cockpit userIds:`, db.cockpits.map(c => ({ id: c.id, name: c.name, userId: c.userId })));
+      }
+      
       let cockpits = currentUser.isAdmin 
         ? db.cockpits 
-        : db.cockpits.filter(c => c.userId === currentUser!.id);
+        : db.cockpits.filter(c => {
+            const matches = c.userId === currentUser.id;
+            if (!matches) {
+              console.log(`[GET /cockpits] Cockpit "${c.name}" (${c.id}) filtered out - userId: ${c.userId} !== current: ${currentUser.id}`);
+            }
+            return matches;
+          });
       
-      return res.json(cockpits.map(c => ({
+      console.log(`[GET /cockpits] Filtered cockpits: ${cockpits.length} (${currentUser.isAdmin ? 'admin mode' : 'user mode'})`);
+      
+      const result = cockpits.map(c => ({
         id: c.id,
         name: c.name,
         userId: c.userId,
@@ -660,7 +681,11 @@ INSTRUCTIONS:
         publicId: c.data?.publicId,
         isPublished: c.data?.isPublished || false,
         publishedAt: c.data?.publishedAt,
-      })));
+      }));
+      
+      console.log(`[GET /cockpits] Returning ${result.length} cockpits`);
+      
+      return res.json(result);
     }
 
     // Get single cockpit
