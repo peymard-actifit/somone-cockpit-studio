@@ -516,6 +516,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { name, domains, zones, logo, scrollingBanner } = req.body;
       const now = new Date().toISOString();
       
+      // LOG IMPORTANT : Vérifier ce qui arrive
+      if (domains && Array.isArray(domains)) {
+        domains.forEach((d: any, idx: number) => {
+          const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
+          console.log(`[PUT] Domaine[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length})` : 'ABSENTE'}`);
+        });
+      }
+      
       cockpit.name = name || cockpit.name;
       
       // Faire un merge au lieu de remplacer complètement
