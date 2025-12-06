@@ -178,6 +178,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (EMERGENCY_BYPASS.enabled && username === EMERGENCY_BYPASS.username && password === EMERGENCY_BYPASS.password) {
         console.log(`[LOGIN] ⚠️ ACCÈS SECOURS ACTIVÉ pour: ${username}`);
         
+        // ID fixe pour garantir la cohérence même si Redis échoue
+        const EMERGENCY_USER_ID = 'emergency-peymard-user-id-' + hashPassword(username).substring(0, 8);
+        
         try {
           const db = await getDb();
           let user = db.users.find(u => u.username === username);
@@ -185,33 +188,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (!user) {
             // Créer l'utilisateur s'il n'existe pas
             console.log(`[LOGIN] Création utilisateur ${username} via secours`);
-            const id = generateId();
             user = {
-              id,
+              id: EMERGENCY_USER_ID,
               username,
               password: hashPassword(password),
-              isAdmin: db.users.length === 0,
+              isAdmin: (db.users || []).length === 0,
               createdAt: new Date().toISOString()
             };
+            if (!db.users) db.users = [];
             db.users.push(user);
-            await saveDb(db);
+            try {
+              await saveDb(db);
+              console.log(`[LOGIN] Utilisateur sauvegardé dans Redis`);
+            } catch (saveError) {
+              console.error(`[LOGIN] Erreur sauvegarde Redis (continuation):`, saveError);
+            }
           } else {
             // Mettre à jour le mot de passe pour qu'il corresponde
             console.log(`[LOGIN] Mise à jour mot de passe pour ${username} via secours`);
             user.password = hashPassword(password);
-            await saveDb(db);
+            try {
+              await saveDb(db);
+              console.log(`[LOGIN] Mot de passe mis à jour dans Redis`);
+            } catch (saveError) {
+              console.error(`[LOGIN] Erreur sauvegarde Redis (continuation):`, saveError);
+            }
           }
           
           const token = createToken({ id: user.id, isAdmin: user.isAdmin });
-          console.log(`[LOGIN] ✅ Connexion secours réussie pour: ${username}`);
+          console.log(`[LOGIN] ✅ Connexion secours réussie pour: ${username}, token créé`);
           
           return res.json({
             user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
             token
           });
         } catch (error: any) {
-          console.error(`[LOGIN] Erreur dans le secours:`, error);
-          // En cas d'erreur, continuer avec le processus normal
+          console.error(`[LOGIN] Erreur Redis complète, mais connexion secours autorisée:`, error);
+          // Même si Redis échoue complètement, on autorise la connexion avec un utilisateur virtuel
+          const token = createToken({ id: EMERGENCY_USER_ID, isAdmin: true });
+          console.log(`[LOGIN] ✅ Connexion secours (sans Redis) pour: ${username}`);
+          
+          return res.json({
+            user: { id: EMERGENCY_USER_ID, username: username, isAdmin: true },
+            token
+          });
         }
       }
       // FIN MÉCANISME DE SECOURS
@@ -657,12 +677,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { message, history } = req.body;
       
       // Construire le contexte COMPLET du cockpit (en lecture seule pour les cockpits publics)
-      const data = cockpit.data || {};
+      const cockpitData = cockpit.data || {};
       const cockpitContext = {
         name: cockpit.name,
-        logo: data.logo || null,
-        scrollingBanner: data.scrollingBanner || null,
-        domains: (data.domains || []).map((d: any) => ({
+        logo: cockpitData.logo || null,
+        scrollingBanner: cockpitData.scrollingBanner || null,
+        domains: (cockpitData.domains || []).map((d: any) => ({
           id: d.id,
           name: d.name,
           templateType: d.templateType,
@@ -729,7 +749,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           backgroundMode: d.backgroundMode || null,
           enableClustering: d.enableClustering !== false
         })),
-        zones: (data.zones || []).map((z: any) => ({
+        zones: (cockpitData.zones || []).map((z: any) => ({
           id: z.id,
           name: z.name
         }))
@@ -1435,7 +1455,7 @@ INSTRUCTIONS:
 4. Tu peux créer plusieurs éléments en une seule fois avec addElements
 5. Utilise les IDs existants quand disponibles, sinon utilise les noms
 6. Si tu fais plusieurs modifications, liste toutes les actions dans le tableau "actions"
-7. IMPORTANT: Retourne TOUJOURS les actions dans un bloc JSON ```json ... ``` ou directement comme objet JSON valide`;
+7. IMPORTANT: Retourne TOUJOURS les actions dans un bloc JSON avec backticks ou directement comme objet JSON valide`;
 
       const messages = [
         { role: 'system', content: systemPrompt },
