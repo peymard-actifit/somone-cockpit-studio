@@ -23,16 +23,30 @@ export default function HomePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [adminCode, setAdminCode] = useState('');
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  const [showExportModal, setShowExportModal] = useState<string | null>(null);
+  const [exportFileName, setExportFileName] = useState('');
   
   useEffect(() => {
     fetchCockpits();
   }, [fetchCockpits]);
   
-  const handleExport = async (id: string) => {
+  const handleExport = async (id: string, fileName?: string) => {
     try {
-      await exportCockpit(id);
+      await exportCockpit(id, fileName);
+      setShowExportModal(null);
+      setExportFileName('');
     } catch (error) {
       console.error('Erreur export:', error);
+    }
+  };
+  
+  const handleExportClick = (id: string) => {
+    const cockpit = cockpits.find(c => c.id === id);
+    if (cockpit) {
+      // Nom par défaut basé sur le nom de la maquette et la date
+      const defaultName = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}`;
+      setExportFileName(defaultName);
+      setShowExportModal(id);
     }
   };
   
@@ -392,7 +406,7 @@ export default function HomePage() {
                     <MuiIcon name="CopyIcon" size={16} />
                   </button>
                   <button
-                    onClick={() => handleExport(cockpit.id)}
+                    onClick={() => handleExportClick(cockpit.id)}
                     className="p-2 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
                     title="Exporter"
                   >
@@ -574,6 +588,56 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal: Exporter */}
+      {showExportModal && (
+        <Modal
+          title="Exporter la maquette"
+          onClose={() => {
+            setShowExportModal(null);
+            setExportFileName('');
+          }}
+          onConfirm={() => {
+            if (showExportModal) {
+              handleExport(showExportModal, exportFileName);
+            }
+          }}
+          confirmText="Exporter"
+          isLoading={isLoading}
+        >
+          <div className="space-y-4">
+            <p className="text-slate-300 text-sm">
+              Choisissez le nom du fichier à exporter. Le fichier sera téléchargé dans votre dossier de téléchargements par défaut.
+            </p>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">
+                Nom du fichier
+              </label>
+              <input
+                type="text"
+                value={exportFileName}
+                onChange={(e) => setExportFileName(e.target.value)}
+                placeholder="nom_du_fichier"
+                className="w-full px-4 py-2 bg-slate-800/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                autoFocus
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                L'extension .json sera ajoutée automatiquement
+              </p>
+            </div>
+            
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+              <div className="flex items-start gap-2">
+                <MuiIcon name="Info" size={16} className="text-blue-400 mt-0.5" />
+                <p className="text-xs text-blue-300">
+                  Le fichier contiendra toutes les données de la maquette, y compris les images de fond encodées en base64.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Modal: Changer le mot de passe */}

@@ -69,7 +69,7 @@ interface CockpitState {
   
   // Export
   exportToExcel: () => Promise<Blob | null>;
-  exportCockpit: (id: string) => Promise<void>;
+  exportCockpit: (id: string, fileName?: string) => Promise<void>;
   importCockpit: (file: File) => Promise<Cockpit | null>;
   
   // Publication
@@ -1097,7 +1097,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     }
   },
 
-  exportCockpit: async (id: string) => {
+  exportCockpit: async (id: string, fileName?: string) => {
     const token = useAuthStore.getState().token;
     
     try {
@@ -1130,7 +1130,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}.json`;
+      
+      // Utiliser le nom personnalisé ou générer un nom par défaut
+      const defaultFileName = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}`;
+      const finalFileName = fileName ? fileName.trim() : defaultFileName;
+      // S'assurer que le nom se termine par .json
+      a.download = finalFileName.endsWith('.json') ? finalFileName : `${finalFileName}.json`;
+      
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
