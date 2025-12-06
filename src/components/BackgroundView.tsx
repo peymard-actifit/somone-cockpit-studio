@@ -95,16 +95,42 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setPosition({ x: 0, y: 0 });
   }, [domain.backgroundImage]);
   
+  // Fonction de validation d'image base64
+  const isValidBase64Image = (str: string | undefined | null): boolean => {
+    if (!str || typeof str !== 'string') return false;
+    const trimmed = str.trim();
+    if (trimmed.length < 100) return false; // Une vraie image fait au moins 100 caractères
+    if (!trimmed.startsWith('data:image/')) return false;
+    const base64Part = trimmed.split(',')[1];
+    if (!base64Part || base64Part.length < 50) return false;
+    // Vérifier que c'est du base64 valide
+    return /^[A-Za-z0-9+/]*={0,2}$/.test(base64Part);
+  };
+  
   // Mettre à jour l'URL et le clustering quand le domaine change
   useEffect(() => {
-    const newImageUrl = (domain?.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0) 
-      ? domain.backgroundImage.trim() 
-      : '';
+    let newImageUrl = '';
+    
+    if (domain?.backgroundImage && typeof domain.backgroundImage === 'string') {
+      const trimmed = domain.backgroundImage.trim();
+      if (isValidBase64Image(trimmed)) {
+        newImageUrl = trimmed;
+      } else {
+        console.warn(`[BackgroundView] ⚠️ Image invalide pour "${domain?.name}":`, {
+          length: trimmed.length,
+          startsWithDataImage: trimmed.startsWith('data:image/'),
+          hasComma: trimmed.includes(','),
+          preview: trimmed.substring(0, 50)
+        });
+      }
+    }
+    
     console.log(`[BackgroundView] useEffect - Domain backgroundImage update:`, {
       domainName: domain?.name,
       hasBackgroundImage: !!domain?.backgroundImage,
       backgroundImageType: typeof domain?.backgroundImage,
       backgroundImageLength: domain?.backgroundImage ? domain.backgroundImage.length : 0,
+      isValidImage: isValidBase64Image(domain?.backgroundImage),
       newImageUrlLength: newImageUrl.length,
       newImageUrlPreview: newImageUrl.substring(0, 50)
     });
@@ -725,8 +751,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           }}
         >
           {/* Image de fond */}
-          {/* CRITIQUE: Vérifier explicitement domain.backgroundImage (sans ? car domain existe toujours) */}
-          {domain && domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0 ? (
+          {/* CRITIQUE: Vérifier explicitement que l'image est valide avant de l'afficher */}
+          {imageUrl && imageUrl.trim().length > 0 && imageUrl.startsWith('data:image/') ? (
             <img 
               key={`bg-image-${domain.id}-${imageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               ref={imageRef}

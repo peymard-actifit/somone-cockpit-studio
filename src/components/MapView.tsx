@@ -529,6 +529,18 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     }, 100);
   };
   
+  // Fonction de validation d'image base64
+  const isValidBase64Image = (str: string | undefined | null): boolean => {
+    if (!str || typeof str !== 'string') return false;
+    const trimmed = str.trim();
+    if (trimmed.length < 100) return false; // Une vraie image fait au moins 100 caractères
+    if (!trimmed.startsWith('data:image/')) return false;
+    const base64Part = trimmed.split(',')[1];
+    if (!base64Part || base64Part.length < 50) return false;
+    // Vérifier que c'est du base64 valide
+    return /^[A-Za-z0-9+/]*={0,2}$/.test(base64Part);
+  };
+  
   // Normaliser l'URL de l'image - s'assurer qu'elle est valide
   // CRITIQUE : Vérifier explicitement la présence et le type de backgroundImage
   const mapImageUrl = (() => {
@@ -542,8 +554,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       return '';
     }
     const trimmed = domain.backgroundImage.trim();
-    if (trimmed.length === 0) {
-      console.log(`[MapView] ❌ Domain "${domain.name}": backgroundImage est une string vide`);
+    if (!isValidBase64Image(trimmed)) {
+      console.warn(`[MapView] ⚠️ Domain "${domain.name}": backgroundImage invalide (length: ${trimmed.length}, startsWith: ${trimmed.substring(0, 20)}, valid: ${isValidBase64Image(trimmed)})`);
       return '';
     }
     console.log(`[MapView] ✅ Domain "${domain.name}": backgroundImage valide (${trimmed.length} chars, preview: ${trimmed.substring(0, 30)}...)`);
