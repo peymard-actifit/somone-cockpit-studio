@@ -1192,8 +1192,18 @@ INSTRUCTIONS:
       if (savedCockpit && savedCockpit.data) {
         console.log(`[PUT /cockpits/:id] ✅ Après sauvegarde - Domaines avec images:`);
         (savedCockpit.data.domains || []).forEach((d: any, idx: number) => {
-          const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
-          console.log(`[PUT] Saved[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+          const hasBg = d.backgroundImage && typeof d.backgroundImage === 'string' && d.backgroundImage.trim().length > 0;
+          const isValid = hasBg && d.backgroundImage.startsWith('data:image/');
+          const sizeMB = hasBg ? (d.backgroundImage.length / 1024 / 1024).toFixed(2) : '0';
+          console.log(`[PUT] Saved[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars, ${sizeMB} MB, valid: ${isValid})` : 'ABSENTE'}`);
+          
+          // Vérifier si l'image est valide
+          if (hasBg && !isValid) {
+            console.warn(`[PUT] ⚠️ Image invalide pour "${d.name}" - ne commence pas par data:image/`);
+          }
+          if (hasBg && d.backgroundImage.length < 100) {
+            console.warn(`[PUT] ⚠️ Image suspecte pour "${d.name}" - trop courte (${d.backgroundImage.length} chars)`);
+          }
         });
       }
 

@@ -153,6 +153,24 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Sauvegarder l'image et les options
   const handleSaveImage = () => {
+    // Validation finale avant sauvegarde
+    if (!isValidBase64Image(imageUrl)) {
+      alert('Erreur: L\'image n\'est pas valide. Veuillez réessayer de charger l\'image.');
+      console.error('[BackgroundView] ❌ Tentative de sauvegarde d\'une image invalide');
+      return;
+    }
+    
+    // Vérifier la taille (avertir si > 3MB)
+    const sizeMB = imageUrl.length / 1024 / 1024;
+    if (sizeMB > 3) {
+      const confirmSave = confirm(
+        `L'image est volumineuse (${sizeMB.toFixed(2)} MB). ` +
+        `Cela peut ralentir le chargement. Voulez-vous continuer ?`
+      );
+      if (!confirmSave) return;
+    }
+    
+    console.log(`[BackgroundView] 💾 Sauvegarde image: ${sizeMB.toFixed(2)} MB (${imageUrl.length} chars)`);
     updateDomain(domain.id, { 
       backgroundImage: imageUrl,
       enableClustering: enableClustering,
