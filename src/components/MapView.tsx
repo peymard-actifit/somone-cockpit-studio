@@ -374,6 +374,27 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   
   // Sauvegarder la configuration de la carte
   const handleSaveConfig = () => {
+    // Validation de l'image avant sauvegarde
+    if (configForm.imageUrl && configForm.imageUrl.trim().length > 0) {
+      if (!isValidBase64Image(configForm.imageUrl)) {
+        alert('Erreur: L\'image n\'est pas valide. Veuillez réessayer de charger l\'image.');
+        console.error('[MapView] ❌ Tentative de sauvegarde d\'une image invalide');
+        return;
+      }
+      
+      // Vérifier la taille (avertir si > 3MB)
+      const sizeMB = configForm.imageUrl.length / 1024 / 1024;
+      if (sizeMB > 3) {
+        const confirmSave = confirm(
+          `L'image est volumineuse (${sizeMB.toFixed(2)} MB). ` +
+          `Cela peut ralentir le chargement. Voulez-vous continuer ?`
+        );
+        if (!confirmSave) return;
+      }
+      
+      console.log(`[MapView] 💾 Sauvegarde image: ${sizeMB.toFixed(2)} MB (${configForm.imageUrl.length} chars)`);
+    }
+    
     // Sauvegarder l'URL de l'image et le clustering
     updateDomain(domain.id, { 
       backgroundImage: configForm.imageUrl,
