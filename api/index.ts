@@ -166,18 +166,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Login
     if (path === '/auth/login' && method === 'POST') {
       const { username, password } = req.body;
+      console.log(`[LOGIN] Tentative de connexion pour: ${username}`);
+      
       const db = await getDb();
+      console.log(`[LOGIN] Utilisateurs dans la base:`, db.users.map(u => ({ username: u.username, id: u.id })));
       
       const user = db.users.find(u => u.username === username);
       if (!user) {
+        console.error(`[LOGIN] Utilisateur non trouvé: ${username}`);
         return res.status(401).json({ error: 'Identifiants incorrects' });
       }
+
+      console.log(`[LOGIN] Utilisateur trouvé: ${user.username}, hash stocké: ${user.password.substring(0, 20)}...`);
+      
+      const passwordHash = hashPassword(password);
+      console.log(`[LOGIN] Hash du mot de passe fourni: ${passwordHash.substring(0, 20)}...`);
+      console.log(`[LOGIN] Comparaison: ${passwordHash} === ${user.password} ? ${passwordHash === user.password}`);
 
       const valid = comparePassword(password, user.password);
       if (!valid) {
+        console.error(`[LOGIN] Mot de passe incorrect pour: ${username}`);
         return res.status(401).json({ error: 'Identifiants incorrects' });
       }
 
+      console.log(`[LOGIN] Connexion réussie pour: ${username}`);
       const token = createToken({ id: user.id, isAdmin: user.isAdmin });
       
       return res.json({
