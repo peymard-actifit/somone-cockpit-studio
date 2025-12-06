@@ -64,10 +64,7 @@ export default function HomePage() {
   
   const handlePublish = async (id: string) => {
     const result = await publishCockpit(id);
-    if (result) {
-      const url = `${getPublicBaseUrl()}/public/${result.publicId}`;
-      setPublishedUrl(url);
-    }
+    return result; // Retourner le résultat pour que l'appelant puisse l'utiliser
   };
   
   const handleUnpublish = async (id: string) => {
@@ -180,7 +177,7 @@ export default function HomePage() {
                         setShowUserMenu(false);
                         setShowChangePasswordModal(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-slate-700/50 rounded-lg transition-colors text-left font-medium"
                     >
                       <MuiIcon name="KeyRound" size={16} />
                       Changer le mot de passe
@@ -190,7 +187,7 @@ export default function HomePage() {
                         setShowUserMenu(false);
                         setShowToggleAdminModal(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-slate-700/50 rounded-lg transition-colors text-left font-medium"
                     >
                       <MuiIcon name="SettingsIcon" size={16} />
                       {user?.isAdmin ? 'Quitter le mode admin' : 'Passer administrateur'}
@@ -198,7 +195,7 @@ export default function HomePage() {
                     <hr className="my-2 border-slate-700/50" />
                     <button
                       onClick={logout}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left font-medium"
                     >
                       <MuiIcon name="LogOut" size={16} />
                       Déconnexion
@@ -302,12 +299,23 @@ export default function HomePage() {
                 {/* Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
-                      setShowPublishModal(cockpit.id);
-                      if (cockpit.isPublished && cockpit.publicId) {
-                        setPublishedUrl(`${getPublicBaseUrl()}/public/${cockpit.publicId}`);
+                    onClick={async () => {
+                      if (cockpit.isPublished) {
+                        // Si déjà publié, ouvrir la modal de gestion
+                        setShowPublishModal(cockpit.id);
+                        if (cockpit.publicId) {
+                          setPublishedUrl(`${getPublicBaseUrl()}/public/${cockpit.publicId}`);
+                        } else {
+                          setPublishedUrl(null);
+                        }
                       } else {
-                        setPublishedUrl(null);
+                        // Si pas encore publié, publier directement
+                        const result = await handlePublish(cockpit.id);
+                        if (result) {
+                          // Après publication, ouvrir la modal pour montrer l'URL
+                          setShowPublishModal(cockpit.id);
+                          setPublishedUrl(`${getPublicBaseUrl()}/public/${result.publicId}`);
+                        }
                       }
                     }}
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
@@ -315,9 +323,16 @@ export default function HomePage() {
                         ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
                         : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400'
                     }`}
+                    disabled={isLoading && !cockpit.isPublished}
                   >
-                    <MuiIcon name="Globe" size={16} />
-                    {cockpit.isPublished ? 'Gérer' : 'Publier'}
+                    {isLoading && !cockpit.isPublished ? (
+                      <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
+                    ) : (
+                      <>
+                        <MuiIcon name="Globe" size={16} />
+                        {cockpit.isPublished ? 'Gérer' : 'Publier'}
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => {

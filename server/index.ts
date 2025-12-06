@@ -694,12 +694,22 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   const wsZones = XLSX.utils.json_to_sheet(zonesData.length ? zonesData : [{ 'ID': '', 'Nom': '' }]);
   XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
   
-  // Générer le buffer
-  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-  
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="${cockpit.name}.xlsx"`);
-  res.send(buffer);
+  // Générer le buffer Excel
+  try {
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    
+    // Encoder le nom du fichier pour éviter les problèmes avec les caractères spéciaux
+    const encodedFileName = encodeURIComponent(cockpit.name.replace(/[^\w\s-]/g, '')).replace(/'/g, '%27');
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}.xlsx"; filename*=UTF-8''${encodedFileName}.xlsx`);
+    res.setHeader('Content-Length', buffer.length.toString());
+    
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('Erreur génération Excel:', error);
+    return res.status(500).json({ error: 'Erreur lors de la génération du fichier Excel: ' + error.message });
+  }
 });
 
 // Templates

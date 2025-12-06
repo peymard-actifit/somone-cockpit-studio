@@ -409,6 +409,147 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // =====================
+    // PUBLIC AI ROUTES (utilisent la même API KEY que le studio)
+    // =====================
+    
+    // Public AI Status
+    const publicAiStatusMatch = path.match(/^\/public\/ai\/status\/([^/]+)$/);
+    if (publicAiStatusMatch && method === 'GET') {
+      const publicId = publicAiStatusMatch[1];
+      
+      // Vérifier que le cockpit existe et est publié
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
+      
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Cockpit non trouvé ou non publié' });
+      }
+      
+      // Utiliser la même API KEY que pour le studio
+      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+      return res.json({
+        configured: !!OPENAI_API_KEY,
+        model: OPENAI_API_KEY ? 'gpt-4o-mini' : 'none'
+      });
+    }
+    
+    // Public AI Chat
+    const publicAiChatMatch = path.match(/^\/public\/ai\/chat\/([^/]+)$/);
+    if (publicAiChatMatch && method === 'POST') {
+      const publicId = publicAiChatMatch[1];
+      
+      // Utiliser la même API KEY que pour le studio
+      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+      
+      if (!OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API key not configured' });
+      }
+      
+      // Vérifier que le cockpit existe et est publié
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
+      
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Cockpit non trouvé ou non publié' });
+      }
+      
+      const { message, history } = req.body;
+      
+      // Construire le contexte du cockpit (en lecture seule pour les cockpits publics)
+      const data = cockpit.data || {};
+      const cockpitContext = {
+        name: cockpit.name,
+        domains: (data.domains || []).map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          templateType: d.templateType,
+          categories: (d.categories || []).map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            elements: (c.elements || []).map((e: any) => ({
+              id: e.id,
+              name: e.name,
+              status: e.status,
+              value: e.value,
+              unit: e.unit
+            }))
+          })),
+          mapElements: (d.mapElements || []).map((me: any) => ({
+            id: me.id,
+            name: me.name,
+            status: me.status
+          }))
+        })),
+        zones: data.zones || []
+      };
+      
+      const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, en mode consultation d'un cockpit publié.
+
+Ce cockpit est en MODE LECTURE SEULE - tu ne peux QUE répondre aux questions, pas modifier le cockpit.
+
+STRUCTURE DU COCKPIT:
+- Cockpit: "${cockpitContext.name}"
+- Cockpit contient des Domaines (onglets principaux)
+- Domaines contiennent des Catégories (groupes d'éléments)
+- Catégories contiennent des Éléments (tuiles avec statut coloré)
+- Éléments contiennent des Sous-catégories
+- Sous-catégories contiennent des Sous-éléments
+
+STATUTS DISPONIBLES: ok (vert), mineur (orange), critique (rouge), fatal (violet), deconnecte (gris)
+
+CONTEXTE ACTUEL DU COCKPIT:
+${JSON.stringify(cockpitContext, null, 2)}
+
+INSTRUCTIONS:
+1. Réponds en français de manière concise et professionnelle
+2. Tu es en MODE CONSULTATION - tu ne peux QUE répondre aux questions
+3. Analyse les données du cockpit et réponds aux questions de l'utilisateur
+4. Peux-tu compter les éléments, identifier les statuts, expliquer la structure, etc.`;
+
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
+        { role: 'user', content: message }
+      ];
+      
+      try {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages,
+            temperature: 0.7,
+            max_tokens: 2000,
+          }),
+        });
+        
+        if (!openaiResponse.ok) {
+          const error = await openaiResponse.json();
+          console.error('OpenAI error:', error);
+          return res.status(500).json({ error: 'Erreur OpenAI: ' + (error.error?.message || 'inconnue') });
+        }
+        
+        const data = await openaiResponse.json();
+        const assistantMessage = data.choices[0]?.message?.content || '';
+        
+        // Nettoyer le message des blocs JSON (il ne devrait pas y en avoir en mode consultation)
+        let cleanMessage = assistantMessage
+          .replace(/```json\n?[\s\S]*?\n?```/g, '')
+          .trim();
+        
+        return res.json({ message: cleanMessage });
+        
+      } catch (error: any) {
+        console.error('AI Chat error:', error);
+        return res.status(500).json({ error: 'Erreur serveur IA: ' + error.message });
+      }
+    }
+
     // All other routes require authentication
     if (!currentUser) {
       return res.status(401).json({ error: 'Non authentifié' });
@@ -875,12 +1016,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const wsZones = XLSX.utils.json_to_sheet(zonesData.length ? zonesData : [{ 'ID': '', 'Nom': '' }]);
       XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
       
-      // Générer le buffer
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="${cockpit.name}.xlsx"`);
-      return res.send(buffer);
+      // Générer le buffer Excel
+      try {
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        
+        // Encoder le nom du fichier pour éviter les problèmes avec les caractères spéciaux
+        const encodedFileName = encodeURIComponent(cockpit.name.replace(/[^\w\s-]/g, '')).replace(/'/g, '%27');
+        
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}.xlsx"; filename*=UTF-8''${encodedFileName}.xlsx`);
+        res.setHeader('Content-Length', buffer.length.toString());
+        
+        return res.send(Buffer.from(buffer));
+      } catch (error: any) {
+        console.error('Erreur génération Excel:', error);
+        return res.status(500).json({ error: 'Erreur lors de la génération du fichier Excel: ' + error.message });
+      }
     }
 
     // =====================
@@ -932,18 +1083,30 @@ STATUTS DISPONIBLES: ok (vert), mineur (orange), critique (rouge), fatal (violet
 ACTIONS DISPONIBLES (retourne-les dans le champ "actions"):
 - addDomain: { name: string }
 - deleteDomain: { domainId?: string, name?: string }
+- updateDomain: { domainId?: string, name?: string, updates: { name?, templateType?, templateName?, backgroundImage?, backgroundMode?, mapBounds?, enableClustering? } }
 - addCategory: { domainId?: string, domainName?: string, name: string, orientation?: 'horizontal'|'vertical' }
+- updateCategory: { categoryId?: string, name?: string, updates: { name?, orientation?, icon? } }
 - deleteCategory: { categoryId?: string, name?: string }
 - addElement: { categoryId?: string, categoryName?: string, name: string }
 - addElements: { categoryId?: string, categoryName?: string, names: string[] }
 - deleteElement: { elementId?: string, name?: string }
-- updateElement: { elementId?: string, name?: string, updates: { status?, value?, unit?, icon? } }
+- updateElement: { elementId?: string, name?: string, updates: { status?, value?, unit?, icon?, icon2?, icon3?, name? } }
 - updateStatus: { elementId?: string, elementName?: string, subElementId?: string, subElementName?: string, status: string }
+- cloneElement: { elementId?: string, name?: string }
 - addSubCategory: { elementId?: string, name: string, orientation?: 'horizontal'|'vertical' }
+- updateSubCategory: { subCategoryId?: string, name?: string, updates: { name?, orientation? } }
 - deleteSubCategory: { subCategoryId?: string, name?: string }
 - addSubElement: { subCategoryId?: string, subCategoryName?: string, name: string }
 - addSubElements: { subCategoryId?: string, subCategoryName?: string, names: string[] }
 - deleteSubElement: { subElementId?: string, name?: string }
+- updateSubElement: { subElementId?: string, updates: { status?, value?, unit?, name? } }
+- addZone: { name: string }
+- deleteZone: { zoneId?: string, name?: string }
+- addMapElement: { domainId?: string, domainName?: string, name: string, lat: number, lng: number, status?: string, icon?: string }
+- updateMapElement: { mapElementId?: string, name?: string, updates: { name?, gps?, status?, icon? } }
+- deleteMapElement: { mapElementId?: string, name?: string }
+- cloneMapElement: { mapElementId?: string, name?: string }
+- updateMapBounds: { domainId?: string, domainName?: string, topLeft: { lat: number, lng: number }, bottomRight: { lat: number, lng: number } }
 - selectDomain: { domainId?: string, name?: string }
 - selectElement: { elementId?: string, name?: string }
 

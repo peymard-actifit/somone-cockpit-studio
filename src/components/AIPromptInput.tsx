@@ -38,16 +38,28 @@ export default function AIPromptInput() {
     currentCockpit,
     addDomain,
     deleteDomain,
+    updateDomain,
     addCategory,
+    updateCategory,
     deleteCategory,
     addElement,
     deleteElement,
+    updateElement,
+    cloneElement,
     addSubCategory,
+    updateSubCategory,
     deleteSubCategory,
     addSubElement,
     deleteSubElement,
-    updateElement,
     updateSubElement,
+    addZone,
+    deleteZone,
+    addMapElement,
+    updateMapElement,
+    deleteMapElement,
+    cloneMapElement,
+    updateMapBounds,
+    zones,
     currentDomainId,
     currentElementId,
     setCurrentDomain,
@@ -510,6 +522,179 @@ export default function AIPromptInput() {
             return `✅ Élément sélectionné`;
           }
           return '❌ Élément non trouvé';
+        }
+        
+        case 'updateDomain': {
+          let domainId = action.params.domainId;
+          if (!domainId || !domainExists(domainId)) {
+            domainId = findDomainByName(action.params.name || '')?.id || currentDomainId;
+          }
+          if (domainId) {
+            const updates = action.params.updates || {};
+            if (action.params.name && !updates.name) updates.name = action.params.name;
+            updateDomain(domainId, updates);
+            return `✅ Domaine mis à jour`;
+          }
+          return '❌ Domaine non trouvé';
+        }
+        
+        case 'updateCategory': {
+          let categoryId = action.params.categoryId;
+          if (!categoryId || !categoryExists(categoryId)) {
+            categoryId = findCategoryByName(action.params.name || '')?.id;
+          }
+          if (categoryId) {
+            const updates = action.params.updates || {};
+            if (action.params.name && !updates.name) updates.name = action.params.name;
+            updateCategory(categoryId, updates);
+            return `✅ Catégorie mise à jour`;
+          }
+          return '❌ Catégorie non trouvée';
+        }
+        
+        case 'updateSubCategory': {
+          let subCategoryId = action.params.subCategoryId;
+          if (!subCategoryId) {
+            subCategoryId = findSubCategoryByName(action.params.name || '')?.id;
+          }
+          if (subCategoryId) {
+            const updates = action.params.updates || {};
+            if (action.params.name && !updates.name) updates.name = action.params.name;
+            updateSubCategory(subCategoryId, updates);
+            return `✅ Sous-catégorie mise à jour`;
+          }
+          return '❌ Sous-catégorie non trouvée';
+        }
+        
+        case 'updateSubElement': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId) {
+            subElementId = findSubElementByName(action.params.name || '')?.id;
+          }
+          if (subElementId) {
+            updateSubElement(subElementId, action.params.updates || {});
+            return `✅ Sous-élément mis à jour`;
+          }
+          return '❌ Sous-élément non trouvé';
+        }
+        
+        case 'cloneElement': {
+          let elementId = action.params.elementId;
+          if (!elementId || !elementExists(elementId)) {
+            elementId = findElementByName(action.params.name || '')?.id || currentElementId;
+          }
+          if (elementId) {
+            cloneElement(elementId);
+            return `✅ Élément cloné`;
+          }
+          return '❌ Élément non trouvé';
+        }
+        
+        case 'addZone': {
+          addZone(action.params.name);
+          return `✅ Zone "${action.params.name}" créée`;
+        }
+        
+        case 'deleteZone': {
+          const zone = zones?.find((z: any) => z.id === action.params.zoneId || z.name === action.params.name);
+          if (zone) {
+            deleteZone(zone.id);
+            return `✅ Zone supprimée`;
+          }
+          return '❌ Zone non trouvée';
+        }
+        
+        case 'addMapElement': {
+          let domainId = action.params.domainId;
+          if (!domainId || !domainExists(domainId)) {
+            domainId = findDomainByName(action.params.domainName || '')?.id || currentDomainId;
+          }
+          if (domainId && action.params.lat && action.params.lng) {
+            addMapElement(
+              domainId,
+              action.params.name,
+              { lat: action.params.lat, lng: action.params.lng },
+              action.params.status || 'ok',
+              action.params.icon
+            );
+            return `✅ Point de carte "${action.params.name}" ajouté`;
+          }
+          return '❌ Paramètres invalides pour addMapElement';
+        }
+        
+        case 'updateMapElement': {
+          let mapElementId = action.params.mapElementId;
+          if (!mapElementId && action.params.name) {
+            // Chercher dans tous les domaines
+            for (const domain of currentCockpit?.domains || []) {
+              const mapEl = domain.mapElements?.find(me => me.name === action.params.name);
+              if (mapEl) {
+                mapElementId = mapEl.id;
+                break;
+              }
+            }
+          }
+          if (mapElementId) {
+            const updates: any = action.params.updates || {};
+            if (action.params.name && !updates.name) updates.name = action.params.name;
+            if (action.params.lat && action.params.lng) {
+              updates.gps = { lat: action.params.lat, lng: action.params.lng };
+            }
+            updateMapElement(mapElementId, updates);
+            return `✅ Point de carte mis à jour`;
+          }
+          return '❌ Point de carte non trouvé';
+        }
+        
+        case 'deleteMapElement': {
+          let mapElementId = action.params.mapElementId;
+          if (!mapElementId && action.params.name) {
+            for (const domain of currentCockpit?.domains || []) {
+              const mapEl = domain.mapElements?.find(me => me.name === action.params.name);
+              if (mapEl) {
+                mapElementId = mapEl.id;
+                break;
+              }
+            }
+          }
+          if (mapElementId) {
+            deleteMapElement(mapElementId);
+            return `✅ Point de carte supprimé`;
+          }
+          return '❌ Point de carte non trouvé';
+        }
+        
+        case 'cloneMapElement': {
+          let mapElementId = action.params.mapElementId;
+          if (!mapElementId && action.params.name) {
+            for (const domain of currentCockpit?.domains || []) {
+              const mapEl = domain.mapElements?.find(me => me.name === action.params.name);
+              if (mapEl) {
+                mapElementId = mapEl.id;
+                break;
+              }
+            }
+          }
+          if (mapElementId) {
+            cloneMapElement(mapElementId);
+            return `✅ Point de carte cloné`;
+          }
+          return '❌ Point de carte non trouvé';
+        }
+        
+        case 'updateMapBounds': {
+          let domainId = action.params.domainId;
+          if (!domainId || !domainExists(domainId)) {
+            domainId = findDomainByName(action.params.domainName || '')?.id || currentDomainId;
+          }
+          if (domainId && action.params.topLeft && action.params.bottomRight) {
+            updateMapBounds(domainId, {
+              topLeft: action.params.topLeft,
+              bottomRight: action.params.bottomRight
+            });
+            return `✅ Coordonnées GPS de la carte mises à jour`;
+          }
+          return '❌ Paramètres invalides pour updateMapBounds';
         }
           
         default:
