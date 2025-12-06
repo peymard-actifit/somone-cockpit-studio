@@ -69,6 +69,8 @@ interface CockpitState {
   
   // Export
   exportToExcel: () => Promise<Blob | null>;
+  exportCockpit: (id: string) => Promise<void>;
+  importCockpit: (file: File) => Promise<Cockpit | null>;
   
   // Publication
   publishCockpit: (id: string) => Promise<{ publicId: string } | null>;
@@ -1091,6 +1093,103 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return await response.blob();
     } catch (error) {
       set({ error: 'Erreur lors de l\'export Excel' });
+      return null;
+    }
+  },
+
+  exportCockpit: async (id: string) => {
+    const token = useAuthStore.getState().token;
+    
+    try {
+      // Récupérer le cockpit complet avec toutes ses données
+      const response = await fetch(`${API_URL}/cockpits/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      if (!response.ok) throw new Error('Erreur lors de la récupération de la maquette');
+      
+      const cockpit = await response.json();
+      
+      // Créer un objet d'export avec toutes les données
+      const exportData = {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        cockpit: {
+          name: cockpit.name,
+          domains: cockpit.domains || [],
+          zones: cockpit.zones || [],
+          logo: cockpit.logo || null,
+          scrollingBanner: cockpit.scrollingBanner || null,
+          // Ne pas exporter les infos de publication (sera créé comme nouvelle maquette)
+        }
+      };
+      
+      // Convertir en JSON et télécharger
+      const jsonStr = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      set({ error: 'Erreur lors de l\'export de la maquette' });
+      throw error;
+    }
+  },
+
+  importCockpit: async (file: File): Promise<Cockpit | null> => {
+    const token = useAuthStore.getState().token;
+    set({ isLoading: true, error: null });
+    
+    try {
+      // Lire le fichier
+      const text = await file.text();
+      const importData = JSON.parse(text);
+      
+      // Vérifier la structure
+      if (!importData.cockpit || !importData.cockpit.name) {
+        throw new Error('Format de fichier invalide : structure de maquette manquante');
+      }
+      
+      const importedCockpit = importData.cockpit;
+      
+      // Créer une nouvelle maquette avec les données importées
+      // Les IDs seront régénérés automatiquement par le serveur
+      const response = await fetch(`${API_URL}/cockpits`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: importedCockpit.name || 'Maquette importée',
+          domains: importedCockpit.domains || [],
+          zones: importedCockpit.zones || [],
+          logo: importedCockpit.logo || null,
+          scrollingBanner: importedCockpit.scrollingBanner || null,
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de l\'import');
+      }
+      
+      const newCockpit = await response.json();
+      
+      // Recharger la liste des cockpits
+      await get().fetchCockpits();
+      
+      set({ isLoading: false });
+      return newCockpit;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Erreur lors de l\'import de la maquette';
+      set({ error: errorMessage, isLoading: false });
+      console.error('Import error:', error);
       return null;
     }
   },

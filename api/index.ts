@@ -937,7 +937,7 @@ INSTRUCTIONS:
 
     // Create cockpit
     if (path === '/cockpits' && method === 'POST') {
-      const { name } = req.body;
+      const { name, domains, zones, logo, scrollingBanner } = req.body;
       
       if (!name) {
         return res.status(400).json({ error: 'Nom requis' });
@@ -947,11 +947,48 @@ INSTRUCTIONS:
       const id = generateId();
       const now = new Date().toISOString();
 
+      // Fonction récursive pour régénérer tous les IDs
+      const regenerateIds = (obj: any, idMap: Map<string, string> = new Map()): any => {
+        if (Array.isArray(obj)) {
+          return obj.map(item => regenerateIds(item, idMap));
+        }
+        if (obj && typeof obj === 'object') {
+          const newObj: any = {};
+          for (const [key, value] of Object.entries(obj)) {
+            if (key === 'id' && typeof value === 'string') {
+              // Conserver le mapping pour les références
+              const oldId = value as string;
+              if (!idMap.has(oldId)) {
+                idMap.set(oldId, generateId());
+              }
+              newObj[key] = idMap.get(oldId);
+            } else if (key === 'cockpitId' || key === 'domainId' || key === 'categoryId' || key === 'elementId' || key === 'subCategoryId' || key === 'subElementId' || key === 'userId') {
+              // Remplacer les IDs de référence si on a le mapping
+              const oldId = value as string;
+              newObj[key] = idMap.get(oldId) || value;
+            } else {
+              newObj[key] = regenerateIds(value, idMap);
+            }
+          }
+          return newObj;
+        }
+        return obj;
+      };
+
+      // Régénérer les IDs pour éviter les conflits
+      const newDomains = domains && Array.isArray(domains) ? regenerateIds(domains) : [];
+      const newZones = zones && Array.isArray(zones) ? regenerateIds(zones) : [];
+
       const newCockpit: CockpitData = {
         id,
         name,
         userId: currentUser.id,
-        data: { domains: [], zones: [] },
+        data: {
+          domains: newDomains.map((d: any) => ({ ...d, cockpitId: id })),
+          zones: newZones.map((z: any) => ({ ...z, cockpitId: id })),
+          logo: logo || null,
+          scrollingBanner: scrollingBanner || null,
+        },
         createdAt: now,
         updatedAt: now
       };
@@ -965,7 +1002,10 @@ INSTRUCTIONS:
         userId: currentUser.id,
         createdAt: now,
         updatedAt: now,
-        domains: [],
+        domains: newDomains,
+        zones: newZones,
+        logo: logo || null,
+        scrollingBanner: scrollingBanner || null,
       });
     }
 

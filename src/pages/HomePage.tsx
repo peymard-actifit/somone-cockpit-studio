@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
@@ -7,7 +7,7 @@ import { MuiIcon } from '../components/IconPicker';
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, changePassword, toggleAdmin, isLoading: authLoading, error: authError, clearError } = useAuthStore();
-  const { cockpits, fetchCockpits, createCockpit, duplicateCockpit, deleteCockpit, publishCockpit, unpublishCockpit, isLoading } = useCockpitStore();
+  const { cockpits, fetchCockpits, createCockpit, duplicateCockpit, deleteCockpit, publishCockpit, unpublishCockpit, exportCockpit, importCockpit, isLoading } = useCockpitStore();
   
   const [showNewModal, setShowNewModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState<string | null>(null);
@@ -22,10 +22,40 @@ export default function HomePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [adminCode, setAdminCode] = useState('');
+  const importFileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     fetchCockpits();
   }, [fetchCockpits]);
+  
+  const handleExport = async (id: string) => {
+    try {
+      await exportCockpit(id);
+    } catch (error) {
+      console.error('Erreur export:', error);
+    }
+  };
+  
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const importedCockpit = await importCockpit(file);
+      if (importedCockpit) {
+        // Recharger la liste et naviguer vers la maquette importée
+        await fetchCockpits();
+        navigate(`/studio/${importedCockpit.id}`);
+      }
+    } catch (error) {
+      console.error('Erreur import:', error);
+    } finally {
+      // Réinitialiser l'input pour permettre de réimporter le même fichier
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
   
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -220,13 +250,30 @@ export default function HomePage() {
             </p>
           </div>
           
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25"
-          >
-            <MuiIcon name="Plus" size={20} />
-            Nouvelle maquette
-          </button>
+          <div className="flex items-center gap-3">
+            <input
+              type="file"
+              accept=".json"
+              ref={importFileInputRef}
+              onChange={handleImport}
+              className="hidden"
+              id="import-cockpit-input"
+            />
+            <label
+              htmlFor="import-cockpit-input"
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-green-500/25 cursor-pointer"
+            >
+              <MuiIcon name="Upload" size={20} />
+              Importer
+            </label>
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25"
+            >
+              <MuiIcon name="Plus" size={20} />
+              Nouvelle maquette
+            </button>
+          </div>
         </div>
         
         {/* Loading State */}
@@ -343,6 +390,13 @@ export default function HomePage() {
                     title="Dupliquer"
                   >
                     <MuiIcon name="CopyIcon" size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleExport(cockpit.id)}
+                    className="p-2 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+                    title="Exporter"
+                  >
+                    <MuiIcon name="Download" size={16} />
                   </button>
                   <button
                     onClick={() => setShowDeleteModal(cockpit.id)}
