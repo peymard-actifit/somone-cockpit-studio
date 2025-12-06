@@ -562,16 +562,23 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   
   const mapImageUrl = domain.backgroundImage;
   
-  // Diagnostic en mode read-only
+  // Diagnostic en mode read-only - Vérifications approfondies
   useEffect(() => {
     if (_readOnly) {
+      console.log(`[MapView READ-ONLY] Domain "${domain.name}" (templateType: ${domain.templateType})`);
+      console.log(`[MapView READ-ONLY] Domain object keys:`, Object.keys(domain));
+      console.log(`[MapView READ-ONLY] backgroundImage type:`, typeof domain.backgroundImage);
+      console.log(`[MapView READ-ONLY] backgroundImage value:`, domain.backgroundImage ? `${domain.backgroundImage.substring(0, 50)}...` : 'null/undefined');
+      
       if (!mapImageUrl) {
-        console.warn(`[MapView] Domain "${domain.name}": backgroundImage est ${mapImageUrl}`);
+        console.error(`[MapView READ-ONLY] ❌ Domain "${domain.name}": backgroundImage est ${mapImageUrl}`);
+        console.error(`[MapView READ-ONLY] Domain object:`, JSON.stringify(domain, null, 2).substring(0, 500));
       } else {
-        console.log(`[MapView] Domain "${domain.name}": backgroundImage présente (${mapImageUrl.length} caractères)`);
+        console.log(`[MapView READ-ONLY] ✅ Domain "${domain.name}": backgroundImage présente (${mapImageUrl.length} caractères)`);
+        console.log(`[MapView READ-ONLY] backgroundImage starts with:`, mapImageUrl.substring(0, 30));
       }
     }
-  }, [domain.name, mapImageUrl, _readOnly]);
+  }, [domain, mapImageUrl, _readOnly]);
   const hasMapBounds = domain.mapBounds?.topLeft && domain.mapBounds?.bottomRight;
   
   // État local pour le toggle (réactif) - avec localStorage en mode readOnly

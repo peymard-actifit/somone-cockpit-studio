@@ -654,16 +654,23 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     }
   };
   
-  // Diagnostic en mode read-only
+  // Diagnostic en mode read-only - Vérifications approfondies
   useEffect(() => {
     if (_readOnly) {
+      console.log(`[BackgroundView READ-ONLY] Domain "${domain.name}" (templateType: ${domain.templateType})`);
+      console.log(`[BackgroundView READ-ONLY] Domain object keys:`, Object.keys(domain));
+      console.log(`[BackgroundView READ-ONLY] backgroundImage type:`, typeof domain.backgroundImage);
+      console.log(`[BackgroundView READ-ONLY] backgroundImage value:`, domain.backgroundImage ? `${domain.backgroundImage.substring(0, 50)}...` : 'null/undefined');
+      
       if (!domain.backgroundImage) {
-        console.warn(`[BackgroundView] Domain "${domain.name}": backgroundImage est ${domain.backgroundImage}`);
+        console.error(`[BackgroundView READ-ONLY] ❌ Domain "${domain.name}": backgroundImage est ${domain.backgroundImage}`);
+        console.error(`[BackgroundView READ-ONLY] Domain object:`, JSON.stringify(domain, null, 2).substring(0, 500));
       } else {
-        console.log(`[BackgroundView] Domain "${domain.name}": backgroundImage présente (${domain.backgroundImage.length} caractères)`);
+        console.log(`[BackgroundView READ-ONLY] ✅ Domain "${domain.name}": backgroundImage présente (${domain.backgroundImage.length} caractères)`);
+        console.log(`[BackgroundView READ-ONLY] backgroundImage starts with:`, domain.backgroundImage.substring(0, 30));
       }
     }
-  }, [domain.name, domain.backgroundImage, _readOnly]);
+  }, [domain, _readOnly]);
   
   return (
     <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">

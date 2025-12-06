@@ -303,9 +303,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       domains.forEach((domain: any) => {
         if (domain.backgroundImage) {
           console.log(`[Public API] Domain "${domain.name}" (${domain.templateType}): backgroundImage présente (${domain.backgroundImage.length} caractères)`);
+          console.log(`[Public API] backgroundImage type: ${typeof domain.backgroundImage}`);
+          console.log(`[Public API] backgroundImage preview: ${domain.backgroundImage.substring(0, 50)}...`);
         } else {
           console.warn(`[Public API] Domain "${domain.name}" (${domain.templateType}): PAS d'image de fond`);
+          console.warn(`[Public API] Domain keys:`, Object.keys(domain));
         }
+      });
+      
+      // Vérifier que les domaines ont bien leurs propriétés
+      const domainsWithImages = domains.map((domain: any) => {
+        // S'assurer que backgroundImage est bien présent même si c'est undefined
+        return {
+          ...domain,
+          backgroundImage: domain.backgroundImage || null, // Explicitement mettre null si absent
+        };
       });
       
       const response = {
@@ -316,11 +328,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         publicId: data.publicId,
         isPublished: data.isPublished,
         publishedAt: data.publishedAt,
-        domains: domains,
+        domains: domainsWithImages,
         zones: data.zones || [],
         logo: data.logo,
         scrollingBanner: data.scrollingBanner,
       };
+      
+      // Log final pour vérification
+      console.log(`[Public API] Response domains count: ${response.domains.length}`);
+      response.domains.forEach((d: any) => {
+        console.log(`[Public API] Final domain "${d.name}": backgroundImage ${d.backgroundImage ? `présente (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+      });
       
       return res.json(response);
     }
