@@ -327,6 +327,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // DEBUG ROUTE (temporary)
     // =====================
     
+    // Route pour réinitialiser le mot de passe d'un utilisateur (temporaire pour debug)
+    if (path === '/debug/reset-password' && method === 'POST') {
+      const { username, newPassword } = req.body;
+      if (!username || !newPassword) {
+        return res.status(400).json({ error: 'username et newPassword requis' });
+      }
+      
+      const db = await getDb();
+      const user = db.users.find(u => u.username === username);
+      if (!user) {
+        return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+      
+      console.log(`[DEBUG] Réinitialisation mot de passe pour: ${username}`);
+      const oldHash = user.password;
+      user.password = hashPassword(newPassword);
+      await saveDb(db);
+      
+      return res.json({ 
+        success: true, 
+        message: `Mot de passe réinitialisé pour ${username}`,
+        oldHash: oldHash.substring(0, 20) + '...',
+        newHash: user.password.substring(0, 20) + '...'
+      });
+    }
+    
     if (path === '/debug' && method === 'GET') {
       let redisError = null;
       let testWrite = false;
