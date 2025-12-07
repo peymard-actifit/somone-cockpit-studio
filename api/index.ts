@@ -2572,6 +2572,10 @@ ANALYSE D'IMAGES ET OCR:
             messages,
             temperature: 0.7,
             max_tokens: 4000, // Plus de tokens pour les analyses d'images et OCR
+            // Optimiser pour les images : réduire la qualité si nécessaire
+            ...(hasImage && imageBase64 && {
+              // Option pour réduire le temps de traitement si nécessaire
+            }),
           }),
         });
         
