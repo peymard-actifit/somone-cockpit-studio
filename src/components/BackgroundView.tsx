@@ -3,6 +3,7 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS, STATUS_PRIORITY_MAP, getEffectiveColors, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 // Ordre de priorité des statuts (du plus critique au moins critique)
 const STATUS_PRIORITY: Record<TileStatus, number> = STATUS_PRIORITY_MAP;
@@ -98,6 +99,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Tooltip au survol
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; elementId: string } | null>(null);
   
   // Limites de zoom
   const MIN_ZOOM = 0.5;
@@ -1106,8 +1108,20 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   minWidth: '8px',
                   minHeight: '8px',
                 }}
-                onMouseEnter={() => setHoveredElement(element.id)}
-                onMouseLeave={() => setHoveredElement(null)}
+                onMouseEnter={(e) => {
+                  setHoveredElement(element.id);
+                  // Calculer la position du tooltip par rapport à l'écran
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltipPosition({
+                    x: rect.left + rect.width / 2,
+                    y: rect.top - 8, // Au-dessus de l'élément
+                    elementId: element.id
+                  });
+                }}
+                onMouseLeave={() => {
+                  setHoveredElement(null);
+                  setTooltipPosition(null);
+                }}
                 onMouseDown={(e) => {
                   if (!_readOnly && e.button === 0) {
                     // Ignorer si on clique sur un bouton d'action
@@ -1189,15 +1203,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   </div>
                 )}
                 
-                {/* Tooltip au survol */}
-                {hoveredElement === element.id && (
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-[9999] pointer-events-none" style={{ transform: 'translateX(-50%) scale(0.7)' }}>
-                    <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-2 py-1 whitespace-nowrap">
-                      <p className="font-medium text-xs">{element.name}</p>
-                    </div>
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-t-[#1E3A5F]" style={{ transform: 'translateX(-50%) scale(0.7)' }} />
-                  </div>
-                )}
+                {/* Tooltip rendu via Portal pour être toujours au premier plan */}
               </div>
             );
           })}
@@ -1545,6 +1551,29 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       )}
       
       {/* Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel */}
+      
+      {/* Tooltip au survol - rendu via Portal pour être toujours au premier plan */}
+      {tooltipPosition && createPortal(
+        <div 
+          className="fixed pointer-events-none z-[99999]"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translateX(-50%) translateY(-100%) scale(0.7)',
+            transformOrigin: 'bottom center'
+          }}
+        >
+          <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-2 py-1 whitespace-nowrap">
+            <p className="font-medium text-xs">
+              {positionedElements.find(e => e.id === tooltipPosition.elementId)?.name || 
+               allElements.find(e => e.id === tooltipPosition.elementId)?.name || 
+               'Élément'}
+            </p>
+          </div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-t-[#1E3A5F]" style={{ transform: 'translateX(-50%) scale(0.7)' }} />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
