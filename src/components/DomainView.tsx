@@ -455,19 +455,27 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               
               {/* Helper pour vérifier si une image existe */}
               {(() => {
-                const hasImage = (bgImageUrl && bgImageUrl.trim() !== '') || (domain.backgroundImage && domain.backgroundImage.trim() !== '');
+                // Vérifier explicitement si une image existe
+                const hasBgImageUrl = bgImageUrl && typeof bgImageUrl === 'string' && bgImageUrl.trim() !== '';
+                const hasDomainImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim() !== '';
+                const hasImage = hasBgImageUrl || hasDomainImage;
+                
                 console.log('[DomainView] Modal slider debug:', {
-                  bgImageUrlExists: !!(bgImageUrl && bgImageUrl.trim() !== ''),
-                  domainImageExists: !!(domain.backgroundImage && domain.backgroundImage.trim() !== ''),
+                  bgImageUrl: bgImageUrl ? `${bgImageUrl.substring(0, 30)}...` : 'vide/null',
+                  domainImage: domain.backgroundImage ? `${domain.backgroundImage.substring(0, 30)}...` : 'vide/null',
+                  hasBgImageUrl,
+                  hasDomainImage,
                   hasImage,
                   bgMode,
                   bgDarkness
                 });
+                
                 if (!hasImage) {
-                  console.log('[DomainView] Slider caché: aucune image');
+                  console.log('[DomainView] Slider caché: aucune image trouvée');
                   return null;
                 }
-                console.log('[DomainView] Slider visible');
+                
+                console.log('[DomainView] Slider visible - affichage...');
                 
                 const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
                 
