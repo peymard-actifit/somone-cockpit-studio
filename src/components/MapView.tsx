@@ -809,6 +809,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             transition: isDragging || draggingPointId ? 'none' : 'transform 0.1s ease-out',
             minWidth: '100%',
             minHeight: '100%',
+            height: _readOnly ? '100%' : undefined,
+            width: _readOnly ? '100%' : undefined,
           }}
         >
           {/* Image de fond */}
@@ -820,14 +822,17 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               alt="Carte"
               className="absolute inset-0 w-full h-full object-contain"
               style={{ 
-                minWidth: '1px', 
-                minHeight: '1px',
-                width: '100%',
-                height: '100%',
+                minWidth: '100%', 
+                minHeight: '100%',
+                width: 'auto',
+                height: 'auto',
+                maxWidth: '100%',
+                maxHeight: '100%',
                 zIndex: 0,
                 opacity: 1,
                 display: 'block',
                 visibility: 'visible',
+                objectFit: 'contain',
                 pointerEvents: 'none' // Permettre les clics à travers l'image
               }}
               crossOrigin="anonymous"

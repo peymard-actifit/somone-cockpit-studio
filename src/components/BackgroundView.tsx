@@ -783,6 +783,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center',
             transition: isDragging || isDrawing || draggingElementId ? 'none' : 'transform 0.1s ease-out',
+            minHeight: _readOnly ? '100%' : undefined,
+            minWidth: _readOnly ? '100%' : undefined,
           }}
         >
           {/* Image de fond */}
@@ -796,11 +798,16 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               draggable={false}
               style={{ 
-                minWidth: '1px', 
-                minHeight: '1px',
+                minWidth: '100%', 
+                minHeight: '100%',
+                width: 'auto',
+                height: 'auto',
+                maxWidth: '100%',
+                maxHeight: '100%',
                 zIndex: 0,
                 opacity: 1,
-                display: 'block'
+                display: 'block',
+                objectFit: 'contain'
               }}
               crossOrigin="anonymous"
               onLoad={(e) => {
