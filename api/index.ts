@@ -2014,6 +2014,48 @@ INSTRUCTIONS:
       }
     }
     
+    // Sauvegarder explicitement les originaux (figer la version actuelle)
+    if (path.match(/^\/cockpits\/([^/]+)\/save-originals$/) && method === 'POST') {
+      const match = path.match(/^\/cockpits\/([^/]+)\/save-originals$/);
+      if (!match) {
+        return res.status(400).json({ error: 'ID manquant' });
+      }
+      const id = match[1];
+      
+      // Vérifier l'authentification
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+      
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.id === id);
+      
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+      
+      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+        return res.status(403).json({ error: 'Accès non autorisé' });
+      }
+      
+      // Sauvegarder les données actuelles comme originaux
+      const currentData = cockpit.data || { domains: [], zones: [] };
+      const originalsToSave = JSON.parse(JSON.stringify(currentData));
+      
+      // S'assurer que le champ 'originals' n'est pas inclus dans les originaux eux-mêmes
+      if (originalsToSave.originals) {
+        delete originalsToSave.originals;
+      }
+      
+      cockpit.data.originals = originalsToSave;
+      cockpit.updatedAt = new Date().toISOString();
+      await saveDb(db);
+      
+      console.log(`[Translation] ✅ Version actuelle figée comme originaux (${JSON.stringify(originalsToSave).length} caractères)`);
+      
+      return res.json({ success: true, message: 'Version actuelle sauvegardée comme originaux' });
+    }
+    
     // Restaurer les textes originaux
     if (path.match(/^\/cockpits\/([^/]+)\/restore-originals$/) && method === 'POST') {
       const match = path.match(/^\/cockpits\/([^/]+)\/restore-originals$/);
