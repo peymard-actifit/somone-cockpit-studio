@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCockpitStore } from '../store/cockpitStore';
+import { useAuthStore } from '../store/authStore';
 import { MuiIcon } from './IconPicker';
 // Composant Modal simple pour la traduction
 const Modal = ({ title, children, onClose, onConfirm, confirmText, isLoading }: {
@@ -52,6 +53,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
   const [selectedLang, setSelectedLang] = useState<string>('FR');
   const [isTranslating, setIsTranslating] = useState(false);
   const { currentCockpit, fetchCockpit, updateCockpit } = useCockpitStore();
+  const { token, user } = useAuthStore();
   
   useEffect(() => {
     // Charger les langues disponibles avec fallback
@@ -109,7 +111,9 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       // Restaurer les originaux
       try {
         setIsTranslating(true);
-        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Vous devez être connecté pour restaurer les textes originaux');
+        }
         const response = await fetch(`/api/cockpits/${cockpitId}/restore-originals`, {
           method: 'POST',
           headers: {
@@ -133,7 +137,9 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       // Traduire vers la langue sélectionnée
       try {
         setIsTranslating(true);
-        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Vous devez être connecté pour traduire le cockpit');
+        }
         const response = await fetch(`/api/cockpits/${cockpitId}/translate`, {
           method: 'POST',
           headers: {
@@ -195,9 +201,20 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           isLoading={isTranslating}
         >
           <div className="space-y-4">
-            <p className="text-slate-300 text-sm">
-              Sélectionnez la langue vers laquelle traduire le cockpit. Les textes originaux seront sauvegardés automatiquement.
-            </p>
+            {!user || !token ? (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                <div className="flex items-start gap-2">
+                  <MuiIcon name="AlertTriangle" size={16} className="text-red-400 mt-0.5" />
+                  <p className="text-xs text-red-300">
+                    Vous devez être connecté pour utiliser la traduction. Veuillez vous connecter ou rafraîchir la page.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-300 text-sm">
+                Sélectionnez la langue vers laquelle traduire le cockpit. Les textes originaux seront sauvegardés automatiquement.
+              </p>
+            )}
             
             <div>
               <label className="block text-sm font-medium text-slate-400 mb-2">
