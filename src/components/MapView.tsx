@@ -757,7 +757,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       </div>
       
       {/* Toggle regroupement - Visible dans le studio et les cockpits publiés */}
-      <div className="absolute top-20 right-4 z-30 bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
+      <div className="absolute top-40 right-4 z-30 bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
         <div className="flex items-center gap-1.5">
           <MuiIcon name="Layers" size={12} className="text-[#1E3A5F]" />
           <button
