@@ -894,10 +894,11 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         await fetchCockpit(cockpitId);
       }
 
-      // Ne pas mettre à jour hasOriginals ici - on garde l'état actuel
       // Fermer seulement le modal d'aperçu, pas le modal principal
       setShowPreviewModal(false);
-      // Ne pas fermer le modal principal, juste fermer l'aperçu
+      
+      // Rouvrir le modal principal pour permettre de continuer à travailler
+      setShowModal(true);
     } catch (error: any) {
       console.error('Erreur application traduction:', error);
       alert(`Erreur : ${error.message || 'Erreur inconnue'}`);
