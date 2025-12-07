@@ -276,7 +276,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
     loadLanguages();
   }, []);
   
-  // Vérifier si des originaux sont sauvegardés
+  // Vérifier si des originaux sont sauvegardés - au chargement et à chaque ouverture du modal
   useEffect(() => {
     const checkOriginals = async () => {
       if (!cockpitId || !token) return;
@@ -289,6 +289,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         if (response.ok) {
           const cockpit = await response.json();
           const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
+          console.log('[Translation] Vérification originaux:', hasOriginalsValue, '(modal ouvert:', showModal, ')');
           setHasOriginals(hasOriginalsValue);
         }
       } catch (err) {
@@ -296,8 +297,10 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       }
     };
     
+    // Vérifier au chargement initial
     checkOriginals();
-    // Re-vérifier quand le modal s'ouvre
+    
+    // Re-vérifier à chaque fois que le modal s'ouvre
     if (showModal) {
       checkOriginals();
     }
