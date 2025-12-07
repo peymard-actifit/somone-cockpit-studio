@@ -1963,6 +1963,7 @@ INSTRUCTIONS:
     
     // Obtenir les langues disponibles DeepL
     if (path === '/translation/languages' && method === 'GET') {
+      // Ne nécessite pas d'authentification - liste publique des langues
       return res.json({
         languages: [
           { code: 'FR', name: 'Français (Originale)' },
