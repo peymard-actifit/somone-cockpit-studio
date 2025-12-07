@@ -1091,7 +1091,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             let width = (element.width || 0) * imageBounds.width / 100;
             let height = (element.height || 0) * imageBounds.height / 100;
             
-            // Augmenter de 15% si le statut est mineur, critique ou fatal
+            // Augmenter de 15% si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
             const effectiveStatus = getEffectiveStatus(element);
             const sizeMultiplier = (effectiveStatus === 'mineur' || effectiveStatus === 'critique' || effectiveStatus === 'fatal') ? 1.15 : 1.0;
             width = width * sizeMultiplier;
