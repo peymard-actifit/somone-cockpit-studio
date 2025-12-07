@@ -1505,40 +1505,6 @@ INSTRUCTIONS:
       },
     };
     
-    // Traduire les en-têtes Excel
-    const translateHeaders = async (headers: Record<string, any>, targetLang: string): Promise<Record<string, any>> => {
-      if (targetLang === 'FR') {
-        return headers; // Pas de traduction nécessaire
-      }
-      
-      const translatedHeaders: Record<string, any> = {};
-      
-      // Si on a un mapping direct, l'utiliser
-      if (excelHeaders[targetLang]) {
-        for (const [key, value] of Object.entries(headers)) {
-          const translatedKey = excelHeaders[targetLang][key] || excelHeaders['EN'][key] || key;
-          translatedHeaders[translatedKey] = value;
-        }
-        return translatedHeaders;
-      }
-      
-      // Sinon, traduire avec DeepL
-      if (DEEPL_API_KEY) {
-        for (const [key, value] of Object.entries(headers)) {
-          const translatedKey = await translateWithDeepL(key, targetLang);
-          translatedHeaders[translatedKey] = value;
-        }
-        return translatedHeaders;
-      }
-      
-      // Fallback : utiliser les en-têtes anglais
-      for (const [key, value] of Object.entries(headers)) {
-        const translatedKey = excelHeaders['EN'][key] || key;
-        translatedHeaders[translatedKey] = value;
-      }
-      return translatedHeaders;
-    };
-    
     // Traduire le nom d'un onglet Excel
     const translateSheetName = async (sheetName: string, targetLang: string): Promise<string> => {
       if (targetLang === 'FR') return sheetName;
@@ -1573,23 +1539,6 @@ INSTRUCTIONS:
       }
       
       return sheetNames['EN'][sheetName] || sheetName;
-    };
-    
-    // Obtenir les en-têtes traduits (synchrone pour performance)
-    const getTranslatedHeaderSync = (headerFr: string, targetLang: string): string => {
-      if (targetLang === 'FR') return headerFr;
-      
-      // Utiliser le mapping direct si disponible
-      if (excelHeaders[targetLang] && excelHeaders[targetLang][headerFr]) {
-        return excelHeaders[targetLang][headerFr];
-      }
-      
-      // Sinon utiliser la version anglaise comme fallback
-      if (excelHeaders['EN'][headerFr]) {
-        return excelHeaders['EN'][headerFr];
-      }
-      
-      return headerFr; // Fallback : garder l'original
     };
     
     // Obtenir les en-têtes traduits (async pour DeepL si nécessaire)
