@@ -76,3 +76,5 @@ Si les dimensions sont toujours proches de 0 ou 1px, cela indiquera un problème
 3. Tester la page publique
 4. Partager les nouveaux logs si le problème persiste
 
+
+

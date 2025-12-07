@@ -104,3 +104,5 @@
 5. Vérifier que les en-têtes et noms d'onglets sont bien traduits
 6. Vérifier que le nom du fichier inclut le bon suffixe
 
+
+

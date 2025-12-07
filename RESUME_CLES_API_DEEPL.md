@@ -62,3 +62,5 @@ Après avoir configuré la clé dans Vercel et redéployé :
 
 Une fois la configuration Vercel terminée, tout fonctionnera ! 🚀
 
+
+

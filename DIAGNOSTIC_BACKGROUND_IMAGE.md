@@ -107,3 +107,5 @@ Pour vérifier si le problème persiste, consulter les logs suivants :
 4. Tester avec une petite image (< 100 KB) pour éliminer les problèmes de taille
 
 
+
+

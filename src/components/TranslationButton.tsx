@@ -88,15 +88,19 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       const data = await response.json();
       
       const frenchLanguage: Language = { code: 'FR', name: 'Français' };
-      const restoreOption: Language | null = hasOriginalsValue ? { code: 'Restauration', name: '🔙 Restauration' } : null;
+      const restoreOption: Language | null = hasOriginalsValue ? { code: 'Restauration', name: '🔙 Restaurer la version sauvegardée' } : null;
       
       if (data.languages && data.languages.length > 0) {
         const languagesWithFrench = data.languages.filter((l: Language) => l.code !== 'FR');
-        languagesWithFrench.unshift(frenchLanguage);
+        // TOUJOURS mettre Français en premier si pas de restauration
+        // Si restauration existe, la mettre en PREMIER, puis Français
+        const languagesList: Language[] = [];
         if (restoreOption) {
-          languagesWithFrench.unshift(restoreOption);
+          languagesList.push(restoreOption); // Restauration EN PREMIER
         }
-        setLanguages(languagesWithFrench);
+        languagesList.push(frenchLanguage); // Puis Français
+        languagesList.push(...languagesWithFrench); // Puis les autres langues
+        setLanguages(languagesList);
       } else {
         const defaultLanguages: Language[] = [
           { code: 'FR', name: 'Français' },
@@ -112,10 +116,13 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           { code: 'PL', name: 'Polski' },
           { code: 'AR', name: 'العربية' },
         ];
+        // Construire la liste avec Restauration en premier si elle existe
+        const languagesList: Language[] = [];
         if (restoreOption) {
-          defaultLanguages.unshift(restoreOption);
+          languagesList.push(restoreOption); // Restauration EN PREMIER
         }
-        setLanguages(defaultLanguages);
+        languagesList.push(...defaultLanguages); // Puis toutes les autres langues
+        setLanguages(languagesList);
       }
     } catch (err) {
       console.error('Erreur chargement langues:', err);
@@ -134,10 +141,13 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         { code: 'PL', name: 'Polski' },
         { code: 'AR', name: 'العربية' },
       ];
+      // Construire la liste avec Restauration en premier si elle existe
+      const languagesList: Language[] = [];
       if (hasOriginalsValue) {
-        defaultLanguages.unshift({ code: 'Restauration', name: '🔙 Restauration' });
+        languagesList.push({ code: 'Restauration', name: '🔙 Restaurer la version sauvegardée' }); // Restauration EN PREMIER
       }
-      setLanguages(defaultLanguages);
+      languagesList.push(...defaultLanguages); // Puis toutes les autres langues
+      setLanguages(languagesList);
     }
   };
   
@@ -160,6 +170,8 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           const cockpit = await response.json();
           const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
           setHasOriginals(hasOriginalsValue);
+          // Recharger les langues immédiatement après la vérification pour mettre à jour la liste
+          await loadLanguagesWithRestore(hasOriginalsValue);
         }
       } catch (err) {
         console.error('Erreur vérification originaux:', err);
@@ -208,8 +220,8 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         await fetchCockpit(cockpitId);
       }
       
-      // Recharger les langues pour ajouter l'option "Restaurer" sans recharger la page
-      // Le useEffect avec showModal va se déclencher automatiquement
+      // Recharger immédiatement les langues pour ajouter l'option "Restaurer" en haut
+      await loadLanguagesWithRestore(true);
     } catch (error: any) {
       console.error('Erreur sauvegarde originaux:', error);
       alert(`Erreur lors de la sauvegarde : ${error.message || 'Erreur inconnue'}`);
@@ -378,6 +390,17 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
                       <MuiIcon name="AlertTriangle" size={16} className="text-amber-400 mt-0.5" />
                       <p className="text-xs text-amber-300">
                         ⚠️ Aucune version n'est sauvegardée pour restauration. Si vous traduisez maintenant, la version actuelle sera automatiquement sauvegardée. Vous pouvez aussi cliquer sur "Figer la version actuelle" pour sauvegarder explicitement.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {hasOriginals && (
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                    <div className="flex items-start gap-2">
+                      <MuiIcon name="Info" size={16} className="text-blue-400 mt-0.5" />
+                      <p className="text-xs text-blue-300">
+                        💾 Une version est déjà sauvegardée. Vous pouvez cliquer sur "Figer la version actuelle" pour remplacer la version sauvegardée par la version actuelle.
                       </p>
                     </div>
                   </div>

@@ -40,3 +40,5 @@ Une fois configuré, essayez de traduire un cockpit. Ça devrait fonctionner !
 
 Consultez `GUIDE_CONFIGURATION_DEEPL.md` pour plus de détails.
 
+
+

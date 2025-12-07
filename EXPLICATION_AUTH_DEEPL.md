@@ -57,3 +57,5 @@ Si vous voyez ce message, cela signifie que :
 
 **Solution** : S'assurer que l'utilisateur est bien connecté avant d'utiliser la fonctionnalité de traduction.
 
+
+

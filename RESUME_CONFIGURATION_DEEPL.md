@@ -47,3 +47,5 @@ Voir `CONFIGURATION_DEEPL_VERCEL.md` pour les instructions détaillées.
 
 Une fois configuré dans Vercel et redéployé, la traduction DeepL fonctionnera ! 🎉
 
+
+

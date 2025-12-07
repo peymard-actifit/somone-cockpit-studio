@@ -66,3 +66,5 @@ Si la traduction ne fonctionne toujours pas après configuration :
 3. Consultez les logs Vercel pour voir les erreurs
 4. Vérifiez que la clé API est valide sur le site DeepL
 
+
+

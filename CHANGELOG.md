@@ -42,3 +42,5 @@ Cette version corrige un problème critique qui empêchait l'affichage des image
 
 Version initiale du projet SOMONE Cockpit Studio.
 
+
+

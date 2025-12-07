@@ -48,3 +48,5 @@ Le code a été mis à jour pour détecter automatiquement ce format et utiliser
 
 Une fois configuré dans Vercel et redéployé, la traduction devrait fonctionner ! 🎉
 
+
+

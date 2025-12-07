@@ -60,3 +60,5 @@ Si `authData.state?.user` et `authData.state?.token` existent, vous êtes connec
 
 Voir `GUIDE_VERIFICATION_TOKEN.md` pour plus de détails sur la vérification.
 
+
+

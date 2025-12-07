@@ -73,3 +73,5 @@ D'après la fonction `translateDataRecursively` dans `api/index.ts` :
 
 La traduction couvre actuellement tous les champs texte identifiés dans la structure TypeScript. Il faut vérifier s'il n'y a pas de champs supplémentaires qui ne sont pas dans les types mais qui sont utilisés dans le code.
 
+
+

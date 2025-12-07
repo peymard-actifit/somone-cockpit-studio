@@ -74,3 +74,5 @@ Chaque onglet affiche maintenant un point de couleur indiquant le statut le plus
 - **Organisation flexible** : Réorganiser les domaines selon vos priorités
 - **Intuitif** : Interface de drag and drop standard et familière
 
+
+

@@ -75,3 +75,5 @@ cockpit.data = { ...originalsCopy, originals: cockpit.data.originals };
 - Les originaux sont **jamais supprimés**, permettant plusieurs restaurations
 - Si les originaux n'existent pas lors de la restauration, les données actuelles sont sauvegardées comme originaux
 
+
+

@@ -60,3 +60,5 @@
 - **Sécurité** : Sauvegarde automatique si l'utilisateur traduit sans avoir sauvegardé
 - **Clarté** : Le français est toujours disponible et clairement identifié comme version sauvegardée
 
+
+

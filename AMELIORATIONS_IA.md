@@ -168,3 +168,5 @@ npm install mammoth@^1.7.3
 
 Les autres bibliothèques (pdfjs-dist, xlsx) étaient déjà installées.
 
+
+

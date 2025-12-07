@@ -67,3 +67,5 @@ La traduction couvre maintenant **TOUS** les champs texte identifiés dans la st
 
 Si vous avez des "commentaires" qui ne sont pas traduits, merci de m'indiquer où ils se trouvent dans l'interface pour que je puisse les ajouter.
 
+
+

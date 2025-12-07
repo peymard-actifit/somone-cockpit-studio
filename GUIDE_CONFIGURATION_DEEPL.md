@@ -86,3 +86,5 @@ Remplacez `VOTRE_CLE_API` par votre vraie clé API.
 ### "Non authentifié"
 → Ce n'est pas un problème avec DeepL, mais avec l'authentification utilisateur JWT. Assurez-vous d'être connecté au studio.
 
+
+

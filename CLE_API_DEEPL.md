@@ -34,3 +34,5 @@ Cette clé a le format d'un UUID, ce qui suggère qu'il s'agit probablement de l
 
 Le code détectera automatiquement si c'est l'API gratuite ou payante basé sur le format de la clé.
 
+
+

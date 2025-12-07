@@ -72,3 +72,5 @@ Si la restauration échoue encore, vérifier dans la console du navigateur (F12)
 - Si vous n'avez jamais traduit un cockpit, il n'y aura pas d'originaux à restaurer
 - Dans ce cas, la restauration retournera simplement les données actuelles (qui sont déjà en français)
 
+
+

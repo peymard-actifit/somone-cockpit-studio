@@ -48,3 +48,5 @@ Voir `CONFIGURATION_DEEPL_VERCEL.md` pour les instructions détaillées.
 
 Si vous avez besoin d'aide pour configurer dans Vercel, je peux vous guider étape par étape.
 
+
+

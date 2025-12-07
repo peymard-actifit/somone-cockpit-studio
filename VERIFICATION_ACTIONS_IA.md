@@ -74,3 +74,5 @@
 8. ❌ `duplicateCockpit` - Dupliquer un cockpit (peut être fait manuellement)
 9. ❌ `deleteCockpit` - Supprimer un cockpit (peut être fait manuellement)
 
+
+
