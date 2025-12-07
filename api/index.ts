@@ -1190,6 +1190,8 @@ INSTRUCTIONS:
         publicId: cockpit.data.publicId,
         isPublished: cockpit.data.isPublished,
         publishedAt: cockpit.data.publishedAt,
+        // IMPORTANT: Toujours préserver les originaux sauvegardés
+        originals: cockpit.data.originals,
       };
       cockpit.updatedAt = now;
 

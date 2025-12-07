@@ -940,6 +940,25 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       if (fetchCockpit) {
         await fetchCockpit(cockpitId);
       }
+      
+      // IMPORTANT: Vérifier que les originaux sont toujours présents après la traduction
+      // Les originaux doivent être préservés dans la base de données même après traduction
+      try {
+        const checkResponse = await fetch(`/api/cockpits/${cockpitId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (checkResponse.ok) {
+          const cockpit = await checkResponse.json();
+          const hasOriginalsValue = !!(cockpit.originals);
+          console.log('[Translation] Vérification originaux après traduction:', hasOriginalsValue);
+          if (hasOriginalsValue !== hasOriginals) {
+            setHasOriginals(hasOriginalsValue);
+            console.log('[Translation] hasOriginals mis à jour après traduction:', hasOriginalsValue);
+          }
+        }
+      } catch (err) {
+        console.error('[Translation] Erreur vérification originaux après traduction:', err);
+      }
 
       // Fermer seulement le modal d'aperçu, pas le modal principal
       setShowPreviewModal(false);
