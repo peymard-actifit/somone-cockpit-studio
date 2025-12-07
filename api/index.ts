@@ -2489,6 +2489,11 @@ ANALYSE D'IMAGES ET OCR:
 - Tu peux créer des domaines, catégories, éléments basés sur le contenu de l'image`;
 
       // Construire les messages avec support multi-modal pour les images
+      // Le prompt système contient le prompt personnalisé EN PREMIER, suivi des instructions techniques
+      console.log('[AI] ✅ Prompt personnalisé récupéré depuis la base de données');
+      console.log('[AI] Longueur du prompt système complet:', systemPrompt.length);
+      console.log('[AI] Prompt personnalisé (premiers 300 caractères):', customSystemPrompt.substring(0, 300));
+      
       const messages: any[] = [
         { role: 'system', content: systemPrompt },
         ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
