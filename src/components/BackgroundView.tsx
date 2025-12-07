@@ -40,11 +40,33 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   // État pour stocker la position et taille réelle de l'image dans le conteneur
   const [imageBounds, setImageBounds] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   
-  // État du zoom et position (comme MapView)
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  // Fonction pour charger l'état sauvegardé depuis localStorage
+  const loadSavedViewState = (domainId: string) => {
+    const viewStateKey = `backgroundView-${domainId}`;
+    const savedState = localStorage.getItem(viewStateKey);
+    if (savedState) {
+      try {
+        const { scale: savedScale, position: savedPosition } = JSON.parse(savedState);
+        if (typeof savedScale === 'number' && savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number') {
+          return { scale: savedScale, position: savedPosition };
+        }
+      } catch (e) {
+        console.warn('[BackgroundView] Erreur lors de la restauration du zoom/position:', e);
+      }
+    }
+    return { scale: 1, position: { x: 0, y: 0 } };
+  };
+
+  // État du zoom et position (comme MapView) - initialisé depuis localStorage
+  const initialViewState = loadSavedViewState(domain.id);
+  const [scale, setScale] = useState(initialViewState.scale);
+  const [position, setPosition] = useState(initialViewState.position);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  // Ref pour suivre si on doit restaurer l'état sauvegardé quand le domaine change
+  const lastDomainIdRef = useRef<string>(domain.id);
+  const lastBackgroundImageRef = useRef<string | undefined>(domain.backgroundImage);
   
   // État pour le drag d'un élément
   const [draggingElementId, setDraggingElementId] = useState<string | null>(null);
@@ -89,49 +111,28 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     e.width !== undefined && e.height !== undefined
   );
   
-  // Sauvegarder le zoom et la position dans localStorage
+  // Restaurer l'état sauvegardé quand on change de domaine
   useEffect(() => {
-    const viewStateKey = `backgroundView-${domain.id}`;
-    const savedState = localStorage.getItem(viewStateKey);
-    if (savedState) {
-      try {
-        const { scale: savedScale, position: savedPosition } = JSON.parse(savedState);
-        if (typeof savedScale === 'number' && savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number') {
-          setScale(savedScale);
-          setPosition(savedPosition);
-        }
-      } catch (e) {
-        console.warn('[BackgroundView] Erreur lors de la restauration du zoom/position:', e);
-      }
+    if (lastDomainIdRef.current !== domain.id) {
+      // Nouveau domaine : charger l'état sauvegardé
+      const savedState = loadSavedViewState(domain.id);
+      setScale(savedState.scale);
+      setPosition(savedState.position);
+      lastDomainIdRef.current = domain.id;
+      lastBackgroundImageRef.current = domain.backgroundImage;
+    } else if (lastBackgroundImageRef.current !== domain.backgroundImage) {
+      // L'image a changé : réinitialiser seulement si c'est vraiment un nouveau changement d'image
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      lastBackgroundImageRef.current = domain.backgroundImage;
     }
-  }, [domain.id]);
+  }, [domain.id, domain.backgroundImage]);
 
   // Sauvegarder le zoom et la position quand ils changent
   useEffect(() => {
     const viewStateKey = `backgroundView-${domain.id}`;
     localStorage.setItem(viewStateKey, JSON.stringify({ scale, position }));
   }, [scale, position, domain.id]);
-
-  // Reset zoom et position quand l'image change (mais restaurer depuis localStorage si disponible)
-  useEffect(() => {
-    const viewStateKey = `backgroundView-${domain.id}`;
-    const savedState = localStorage.getItem(viewStateKey);
-    if (savedState) {
-      try {
-        const { scale: savedScale, position: savedPosition } = JSON.parse(savedState);
-        if (typeof savedScale === 'number' && savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number') {
-          setScale(savedScale);
-          setPosition(savedPosition);
-          return; // Ne pas réinitialiser si on a une sauvegarde
-        }
-      } catch (e) {
-        // En cas d'erreur, réinitialiser normalement
-      }
-    }
-    // Réinitialiser seulement si pas de sauvegarde
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
-  }, [domain.backgroundImage, domain.id]);
   
   // Fonction de validation d'image base64
   const isValidBase64Image = (str: string | undefined | null): boolean => {
