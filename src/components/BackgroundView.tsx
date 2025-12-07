@@ -1191,7 +1191,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 
                 {/* Tooltip au survol */}
                 {hoveredElement === element.id && (
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50 pointer-events-none" style={{ transform: 'translateX(-50%) scale(0.7)' }}>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-[9999] pointer-events-none" style={{ transform: 'translateX(-50%) scale(0.7)' }}>
                     <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-2 py-1 whitespace-nowrap">
                       <p className="font-medium text-xs">{element.name}</p>
                     </div>
