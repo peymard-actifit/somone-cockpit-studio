@@ -447,7 +447,13 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 <MuiIcon name="X" size={20} />
               </button>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 overflow-y-auto max-h-[90vh]">
+              {/* DEBUG: Slider toujours visible en haut */}
+              <div className="border-4 border-red-500 bg-yellow-200 p-4">
+                <p className="font-bold text-red-700">DEBUG: SLIDER TEST - Cette zone doit être visible</p>
+                <input type="range" min="0" max="100" defaultValue="50" className="w-full" />
+              </div>
+
               {/* Upload de fichier */}
               <div>
                 <p className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</p>
@@ -520,47 +526,49 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               )}
               
               {/* Réglage de l'assombrissement/opacité - TOUJOURS AFFICHER */}
-              {(() => {
-                const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
-                console.log('[DomainView] SLIDER RENDER - Modal ouvert:', showBgConfigModal, 'Darkness:', currentDarkness, 'Mode:', bgMode);
-                return (
-                  <div className="mt-4 border border-red-500 p-4 bg-yellow-50">
-                    <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                      {bgMode === 'behind' 
-                        ? `Assombrissement de l'image : ${currentDarkness}%`
-                        : `Opacité de l'image : ${currentDarkness}%`
-                      }
-                    </label>
-                    <div className="space-y-2">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={currentDarkness}
-                        onChange={(e) => {
-                          const newValue = Number(e.target.value);
-                          console.log('[DomainView] SLIDER CHANGE:', newValue);
-                          setBgDarkness(newValue);
-                        }}
-                        className="w-full h-3 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-                        style={{
-                          background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${currentDarkness}%, #E2E8F0 ${currentDarkness}%, #E2E8F0 100%)`
-                        }}
-                      />
-                      <div className="flex justify-between text-xs text-[#64748B]">
-                        <span>Clair/Transparent (0%)</span>
-                        <span>Foncé/Opaque (100%)</span>
-                      </div>
-                      <p className="text-xs text-[#64748B] mt-1">
-                        {bgMode === 'behind' 
-                          ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
-                          : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
-                        }
-                      </p>
-                    </div>
+              <div className="mt-4 border-4 border-blue-500 p-4 bg-green-100">
+                {(() => {
+                  const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
+                  console.log('[DomainView] SLIDER RENDER - Modal ouvert:', showBgConfigModal, 'Darkness:', currentDarkness, 'Mode:', bgMode, 'bgDarkness:', bgDarkness);
+                  return null;
+                })()}
+                <label className="block text-sm font-bold text-red-700 mb-2">
+                  OPACITÉ / ASSOMBRISSEMENT
+                </label>
+                <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                  {bgMode === 'behind' 
+                    ? `Assombrissement de l'image : ${bgDarkness ?? getDefaultDarkness(bgMode)}%`
+                    : `Opacité de l'image : ${bgDarkness ?? getDefaultDarkness(bgMode)}%`
+                  }
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={bgDarkness ?? getDefaultDarkness(bgMode)}
+                    onChange={(e) => {
+                      const newValue = Number(e.target.value);
+                      console.log('[DomainView] SLIDER CHANGE:', newValue, 'bgMode:', bgMode);
+                      setBgDarkness(newValue);
+                    }}
+                    className="w-full h-4 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                    style={{
+                      background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${bgDarkness ?? getDefaultDarkness(bgMode)}%, #E2E8F0 ${bgDarkness ?? getDefaultDarkness(bgMode)}%, #E2E8F0 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-[#64748B]">
+                    <span>Clair/Transparent (0%)</span>
+                    <span>Foncé/Opaque (100%)</span>
                   </div>
-                );
-              })()}
+                  <p className="text-xs text-[#64748B] mt-1">
+                    {bgMode === 'behind' 
+                      ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
+                      : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
+                    }
+                  </p>
+                </div>
+              </div>
               
               {/* Aperçu */}
               {bgImageUrl && (
