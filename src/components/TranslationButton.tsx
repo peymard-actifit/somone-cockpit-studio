@@ -426,8 +426,21 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         }
       }
 
-      setShowModal(false);
-      alert('✅ Version sauvegardée restaurée avec succès.');
+      // Vérifier les originaux après restauration
+      try {
+        const checkResponse = await fetch(`/api/cockpits/${cockpitId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (checkResponse.ok) {
+          const cockpit = await checkResponse.json();
+          const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
+          setHasOriginals(hasOriginalsValue);
+        }
+      } catch (err) {
+        console.error('[Translation] Erreur vérification originaux après restauration:', err);
+      }
+      
+      // Ne pas fermer le modal, ne pas afficher d'alert
     } catch (error: any) {
       console.error('Erreur restauration:', error);
       alert(`Erreur lors de la restauration : ${error.message || 'Erreur inconnue'}`);
