@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erreur - SOMONE Cockpit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        .error-details {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-align: left;
+            overflow-x: auto;
+        }
+        .button {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 25px;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚠️</h1>
+        <h2>Erreur de chargement</h2>
+        <p>Impossible de charger la maquette depuis le serveur.</p>
+        <p>Vérifiez votre connexion internet et réessayez.</p>
+        
+        <div class="error-details">
+            <strong>Détails techniques :</strong><br>
+            URL : <span id="error-url">-</span><br>
+            Erreur : <span id="error-desc">-</span>
+        </div>
+        
+        <button class="button" onclick="location.reload()">Réessayer</button>
+    </div>
+    
+    <script>
+        // Récupérer les paramètres d'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById('error-url').textContent = urlParams.get('url') || '-';
+        document.getElementById('error-desc').textContent = urlParams.get('error') || '-';
+    </script>
+</body>
+</html>
+

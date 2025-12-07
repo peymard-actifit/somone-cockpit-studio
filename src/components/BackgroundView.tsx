@@ -33,6 +33,16 @@ interface BackgroundViewProps {
 }
 
 export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
+  // Vérification de sécurité : si domain est invalide, ne rien rendre
+  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
+    console.error('[BackgroundView] Domain invalide:', domain);
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
+      </div>
+    );
+  }
+
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -107,8 +117,14 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const ZOOM_STEP = 0.25;
   
   // Récupérer tous les éléments du domaine avec position et taille
-  const allElements = domain.categories.flatMap(c => c.elements);
+  // Sécurité : s'assurer que categories existe et que chaque catégorie a bien un tableau elements
+  const allElements = (domain.categories || [])
+    .filter(c => c && Array.isArray(c.elements))
+    .flatMap(c => c.elements || [])
+    .filter(e => e && typeof e === 'object' && e.id); // Vérifier que chaque élément est valide
+  
   const positionedElements = allElements.filter(e => 
+    e && 
     e.positionX !== undefined && e.positionY !== undefined && 
     e.width !== undefined && e.height !== undefined
   );
@@ -661,7 +677,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         let worstStatus: TileStatus = 'ok';
         let worstPriority = STATUS_PRIORITY['ok'];
         clusterElements.forEach(e => {
-          const effectiveStatus: TileStatus = getEffectiveStatus(e);
+          if (!e || typeof e !== 'object') return; // Ignorer les éléments invalides
+          const effectiveStatus: TileStatus = getEffectiveStatus(e) || e.status || 'ok';
           const priority = STATUS_PRIORITY[effectiveStatus] || 0;
           if (priority > worstPriority) {
             worstPriority = priority;
@@ -1016,9 +1033,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           
           {/* Clusters d'éléments */}
           {clusters.map((cluster) => {
-            if (!imageBounds) return null;
+            if (!imageBounds || !cluster) return null;
             
-            const colors = STATUS_COLORS[cluster.worstStatus];
+            // Sécurité : vérifier que le statut existe
+            const worstStatus = cluster.worstStatus || 'ok';
+            const colors = STATUS_COLORS[worstStatus] || STATUS_COLORS.ok;
+            if (!colors || !colors.hex) {
+              console.warn('[BackgroundView] Couleurs invalides pour cluster:', cluster);
+              return null;
+            }
             
             // Centre du cluster (en % de l'image)
             const centerX = cluster.bounds.x + cluster.bounds.width / 2;
@@ -1062,12 +1085,16 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                       <p className="font-medium text-sm">{cluster.count} éléments groupés</p>
                       <p className="text-xs text-[#94A3B8] mt-1">Zoomez pour voir les détails</p>
                       <div className="text-xs mt-1 space-y-0.5">
-                        {cluster.elements.slice(0, 3).map(e => (
-                          <div key={e.id} className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLORS[e.status].hex }} />
-                            <span>{e.name}</span>
-                          </div>
-                        ))}
+                        {cluster.elements.slice(0, 3).map(e => {
+                          if (!e || !e.id) return null; // Ignorer les éléments invalides
+                          const statusColors = STATUS_COLORS[e.status] || STATUS_COLORS.ok;
+                          return (
+                            <div key={e.id} className="flex items-center gap-1">
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors.hex }} />
+                              <span>{e.name || 'Élément'}</span>
+                            </div>
+                          );
+                        })}
                         {cluster.elements.length > 3 && (
                           <p className="text-[#94A3B8]">+{cluster.elements.length - 3} autres</p>
                         )}
@@ -1082,13 +1109,21 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           
           {/* Éléments individuels (rectangles ou icônes colorés) */}
           {singleElements.map((element) => {
-            const colors = getEffectiveColors(element);
-            const hasIcon = !!element.icon;
+            // Vérifications de sécurité
+            if (!element || typeof element !== 'object' || !element.id) {
+              console.warn('[BackgroundView] Élément invalide:', element);
+              return null;
+            }
             
-            // Les positions sont stockées en pourcentage de l'image (0-100%)
-            // Mais il faut les convertir en position absolue dans le conteneur transformé
-            // en tenant compte de imageBounds (position et taille de l'image avec object-contain)
             if (!imageBounds) return null;
+            
+            const colors = getEffectiveColors(element);
+            if (!colors || !colors.hex) {
+              console.warn('[BackgroundView] Couleurs invalides pour élément:', element.name, element);
+              return null;
+            }
+            
+            const hasIcon = !!element.icon;
             
             // Convertir les pourcentages de l'image en pixels dans le conteneur transformé
             let width = (element.width || 0) * imageBounds.width / 100;
