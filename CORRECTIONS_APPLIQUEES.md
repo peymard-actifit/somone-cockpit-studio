@@ -86,3 +86,4 @@ Après déploiement, les images devraient maintenant avoir :
 
 Les modifications seront disponibles au prochain déploiement Vercel automatique.
 
+

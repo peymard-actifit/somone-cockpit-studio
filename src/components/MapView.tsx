@@ -792,11 +792,12 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       {/* Conteneur de la carte */}
       <div
         ref={containerRef}
-        className={`w-full flex-1 overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`w-full ${_readOnly ? 'h-full' : 'flex-1'} overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{ 
           minHeight: _readOnly ? 'calc(100vh - 200px)' : undefined,
           height: _readOnly ? '100%' : undefined,
-          position: _readOnly ? 'relative' : undefined
+          position: _readOnly ? 'relative' : undefined,
+          display: _readOnly ? 'block' : undefined
         }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
@@ -807,15 +808,15 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       >
         <div
           ref={imageContainerRef}
-          className="w-full h-full relative"
+          className={`w-full relative ${_readOnly ? 'h-full' : ''}`}
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center',
             transition: isDragging || draggingPointId ? 'none' : 'transform 0.1s ease-out',
             minWidth: '100%',
             minHeight: '100%',
-            height: _readOnly ? '100%' : undefined,
-            width: _readOnly ? '100%' : undefined,
+            height: '100%',
+            width: '100%',
           }}
         >
           {/* Image de fond */}
@@ -845,27 +846,60 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               onLoad={(e) => {
                 const img = e.target as HTMLImageElement;
                 const container = imageContainerRef.current;
+                const parentContainer = containerRef.current;
+                const computedStyle = window.getComputedStyle(img);
+                const containerRect = container?.getBoundingClientRect();
+                const parentRect = parentContainer?.getBoundingClientRect();
+                const imgRect = img.getBoundingClientRect();
+                
                 console.log(`[MapView] ✅ Image chargée avec succès pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
                 console.log(`[MapView] Image src length: ${mapImageUrl?.length || 0}`);
                 console.log(`[MapView] Image src preview: ${mapImageUrl?.substring(0, 50) || 'EMPTY'}`);
                 console.log(`[MapView] Domain backgroundImage type:`, typeof domain?.backgroundImage);
                 console.log(`[MapView] Domain backgroundImage length:`, domain?.backgroundImage ? domain.backgroundImage.length : 'N/A');
                 console.log(`[MapView] Image element computed style:`, {
-                  display: window.getComputedStyle(img).display,
-                  width: window.getComputedStyle(img).width,
-                  height: window.getComputedStyle(img).height,
-                  visibility: window.getComputedStyle(img).visibility,
-                  opacity: window.getComputedStyle(img).opacity,
+                  display: computedStyle.display,
+                  width: computedStyle.width,
+                  height: computedStyle.height,
+                  visibility: computedStyle.visibility,
+                  opacity: computedStyle.opacity,
+                  position: computedStyle.position,
+                  top: computedStyle.top,
+                  left: computedStyle.left,
+                  right: computedStyle.right,
+                  bottom: computedStyle.bottom,
+                });
+                console.log(`[MapView] Image getBoundingClientRect:`, {
+                  width: imgRect.width,
+                  height: imgRect.height,
+                  top: imgRect.top,
+                  left: imgRect.left,
+                  bottom: imgRect.bottom,
+                  right: imgRect.right,
                 });
                 if (container) {
                   console.log(`[MapView] Container dimensions:`, {
-                    width: container.offsetWidth,
-                    height: container.offsetHeight,
+                    offsetWidth: container.offsetWidth,
+                    offsetHeight: container.offsetHeight,
+                    clientWidth: container.clientWidth,
+                    clientHeight: container.clientHeight,
+                    rect: containerRect,
+                  });
+                }
+                if (parentContainer) {
+                  console.log(`[MapView] Parent container dimensions:`, {
+                    offsetWidth: parentContainer.offsetWidth,
+                    offsetHeight: parentContainer.offsetHeight,
+                    clientWidth: parentContainer.clientWidth,
+                    clientHeight: parentContainer.clientHeight,
+                    rect: parentRect,
                   });
                 }
                 if (_readOnly) {
                   console.log(`[MapView READ-ONLY] ✅ Image de carte chargée avec succès pour le domaine "${domain.name}"`);
-                  console.log(`[MapView READ-ONLY] Container rect:`, container?.getBoundingClientRect());
+                  console.log(`[MapView READ-ONLY] Image rect:`, imgRect);
+                  console.log(`[MapView READ-ONLY] Container rect:`, containerRect);
+                  console.log(`[MapView READ-ONLY] Parent container rect:`, parentRect);
                 }
               }}
               onError={(e) => {

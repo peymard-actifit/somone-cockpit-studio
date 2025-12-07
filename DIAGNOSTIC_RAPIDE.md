@@ -75,3 +75,4 @@ Pouvez-vous :
 1. Faire le test JavaScript ci-dessus et me donner le résultat ?
 2. Me dire si vous voyez l'image à l'écran ou pas ?
 
+

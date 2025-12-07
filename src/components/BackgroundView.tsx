@@ -765,13 +765,14 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       {/* Conteneur de la vue avec zoom/pan - utilise 100% de la hauteur disponible */}
       <div
         ref={containerRef}
-        className={`w-full flex-1 overflow-hidden ${
+        className={`w-full ${_readOnly ? 'h-full' : 'flex-1'} overflow-hidden ${
           isDrawing ? 'cursor-crosshair' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         style={{ 
           minHeight: _readOnly ? 'calc(100vh - 200px)' : '400px', 
           height: _readOnly ? '100%' : undefined,
-          position: _readOnly ? 'relative' : undefined
+          position: _readOnly ? 'relative' : undefined,
+          display: _readOnly ? 'block' : undefined
         }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
@@ -782,15 +783,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       >
         <div
           ref={imageContainerRef}
-          className="w-full h-full relative"
+          className={`w-full relative ${_readOnly ? 'h-full' : ''}`}
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center',
             transition: isDragging || isDrawing || draggingElementId ? 'none' : 'transform 0.1s ease-out',
-            height: _readOnly ? '100%' : undefined,
-            width: _readOnly ? '100%' : undefined,
+            height: _readOnly ? '100%' : '100%',
+            width: '100%',
             minHeight: _readOnly ? '100%' : undefined,
-            minWidth: _readOnly ? '100%' : undefined,
+            minWidth: '100%',
             position: 'relative'
           }}
         >

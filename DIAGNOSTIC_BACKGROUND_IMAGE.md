@@ -106,3 +106,4 @@ Pour vérifier si le problème persiste, consulter les logs suivants :
 3. Comparer la longueur de `backgroundImage` avant et après publication
 4. Tester avec une petite image (< 100 KB) pour éliminer les problèmes de taille
 
+

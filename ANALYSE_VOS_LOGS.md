@@ -117,3 +117,4 @@ D'après vos logs, les images sont bien là et chargées. Le problème est proba
 
 Pouvez-vous faire une capture d'écran de ce que vous voyez (ou ne voyez pas) dans le cockpit publié ?
 
+
