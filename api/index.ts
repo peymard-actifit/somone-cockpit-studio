@@ -1871,7 +1871,7 @@ INSTRUCTIONS:
         return res.status(400).json({ error: 'ID manquant' });
       }
       const id = match[1];
-      const { targetLang, preserveOriginals } = req.body || {};
+      const { targetLang } = req.body || {};
       
       // Vérifier l'authentification
       if (!currentUser) {
