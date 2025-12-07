@@ -289,7 +289,15 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           const cockpit = await response.json();
           const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
           console.log('[Translation] Vérification originaux:', hasOriginalsValue, '(modal ouvert:', showModal, ')');
+          console.log('[Translation] Détails cockpit.data:', cockpit.data ? 'présent' : 'absent');
+          console.log('[Translation] Détails cockpit.data.originals:', cockpit.data?.originals ? 'présent' : 'absent');
+          if (cockpit.data?.originals) {
+            console.log('[Translation] Taille originaux:', JSON.stringify(cockpit.data.originals).length, 'caractères');
+          }
           setHasOriginals(hasOriginalsValue);
+          console.log('[Translation] État hasOriginals mis à jour à:', hasOriginalsValue);
+        } else {
+          console.warn('[Translation] Réponse API non OK:', response.status);
         }
       } catch (err) {
         console.error('Erreur vérification originaux:', err);
@@ -342,13 +350,20 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         if (checkResponse.ok) {
           const cockpit = await checkResponse.json();
           const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
-          console.log('[Translation] Vérification API: originaux présents =', hasOriginalsValue);
+          console.log('[Translation] Vérification API après figement: originaux présents =', hasOriginalsValue);
+          console.log('[Translation] Détails cockpit.data:', cockpit.data ? 'présent' : 'absent');
+          console.log('[Translation] Détails cockpit.data.originals:', cockpit.data?.originals ? 'présent' : 'absent');
           
           // Toujours mettre à jour avec la valeur de l'API pour être sûr
           setHasOriginals(hasOriginalsValue);
+          
+          // Forcer un re-render si nécessaire
+          if (hasOriginalsValue) {
+            console.log('[Translation] ✅ hasOriginals mis à jour à true, le bouton restaurer devrait apparaître');
+          }
         } else {
           // Si la vérification échoue, on suppose que la sauvegarde a réussi
-          console.log('[Translation] ⚠️ Vérification échouée, on suppose que la sauvegarde a réussi');
+          console.log('[Translation] ⚠️ Vérification échouée (status:', checkResponse.status, '), on suppose que la sauvegarde a réussi');
           setHasOriginals(true);
         }
       } catch (err) {
@@ -902,7 +917,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       
       {showModal && (
         <Modal
-          key={`translation-modal-${hasOriginals}`}
+          key={`translation-modal-${cockpitId}`}
           title="Traduire le cockpit"
           onClose={() => setShowModal(false)}
           onConfirm={handlePreparePreview}
@@ -911,7 +926,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           showSaveButton={true}
           onSaveOriginals={handleSaveOriginals}
           isSavingOriginals={isSavingOriginals}
-          showRestoreButton={hasOriginals === true}
+          showRestoreButton={hasOriginals}
           onRestore={handleRestore}
           isRestoring={isRestoring}
         >

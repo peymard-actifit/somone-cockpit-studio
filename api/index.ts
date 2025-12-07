@@ -1373,15 +1373,19 @@ INSTRUCTIONS:
         return text; // Retourner le texte original si pas de clé API ou texte vide
       }
       
-      // Si la langue cible est FR, ne pas traduire (retourner le texte tel quel)
-      // DeepL ne peut pas traduire FR -> FR
-      if (targetLang === 'FR') {
-        return text;
-      }
+      // Si la langue cible est FR, on peut quand même traduire si la source n'est pas FR
+      // On détectera la langue source automatiquement avec DeepL
+      // Ne pas bloquer la traduction vers FR
       
       try {
-        // Détecter la langue source (FR par défaut)
-        const sourceLang = 'FR';
+        // Détecter automatiquement la langue source si on traduit vers FR
+        // Sinon, utiliser FR par défaut
+        let sourceLang = 'FR';
+        if (targetLang === 'FR') {
+          // Pour traduire vers FR, on laisse DeepL détecter automatiquement la langue source
+          // En passant une chaîne vide ou en omettant source_lang, DeepL détecte automatiquement
+          sourceLang = ''; // Détection automatique
+        }
         
         // Déterminer l'URL de l'API DeepL (gratuite ou payante)
         // Format API gratuite : commence par "fx-" ou "free-"
@@ -1396,18 +1400,25 @@ INSTRUCTIONS:
           ? 'https://api.deepl.com/v2/translate'
           : 'https://api-free.deepl.com/v2/translate'; // Par défaut, essayer l'API gratuite
         
+        // Construire les paramètres de la requête
+        const params: any = {
+          text: text,
+          target_lang: targetLang,
+          preserve_formatting: '1',
+        };
+        
+        // Ajouter source_lang seulement si on ne fait pas de détection automatique
+        if (sourceLang) {
+          params.source_lang = sourceLang;
+        }
+        
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Authorization': `DeepL-Auth-Key ${DEEPL_API_KEY}`,
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: new URLSearchParams({
-            text: text,
-            source_lang: sourceLang,
-            target_lang: targetLang,
-            preserve_formatting: '1',
-          }),
+          body: new URLSearchParams(params),
         });
         
         if (!response.ok) {
