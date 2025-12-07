@@ -1052,7 +1052,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 
                 {/* Tooltip cluster */}
                 {hoveredElement === cluster.id && (
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50 pointer-events-none">
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-[9999] pointer-events-none">
                     <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-3 py-2 whitespace-nowrap">
                       <p className="font-medium text-sm">{cluster.count} éléments groupés</p>
                       <p className="text-xs text-[#94A3B8] mt-1">Zoomez pour voir les détails</p>
