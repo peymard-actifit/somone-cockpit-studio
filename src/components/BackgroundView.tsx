@@ -1088,17 +1088,20 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             if (!imageBounds) return null;
             
             // Convertir les pourcentages de l'image en pixels dans le conteneur transformé
-            const left = imageBounds.x + (element.positionX || 0) * imageBounds.width / 100;
-            const top = imageBounds.y + (element.positionY || 0) * imageBounds.height / 100;
             let width = (element.width || 0) * imageBounds.width / 100;
             let height = (element.height || 0) * imageBounds.height / 100;
             
             // Augmenter de 15% si le statut est mineur, critique ou fatal
             const effectiveStatus = getEffectiveStatus(element);
-            if (effectiveStatus === 'mineur' || effectiveStatus === 'critique' || effectiveStatus === 'fatal') {
-              width = width * 1.15;
-              height = height * 1.15;
-            }
+            const sizeMultiplier = (effectiveStatus === 'mineur' || effectiveStatus === 'critique' || effectiveStatus === 'fatal') ? 1.15 : 1.0;
+            width = width * sizeMultiplier;
+            height = height * sizeMultiplier;
+            
+            // Ajuster la position pour garder le centre fixe (l'élément grandit de manière centrée)
+            const centerX = (element.positionX || 0) + (element.width || 0) / 2;
+            const centerY = (element.positionY || 0) + (element.height || 0) / 2;
+            const left = imageBounds.x + (centerX * imageBounds.width / 100) - (width / 2);
+            const top = imageBounds.y + (centerY * imageBounds.height / 100) - (height / 2);
             
             return (
               <div
