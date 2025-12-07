@@ -28,12 +28,14 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   const [showBgConfigModal, setShowBgConfigModal] = useState(false);
   const [bgImageUrl, setBgImageUrl] = useState(domain.backgroundImage || '');
   const [bgMode, setBgMode] = useState<BackgroundMode>(domain.backgroundMode || 'behind');
+  const [bgDarkness, setBgDarkness] = useState<number>(domain.backgroundDarkness ?? 60); // Défaut 60% (plus foncé que 80%)
   
   // Mettre à jour quand le domaine change
   useEffect(() => {
     setBgImageUrl(domain.backgroundImage || '');
     setBgMode(domain.backgroundMode || 'behind');
-  }, [domain.backgroundImage, domain.backgroundMode]);
+    setBgDarkness(domain.backgroundDarkness ?? 60);
+  }, [domain.backgroundImage, domain.backgroundMode, domain.backgroundDarkness]);
   
   // Gérer l'upload de fichier
   const handleBgFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,7 +54,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   const handleSaveBgConfig = () => {
     updateDomain(domain.id, { 
       backgroundImage: bgImageUrl || undefined,
-      backgroundMode: bgMode 
+      backgroundMode: bgMode,
+      backgroundDarkness: bgDarkness
     });
     setShowBgConfigModal(false);
   };
@@ -119,7 +122,10 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
             className="w-full h-full object-contain"
           />
           {/* Voile semi-transparent pour la lisibilité */}
-          <div className="absolute inset-0 bg-[#F5F7FA]/80" />
+          <div 
+            className="absolute inset-0 bg-[#F5F7FA]" 
+            style={{ opacity: (domain.backgroundDarkness ?? 60) / 100 }}
+          />
           </div>
         </div>
       )}
@@ -477,6 +483,35 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 </div>
               )}
               
+              {/* Réglage de l'assombrissement (uniquement pour mode "behind") */}
+              {bgImageUrl && bgMode === 'behind' && (
+                <div>
+                  <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                    Assombrissement de l'image : {bgDarkness}%
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={bgDarkness}
+                      onChange={(e) => setBgDarkness(Number(e.target.value))}
+                      className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                      style={{
+                        background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${bgDarkness}%, #E2E8F0 ${bgDarkness}%, #E2E8F0 100%)`
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-[#64748B]">
+                      <span>Clair (0%)</span>
+                      <span>Foncé (100%)</span>
+                    </div>
+                    <p className="text-xs text-[#64748B] mt-1">
+                      Plus la valeur est élevée, plus l'image de fond est assombrie pour améliorer la lisibilité du contenu.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               {/* Aperçu */}
               {bgImageUrl && (
                 <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
@@ -508,6 +543,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                     onClick={() => {
                       setBgImageUrl(domain.backgroundImage || '');
                       setBgMode(domain.backgroundMode || 'behind');
+                      setBgDarkness(domain.backgroundDarkness ?? 60);
                       setShowBgConfigModal(false);
                     }}
                     className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"

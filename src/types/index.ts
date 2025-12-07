@@ -63,6 +63,7 @@ export interface Domain {
   templateName?: string;
   backgroundImage?: string;
   backgroundMode?: BackgroundMode;  // 'behind' = en fond, 'overlay' = au-dessus (sans gêner les clics)
+  backgroundDarkness?: number;  // Opacité du voile assombrissant (0-100, défaut: 60)
   mapBounds?: MapBounds;  // Coordonnées GPS des coins de la carte
   enableClustering?: boolean;  // Activer/désactiver le regroupement des éléments (défaut: true)
   categories: Category[];
