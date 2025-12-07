@@ -52,7 +52,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
   const [languages, setLanguages] = useState<Language[]>([]);
   const [selectedLang, setSelectedLang] = useState<string>('FR');
   const [isTranslating, setIsTranslating] = useState(false);
-  const { currentCockpit, fetchCockpit, updateCockpit } = useCockpitStore();
+  const { currentCockpit, updateCockpit } = useCockpitStore();
   const { token, user } = useAuthStore();
   
   useEffect(() => {
@@ -107,77 +107,56 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
   }, []);
   
   const handleTranslate = async () => {
-    if (selectedLang === 'FR') {
-      // Restaurer les originaux
-      try {
-        setIsTranslating(true);
-        if (!token) {
-          throw new Error('Vous devez être connecté pour restaurer les textes originaux');
-        }
-        const response = await fetch(`/api/cockpits/${cockpitId}/restore-originals`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) throw new Error('Erreur restauration');
-        
-        // Recharger le cockpit
-        await fetchCockpit(cockpitId);
-        setShowModal(false);
-      } catch (error) {
-        console.error('Erreur restauration:', error);
-        alert('Erreur lors de la restauration des textes originaux');
-      } finally {
-        setIsTranslating(false);
+    // Traduire ou restaurer (même route pour les deux cas)
+    try {
+      setIsTranslating(true);
+      if (!token) {
+        throw new Error('Vous devez être connecté pour traduire le cockpit');
       }
-    } else {
-      // Traduire vers la langue sélectionnée
-      try {
-        setIsTranslating(true);
-        if (!token) {
-          throw new Error('Vous devez être connecté pour traduire le cockpit');
+      
+      const response = await fetch(`/api/cockpits/${cockpitId}/translate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetLang: selectedLang,
+          preserveOriginals: true, // Toujours préserver les originaux
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || 'Erreur inconnue' };
         }
-        const response = await fetch(`/api/cockpits/${cockpitId}/translate`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            targetLang: selectedLang,
-            preserveOriginals: true, // Toujours préserver les originaux
-          }),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Erreur traduction');
-        }
-        
-        const { translatedData } = await response.json();
-        
-        // Mettre à jour le cockpit avec les données traduites
-        if (currentCockpit) {
-          const updatedCockpit = {
-            ...currentCockpit,
-            domains: translatedData.domains || currentCockpit.domains,
-          } as any;
-          if (translatedData.zones) {
-            (updatedCockpit as any).zones = translatedData.zones;
-          }
-          updateCockpit(updatedCockpit);
-        }
-        
-        setShowModal(false);
-      } catch (error: any) {
-        console.error('Erreur traduction:', error);
-        alert(`Erreur lors de la traduction: ${error.message || 'Erreur inconnue'}`);
-      } finally {
-        setIsTranslating(false);
+        console.error(`Erreur API (${response.status}):`, errorData);
+        throw new Error(errorData.error || (selectedLang === 'FR' ? 'Erreur restauration' : 'Erreur traduction'));
       }
+      
+      const { translatedData } = await response.json();
+      
+      // Mettre à jour le cockpit avec les données traduites ou restaurées
+      if (currentCockpit) {
+        const updatedCockpit = {
+          ...currentCockpit,
+          ...translatedData, // Remplacer toutes les données
+          domains: translatedData.domains || currentCockpit.domains,
+        } as any;
+        updateCockpit(updatedCockpit);
+      }
+      
+      setShowModal(false);
+    } catch (error: any) {
+      console.error(`Erreur ${selectedLang === 'FR' ? 'restauration' : 'traduction'}:`, error);
+      const errorMessage = error.message || 'Erreur inconnue';
+      alert(`Erreur lors de la ${selectedLang === 'FR' ? 'restauration des textes originaux' : 'traduction'}: ${errorMessage}`);
+    } finally {
+      setIsTranslating(false);
     }
   };
   

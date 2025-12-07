@@ -1424,7 +1424,7 @@ INSTRUCTIONS:
       }
     };
     
-    // Traduire un objet de données récursivement - seulement les champs textuels de contenu
+    // Traduire un objet de données récursivement - tous les champs textuels de contenu
     const translateDataRecursively = async (data: any, targetLang: string = 'EN'): Promise<any> => {
       if (typeof data === 'string' && data.trim() !== '') {
         return await translateWithDeepL(data, targetLang);
@@ -1433,9 +1433,22 @@ INSTRUCTIONS:
       } else if (data && typeof data === 'object') {
         const translated: any = {};
         for (const [key, value] of Object.entries(data)) {
-          // Ne traduire que les champs de texte de contenu
-          if (key === 'name' || key === 'description' || key === 'actions') {
-            // Traduire ces champs
+          // Liste des champs à traduire (champs textuels de contenu)
+          const textFieldsToTranslate = [
+            'name',              // Nom des domaines, catégories, éléments, sous-catégories, sous-éléments, mapElements, zones, templates
+            'description',       // Description des alertes
+            'actions',           // Actions des alertes
+            'scrollingBanner',   // Bannière défilante du cockpit
+            'unit',              // Unité des éléments et sous-éléments (attention aux symboles comme °C, kW, etc.)
+            'duration',          // Durée des alertes
+            'ticketNumber',      // Numéro de ticket (peut contenir du texte)
+            'zone',              // Nom de zone
+            'address',           // Adresse des mapElements
+            'templateName',      // Nom du template (domaine)
+          ];
+          
+          if (textFieldsToTranslate.includes(key) && typeof value === 'string' && value.trim() !== '') {
+            // Traduire ces champs texte
             translated[key] = await translateDataRecursively(value, targetLang);
           } else if (key === 'value' && typeof value === 'string' && value.trim() !== '') {
             // Traduire les valeurs textuelles (mais pas les nombres)
@@ -1447,8 +1460,18 @@ INSTRUCTIONS:
               // C'est un nombre, ne pas traduire
               translated[key] = value;
             }
+          } else if (key !== 'originals') {
+            // Tous les autres champs (IDs, ordres, statuts, coordonnées, etc.) ne pas traduire
+            // Mais continuer la récursion pour les objets imbriqués
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+              translated[key] = await translateDataRecursively(value, targetLang);
+            } else if (Array.isArray(value)) {
+              translated[key] = await translateDataRecursively(value, targetLang);
+            } else {
+              translated[key] = value;
+            }
           } else {
-            // Tous les autres champs (IDs, ordres, statuts, etc.) ne pas traduire
+            // Ne pas copier le champ 'originals' dans les données traduites
             translated[key] = value;
           }
         }
@@ -1856,16 +1879,51 @@ INSTRUCTIONS:
       }
       
       if (!targetLang || targetLang === 'FR') {
-        // Si FR ou pas de langue, retourner les données originales
-        const db = await getDb();
-        const cockpit = db.cockpits.find(c => c.id === id);
-        if (!cockpit) {
-          return res.status(404).json({ error: 'Maquette non trouvée' });
+        // Si FR ou pas de langue, restaurer les données originales si disponibles
+        try {
+          const db = await getDb();
+          const cockpit = db.cockpits.find(c => c.id === id);
+          if (!cockpit) {
+            return res.status(404).json({ error: 'Maquette non trouvée' });
+          }
+          if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+            return res.status(403).json({ error: 'Accès non autorisé' });
+          }
+          
+          console.log(`[Translation] Restauration demandée pour cockpit ${id}`);
+          console.log(`[Translation] Originaux présents: ${!!(cockpit.data && cockpit.data.originals)}`);
+          
+          // Si les originaux existent, les restaurer
+          let dataToReturn;
+          if (cockpit.data && cockpit.data.originals) {
+            try {
+              // Restaurer les originaux
+              const originals = JSON.parse(JSON.stringify(cockpit.data.originals));
+              cockpit.data = originals; // Remplacer complètement par les originaux
+              delete cockpit.data.originals;
+              cockpit.updatedAt = new Date().toISOString();
+              await saveDb(db);
+              dataToReturn = cockpit.data;
+              console.log(`[Translation] Originaux restaurés avec succès`);
+            } catch (restoreError: any) {
+              console.error(`[Translation] Erreur lors de la restauration des originaux:`, restoreError);
+              return res.status(500).json({ error: 'Erreur lors de la restauration des originaux: ' + restoreError.message });
+            }
+          } else {
+            // Pas d'originaux sauvegardés, retourner les données actuelles
+            console.log(`[Translation] Aucun original sauvegardé, retour des données actuelles`);
+            dataToReturn = cockpit.data || { domains: [], zones: [] };
+          }
+          
+          // Enlever le champ 'originals' s'il reste
+          if (dataToReturn && dataToReturn.originals) {
+            delete dataToReturn.originals;
+          }
+          return res.json({ translatedData: dataToReturn });
+        } catch (error: any) {
+          console.error(`[Translation] Erreur lors de la restauration:`, error);
+          return res.status(500).json({ error: 'Erreur lors de la restauration: ' + error.message });
         }
-        if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
-          return res.status(403).json({ error: 'Accès non autorisé' });
-        }
-        return res.json({ translatedData: cockpit.data || { domains: [], zones: [] } });
       }
       
       if (!DEEPL_API_KEY) {
