@@ -283,6 +283,15 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       if (!cockpitId || !token) return;
       
       try {
+        // D'abord vérifier dans currentCockpit du store (plus rapide)
+        if (currentCockpit && (currentCockpit as any).originals) {
+          const hasOriginalsValue = !!(currentCockpit as any).originals;
+          console.log('[Translation] Originaux trouvés dans currentCockpit:', hasOriginalsValue);
+          setHasOriginals(hasOriginalsValue);
+          return;
+        }
+        
+        // Sinon, vérifier via l'API
         const response = await fetch(`/api/cockpits/${cockpitId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -314,7 +323,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
     if (showModal) {
       checkOriginals();
     }
-  }, [cockpitId, token, showModal]);
+  }, [cockpitId, token, showModal, currentCockpit]);
   
   // Sauvegarder explicitement la version actuelle comme originaux
   const handleSaveOriginals = async () => {
