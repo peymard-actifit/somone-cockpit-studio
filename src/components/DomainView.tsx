@@ -451,12 +451,18 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               </div>
               
               {/* Mode d'affichage */}
-              {bgImageUrl && (
+              {(bgImageUrl || domain.backgroundImage) && (
                 <div>
                   <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Mode d'affichage</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
-                      onClick={() => setBgMode('behind')}
+                      onClick={() => {
+                        setBgMode('behind');
+                        // Si pas de valeur sauvegardée, utiliser la valeur par défaut pour "behind"
+                        if (bgDarkness === undefined || bgDarkness === null || (bgMode === 'overlay' && bgDarkness === 40)) {
+                          setBgDarkness(domain.backgroundDarkness ?? 60);
+                        }
+                      }}
                       className={`p-4 rounded-lg border-2 transition-all text-left ${
                         bgMode === 'behind'
                           ? 'border-[#1E3A5F] bg-[#1E3A5F]/5'
@@ -470,7 +476,13 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       <p className="text-xs text-[#64748B]">Image derrière le contenu avec un voile semi-transparent</p>
                     </button>
                     <button
-                      onClick={() => setBgMode('overlay')}
+                      onClick={() => {
+                        setBgMode('overlay');
+                        // Si pas de valeur sauvegardée, utiliser la valeur par défaut pour "overlay"
+                        if (bgDarkness === undefined || bgDarkness === null || (bgMode === 'behind' && bgDarkness === 60)) {
+                          setBgDarkness(domain.backgroundDarkness ?? 40);
+                        }
+                      }}
                       className={`p-4 rounded-lg border-2 transition-all text-left ${
                         bgMode === 'overlay'
                           ? 'border-[#1E3A5F] bg-[#1E3A5F]/5'
