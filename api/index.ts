@@ -2442,7 +2442,7 @@ ACTIONS DISPONIBLES (retourne-les dans le champ "actions"):
 CONTEXTE ACTUEL DU COCKPIT:
 ${JSON.stringify(cockpitContext, null, 2)}
 
-INSTRUCTIONS:
+INSTRUCTIONS IMPORTANTES:
 1. Réponds en français de manière concise et professionnelle
 2. Si l'utilisateur demande une modification, tu DOIS retourner les actions dans un format JSON strict
 3. Format de réponse OBLIGATOIRE si tu exécutes des actions:
@@ -2452,10 +2452,24 @@ INSTRUCTIONS:
        { "type": "actionType", "params": { ... } }
      ]
    }
-4. Tu peux créer plusieurs éléments en une seule fois avec addElements
+4. CRÉATION EN MASSE: Tu peux créer PLUSIEURS éléments, catégories, sous-catégories, sous-éléments en une seule réponse :
+   - Utilise addElements avec un tableau de noms pour créer plusieurs éléments d'un coup
+   - Utilise addSubElements avec un tableau de noms pour créer plusieurs sous-éléments d'un coup
+   - Tu peux combiner plusieurs actions différentes dans le même tableau "actions"
+   - Exemple : créer un domaine, puis plusieurs catégories, puis plusieurs éléments dans chaque catégorie, tout en une seule réponse
 5. Utilise les IDs existants quand disponibles, sinon utilise les noms
-6. Si tu fais plusieurs modifications, liste toutes les actions dans le tableau "actions"
+6. OPÉRATIONS MULTIPLES: Si l'utilisateur demande de créer un cockpit complet, n'hésite pas à créer :
+   - Plusieurs domaines (max 6)
+   - Plusieurs catégories par domaine
+   - Plusieurs éléments par catégorie
+   - Plusieurs sous-catégories par élément
+   - Plusieurs sous-éléments par sous-catégorie
+   - Des sources de données et calculs associés
+   Tout cela peut être fait en une seule réponse avec un grand tableau d'actions
 7. IMPORTANT: Retourne TOUJOURS les actions dans un bloc JSON avec backticks ou directement comme objet JSON valide
+8. PAS DE LIMITE: Tu peux retourner autant d'actions que nécessaire (50, 100, 200+ actions si nécessaire)
+9. EFFICACITÉ: Privilégie les actions groupées plutôt que plusieurs réponses séquentielles
+10. STRUCTURE COMPLÈTE: Quand on te demande de créer un cockpit, crée une structure complète et fonctionnelle avec tous les éléments nécessaires
 
 ANALYSE D'IMAGES ET OCR:
 - Si une image est attachée, analyse-la visuellement
@@ -2571,7 +2585,7 @@ ANALYSE D'IMAGES ET OCR:
             model,
             messages,
             temperature: 0.7,
-            max_tokens: 4000, // Plus de tokens pour les analyses d'images et OCR
+            max_tokens: 16000, // Maximum de tokens pour permettre de nombreuses actions et réponses détaillées
             // Optimiser pour les images : réduire la qualité si nécessaire
             ...(hasImage && imageBase64 && {
               // Option pour réduire le temps de traitement si nécessaire
@@ -2616,12 +2630,14 @@ ANALYSE D'IMAGES ET OCR:
         const assistantMessage = data.choices[0]?.message?.content || '';
         
         // Essayer d'extraire les actions du message avec retry et parsing robuste
+        // Support pour de très gros tableaux d'actions (100+ actions)
         let actions: any[] = [];
-        const parseActionsWithRetry = (text: string, maxAttempts = 3): any[] => {
+        const parseActionsWithRetry = (text: string, maxAttempts = 5): any[] => {
+          console.log('[AI] Parsing actions - Longueur du texte:', text.length);
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
-              // Tentative 1: Chercher un bloc JSON avec backticks
-              let jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/);
+              // Tentative 1: Chercher un bloc JSON avec backticks (multiligne pour gérer gros JSON)
+              let jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/s);
               if (!jsonMatch) {
                 // Tentative 2: Chercher un bloc code avec json
                 jsonMatch = text.match(/```\n?([\s\S]*?)\n?```/);
@@ -2641,28 +2657,47 @@ ANALYSE D'IMAGES ET OCR:
                 }
               }
               
-              // Tentative 3: Chercher un objet JSON direct
-              const directMatch = text.match(/\{[\s\S]*?"actions"[\s\S]*?\}/);
+              // Tentative 3: Chercher un objet JSON direct (multiligne pour gérer gros JSON)
+              const directMatch = text.match(/\{[\s\S]*?"actions"[\s\S]*?\}/s);
               if (directMatch) {
                 try {
                   const parsed = JSON.parse(directMatch[0]);
                   if (parsed.actions && Array.isArray(parsed.actions)) {
+                    console.log(`[AI] ✅ ${parsed.actions.length} action(s) extraite(s) via tentative 3`);
                     return parsed.actions;
                   }
                 } catch (e) {
                   // Essayer de nettoyer le JSON
-                  const cleaned = directMatch[0]
+                  let cleaned = directMatch[0]
                     .replace(/,\s*}/g, '}')
                     .replace(/,\s*]/g, ']')
-                    .replace(/'/g, '"');
+                    .replace(/'/g, '"')
+                    .replace(/,\s*,/g, ',') // Enlever les virgules doubles
+                    .replace(/{\s*,/g, '{') // Enlever les virgules après {
+                    .replace(/\[\s*,/g, '['); // Enlever les virgules après [
                   try {
                     const parsed = JSON.parse(cleaned);
                     if (parsed.actions && Array.isArray(parsed.actions)) {
+                      console.log(`[AI] ✅ ${parsed.actions.length} action(s) extraite(s) via tentative 3 (nettoyé)`);
                       return parsed.actions;
                     }
                   } catch (e2) {
-                    // Ignorer
+                    console.error('[AI] Échec parsing nettoyé tentative 3:', e2);
                   }
+                }
+              }
+              
+              // Tentative 3b: Chercher directement un tableau d'actions très grand
+              const actionsArrayMatch = text.match(/"actions"\s*:\s*\[\s*([\s\S]*?)\s*\]/s);
+              if (actionsArrayMatch) {
+                try {
+                  const actionsArray = JSON.parse(`[${actionsArrayMatch[1]}]`);
+                  if (Array.isArray(actionsArray) && actionsArray.length > 0) {
+                    console.log(`[AI] ✅ ${actionsArray.length} action(s) extraite(s) via tentative 3b (tableau direct)`);
+                    return actionsArray;
+                  }
+                } catch (e3) {
+                  // Ignorer
                 }
               }
               
@@ -2713,13 +2748,13 @@ ANALYSE D'IMAGES ET OCR:
         actions = parseActionsWithRetry(assistantMessage);
         
         if (actions.length > 0) {
-          console.log('[AI] ✅ Actions extraites avec succès:', actions.length, 'action(s)');
+          console.log(`[AI] ✅ ${actions.length} action(s) extraite(s) avec succès`);
+          if (actions.length > 20) {
+            console.log(`[AI] ⚠️ Nombre élevé d'actions (${actions.length}), traitement en cours...`);
+          }
         } else {
-          console.log('[AI] Aucune action trouvée dans la réponse');
-        }
-        
-        if (actions.length === 0) {
-          console.log('[AI] Aucune action trouvée dans la réponse');
+          console.log('[AI] ⚠️ Aucune action trouvée dans la réponse');
+          console.log('[AI] Extrait de la réponse (premiers 500 caractères):', assistantMessage.substring(0, 500));
         }
         
         // Nettoyer le message des blocs JSON

@@ -1168,9 +1168,24 @@ export default function AIPromptInput() {
     }
     
     console.log(`🤖 [AIPromptInput] Exécution de ${actions.length} action(s)`);
+    
+    // Gérer de très gros tableaux d'actions (100+)
+    if (actions.length > 50) {
+      console.log(`🤖 [AIPromptInput] ⚠️ Nombre élevé d'actions (${actions.length}), traitement par batch...`);
+    }
+    
     const results = actions.map((action, index) => {
-      console.log(`🤖 [AIPromptInput] Action ${index + 1}/${actions.length}:`, action);
-      return executeAction(action);
+      // Log tous les 10 actions pour éviter de surcharger la console
+      if (index % 10 === 0 || index === actions.length - 1) {
+        console.log(`🤖 [AIPromptInput] Action ${index + 1}/${actions.length}:`, action.type);
+      }
+      
+      try {
+        return executeAction(action);
+      } catch (error) {
+        console.error(`🤖 [AIPromptInput] Erreur action ${index + 1}:`, error);
+        return `❌ Erreur action ${index + 1}: ${error instanceof Error ? error.message : 'inconnue'}`;
+      }
     });
     const resultString = results.join('\n');
     console.log('🤖 [AIPromptInput] Résultats des actions:', resultString);
