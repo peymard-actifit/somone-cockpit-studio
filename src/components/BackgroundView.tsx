@@ -1029,8 +1029,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             const top = imageBounds.y + centerY * imageBounds.height / 100;
             let clusterSize = 3 * imageBounds.width / 100; // 3% de l'image en pixels
             // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
-            const clusterSizeMultiplier = (cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal') ? 1.15 : 1.0;
+            const isCriticalCluster = cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal';
+            const clusterSizeMultiplier = isCriticalCluster ? 1.15 : 1.0;
+            const originalClusterSize = clusterSize;
             clusterSize = clusterSize * clusterSizeMultiplier; // Appliqué à width ET height (cercle)
+            
+            // Log de débogage pour vérifier l'augmentation
+            if (isCriticalCluster) {
+              console.log(`[BackgroundView] 🔍 Cluster - Statut: ${cluster.worstStatus}, Multiplicateur: ${clusterSizeMultiplier}, Taille: ${originalClusterSize.toFixed(1)} → ${clusterSize.toFixed(1)}`);
+            }
             
             return (
               <div
@@ -1096,9 +1103,17 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             
             // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
             const effectiveStatus = getEffectiveStatus(element);
-            const sizeMultiplier = (effectiveStatus === 'mineur' || effectiveStatus === 'critique' || effectiveStatus === 'fatal') ? 1.15 : 1.0;
+            const isCritical = effectiveStatus === 'mineur' || effectiveStatus === 'critique' || effectiveStatus === 'fatal';
+            const sizeMultiplier = isCritical ? 1.15 : 1.0;
+            const originalWidth = width;
+            const originalHeight = height;
             width = width * sizeMultiplier;   // Largeur augmentée de 15%
             height = height * sizeMultiplier; // Hauteur augmentée de 15%
+            
+            // Log de débogage pour vérifier l'augmentation
+            if (isCritical && (originalWidth > 0 || originalHeight > 0)) {
+              console.log(`[BackgroundView] 🔍 Élément "${element.name}" - Statut: ${effectiveStatus}, Multiplicateur: ${sizeMultiplier}, Taille: ${originalWidth.toFixed(1)}x${originalHeight.toFixed(1)} → ${width.toFixed(1)}x${height.toFixed(1)}`);
+            }
             
             // Ajuster la position pour garder le centre fixe (l'élément grandit de manière centrée)
             const centerX = (element.positionX || 0) + (element.width || 0) / 2;

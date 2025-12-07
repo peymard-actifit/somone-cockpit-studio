@@ -1146,6 +1146,17 @@ INSTRUCTIONS:
               }
             }
             
+            // TOUJOURS PRÉSERVER backgroundDarkness si elle existe dans l'existant
+            if (existingDomain.backgroundDarkness !== undefined && existingDomain.backgroundDarkness !== null) {
+              // Si newDomain n'a pas de backgroundDarkness valide, garder l'existant
+              if (newDomain.backgroundDarkness === undefined || newDomain.backgroundDarkness === null) {
+                merged.backgroundDarkness = existingDomain.backgroundDarkness;
+                console.log(`[PUT] ✅ Préservé backgroundDarkness pour "${newDomain.name}": ${existingDomain.backgroundDarkness}`);
+              } else {
+                console.log(`[PUT] 🔄 Nouveau backgroundDarkness pour "${newDomain.name}": ${newDomain.backgroundDarkness}`);
+              }
+            }
+            
             // Préserver aussi mapElements si présents
             if (existingDomain.mapElements && Array.isArray(existingDomain.mapElements)) {
               if (!newDomain.mapElements || !Array.isArray(newDomain.mapElements) || newDomain.mapElements.length === 0) {
