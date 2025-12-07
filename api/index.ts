@@ -1160,11 +1160,11 @@ INSTRUCTIONS:
           }
         });
         
-        // IMPORTANT : Ajouter aussi les domaines existants qui ne sont PAS dans la requête
-        // (pour éviter de les perdre)
-        const existingDomainIds = new Set(domains.map((d: any) => d.id));
-        const domainsToAdd = (cockpit.data.domains || []).filter((d: any) => !existingDomainIds.has(d.id));
-        mergedDomains = [...mergedDomains, ...domainsToAdd];
+        // IMPORTANT : Si domains est fourni dans la requête, c'est une mise à jour complète
+        // Les domaines supprimés côté client ne doivent PAS être réajoutés
+        // On utilise directement mergedDomains (qui contient uniquement les domaines de la requête)
+        // sans réajouter les domaines existants qui ne sont pas dans la requête
+        // Cela permet la suppression correcte des domaines
       } else {
         // Si domains n'est pas fourni dans la requête, garder les domaines existants intacts
         mergedDomains = cockpit.data.domains || [];
