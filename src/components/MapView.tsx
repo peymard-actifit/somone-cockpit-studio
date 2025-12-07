@@ -796,7 +796,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         style={{ 
           minHeight: _readOnly ? 'calc(100vh - 200px)' : undefined,
           height: _readOnly ? '100%' : undefined,
-          position: _readOnly ? 'relative' : undefined,
+          position: 'relative',
           display: _readOnly ? 'block' : undefined
         }}
         onWheel={handleWheel}
@@ -808,7 +808,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       >
         <div
           ref={imageContainerRef}
-          className={`w-full relative ${_readOnly ? 'h-full' : ''}`}
+          className={`w-full ${_readOnly ? 'absolute inset-0' : 'relative h-full'}`}
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center',
@@ -817,6 +817,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             minHeight: '100%',
             height: '100%',
             width: '100%',
+            position: _readOnly ? 'absolute' : 'relative',
+            top: _readOnly ? 0 : undefined,
+            left: _readOnly ? 0 : undefined,
+            right: _readOnly ? 0 : undefined,
+            bottom: _readOnly ? 0 : undefined
           }}
         >
           {/* Image de fond */}

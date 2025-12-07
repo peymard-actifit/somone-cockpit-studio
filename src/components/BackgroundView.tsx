@@ -771,7 +771,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         style={{ 
           minHeight: _readOnly ? 'calc(100vh - 200px)' : '400px', 
           height: _readOnly ? '100%' : undefined,
-          position: _readOnly ? 'relative' : undefined,
+          position: _readOnly ? 'relative' : 'relative',
           display: _readOnly ? 'block' : undefined
         }}
         onWheel={handleWheel}
@@ -783,7 +783,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       >
         <div
           ref={imageContainerRef}
-          className={`w-full relative ${_readOnly ? 'h-full' : ''}`}
+          className={`w-full ${_readOnly ? 'absolute inset-0' : 'relative h-full'}`}
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center',
@@ -792,7 +792,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             width: '100%',
             minHeight: _readOnly ? '100%' : undefined,
             minWidth: '100%',
-            position: 'relative'
+            position: _readOnly ? 'absolute' : 'relative',
+            top: _readOnly ? 0 : undefined,
+            left: _readOnly ? 0 : undefined,
+            right: _readOnly ? 0 : undefined,
+            bottom: _readOnly ? 0 : undefined
           }}
         >
           {/* Image de fond */}
