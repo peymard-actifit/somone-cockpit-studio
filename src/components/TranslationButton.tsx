@@ -289,12 +289,13 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         
         if (response.ok) {
           const cockpit = await response.json();
-          const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
+          // IMPORTANT: Les données sont spread dans la réponse API, donc originals est directement dans cockpit, pas dans cockpit.data
+          const hasOriginalsValue = !!(cockpit.originals);
           console.log('[Translation] Vérification originaux:', hasOriginalsValue, '(modal ouvert:', showModal, ')');
-          console.log('[Translation] Détails cockpit.data:', cockpit.data ? 'présent' : 'absent');
-          console.log('[Translation] Détails cockpit.data.originals:', cockpit.data?.originals ? 'présent' : 'absent');
-          if (cockpit.data?.originals) {
-            console.log('[Translation] Taille originaux:', JSON.stringify(cockpit.data.originals).length, 'caractères');
+          console.log('[Translation] Détails cockpit:', Object.keys(cockpit));
+          console.log('[Translation] Détails cockpit.originals:', cockpit.originals ? 'présent' : 'absent');
+          if (cockpit.originals) {
+            console.log('[Translation] Taille originaux:', JSON.stringify(cockpit.originals).length, 'caractères');
           }
           setHasOriginals(hasOriginalsValue);
           console.log('[Translation] État hasOriginals mis à jour à:', hasOriginalsValue);
@@ -351,10 +352,11 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         });
         if (checkResponse.ok) {
           const cockpit = await checkResponse.json();
-          const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
+          // IMPORTANT: Les données sont spread dans la réponse API, donc originals est directement dans cockpit, pas dans cockpit.data
+          const hasOriginalsValue = !!(cockpit.originals);
           console.log('[Translation] Vérification API après figement: originaux présents =', hasOriginalsValue);
-          console.log('[Translation] Détails cockpit.data:', cockpit.data ? 'présent' : 'absent');
-          console.log('[Translation] Détails cockpit.data.originals:', cockpit.data?.originals ? 'présent' : 'absent');
+          console.log('[Translation] Détails cockpit:', Object.keys(cockpit));
+          console.log('[Translation] Détails cockpit.originals:', cockpit.originals ? 'présent' : 'absent');
           
           // Toujours mettre à jour avec la valeur de l'API pour être sûr
           setHasOriginals(hasOriginalsValue);
@@ -362,6 +364,8 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           // Forcer un re-render si nécessaire
           if (hasOriginalsValue) {
             console.log('[Translation] ✅ hasOriginals mis à jour à true, le bouton restaurer devrait apparaître');
+          } else {
+            console.log('[Translation] ⚠️ hasOriginals est false, vérifier pourquoi les originaux ne sont pas présents');
           }
         } else {
           // Si la vérification échoue, on suppose que la sauvegarde a réussi
