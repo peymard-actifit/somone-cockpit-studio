@@ -1898,21 +1898,48 @@ INSTRUCTIONS:
           if (cockpit.data && cockpit.data.originals) {
             try {
               // Restaurer les originaux
-              const originals = JSON.parse(JSON.stringify(cockpit.data.originals));
-              cockpit.data = originals; // Remplacer complètement par les originaux
-              delete cockpit.data.originals;
+              // IMPORTANT: Faire une copie profonde des originaux pour restaurer
+              const originalsCopy = JSON.parse(JSON.stringify(cockpit.data.originals));
+              
+              // Remplacer les données par les originaux, MAIS conserver les originaux dans cockpit.data.originals
+              cockpit.data = { ...originalsCopy, originals: cockpit.data.originals };
+              
               cockpit.updatedAt = new Date().toISOString();
               await saveDb(db);
-              dataToReturn = cockpit.data;
-              console.log(`[Translation] Originaux restaurés avec succès`);
+              
+              // Préparer les données à retourner (sans le champ originals)
+              dataToReturn = JSON.parse(JSON.stringify(originalsCopy));
+              console.log(`[Translation] ✅ Originaux restaurés avec succès (${JSON.stringify(dataToReturn).length} caractères, originaux conservés pour restaurations futures)`);
             } catch (restoreError: any) {
               console.error(`[Translation] Erreur lors de la restauration des originaux:`, restoreError);
               return res.status(500).json({ error: 'Erreur lors de la restauration des originaux: ' + restoreError.message });
             }
           } else {
-            // Pas d'originaux sauvegardés, retourner les données actuelles
-            console.log(`[Translation] Aucun original sauvegardé, retour des données actuelles`);
-            dataToReturn = cockpit.data || { domains: [], zones: [] };
+            // Pas d'originaux sauvegardés
+            // IMPORTANT: Sauvegarder les données actuelles comme originaux pour pouvoir restaurer plus tard
+            console.log(`[Translation] ⚠️ Aucun original sauvegardé, sauvegarde des données actuelles comme originaux...`);
+            
+            const currentData = cockpit.data || { domains: [], zones: [] };
+            
+            // Sauvegarder les données actuelles comme originaux
+            if (!cockpit.data) {
+              cockpit.data = {};
+            }
+            cockpit.data.originals = JSON.parse(JSON.stringify(currentData));
+            // S'assurer que le champ 'originals' n'est pas inclus dans les originaux eux-mêmes
+            if (cockpit.data.originals.originals) {
+              delete cockpit.data.originals.originals;
+            }
+            cockpit.updatedAt = new Date().toISOString();
+            await saveDb(db);
+            
+            console.log(`[Translation] ✅ Données actuelles sauvegardées comme originaux`);
+            dataToReturn = currentData;
+            
+            // Enlever le champ 'originals' s'il est présent dans les données retournées
+            if (dataToReturn && dataToReturn.originals) {
+              delete dataToReturn.originals;
+            }
           }
           
           // Enlever le champ 'originals' s'il reste
@@ -1944,10 +1971,35 @@ INSTRUCTIONS:
       const data = cockpit.data || { domains: [], zones: [] };
       
       try {
-        // Si preserveOriginals est true, stocker les originaux dans cockpit.data.originals
-        if (preserveOriginals && !cockpit.data.originals) {
-          cockpit.data.originals = JSON.parse(JSON.stringify(data));
+        // IMPORTANT: Toujours sauvegarder les originaux avant la première traduction
+        // Si les originaux n'existent pas, sauvegarder les données actuelles comme originaux
+        // Cela garantit qu'on peut TOUJOURS revenir aux textes originaux en français
+        if (!cockpit.data.originals) {
+          console.log(`[Translation] ⚠️ Aucun original sauvegardé, sauvegarde des données actuelles comme originaux AVANT traduction...`);
+          // Sauvegarder une copie complète et profonde des données actuelles comme originaux
+          // Cela inclut TOUS les textes : 
+          // - domaines (name, templateName)
+          // - catégories (name)
+          // - éléments (name, value si texte, unit, zone)
+          // - sous-catégories (name)
+          // - sous-éléments (name, value si texte, unit)
+          // - alertes (description, actions, duration, ticketNumber)
+          // - mapElements (name, address)
+          // - zones (name)
+          // - scrollingBanner
+          const originalsToSave = JSON.parse(JSON.stringify(data));
+          // S'assurer que le champ 'originals' n'est pas inclus dans les originaux eux-mêmes
+          if (originalsToSave.originals) {
+            delete originalsToSave.originals;
+          }
+          cockpit.data.originals = originalsToSave;
+          cockpit.updatedAt = new Date().toISOString();
           await saveDb(db);
+          const originalsSize = JSON.stringify(cockpit.data.originals).length;
+          console.log(`[Translation] ✅ Textes originaux sauvegardés avec succès (${originalsSize} caractères)`);
+          console.log(`[Translation] Détails sauvegarde: ${data.domains?.length || 0} domaines`);
+        } else {
+          console.log(`[Translation] ✓ Originaux déjà sauvegardés (${JSON.stringify(cockpit.data.originals).length} caractères), pas besoin de les sauvegarder à nouveau`);
         }
         
         // Traduire les données
