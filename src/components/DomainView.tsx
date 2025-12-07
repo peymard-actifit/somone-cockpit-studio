@@ -499,9 +499,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 </div>
               )}
               
-              {/* Réglage de l'assombrissement/opacité */}
-              {bgImageUrl && (
-                <div>
+              {/* Réglage de l'assombrissement/opacité - Toujours afficher si une image est chargée */}
+              {(bgImageUrl || domain.backgroundImage) && (
+                <div className="mt-4">
                   <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
                     {bgMode === 'behind' 
                       ? `Assombrissement de l'image : ${bgDarkness}%`
