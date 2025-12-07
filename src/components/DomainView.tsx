@@ -28,13 +28,16 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   const [showBgConfigModal, setShowBgConfigModal] = useState(false);
   const [bgImageUrl, setBgImageUrl] = useState(domain.backgroundImage || '');
   const [bgMode, setBgMode] = useState<BackgroundMode>(domain.backgroundMode || 'behind');
-  const [bgDarkness, setBgDarkness] = useState<number>(domain.backgroundDarkness ?? 60); // Défaut 60% (plus foncé que 80%)
+  // Défaut : 60% pour "behind" (voile), 40% pour "overlay" (opacité image)
+  const [bgDarkness, setBgDarkness] = useState<number>(
+    domain.backgroundDarkness ?? (domain.backgroundMode === 'overlay' ? 40 : 60)
+  );
   
   // Mettre à jour quand le domaine change
   useEffect(() => {
     setBgImageUrl(domain.backgroundImage || '');
     setBgMode(domain.backgroundMode || 'behind');
-    setBgDarkness(domain.backgroundDarkness ?? 60);
+    setBgDarkness(domain.backgroundDarkness ?? (domain.backgroundMode === 'overlay' ? 40 : 60));
   }, [domain.backgroundImage, domain.backgroundMode, domain.backgroundDarkness]);
   
   // Gérer l'upload de fichier
@@ -137,7 +140,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
           <img 
             src={domain.backgroundImage}
             alt=""
-            className="w-full h-full object-contain opacity-20"
+            className="w-full h-full object-contain"
+            style={{ opacity: (domain.backgroundDarkness ?? 40) / 100 }}
           />
           </div>
         </div>
@@ -483,11 +487,14 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 </div>
               )}
               
-              {/* Réglage de l'assombrissement (uniquement pour mode "behind") */}
-              {bgImageUrl && bgMode === 'behind' && (
+              {/* Réglage de l'assombrissement/opacité */}
+              {bgImageUrl && (
                 <div>
                   <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                    Assombrissement de l'image : {bgDarkness}%
+                    {bgMode === 'behind' 
+                      ? `Assombrissement de l'image : ${bgDarkness}%`
+                      : `Opacité de l'image : ${bgDarkness}%`
+                    }
                   </label>
                   <div className="space-y-2">
                     <input
@@ -502,11 +509,14 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       }}
                     />
                     <div className="flex justify-between text-xs text-[#64748B]">
-                      <span>Clair (0%)</span>
-                      <span>Foncé (100%)</span>
+                      <span>Clair/Transparent (0%)</span>
+                      <span>Foncé/Opaque (100%)</span>
                     </div>
                     <p className="text-xs text-[#64748B] mt-1">
-                      Plus la valeur est élevée, plus l'image de fond est assombrie pour améliorer la lisibilité du contenu.
+                      {bgMode === 'behind' 
+                        ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
+                        : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
+                      }
                     </p>
                   </div>
                 </div>
@@ -543,7 +553,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                     onClick={() => {
                       setBgImageUrl(domain.backgroundImage || '');
                       setBgMode(domain.backgroundMode || 'behind');
-                      setBgDarkness(domain.backgroundDarkness ?? 60);
+                      setBgDarkness(domain.backgroundDarkness ?? (domain.backgroundMode === 'overlay' ? 40 : 60));
                       setShowBgConfigModal(false);
                     }}
                     className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"
