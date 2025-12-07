@@ -246,4 +246,59 @@ export function getEffectiveColors(element: { status: TileStatus; subCategories:
   return STATUS_COLORS[effectiveStatus];
 }
 
+// Fonction pour calculer le statut le plus critique d'un domaine
+export function getDomainWorstStatus(domain: { 
+  categories: Array<{ 
+    elements: Array<{ 
+      status: TileStatus; 
+      subCategories: Array<{ 
+        subElements: Array<{ status: TileStatus }> 
+      }> 
+    }> 
+  }>; 
+  mapElements?: Array<{ status: TileStatus }> 
+}): TileStatus {
+  let worstStatus: TileStatus = 'ok';
+  let worstPriority = STATUS_PRIORITY_MAP['ok'];
+  
+  // Parcourir tous les éléments dans toutes les catégories
+  for (const category of domain.categories) {
+    for (const element of category.elements) {
+      // Calculer le statut effectif de l'élément (gère l'héritage)
+      const effectiveStatus = getEffectiveStatus(element);
+      const priority = STATUS_PRIORITY_MAP[effectiveStatus] || 0;
+      
+      if (priority > worstPriority) {
+        worstPriority = priority;
+        worstStatus = effectiveStatus;
+      }
+      
+      // Parcourir aussi tous les sous-éléments directement (au cas où)
+      for (const subCategory of element.subCategories) {
+        for (const subElement of subCategory.subElements) {
+          if (subElement.status === 'herite') continue;
+          const subPriority = STATUS_PRIORITY_MAP[subElement.status] || 0;
+          if (subPriority > worstPriority) {
+            worstPriority = subPriority;
+            worstStatus = subElement.status;
+          }
+        }
+      }
+    }
+  }
+  
+  // Parcourir aussi les mapElements si le domaine est de type map
+  if (domain.mapElements) {
+    for (const mapElement of domain.mapElements) {
+      const priority = STATUS_PRIORITY_MAP[mapElement.status] || 0;
+      if (priority > worstPriority) {
+        worstPriority = priority;
+        worstStatus = mapElement.status;
+      }
+    }
+  }
+  
+  return worstStatus;
+}
+
 

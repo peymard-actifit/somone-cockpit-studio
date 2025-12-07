@@ -32,6 +32,7 @@ interface CockpitState {
   addDomain: (name: string) => void;
   updateDomain: (domainId: string, updates: Partial<Domain>) => void;
   deleteDomain: (domainId: string) => void;
+  reorderDomains: (domainIds: string[]) => void;
   
   addCategory: (domainId: string, name: string, orientation: 'horizontal' | 'vertical') => void;
   updateCategory: (categoryId: string, updates: Partial<Category>) => void;
@@ -357,6 +358,37 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         currentDomainId: state.currentDomainId === domainId 
           ? (domains[0]?.id || null) 
           : state.currentDomainId,
+      };
+    });
+    get().triggerAutoSave();
+  },
+
+  reorderDomains: (domainIds: string[]) => {
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      // Créer un map pour un accès rapide aux domaines par ID
+      const domainMap = new Map(state.currentCockpit.domains.map(d => [d.id, d]));
+      
+      // Reconstruire le tableau des domaines dans le nouvel ordre
+      const reorderedDomains = domainIds
+        .map((domainId, index) => {
+          const domain = domainMap.get(domainId);
+          if (!domain) return null;
+          return { ...domain, order: index };
+        })
+        .filter((d): d is Domain => d !== null);
+      
+      // Ajouter les domaines qui n'étaient pas dans la liste (au cas où)
+      const missingDomains = state.currentCockpit.domains.filter(d => !domainIds.includes(d.id));
+      reorderedDomains.push(...missingDomains.map((d, index) => ({ ...d, order: reorderedDomains.length + index })));
+      
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: reorderedDomains.sort((a, b) => a.order - b.order),
+          updatedAt: new Date().toISOString(),
+        },
       };
     });
     get().triggerAutoSave();
