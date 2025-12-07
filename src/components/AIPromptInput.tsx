@@ -33,15 +33,18 @@ export default function AIPromptInput() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // État pour le drag de la fenêtre
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  // État pour le drag et le redimensionnement de la fenêtre
+  const [position, setPosition] = useState({ x: window.innerWidth - 400, y: 100 });
+  const [size, setSize] = useState({ width: 384, height: 600 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const windowRef = useRef<HTMLDivElement>(null);
   
-  // Charger la position sauvegardée au montage
+  // Charger la position et taille sauvegardées au montage
   useEffect(() => {
     const savedPosition = localStorage.getItem('aiWindowPosition');
+    const savedSize = localStorage.getItem('aiWindowSize');
     if (savedPosition) {
       try {
         const { x, y } = JSON.parse(savedPosition);
@@ -50,36 +53,63 @@ export default function AIPromptInput() {
         // Ignorer si le parsing échoue
       }
     }
+    if (savedSize) {
+      try {
+        const { width, height } = JSON.parse(savedSize);
+        setSize({ width, height });
+      } catch (e) {
+        // Ignorer si le parsing échoue
+      }
+    }
   }, []);
   
-  // Sauvegarder la position quand elle change
+  // Sauvegarder la position et taille quand elles changent
   useEffect(() => {
-    if (position.x !== 0 || position.y !== 0) {
-      localStorage.setItem('aiWindowPosition', JSON.stringify(position));
-    }
+    localStorage.setItem('aiWindowPosition', JSON.stringify(position));
   }, [position]);
+  
+  useEffect(() => {
+    localStorage.setItem('aiWindowSize', JSON.stringify(size));
+  }, [size]);
   
   // Gérer le drag de la fenêtre
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (windowRef.current && isExpanded) {
+    if (windowRef.current && isExpanded && !isResizing) {
       setIsDragging(true);
       const rect = windowRef.current.getBoundingClientRect();
       setDragStart({
-        x: e.clientX - rect.left - position.x,
-        y: e.clientY - rect.top - position.y
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+    }
+  };
+  
+  // Gérer le redimensionnement
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    const rect = windowRef.current?.getBoundingClientRect();
+    if (rect) {
+      setDragStart({
+        x: e.clientX - rect.width,
+        y: e.clientY - rect.height
       });
     }
   };
   
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging && isExpanded) {
+      if (isResizing && windowRef.current) {
+        const newWidth = Math.max(300, Math.min(1200, e.clientX - position.x + dragStart.x));
+        const newHeight = Math.max(400, Math.min(window.innerHeight - position.y - 20, e.clientY - position.y + dragStart.y));
+        setSize({ width: newWidth, height: newHeight });
+      } else if (isDragging && isExpanded) {
         const newX = e.clientX - dragStart.x;
         const newY = e.clientY - dragStart.y;
         
         // Limiter la position dans les bounds de la fenêtre
-        const maxX = window.innerWidth - (windowRef.current?.offsetWidth || 384);
-        const maxY = window.innerHeight - (windowRef.current?.offsetHeight || 600);
+        const maxX = window.innerWidth - size.width;
+        const maxY = window.innerHeight - size.height;
         
         setPosition({
           x: Math.max(0, Math.min(newX, maxX)),
@@ -90,9 +120,10 @@ export default function AIPromptInput() {
     
     const handleMouseUp = () => {
       setIsDragging(false);
+      setIsResizing(false);
     };
     
-    if (isDragging) {
+    if (isDragging || isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       return () => {
@@ -100,7 +131,7 @@ export default function AIPromptInput() {
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, dragStart, isExpanded]);
+  }, [isDragging, isResizing, dragStart, isExpanded, position, size]);
   
   const { token } = useAuthStore();
   const {
@@ -1474,12 +1505,12 @@ export default function AIPromptInput() {
       {/* Panneau de chat */}
       <div 
         ref={windowRef}
-        className="fixed w-96 bg-[#1E293B] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50"
+        className="fixed bg-[#1E293B] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col"
         style={{
-          right: position.x === 0 ? '1rem' : 'auto',
-          top: position.y === 0 ? '4rem' : 'auto',
-          left: position.x !== 0 ? `${position.x}px` : 'auto',
-          transform: position.y !== 0 ? `translateY(${position.y}px)` : 'none',
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          width: `${size.width}px`,
+          height: `${size.height}px`,
           cursor: isDragging ? 'grabbing' : 'default'
         }}
       >
@@ -1531,7 +1562,7 @@ export default function AIPromptInput() {
         )}
         
         {/* Messages */}
-        <div className="h-64 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
           {messages.length === 0 && (
             <div className="text-center text-slate-500 text-sm py-8">
               <div className="mx-auto mb-3"><MuiIcon name="Sparkles" size={32} className="text-slate-600" /></div>
@@ -1603,8 +1634,17 @@ export default function AIPromptInput() {
           </div>
         )}
         
+        {/* Zone de redimensionnement */}
+        <div 
+          onMouseDown={handleResizeStart}
+          className="h-2 cursor-nwse-resize bg-slate-700 hover:bg-slate-500 transition-colors flex-shrink-0 relative group"
+          title="Redimensionner la fenêtre"
+        >
+          <div className="absolute right-2 bottom-0 w-3 h-3 border-r-2 border-b-2 border-slate-500 group-hover:border-slate-300 transition-colors" />
+        </div>
+        
         {/* Input */}
-        <form onSubmit={handleSubmit} className="p-3 border-t border-slate-700">
+        <form onSubmit={handleSubmit} className="p-3 border-t border-slate-700 flex-shrink-0">
           <div className="flex items-center gap-2">
             {/* Bouton upload fichier */}
             <input

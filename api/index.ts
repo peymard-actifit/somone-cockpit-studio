@@ -2457,19 +2457,25 @@ INSTRUCTIONS IMPORTANTES:
    - Utilise addSubElements avec un tableau de noms pour créer plusieurs sous-éléments d'un coup
    - Tu peux combiner plusieurs actions différentes dans le même tableau "actions"
    - Exemple : créer un domaine, puis plusieurs catégories, puis plusieurs éléments dans chaque catégorie, tout en une seule réponse
-5. Utilise les IDs existants quand disponibles, sinon utilise les noms
-6. OPÉRATIONS MULTIPLES: Si l'utilisateur demande de créer un cockpit complet, n'hésite pas à créer :
+5. CRÉATION SÉQUENTIELLE IMPORTANTE: 
+   - Les actions sont exécutées SÉQUENTIELLEMENT dans l'ordre du tableau
+   - Quand tu crées une catégorie avec addCategory, tu peux IMMÉDIATEMENT utiliser son NOM dans les actions suivantes avec addElement ou addElements
+   - Exemple: [{"type":"addCategory","params":{"name":"Production","domainId":"..."}}, {"type":"addElements","params":{"categoryName":"Production","names":["Élément1","Élément2"]}}]
+   - Même principe pour sous-catégories et sous-éléments : utilise le NOM de la sous-catégorie créée dans addSubElement/addSubElements
+   - Les IDs sont automatiquement résolus depuis les noms dans l'ordre d'exécution
+6. Utilise les IDs existants quand disponibles, sinon utilise les NOMS (qui seront résolus automatiquement)
+7. OPÉRATIONS MULTIPLES: Si l'utilisateur demande de créer un cockpit complet, n'hésite pas à créer :
    - Plusieurs domaines (max 6)
-   - Plusieurs catégories par domaine
-   - Plusieurs éléments par catégorie
-   - Plusieurs sous-catégories par élément
-   - Plusieurs sous-éléments par sous-catégorie
+   - Plusieurs catégories par domaine (en utilisant domainName si nécessaire)
+   - Plusieurs éléments par catégorie (en utilisant categoryName, les IDs sont résolus automatiquement)
+   - Plusieurs sous-catégories par élément (en utilisant elementName si nécessaire)
+   - Plusieurs sous-éléments par sous-catégorie (en utilisant subCategoryName, les IDs sont résolus automatiquement)
    - Des sources de données et calculs associés
    Tout cela peut être fait en une seule réponse avec un grand tableau d'actions
-7. IMPORTANT: Retourne TOUJOURS les actions dans un bloc JSON avec backticks ou directement comme objet JSON valide
-8. PAS DE LIMITE: Tu peux retourner autant d'actions que nécessaire (50, 100, 200+ actions si nécessaire)
-9. EFFICACITÉ: Privilégie les actions groupées plutôt que plusieurs réponses séquentielles
-10. STRUCTURE COMPLÈTE: Quand on te demande de créer un cockpit, crée une structure complète et fonctionnelle avec tous les éléments nécessaires
+8. IMPORTANT: Retourne TOUJOURS les actions dans un bloc JSON avec backticks ou directement comme objet JSON valide
+9. PAS DE LIMITE: Tu peux retourner autant d'actions que nécessaire (50, 100, 200+ actions si nécessaire)
+10. EFFICACITÉ: Privilégie les actions groupées plutôt que plusieurs réponses séquentielles
+11. STRUCTURE COMPLÈTE: Quand on te demande de créer un cockpit, crée une structure complète et fonctionnelle avec tous les éléments nécessaires
 
 ANALYSE D'IMAGES ET OCR:
 - Si une image est attachée, analyse-la visuellement
