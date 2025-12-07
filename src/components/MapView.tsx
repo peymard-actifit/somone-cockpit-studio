@@ -1239,13 +1239,13 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                       }}
                       className="flex items-center justify-center bg-white rounded-full hover:bg-gray-50 hover:scale-110 transition-all shadow-lg border border-[#E2E8F0]"
                       style={{
-                        padding: '2px',
-                        width: '18px',
-                        height: '18px',
+                        padding: '1px',
+                        width: '9px',
+                        height: '9px',
                       }}
                       title="Cloner"
                     >
-                      <MuiIcon name="CopyIcon" size={12} className="text-[#1E3A5F]" />
+                      <MuiIcon name="CopyIcon" size={6} className="text-[#1E3A5F]" />
                     </button>
                   </div>
                 )}
