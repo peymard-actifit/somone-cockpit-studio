@@ -456,7 +456,18 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               {/* Helper pour vérifier si une image existe */}
               {(() => {
                 const hasImage = (bgImageUrl && bgImageUrl.trim() !== '') || (domain.backgroundImage && domain.backgroundImage.trim() !== '');
-                if (!hasImage) return null;
+                console.log('[DomainView] Modal slider debug:', {
+                  bgImageUrlExists: !!(bgImageUrl && bgImageUrl.trim() !== ''),
+                  domainImageExists: !!(domain.backgroundImage && domain.backgroundImage.trim() !== ''),
+                  hasImage,
+                  bgMode,
+                  bgDarkness
+                });
+                if (!hasImage) {
+                  console.log('[DomainView] Slider caché: aucune image');
+                  return null;
+                }
+                console.log('[DomainView] Slider visible');
                 
                 const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
                 
