@@ -19,6 +19,109 @@ export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProp
   const [aiStatus, setAiStatus] = useState<{ configured: boolean; model: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // État pour le drag et le redimensionnement de la fenêtre
+  const [position, setPosition] = useState({ x: window.innerWidth - 400, y: 100 });
+  const [size, setSize] = useState({ width: 384, height: 600 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const windowRef = useRef<HTMLDivElement>(null);
+  
+  // Charger la position et taille sauvegardées au montage
+  useEffect(() => {
+    const savedPosition = localStorage.getItem('publicAIWindowPosition');
+    const savedSize = localStorage.getItem('publicAIWindowSize');
+    if (savedPosition) {
+      try {
+        const { x, y } = JSON.parse(savedPosition);
+        setPosition({ x, y });
+      } catch (e) {
+        // Ignorer si le parsing échoue
+      }
+    }
+    if (savedSize) {
+      try {
+        const { width, height } = JSON.parse(savedSize);
+        setSize({ width, height });
+      } catch (e) {
+        // Ignorer si le parsing échoue
+      }
+    } else {
+      // Position par défaut si pas de sauvegarde
+      setPosition({ x: window.innerWidth - 400, y: 100 });
+    }
+  }, []);
+  
+  // Sauvegarder la position et taille quand elles changent
+  useEffect(() => {
+    localStorage.setItem('publicAIWindowPosition', JSON.stringify(position));
+  }, [position]);
+  
+  useEffect(() => {
+    localStorage.setItem('publicAIWindowSize', JSON.stringify(size));
+  }, [size]);
+  
+  // Gérer le drag de la fenêtre
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (windowRef.current && isExpanded && !isResizing) {
+      setIsDragging(true);
+      const rect = windowRef.current.getBoundingClientRect();
+      setDragStart({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+    }
+  };
+  
+  // Gérer le redimensionnement
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    const rect = windowRef.current?.getBoundingClientRect();
+    if (rect) {
+      setDragStart({
+        x: e.clientX - rect.width,
+        y: e.clientY - rect.height
+      });
+    }
+  };
+  
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizing && windowRef.current) {
+        const newWidth = Math.max(300, Math.min(1200, e.clientX - position.x + dragStart.x));
+        const newHeight = Math.max(400, Math.min(window.innerHeight - position.y - 20, e.clientY - position.y + dragStart.y));
+        setSize({ width: newWidth, height: newHeight });
+      } else if (isDragging && isExpanded) {
+        const newX = e.clientX - dragStart.x;
+        const newY = e.clientY - dragStart.y;
+        
+        // Limiter la position dans les bounds de la fenêtre
+        const maxX = window.innerWidth - size.width;
+        const maxY = window.innerHeight - size.height;
+        
+        setPosition({
+          x: Math.max(0, Math.min(newX, maxX)),
+          y: Math.max(0, Math.min(newY, maxY))
+        });
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      setIsResizing(false);
+    };
+    
+    if (isDragging || isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, isResizing, dragStart, isExpanded, position, size]);
 
   // Vérifier le statut de l'API OpenAI au montage
   useEffect(() => {
@@ -116,14 +219,27 @@ export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProp
         </button>
       ) : (
         <>
-          {/* Panneau de chat */}
-          <div className="absolute right-0 top-full mt-2 w-96 bg-[#1E293B] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
-            {/* Header */}
-            <div className={`flex items-center justify-between px-4 py-3 ${
-              isConfigured 
-                ? 'bg-gradient-to-r from-violet-600 to-purple-600'
-                : 'bg-slate-700'
-            }`}>
+          {/* Panneau de chat - déplaçable et redimensionnable */}
+          <div 
+            ref={windowRef}
+            className="fixed bg-[#1E293B] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col"
+            style={{
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              width: `${size.width}px`,
+              height: `${size.height}px`,
+              cursor: isDragging ? 'grabbing' : 'default'
+            }}
+          >
+            {/* Header - zone de drag */}
+            <div 
+              onMouseDown={handleMouseDown}
+              className={`flex items-center justify-between px-4 py-3 cursor-grab active:cursor-grabbing select-none ${
+                isConfigured 
+                  ? 'bg-gradient-to-r from-violet-600 to-purple-600'
+                  : 'bg-slate-700'
+              }`}
+            >
               <div className="flex items-center gap-2">
                 <MuiIcon name="Sparkles" size={20} className="text-white" />
                 <span className="font-semibold text-white">Assistant IA</span>
@@ -164,7 +280,7 @@ export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProp
             )}
 
             {/* Messages */}
-            <div className="h-64 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 && (
                 <div className="text-center text-slate-500 text-sm py-8">
                   <div className="mx-auto mb-3"><MuiIcon name="Sparkles" size={32} className="text-slate-600" /></div>
@@ -207,7 +323,7 @@ export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProp
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSubmit} className="p-3 border-t border-slate-700">
+            <form onSubmit={handleSubmit} className="p-3 border-t border-slate-700 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <input
                   ref={inputRef}
@@ -227,6 +343,15 @@ export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProp
                 </button>
               </div>
             </form>
+            
+            {/* Resize handle */}
+            <div 
+              onMouseDown={handleResizeStart}
+              className="h-2 cursor-nwse-resize bg-slate-700 hover:bg-slate-500 transition-colors flex-shrink-0 relative group"
+              title="Redimensionner la fenêtre"
+            >
+              <div className="absolute right-2 bottom-0 w-3 h-3 border-r-2 border-b-2 border-slate-500 group-hover:border-slate-300 transition-colors" />
+            </div>
           </div>
           
           {/* Bouton quand ouvert */}
