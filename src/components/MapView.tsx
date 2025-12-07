@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { Domain, TileStatus, MapBounds, GpsCoords, MapElement } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
@@ -96,6 +97,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; pointId: string; isCluster: boolean } | null>(null);
   
   // Formulaire édition point supprimé - l'édition se fait maintenant via EditorPanel
   
@@ -1029,8 +1031,20 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 key={cluster.id}
                 className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 group cursor-pointer"
                 style={{ left: `${cluster.center.x}%`, top: `${cluster.center.y}%` }}
-                onMouseEnter={() => setHoveredPoint(cluster.id)}
-                onMouseLeave={() => setHoveredPoint(null)}
+                onMouseEnter={(e) => {
+                  setHoveredPoint(cluster.id);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltipPosition({
+                    x: rect.left + rect.width / 2,
+                    y: rect.top - 8,
+                    pointId: cluster.id,
+                    isCluster: true
+                  });
+                }}
+                onMouseLeave={() => {
+                  setHoveredPoint(null);
+                  setTooltipPosition(null);
+                }}
                 onClick={handleClusterClick}
               >
                 {/* Cercle cluster */}
@@ -1047,40 +1061,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   {cluster.count}
                 </div>
                 
-                {/* Tooltip au survol - taille dynamique */}
-                {hoveredPoint === cluster.id && (
-                  <div 
-                    className="absolute bottom-full left-1/2 transform -translate-x-1/2 z-50"
-                    style={{ marginBottom: `${8 / scale}px` }}
-                  >
-                    <div 
-                      className="bg-[#1E3A5F] text-white rounded-lg shadow-lg whitespace-nowrap"
-                      style={{ 
-                        padding: `${6 / scale}px ${10 / scale}px`,
-                        fontSize: `${Math.max(10, 14 / scale)}px`
-                      }}
-                    >
-                      {cluster.count} éléments groupés
-                      <div 
-                        className="text-[#94A3B8]"
-                        style={{ 
-                          fontSize: `${Math.max(8, 11 / scale)}px`,
-                          marginTop: `${3 / scale}px`
-                        }}
-                      >
-                        Cliquez pour zoomer (+100%)
-                      </div>
-                    </div>
-                    <div 
-                      className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-transparent border-r-transparent border-t-[#1E3A5F]"
-                      style={{
-                        borderLeftWidth: `${6 / scale}px`,
-                        borderRightWidth: `${6 / scale}px`,
-                        borderTopWidth: `${8 / scale}px`
-                      }}
-                    />
-                  </div>
-                )}
+                {/* Tooltip rendu via Portal pour être toujours au premier plan */}
               </div>
             );
           })}
@@ -1136,8 +1117,20 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   minWidth: `${dynamicSize * 1.6}px`,
                   minHeight: `${dynamicSize * 1.6}px`,
                 }}
-                onMouseEnter={() => setHoveredPoint(point.id)}
-                onMouseLeave={() => setHoveredPoint(null)}
+                onMouseEnter={(e) => {
+                  setHoveredPoint(point.id);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltipPosition({
+                    x: rect.left + rect.width / 2,
+                    y: rect.top - 8,
+                    pointId: point.id,
+                    isCluster: false
+                  });
+                }}
+                onMouseLeave={() => {
+                  setHoveredPoint(null);
+                  setTooltipPosition(null);
+                }}
                 onMouseDown={(e) => {
                   if (!_readOnly && e.button === 0) {
                     // Ignorer si on clique sur un bouton d'action
@@ -1754,6 +1747,29 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       )}
       
       {/* Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel */}
+      
+      {/* Tooltip au survol - rendu via Portal pour être toujours au premier plan */}
+      {tooltipPosition && createPortal(
+        <div 
+          className="fixed pointer-events-none z-[99999]"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translateX(-50%) translateY(-100%) scale(2.1)',
+            transformOrigin: 'bottom center'
+          }}
+        >
+          <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-2 py-1 whitespace-nowrap">
+            <p className="font-medium text-xs">
+              {tooltipPosition.isCluster 
+                ? `${clusters.find(c => c.id === tooltipPosition.pointId)?.count || 0} éléments groupés`
+                : (domain.mapElements?.find(p => p.id === tooltipPosition.pointId)?.name || 'Point')}
+            </p>
+          </div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-t-[#1E3A5F]" style={{ transform: 'translateX(-50%) scale(1)' }} />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

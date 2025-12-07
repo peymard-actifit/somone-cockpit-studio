@@ -1559,7 +1559,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           style={{
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y}px`,
-            transform: 'translateX(-50%) translateY(-100%) scale(0.7)',
+            transform: 'translateX(-50%) translateY(-100%) scale(2.1)',
             transformOrigin: 'bottom center'
           }}
         >
@@ -1570,7 +1570,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                'Élément'}
             </p>
           </div>
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-t-[#1E3A5F]" style={{ transform: 'translateX(-50%) scale(0.7)' }} />
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-t-[#1E3A5F]" style={{ transform: 'translateX(-50%) scale(1)' }} />
         </div>,
         document.body
       )}
