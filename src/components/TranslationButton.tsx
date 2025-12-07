@@ -861,6 +861,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       
       {showModal && (
         <Modal
+          key={`translation-modal-${hasOriginals}`}
           title="Traduire le cockpit"
           onClose={() => setShowModal(false)}
           onConfirm={handlePreparePreview}
