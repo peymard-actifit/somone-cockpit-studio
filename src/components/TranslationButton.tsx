@@ -759,13 +759,25 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       // Cela permet à l'utilisateur de voir et modifier toutes les traductions
       const finalChanges = Array.from(changesMap.values());
       
-      console.log('[Translation Preview] Changements détectés:', finalChanges.length);
-      finalChanges.forEach(change => {
-        console.log(`  - ${change.path} > ${change.field}: "${change.original}" -> "${change.translated}"`);
-      });
+      console.log('[Translation Preview] Éléments à afficher:', finalChanges.length);
+      console.log('[Translation Preview] Champs actuels extraits:', currentFields.length);
+      console.log('[Translation Preview] Champs traduits extraits:', translatedFields.length);
+      
+      if (finalChanges.length > 0) {
+        finalChanges.slice(0, 5).forEach(change => {
+          console.log(`  - ${change.path} > ${change.field}: "${change.original.substring(0, 30)}..." -> "${change.translated.substring(0, 30)}..."`);
+        });
+        if (finalChanges.length > 5) {
+          console.log(`  ... et ${finalChanges.length - 5} autres éléments`);
+        }
+      } else {
+        console.warn('[Translation Preview] ⚠️ Aucun élément trouvé à traduire !');
+      }
       
       setPreviewChanges(finalChanges);
       setShowModal(false);
+      
+      // Toujours afficher le modal, même s'il n'y a pas d'éléments (pour l'info)
       setShowPreviewModal(true);
     } catch (error: any) {
       console.error('Erreur préparation aperçu:', error);
