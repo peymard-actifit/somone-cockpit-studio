@@ -1985,38 +1985,8 @@ INSTRUCTIONS:
       const data = cockpit.data || { domains: [], zones: [] };
       
       try {
-        // IMPORTANT: Si la langue cible est FR, restaurer les originaux si disponibles
-        // Sinon retourner les données telles quelles (pas de traduction FR -> FR)
-        if (targetLang === 'FR') {
-          console.log(`[Translation] Langue cible = FR, restauration des originaux...`);
-          if (cockpit.data && cockpit.data.originals) {
-            // Restaurer les originaux
-            const originalsCopy = JSON.parse(JSON.stringify(cockpit.data.originals));
-            const savedOriginals = cockpit.data.originals;
-            
-            // Remplacer COMPLÈTEMENT les données par les originaux
-            cockpit.data = JSON.parse(JSON.stringify(originalsCopy));
-            cockpit.data.originals = savedOriginals;
-            cockpit.updatedAt = new Date().toISOString();
-            await saveDb(db);
-            
-            // Préparer les données à retourner (sans le champ originals)
-            const dataToReturn = JSON.parse(JSON.stringify(originalsCopy));
-            if (dataToReturn && dataToReturn.originals) {
-              delete dataToReturn.originals;
-            }
-            console.log(`[Translation] ✅ Originaux restaurés (${dataToReturn.domains?.length || 0} domaines)`);
-            return res.json({ translatedData: dataToReturn });
-          } else {
-            // Pas d'originaux, retourner les données telles quelles
-            console.log(`[Translation] ⚠️ Pas d'originaux sauvegardés, retour des données actuelles telles quelles`);
-            const dataToReturn = JSON.parse(JSON.stringify(data));
-            if (dataToReturn && dataToReturn.originals) {
-              delete dataToReturn.originals;
-            }
-            return res.json({ translatedData: dataToReturn });
-          }
-        }
+        // Le français est maintenant traité comme n'importe quelle autre langue
+        // Pas de traitement spécial : on traduit vers le français via DeepL si nécessaire
         
         // IMPORTANT: Toujours sauvegarder les originaux avant la première traduction
         // Si les originaux n'existent pas, sauvegarder les données actuelles comme originaux

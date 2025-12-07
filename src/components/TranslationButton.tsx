@@ -326,13 +326,29 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
       }
       
+      // Forcer la mise à jour de l'état et recharger les données
       setHasOriginals(true);
-      alert('✅ Version actuelle sauvegardée. Vous pourrez restaurer cette version à tout moment avec le bouton "Restaurer".');
       
       // Recharger le cockpit pour mettre à jour les données
       if (fetchCockpit) {
         await fetchCockpit(cockpitId);
       }
+      
+      // Vérifier à nouveau les originaux pour s'assurer que l'état est synchronisé
+      try {
+        const checkResponse = await fetch(`/api/cockpits/${cockpitId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (checkResponse.ok) {
+          const cockpit = await checkResponse.json();
+          const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
+          setHasOriginals(hasOriginalsValue);
+        }
+      } catch (err) {
+        console.error('Erreur vérification originaux après sauvegarde:', err);
+      }
+      
+      alert('✅ Version actuelle sauvegardée. Le bouton "Restaurer" est maintenant disponible.');
     } catch (error: any) {
       console.error('Erreur sauvegarde originaux:', error);
       alert(`Erreur lors de la sauvegarde : ${error.message || 'Erreur inconnue'}`);
@@ -672,12 +688,6 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
   // Préparer l'aperçu de traduction
   const handlePreparePreview = async () => {
     if (!currentCockpit || !token) return;
-    
-    // Si la langue sélectionnée est FR et qu'on est déjà en français, pas besoin de traduire
-    if (selectedLang === 'FR') {
-      alert('La langue sélectionnée est déjà le français. Sélectionnez une autre langue pour traduire.');
-      return;
-    }
     
     try {
       setIsTranslating(true);
