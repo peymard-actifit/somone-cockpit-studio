@@ -1153,13 +1153,25 @@ ${base64}`;
     
     // Construire le message avec le fichier attaché si présent
     let fullMessage = userMessage;
+    let hasImage = false;
+    let imageBase64 = '';
+    
     if (attachedFile) {
       const fileName = attachedFile.name.toLowerCase();
-      const isImage = fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || fileName.endsWith('.webp');
+      hasImage = fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || fileName.endsWith('.webp');
       
-      if (isImage) {
-        // Pour les images, inclure directement le base64 dans le message
-        fullMessage = `[IMAGE ATTACHÉE: ${attachedFile.name}]\n\n${attachedFile.content}\n\nQuestion de l'utilisateur: ${userMessage}`;
+      if (hasImage) {
+        // Extraire le base64 de l'image (format: data:image/...;base64,...)
+        const base64Match = attachedFile.content.match(/data:image\/[^;]+;base64,(.+)/);
+        if (base64Match) {
+          imageBase64 = base64Match[1];
+        } else if (attachedFile.content.startsWith('data:')) {
+          imageBase64 = attachedFile.content.split(',')[1];
+        } else {
+          imageBase64 = attachedFile.content;
+        }
+        // Pour les images, préparer un message qui demande l'OCR
+        fullMessage = `[IMAGE ATTACHÉE: ${attachedFile.name}]\n\nAnalyse cette image et fais de l'OCR si elle contient du texte. Extrais toutes les informations pertinentes.\n\nQuestion de l'utilisateur: ${userMessage}`;
       } else {
         // Pour les autres fichiers, utiliser le format texte
         fullMessage = `[FICHIER ATTACHÉ: ${attachedFile.name}]\n\nContenu du fichier:\n\`\`\`\n${attachedFile.content}\n\`\`\`\n\nQuestion de l'utilisateur: ${userMessage}`;
@@ -1176,6 +1188,8 @@ ${base64}`;
         message: fullMessage,
         cockpitContext,
         history, // Envoyer l'historique complet
+        hasImage: hasImage && imageBase64 ? true : false, // Indiquer qu'il y a une image
+        imageBase64: hasImage && imageBase64 ? imageBase64 : undefined, // Envoyer le base64 de l'image si présent
       }),
     });
     

@@ -2339,7 +2339,7 @@ Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`
         return res.status(400).json({ error: 'OpenAI API key not configured' });
       }
       
-      const { message, cockpitContext, history } = req.body;
+      const { message, cockpitContext, history, hasImage, imageBase64 } = req.body;
       
       // Récupérer le prompt système personnalisé depuis la base de données
       const db = await getDb();
@@ -2455,13 +2455,44 @@ INSTRUCTIONS:
 4. Tu peux créer plusieurs éléments en une seule fois avec addElements
 5. Utilise les IDs existants quand disponibles, sinon utilise les noms
 6. Si tu fais plusieurs modifications, liste toutes les actions dans le tableau "actions"
-7. IMPORTANT: Retourne TOUJOURS les actions dans un bloc JSON avec backticks ou directement comme objet JSON valide`;
+7. IMPORTANT: Retourne TOUJOURS les actions dans un bloc JSON avec backticks ou directement comme objet JSON valide
 
-      const messages = [
+ANALYSE D'IMAGES ET OCR:
+- Si une image est attachée, analyse-la visuellement
+- Fais de l'OCR (reconnaissance de caractères) pour extraire tout le texte visible dans l'image
+- Extrais les tableaux, graphiques, diagrammes, et toute information structurée
+- Utilise ces informations extraites pour créer ou modifier des cockpits
+- Tu peux créer des domaines, catégories, éléments basés sur le contenu de l'image`;
+
+      // Construire les messages avec support multi-modal pour les images
+      const messages: any[] = [
         { role: 'system', content: systemPrompt },
         ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
-        { role: 'user', content: message }
       ];
+      
+      // Si une image est attachée, utiliser le format multi-modal
+      if (hasImage && imageBase64) {
+        messages.push({
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: message || 'Analyse cette image et fais de l\'OCR si elle contient du texte. Extrais toutes les informations pertinentes (tableaux, graphiques, texte). Utilise ces informations pour créer ou modifier un cockpit si demandé.'
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${imageBase64}`
+              }
+            }
+          ]
+        });
+      } else {
+        messages.push({ role: 'user', content: message });
+      }
+      
+      // Utiliser gpt-4o-mini qui supporte les images (ou gpt-4o pour meilleure qualité OCR)
+      const model = (hasImage && imageBase64) ? 'gpt-4o-mini' : 'gpt-4o-mini';
       
       try {
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -2471,10 +2502,10 @@ INSTRUCTIONS:
             'Authorization': `Bearer ${OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model,
             messages,
             temperature: 0.7,
-            max_tokens: 2000,
+            max_tokens: 4000, // Plus de tokens pour les analyses d'images et OCR
           }),
         });
         
