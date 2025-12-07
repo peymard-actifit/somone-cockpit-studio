@@ -1378,11 +1378,17 @@ INSTRUCTIONS:
         const sourceLang = 'FR';
         
         // Déterminer l'URL de l'API DeepL (gratuite ou payante)
-        // Si la clé commence par "fx" ou "free", utiliser l'API gratuite
-        const isFreeApi = DEEPL_API_KEY.startsWith('fx') || DEEPL_API_KEY.startsWith('free') || !DEEPL_API_KEY.includes(':');
+        // Format API gratuite : commence par "fx-" ou "free-"
+        // Format API payante : contient ":" ou format UUID
+        const isFreeApi = DEEPL_API_KEY.startsWith('fx-') || DEEPL_API_KEY.startsWith('free-');
+        // Détection UUID pour API payante (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+        const isUuidFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(DEEPL_API_KEY);
+        const isPaidApi = DEEPL_API_KEY.includes(':') || isUuidFormat;
         const apiUrl = isFreeApi 
           ? 'https://api-free.deepl.com/v2/translate'
-          : 'https://api.deepl.com/v2/translate';
+          : isPaidApi
+          ? 'https://api.deepl.com/v2/translate'
+          : 'https://api-free.deepl.com/v2/translate'; // Par défaut, essayer l'API gratuite
         
         const response = await fetch(apiUrl, {
           method: 'POST',
