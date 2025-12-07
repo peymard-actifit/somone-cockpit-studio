@@ -1027,7 +1027,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             // Convertir en pixels dans le conteneur transformé
             const left = imageBounds.x + centerX * imageBounds.width / 100;
             const top = imageBounds.y + centerY * imageBounds.height / 100;
-            const clusterSize = 3 * imageBounds.width / 100; // 3% de l'image en pixels
+            let clusterSize = 3 * imageBounds.width / 100; // 3% de l'image en pixels
+            // Augmenter de 15% si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
+            const clusterSizeMultiplier = (cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal') ? 1.15 : 1.0;
+            clusterSize = clusterSize * clusterSizeMultiplier;
             
             return (
               <div

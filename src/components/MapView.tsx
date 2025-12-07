@@ -1010,10 +1010,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               // Utiliser 3% de la largeur de l'image visible (comme BackgroundView)
               clusterSize = Math.max(20, Math.min(80, imageRect.width * 0.03));
             }
-            // Augmenter de 15% si le statut est mineur, critique ou fatal
-            if (cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal') {
-              clusterSize = clusterSize * 1.15;
-            }
+            // Augmenter de 15% si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
+            const clusterSizeMultiplier = (cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal') ? 1.15 : 1.0;
+            clusterSize = clusterSize * clusterSizeMultiplier;
             
             // Handler pour zoomer sur le cluster
             const handleClusterClick = () => {
