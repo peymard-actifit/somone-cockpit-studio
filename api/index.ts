@@ -2576,12 +2576,39 @@ ANALYSE D'IMAGES ET OCR:
         });
         
         if (!openaiResponse.ok) {
-          const error = await openaiResponse.json();
-          console.error('OpenAI error:', error);
-          return res.status(500).json({ error: 'Erreur OpenAI: ' + (error.error?.message || 'inconnue') });
+          let errorMessage = 'Erreur OpenAI inconnue';
+          try {
+            const errorText = await openaiResponse.text();
+            console.error('[AI] OpenAI error response (raw):', errorText.substring(0, 500));
+            
+            try {
+              const error = JSON.parse(errorText);
+              errorMessage = error.error?.message || error.message || errorText.substring(0, 200);
+            } catch (parseError) {
+              // Si ce n'est pas du JSON, utiliser le texte brut
+              errorMessage = errorText.substring(0, 200) || 'Erreur OpenAI inconnue';
+            }
+          } catch (textError) {
+            console.error('[AI] Impossible de lire la réponse d\'erreur OpenAI:', textError);
+            errorMessage = `Erreur HTTP ${openaiResponse.status}: ${openaiResponse.statusText}`;
+          }
+          
+          console.error('[AI] Erreur OpenAI finale:', errorMessage);
+          return res.status(500).json({ error: 'Erreur OpenAI: ' + errorMessage });
         }
         
-        const data = await openaiResponse.json();
+        let data;
+        let responseText;
+        try {
+          responseText = await openaiResponse.text();
+          console.log('[AI] OpenAI response length:', responseText.length);
+          data = JSON.parse(responseText);
+        } catch (parseError: any) {
+          console.error('[AI] Erreur parsing réponse OpenAI:', parseError?.message);
+          console.error('[AI] Réponse (premiers 500 caractères):', responseText?.substring(0, 500));
+          return res.status(500).json({ error: 'Erreur: Réponse OpenAI invalide (non-JSON). Vérifiez les logs serveur.' });
+        }
+        
         const assistantMessage = data.choices[0]?.message?.content || '';
         
         // Essayer d'extraire les actions du message avec retry et parsing robuste
