@@ -1010,9 +1010,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               // Utiliser 3% de la largeur de l'image visible (comme BackgroundView)
               clusterSize = Math.max(20, Math.min(80, imageRect.width * 0.03));
             }
-            // Augmenter de 15% si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
+            // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
             const clusterSizeMultiplier = (cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal') ? 1.15 : 1.0;
-            clusterSize = clusterSize * clusterSizeMultiplier;
+            clusterSize = clusterSize * clusterSizeMultiplier; // Appliqué à width ET height (cercle)
             
             // Handler pour zoomer sur le cluster
             const handleClusterClick = () => {
@@ -1115,9 +1115,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               const imageRectForPoint = imageContainerForPoint.getBoundingClientRect();
               // Utiliser environ 2% de la largeur de l'image visible (taille raisonnable pour un point, équivalent à BackgroundView)
               const baseSize = Math.max(16, Math.min(48, imageRectForPoint.width * 0.02));
-              // Augmenter de 15% si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
+              // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
               const sizeMultiplier = (point.status === 'mineur' || point.status === 'critique' || point.status === 'fatal') ? 1.15 : 1.0;
-              dynamicSize = baseSize * sizeMultiplier;
+              dynamicSize = baseSize * sizeMultiplier; // Appliqué à width ET height (cercle)
               // Taille d'icône proportionnelle à la taille du point (comme BackgroundView qui utilise 8x la taille)
               iconSize = Math.max(12, Math.round(dynamicSize * 0.5));
             }

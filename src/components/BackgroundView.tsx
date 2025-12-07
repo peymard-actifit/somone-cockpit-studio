@@ -1028,9 +1028,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             const left = imageBounds.x + centerX * imageBounds.width / 100;
             const top = imageBounds.y + centerY * imageBounds.height / 100;
             let clusterSize = 3 * imageBounds.width / 100; // 3% de l'image en pixels
-            // Augmenter de 15% si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
+            // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
             const clusterSizeMultiplier = (cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal') ? 1.15 : 1.0;
-            clusterSize = clusterSize * clusterSizeMultiplier;
+            clusterSize = clusterSize * clusterSizeMultiplier; // Appliqué à width ET height (cercle)
             
             return (
               <div
@@ -1094,11 +1094,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             let width = (element.width || 0) * imageBounds.width / 100;
             let height = (element.height || 0) * imageBounds.height / 100;
             
-            // Augmenter de 15% si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
+            // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
             const effectiveStatus = getEffectiveStatus(element);
             const sizeMultiplier = (effectiveStatus === 'mineur' || effectiveStatus === 'critique' || effectiveStatus === 'fatal') ? 1.15 : 1.0;
-            width = width * sizeMultiplier;
-            height = height * sizeMultiplier;
+            width = width * sizeMultiplier;   // Largeur augmentée de 15%
+            height = height * sizeMultiplier; // Hauteur augmentée de 15%
             
             // Ajuster la position pour garder le centre fixe (l'élément grandit de manière centrée)
             const centerX = (element.positionX || 0) + (element.width || 0) / 2;
