@@ -393,6 +393,8 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       }
       
       // Ne pas fermer le modal, ne pas afficher d'alert
+      // Le modal reste ouvert pour permettre de continuer à travailler
+      console.log('[Translation] ✅ Figement terminé, modal reste ouvert');
     } catch (error: any) {
       console.error('Erreur sauvegarde originaux:', error);
       alert(`Erreur lors de la sauvegarde : ${error.message || 'Erreur inconnue'}`);
@@ -400,6 +402,36 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       setIsSavingOriginals(false);
     }
   };
+  
+  // Surveiller currentCockpit pour mettre à jour hasOriginals quand le cockpit change
+  useEffect(() => {
+    if (currentCockpit && (currentCockpit as any).originals) {
+      const hasOriginalsValue = !!(currentCockpit as any).originals;
+      console.log('[Translation] Originaux détectés dans currentCockpit:', hasOriginalsValue);
+      if (hasOriginalsValue !== hasOriginals) {
+        setHasOriginals(hasOriginalsValue);
+      }
+    } else if (currentCockpit && !(currentCockpit as any).originals && hasOriginals) {
+      // Si currentCockpit n'a pas d'originaux mais hasOriginals est true, vérifier via l'API
+      console.log('[Translation] currentCockpit n\'a pas d\'originaux, vérification via API...');
+      const checkOriginals = async () => {
+        if (!cockpitId || !token) return;
+        try {
+          const response = await fetch(`/api/cockpits/${cockpitId}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const cockpit = await response.json();
+            const hasOriginalsValue = !!(cockpit.originals);
+            setHasOriginals(hasOriginalsValue);
+          }
+        } catch (err) {
+          console.error('[Translation] Erreur vérification originaux depuis currentCockpit:', err);
+        }
+      };
+      checkOriginals();
+    }
+  }, [currentCockpit, cockpitId, token, hasOriginals]);
 
   // Restaurer la version sauvegardée
   const handleRestore = async () => {
