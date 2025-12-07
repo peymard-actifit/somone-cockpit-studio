@@ -89,11 +89,49 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     e.width !== undefined && e.height !== undefined
   );
   
-  // Reset zoom et position quand l'image change
+  // Sauvegarder le zoom et la position dans localStorage
   useEffect(() => {
+    const viewStateKey = `backgroundView-${domain.id}`;
+    const savedState = localStorage.getItem(viewStateKey);
+    if (savedState) {
+      try {
+        const { scale: savedScale, position: savedPosition } = JSON.parse(savedState);
+        if (typeof savedScale === 'number' && savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number') {
+          setScale(savedScale);
+          setPosition(savedPosition);
+        }
+      } catch (e) {
+        console.warn('[BackgroundView] Erreur lors de la restauration du zoom/position:', e);
+      }
+    }
+  }, [domain.id]);
+
+  // Sauvegarder le zoom et la position quand ils changent
+  useEffect(() => {
+    const viewStateKey = `backgroundView-${domain.id}`;
+    localStorage.setItem(viewStateKey, JSON.stringify({ scale, position }));
+  }, [scale, position, domain.id]);
+
+  // Reset zoom et position quand l'image change (mais restaurer depuis localStorage si disponible)
+  useEffect(() => {
+    const viewStateKey = `backgroundView-${domain.id}`;
+    const savedState = localStorage.getItem(viewStateKey);
+    if (savedState) {
+      try {
+        const { scale: savedScale, position: savedPosition } = JSON.parse(savedState);
+        if (typeof savedScale === 'number' && savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number') {
+          setScale(savedScale);
+          setPosition(savedPosition);
+          return; // Ne pas réinitialiser si on a une sauvegarde
+        }
+      } catch (e) {
+        // En cas d'erreur, réinitialiser normalement
+      }
+    }
+    // Réinitialiser seulement si pas de sauvegarde
     setScale(1);
     setPosition({ x: 0, y: 0 });
-  }, [domain.backgroundImage]);
+  }, [domain.backgroundImage, domain.id]);
   
   // Fonction de validation d'image base64
   const isValidBase64Image = (str: string | undefined | null): boolean => {
