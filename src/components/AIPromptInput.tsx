@@ -1345,8 +1345,18 @@ export default function AIPromptInput() {
         addMessage('assistant', response);
       }
     } catch (error) {
-      console.error('Erreur IA:', error);
-      addMessage('assistant', `❌ Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      console.error('[AIPromptInput] Erreur complète:', error);
+      let errorMessage = 'Erreur inconnue';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Si le message contient "Unexpected token", c'est une erreur de parsing JSON
+        if (errorMessage.includes('Unexpected token') || errorMessage.includes('is not valid JSON')) {
+          errorMessage = 'Erreur: Réponse serveur invalide. Vérifiez que l\'API OpenAI est correctement configurée et que l\'image est valide.';
+        }
+      }
+      
+      addMessage('assistant', `❌ Erreur: ${errorMessage}`);
     }
     
     setIsLoading(false);
