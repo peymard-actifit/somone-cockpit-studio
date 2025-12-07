@@ -115,6 +115,57 @@ export interface SubCategory {
   subElements: SubElement[];
 }
 
+// Type de source de données
+export type DataSourceType = 
+  | 'excel' 
+  | 'csv' 
+  | 'json' 
+  | 'api' 
+  | 'database' 
+  | 'email' 
+  | 'supervision' 
+  | 'hypervision' 
+  | 'observability' 
+  | 'other';
+
+// Source de données
+export interface DataSource {
+  id: string;
+  subElementId: string;
+  name: string;
+  type: DataSourceType;
+  location?: string; // Emplacement, fichier, URL, connexion
+  connection?: string; // Détails de connexion (pour API, bases de données)
+  fields?: string; // Champs à extraire, feuilles Excel, règles d'extraction
+  description?: string;
+  config?: Record<string, any>; // Configuration additionnelle
+}
+
+// Calcul
+export interface Calculation {
+  id: string;
+  subElementId: string;
+  name: string;
+  description?: string; // Description métier
+  definition: string; // Définition technique (JSON, YAML, DSL)
+  sources: string[]; // IDs des sources utilisées
+  result?: any; // Résultat calculé (pour explicabilité)
+}
+
+// Explication d'un calcul (générée automatiquement)
+export interface CalculationExplanation {
+  calculationId: string;
+  summary: string; // Résumé en langage naturel
+  sourcesUsed: Array<{
+    sourceId: string;
+    sourceName: string;
+    parameters: Record<string, any>;
+    extractedValues?: any;
+  }>;
+  calculationDescription: string; // Description du calcul reformulée
+  result?: any;
+}
+
 // Sous-élément
 export interface SubElement {
   id: string;
@@ -125,6 +176,8 @@ export interface SubElement {
   status: TileStatus;
   order: number;
   alert?: Alert;
+  sources?: DataSource[]; // Sources de données associées
+  calculations?: Calculation[]; // Calculs associés
 }
 
 // Alerte

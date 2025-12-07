@@ -1454,8 +1454,8 @@ INSTRUCTIONS:
         for (const [key, value] of Object.entries(data)) {
           // Liste des champs à traduire (champs textuels de contenu)
           const textFieldsToTranslate = [
-            'name',              // Nom des domaines, catégories, éléments, sous-catégories, sous-éléments, mapElements, zones, templates
-            'description',       // Description des alertes
+            'name',              // Nom des domaines, catégories, éléments, sous-catégories, sous-éléments, mapElements, zones, templates, sources, calculs
+            'description',       // Description des alertes, sources, calculs
             'actions',           // Actions des alertes
             'scrollingBanner',   // Bannière défilante du cockpit
             'unit',              // Unité des éléments et sous-éléments (attention aux symboles comme °C, kW, etc.)
@@ -1464,6 +1464,9 @@ INSTRUCTIONS:
             'zone',              // Nom de zone
             'address',           // Adresse des mapElements
             'templateName',      // Nom du template (domaine)
+            'location',          // Emplacement des sources
+            'connection',        // Connexion des sources
+            'fields',            // Champs des sources (peut contenir du texte descriptif)
           ];
           
           if (textFieldsToTranslate.includes(key) && typeof value === 'string' && value.trim() !== '') {
@@ -1525,6 +1528,11 @@ INSTRUCTIONS:
         'Durée': 'Durée',
         'Ticket': 'Ticket',
         'Actions': 'Actions',
+        'Emplacement': 'Emplacement',
+        'Connexion': 'Connexion',
+        'Champs': 'Champs',
+        'Sources utilisées': 'Sources utilisées',
+        'Définition': 'Définition',
       },
       EN: {
         'ID': 'ID',
@@ -1550,6 +1558,11 @@ INSTRUCTIONS:
         'Durée': 'Duration',
         'Ticket': 'Ticket',
         'Actions': 'Actions',
+        'Emplacement': 'Location',
+        'Connexion': 'Connection',
+        'Champs': 'Fields',
+        'Sources utilisées': 'Sources Used',
+        'Définition': 'Definition',
       },
     };
     
@@ -1566,6 +1579,8 @@ INSTRUCTIONS:
           'Sous-éléments': 'Sous-éléments',
           'Alertes': 'Alertes',
           'Zones': 'Zones',
+          'Sources': 'Sources',
+          'Calculs': 'Calculs',
         },
         EN: {
           'Domaines': 'Domains',
@@ -1575,6 +1590,8 @@ INSTRUCTIONS:
           'Sous-éléments': 'Sub-elements',
           'Alertes': 'Alerts',
           'Zones': 'Zones',
+          'Sources': 'Data Sources',
+          'Calculs': 'Calculations',
         },
       };
       
@@ -1839,6 +1856,86 @@ INSTRUCTIONS:
       const wsZones = XLSX.utils.json_to_sheet(translatedZonesData);
       const translatedZonesSheetName = await translateSheetName('Zones', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsZones, translatedZonesSheetName);
+      
+      // Onglet Sources de données
+      let sourcesData: any[] = [];
+      (dataToExport.domains || []).forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            (e.subCategories || []).forEach((sc: any) => {
+              (sc.subElements || []).forEach((se: any) => {
+                if (se.sources && Array.isArray(se.sources)) {
+                  se.sources.forEach((source: any) => {
+                    sourcesData.push({
+                      'ID': source.id,
+                      'Domaine': d.name,
+                      'Catégorie': c.name,
+                      'Élément': e.name,
+                      'Sous-catégorie': sc.name,
+                      'Sous-élément': se.name,
+                      'Nom': source.name,
+                      'Type': source.type,
+                      'Emplacement': source.location || '',
+                      'Connexion': source.connection || '',
+                      'Champs': source.fields || '',
+                      'Description': source.description || '',
+                    });
+                  });
+                }
+              });
+            });
+          });
+        });
+      });
+      if (sourcesData.length === 0) {
+        sourcesData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Nom': '', 'Type': '', 'Emplacement': '', 'Connexion': '', 'Champs': '', 'Description': '' }];
+      }
+      const translatedSourcesData = await translateObjectsKeys(sourcesData, requestedLang);
+      const wsSources = XLSX.utils.json_to_sheet(translatedSourcesData);
+      const translatedSourcesSheetName = await translateSheetName('Sources', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsSources, translatedSourcesSheetName);
+      
+      // Onglet Calculs
+      let calculationsData: any[] = [];
+      (dataToExport.domains || []).forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            (e.subCategories || []).forEach((sc: any) => {
+              (sc.subElements || []).forEach((se: any) => {
+                if (se.calculations && Array.isArray(se.calculations)) {
+                  se.calculations.forEach((calc: any) => {
+                    // Trouver les noms des sources utilisées
+                    const sourceNames = (se.sources || [])
+                      .filter((s: any) => calc.sources && calc.sources.includes(s.id))
+                      .map((s: any) => s.name)
+                      .join(', ');
+                    
+                    calculationsData.push({
+                      'ID': calc.id,
+                      'Domaine': d.name,
+                      'Catégorie': c.name,
+                      'Élément': e.name,
+                      'Sous-catégorie': sc.name,
+                      'Sous-élément': se.name,
+                      'Nom': calc.name,
+                      'Description': calc.description || '',
+                      'Sources utilisées': sourceNames || '',
+                      'Définition': calc.definition,
+                    });
+                  });
+                }
+              });
+            });
+          });
+        });
+      });
+      if (calculationsData.length === 0) {
+        calculationsData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Nom': '', 'Description': '', 'Sources utilisées': '', 'Définition': '' }];
+      }
+      const translatedCalculationsData = await translateObjectsKeys(calculationsData, requestedLang);
+      const wsCalculations = XLSX.utils.json_to_sheet(translatedCalculationsData);
+      const translatedCalculationsSheetName = await translateSheetName('Calculs', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsCalculations, translatedCalculationsSheetName);
       
       // Générer le buffer Excel
       try {

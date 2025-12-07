@@ -5,6 +5,7 @@ import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import IconPicker, { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
 import ElementTile from './ElementTile';
+import SourcesAndCalculationsPanel from './subelements/SourcesAndCalculationsPanel';
 
 interface EditorPanelProps {
   domain: Domain | undefined;
@@ -311,6 +312,22 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </Section>
         )}
+        
+        {/* Sources et calculs */}
+        <Section 
+          title="Sources et calculs" 
+          iconName="Database" 
+          isOpen={activeSection === 'sources-calculations'}
+          onToggle={() => toggleSection('sources-calculations')}
+        >
+          <SourcesAndCalculationsPanel
+            subElement={selectedSubElement}
+            onUpdate={(updates) => {
+              updateSubElement(selectedSubElement.id, updates);
+              setSelectedSubElement({ ...selectedSubElement, ...updates });
+            }}
+          />
+        </Section>
       </div>
     );
   }
