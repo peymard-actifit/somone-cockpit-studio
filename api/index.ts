@@ -2342,6 +2342,7 @@ Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`
       const { message, cockpitContext, history, hasImage, imageBase64, imageMimeType } = req.body;
       
       // Récupérer le prompt système personnalisé depuis la base de données
+      // IMPORTANT: Ce prompt personnalisé est TOUJOURS la première instruction donnée à l'IA
       const db = await getDb();
       const customSystemPrompt = db.systemPrompt || `Le cockpit a pour vocation de remonter à des directeurs des informations synthétiques fiables avec un code couleur strict :
 - Rouge : service coupé
@@ -2356,7 +2357,10 @@ Le cockpit doit aussi montrer les vraies douleurs des managers :
 
 Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`;
       
+      // Construire le prompt système: PROMPT PERSONNALISÉ EN PREMIER, puis instructions techniques
       const systemPrompt = `${customSystemPrompt}
+
+=== INSTRUCTIONS TECHNIQUES ===
 
 Tu es un assistant IA pour SOMONE Cockpit Studio, une application de création de tableaux de bord visuels.
 
