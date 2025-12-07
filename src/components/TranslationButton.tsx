@@ -134,8 +134,10 @@ const Modal = ({
   showRestoreButton?: boolean;
   onRestore?: () => void;
   isRestoring?: boolean;
-}) => (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+}) => {
+  console.log('[Modal] showRestoreButton =', showRestoreButton);
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 max-w-lg w-full mx-4">
       <div className="p-6 border-b border-slate-700">
         <h2 className="text-xl font-semibold text-white">{title}</h2>
@@ -194,8 +196,9 @@ const Modal = ({
         </div>
       </div>
     </div>
-  </div>
-);
+    </div>
+  );
+};
 
 interface Language {
   code: string;
@@ -327,11 +330,9 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
       }
       
-      // FORCER la mise à jour immédiate : la sauvegarde a réussi, donc on a des originaux
-      console.log('[Translation] Sauvegarde réussie, mise à jour hasOriginals à true');
-      setHasOriginals(true);
+      // Vérifier immédiatement les originaux après la sauvegarde
+      console.log('[Translation] ✅ Sauvegarde réussie, vérification des originaux...');
       
-      // Vérifier immédiatement pour confirmer (mais on a déjà mis à jour l'état)
       try {
         const checkResponse = await fetch(`/api/cockpits/${cockpitId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
@@ -339,15 +340,19 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         if (checkResponse.ok) {
           const cockpit = await checkResponse.json();
           const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
-          console.log('[Translation] Vérification: originaux présents =', hasOriginalsValue);
-          // Mettre à jour à nouveau pour être sûr
-          if (hasOriginalsValue) {
-            setHasOriginals(true);
-          }
+          console.log('[Translation] Vérification API: originaux présents =', hasOriginalsValue);
+          
+          // Toujours mettre à jour avec la valeur de l'API pour être sûr
+          setHasOriginals(hasOriginalsValue);
+        } else {
+          // Si la vérification échoue, on suppose que la sauvegarde a réussi
+          console.log('[Translation] ⚠️ Vérification échouée, on suppose que la sauvegarde a réussi');
+          setHasOriginals(true);
         }
       } catch (err) {
-        console.error('Erreur vérification originaux après sauvegarde:', err);
-        // On garde hasOriginals à true car la sauvegarde a réussi
+        console.error('[Translation] Erreur vérification originaux:', err);
+        // En cas d'erreur, on suppose que la sauvegarde a réussi
+        setHasOriginals(true);
       }
       
       // Recharger le cockpit pour mettre à jour les données (en arrière-plan)
