@@ -111,21 +111,27 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     e.width !== undefined && e.height !== undefined
   );
   
-  // Restaurer l'état sauvegardé quand on change de domaine
+  // Restaurer l'état sauvegardé quand on change de domaine (une seule fois au montage)
   useEffect(() => {
+    // Au premier montage ou changement de domaine, restaurer depuis localStorage
     if (lastDomainIdRef.current !== domain.id) {
-      // Nouveau domaine : charger l'état sauvegardé
       const savedState = loadSavedViewState(domain.id);
       setScale(savedState.scale);
       setPosition(savedState.position);
       lastDomainIdRef.current = domain.id;
       lastBackgroundImageRef.current = domain.backgroundImage;
-    } else if (lastBackgroundImageRef.current !== domain.backgroundImage) {
-      // L'image a changé : réinitialiser seulement si c'est vraiment un nouveau changement d'image
+    }
+    // Si l'image change réellement (pas juste au remontage), réinitialiser
+    // Mais seulement si c'est un vrai changement, pas juste un remontage du composant
+    else if (lastBackgroundImageRef.current !== domain.backgroundImage && 
+             lastBackgroundImageRef.current !== undefined && 
+             domain.backgroundImage !== undefined) {
+      // C'est un vrai changement d'image (utilisateur a changé l'image), réinitialiser
       setScale(1);
       setPosition({ x: 0, y: 0 });
       lastBackgroundImageRef.current = domain.backgroundImage;
     }
+    // Sinon, on ne fait rien - on garde l'état actuel même si le composant se remonte
   }, [domain.id, domain.backgroundImage]);
 
   // Sauvegarder le zoom et la position quand ils changent
