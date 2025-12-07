@@ -28,7 +28,6 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   const [showBgConfigModal, setShowBgConfigModal] = useState(false);
   const [bgImageUrl, setBgImageUrl] = useState(domain.backgroundImage || '');
   const [bgMode, setBgMode] = useState<BackgroundMode>(domain.backgroundMode || 'behind');
-  // Défaut : 60% pour "behind" (voile), 40% pour "overlay" (opacité image)
   const getDefaultDarkness = (mode: BackgroundMode) => mode === 'overlay' ? 40 : 60;
   const [bgDarkness, setBgDarkness] = useState<number>(
     domain.backgroundDarkness ?? getDefaultDarkness(domain.backgroundMode || 'behind')
@@ -40,7 +39,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
     const newMode = domain.backgroundMode || 'behind';
     setBgMode(newMode);
     setBgDarkness(domain.backgroundDarkness ?? getDefaultDarkness(newMode));
-  }, [domain.backgroundImage, domain.backgroundMode, domain.backgroundDarkness]);
+  }, [domain.id, domain.backgroundImage, domain.backgroundMode, domain.backgroundDarkness]);
   
   // Gérer l'upload de fichier
   const handleBgFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,10 +64,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
       backgroundDarkness: darknessToSave
     });
     console.log('[DomainView] SAUVEGARDE EFFECTUÉE');
-    // Ne pas fermer immédiatement pour voir les changements
-    setTimeout(() => {
-      setShowBgConfigModal(false);
-    }, 500);
+    setShowBgConfigModal(false);
   };
   
   // Supprimer l'image de fond
@@ -76,7 +72,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
     setBgImageUrl('');
     updateDomain(domain.id, { 
       backgroundImage: undefined,
-      backgroundMode: undefined 
+      backgroundMode: undefined,
+      backgroundDarkness: undefined
     });
     setShowBgConfigModal(false);
   };
@@ -119,55 +116,50 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   const horizontalCategories = domain.categories.filter(c => c.orientation === 'horizontal');
   const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
   
+  // Calculer l'opacité pour l'affichage
+  const overlayOpacity = domain.backgroundDarkness !== undefined && domain.backgroundDarkness !== null 
+    ? domain.backgroundDarkness / 100 
+    : (domain.backgroundMode === 'overlay' ? 0.4 : 0.6);
+  const veilOpacity = domain.backgroundDarkness !== undefined && domain.backgroundDarkness !== null 
+    ? domain.backgroundDarkness / 100 
+    : 0.6;
+  
   return (
     <div 
       className="min-h-full bg-[#F5F7FA] relative"
     >
-      {/* Image de fond en mode BEHIND (en dessous) - sticky pour rester dans la zone visible */}
+      {/* Image de fond en mode BEHIND (en dessous) */}
       {domain.backgroundImage && (!domain.backgroundMode || domain.backgroundMode === 'behind') && (
         <div className="sticky top-0 h-0 z-0">
           <div className="h-[calc(100vh-120px)] overflow-hidden pointer-events-none">
-          <img 
-            src={domain.backgroundImage}
-            alt=""
-            className="w-full h-full object-contain"
-          />
-          {/* Voile semi-transparent pour la lisibilité */}
-          {(() => {
-            const opacity = (domain.backgroundDarkness !== undefined && domain.backgroundDarkness !== null ? domain.backgroundDarkness : 60) / 100;
-            console.log('[DomainView] AFFICHAGE BEHIND - Opacity:', opacity, 'Darkness:', domain.backgroundDarkness);
-            return (
-              <div 
-                className="absolute inset-0 bg-[#F5F7FA]" 
-                style={{ opacity }}
-              />
-            );
-          })()}
+            <img 
+              src={domain.backgroundImage}
+              alt=""
+              className="w-full h-full object-contain"
+            />
+            <div 
+              className="absolute inset-0 bg-[#F5F7FA]" 
+              style={{ opacity: veilOpacity }}
+            />
           </div>
         </div>
       )}
       
-      {/* Image de fond en mode OVERLAY (au-dessus, sans gêner les clics) - sticky */}
+      {/* Image de fond en mode OVERLAY (au-dessus) */}
       {domain.backgroundImage && domain.backgroundMode === 'overlay' && (
         <div className="sticky top-0 h-0 z-40">
           <div className="h-[calc(100vh-120px)] overflow-hidden pointer-events-none">
-          {(() => {
-            const opacity = (domain.backgroundDarkness !== undefined && domain.backgroundDarkness !== null ? domain.backgroundDarkness : 40) / 100;
-            console.log('[DomainView] AFFICHAGE OVERLAY - Opacity:', opacity, 'Darkness:', domain.backgroundDarkness);
-            return (
-              <img 
-                src={domain.backgroundImage}
-                alt=""
-                className="w-full h-full object-contain"
-                style={{ opacity }}
-              />
-            );
-          })()}
+            <img 
+              src={domain.backgroundImage}
+              alt=""
+              className="w-full h-full object-contain"
+              style={{ opacity: overlayOpacity }}
+            />
           </div>
         </div>
       )}
       
-      {/* Bouton configuration image de fond (masqué en mode lecture seule) */}
+      {/* Bouton configuration image de fond */}
       {!readOnly && (
         <button
           onClick={() => setShowBgConfigModal(true)}
@@ -179,9 +171,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
         </button>
       )}
       
-      {/* Contenu principal (z-20 pour être au-dessus de l'overlay) */}
+      {/* Contenu principal */}
       <div className="relative z-20 p-8">
-        {/* Titre du domaine - Style PDF SOMONE mode clair */}
+        {/* Titre du domaine */}
         <div className="mb-10">
           <h2 className="text-4xl font-bold text-[#1E3A5F] tracking-tight">{domain.name}</h2>
           {domain.templateName && (
@@ -191,10 +183,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
           )}
         </div>
       
-      {/* Catégories VERTICALES : affichées côte à côte en colonnes */}
+      {/* Catégories VERTICALES */}
       {verticalCategories.length > 0 && (
         <div className="mb-10 bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-          {/* En-têtes des catégories verticales - en ligne */}
           <div className="flex border-b border-[#E2E8F0]">
             {verticalCategories.map((category) => (
               <div 
@@ -237,10 +228,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
             ))}
           </div>
           
-          {/* Tuiles des catégories verticales - en colonnes */}
           <div className="flex">
             {verticalCategories.map((category) => {
-              // Gestion du drag and drop pour cette catégorie
               const handleDragOver = (e: React.DragEvent) => {
                 if (readOnly) return;
                 e.preventDefault();
@@ -298,7 +287,6 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       />
                     ))}
                   
-                  {/* Bouton ajouter élément */}
                   {!readOnly && addingElementToCategory !== category.id && (
                     <button
                       onClick={() => setAddingElementToCategory(category.id)}
@@ -352,14 +340,14 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
         </div>
       )}
       
-      {/* Catégories HORIZONTALES : affichées de manière classique */}
+      {/* Catégories HORIZONTALES */}
       <div className="space-y-10">
         {horizontalCategories.map((category) => (
           <CategorySection key={category.id} category={category} onElementClick={onElementClick} readOnly={readOnly} />
         ))}
       </div>
       
-      {/* Bouton ajouter catégorie (masqué en mode lecture seule) */}
+      {/* Bouton ajouter catégorie */}
       {!readOnly && (!isAddingCategory ? (
         <button
           onClick={() => setIsAddingCategory(true)}
@@ -427,33 +415,27 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
         </div>
       ))}
       
-        {/* Légende des couleurs - Style PDF SOMONE */}
-        <div className="mt-16 flex items-center justify-start gap-8 flex-wrap py-4">
-          <LegendItem color="#8B5CF6" label="Fatal" />
-          <LegendItem color="#E57373" label="Critique" />
-          <LegendItem color="#FFB74D" label="Mineur" />
-          <LegendItem color="#9CCC65" label="OK" />
-          <LegendItem color="#9E9E9E" label="Déconnecté" />
-        </div>
+      {/* Légende des couleurs */}
+      <div className="mt-16 flex items-center justify-start gap-8 flex-wrap py-4">
+        <LegendItem color="#8B5CF6" label="Fatal" />
+        <LegendItem color="#E57373" label="Critique" />
+        <LegendItem color="#FFB74D" label="Mineur" />
+        <LegendItem color="#9CCC65" label="OK" />
+        <LegendItem color="#9E9E9E" label="Déconnecté" />
+      </div>
       </div>
       
       {/* Modal Configuration Image de Fond */}
       {showBgConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowBgConfigModal(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] bg-[#F5F7FA] flex-shrink-0">
               <h3 className="text-lg font-semibold text-[#1E3A5F]">Image de fond</h3>
               <button onClick={() => setShowBgConfigModal(false)} className="p-1 text-[#94A3B8] hover:text-[#1E3A5F]">
                 <MuiIcon name="X" size={20} />
               </button>
             </div>
-            <div className="p-6 space-y-6 overflow-y-auto max-h-[90vh]">
-              {/* DEBUG: Slider toujours visible en haut */}
-              <div className="border-4 border-red-500 bg-yellow-200 p-4">
-                <p className="font-bold text-red-700">DEBUG: SLIDER TEST - Cette zone doit être visible</p>
-                <input type="range" min="0" max="100" defaultValue="50" className="w-full" />
-              </div>
-
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
               {/* Upload de fichier */}
               <div>
                 <p className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</p>
@@ -476,7 +458,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 </label>
               </div>
               
-              {/* Mode d'affichage - Afficher seulement si une image existe */}
+              {/* Mode d'affichage */}
               {((bgImageUrl && bgImageUrl.trim() !== '') || (domain.backgroundImage && domain.backgroundImage.trim() !== '')) && (
                 <div>
                   <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Mode d'affichage</label>
@@ -484,7 +466,6 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                     <button
                       onClick={() => {
                         setBgMode('behind');
-                        // Si pas de valeur sauvegardée, utiliser la valeur par défaut pour "behind"
                         if (bgDarkness === undefined || bgDarkness === null) {
                           setBgDarkness(domain.backgroundDarkness ?? 60);
                         }
@@ -504,7 +485,6 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                     <button
                       onClick={() => {
                         setBgMode('overlay');
-                        // Si pas de valeur sauvegardée, utiliser la valeur par défaut pour "overlay"
                         if (bgDarkness === undefined || bgDarkness === null) {
                           setBgDarkness(domain.backgroundDarkness ?? 40);
                         }
@@ -525,16 +505,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 </div>
               )}
               
-              {/* Réglage de l'assombrissement/opacité - TOUJOURS AFFICHER */}
-              <div className="mt-4 border-4 border-blue-500 p-4 bg-green-100">
-                {(() => {
-                  const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
-                  console.log('[DomainView] SLIDER RENDER - Modal ouvert:', showBgConfigModal, 'Darkness:', currentDarkness, 'Mode:', bgMode, 'bgDarkness:', bgDarkness);
-                  return null;
-                })()}
-                <label className="block text-sm font-bold text-red-700 mb-2">
-                  OPACITÉ / ASSOMBRISSEMENT
-                </label>
+              {/* Réglage de l'assombrissement/opacité - TOUJOURS VISIBLE */}
+              <div className="mt-4">
                 <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
                   {bgMode === 'behind' 
                     ? `Assombrissement de l'image : ${bgDarkness ?? getDefaultDarkness(bgMode)}%`
@@ -549,10 +521,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                     value={bgDarkness ?? getDefaultDarkness(bgMode)}
                     onChange={(e) => {
                       const newValue = Number(e.target.value);
-                      console.log('[DomainView] SLIDER CHANGE:', newValue, 'bgMode:', bgMode);
                       setBgDarkness(newValue);
                     }}
-                    className="w-full h-4 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                    className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
                     style={{
                       background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${bgDarkness ?? getDefaultDarkness(bgMode)}%, #E2E8F0 ${bgDarkness ?? getDefaultDarkness(bgMode)}%, #E2E8F0 100%)`
                     }}
@@ -586,7 +557,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               )}
               
               {/* Boutons */}
-              <div className="flex justify-between gap-3 pt-4 border-t border-[#E2E8F0]">
+              <div className="flex justify-between gap-3 pt-4 border-t border-[#E2E8F0] flex-shrink-0">
                 {domain.backgroundImage && (
                   <button
                     onClick={handleRemoveBgImage}
@@ -601,7 +572,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                     onClick={() => {
                       setBgImageUrl(domain.backgroundImage || '');
                       setBgMode(domain.backgroundMode || 'behind');
-                      setBgDarkness(domain.backgroundDarkness ?? (domain.backgroundMode === 'overlay' ? 40 : 60));
+                      setBgDarkness(domain.backgroundDarkness ?? getDefaultDarkness(domain.backgroundMode || 'behind'));
                       setShowBgConfigModal(false);
                     }}
                     className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"
