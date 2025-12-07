@@ -1146,12 +1146,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 
                 {/* Tooltip au survol */}
                 {hoveredElement === element.id && (
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50 pointer-events-none">
-                    <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-3 py-2 whitespace-nowrap">
-                      <p className="font-medium text-sm">{element.name}</p>
-                      <p className="text-xs text-[#94A3B8] mt-1">Cliquez pour voir les détails</p>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50 pointer-events-none" style={{ transform: 'translateX(-50%) scale(0.7)' }}>
+                    <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-2 py-1 whitespace-nowrap">
+                      <p className="font-medium text-xs">{element.name}</p>
                     </div>
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-t-[#1E3A5F]" />
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-t-[#1E3A5F]" style={{ transform: 'translateX(-50%) scale(0.7)' }} />
                   </div>
                 )}
               </div>
