@@ -504,8 +504,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
                     {bgMode === 'behind' 
-                      ? `Assombrissement de l'image : ${bgDarkness}%`
-                      : `Opacité de l'image : ${bgDarkness}%`
+                      ? `Assombrissement de l'image : ${bgDarkness || (bgMode === 'behind' ? 60 : 40)}%`
+                      : `Opacité de l'image : ${bgDarkness || 40}%`
                     }
                   </label>
                   <div className="space-y-2">
@@ -513,7 +513,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       type="range"
                       min="0"
                       max="100"
-                      value={bgDarkness}
+                      value={bgDarkness || (bgMode === 'behind' ? 60 : 40)}
                       onChange={(e) => setBgDarkness(Number(e.target.value))}
                       className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
                       style={{
