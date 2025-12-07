@@ -135,7 +135,6 @@ const Modal = ({
   onRestore?: () => void;
   isRestoring?: boolean;
 }) => {
-  console.log('[Modal] showRestoreButton =', showRestoreButton);
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 max-w-lg w-full mx-4">
@@ -829,31 +828,46 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       // Appliquer les modifications manuelles
       const finalData = applyEditedTranslations(translatedData, editedChanges);
 
-      // Mettre à jour le cockpit
+      // Sauvegarder les données traduites dans la base de données
+      const saveResponse = await fetch(`/api/cockpits/${cockpitId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: currentCockpit.name,
+          domains: finalData.domains || [],
+          zones: finalData.zones || [],
+          scrollingBanner: finalData.scrollingBanner,
+          logo: currentCockpit.logo,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error('Erreur lors de la sauvegarde de la traduction');
+      }
+
+      // Mettre à jour le cockpit dans le store
       const updatedCockpit = {
-        id: currentCockpit.id,
-        name: currentCockpit.name,
-        userId: currentCockpit.userId,
-        createdAt: currentCockpit.createdAt,
-        updatedAt: new Date().toISOString(),
+        ...currentCockpit,
         domains: finalData.domains || [],
         zones: finalData.zones || [],
         scrollingBanner: finalData.scrollingBanner,
-        logo: currentCockpit.logo,
-        publicId: currentCockpit.publicId,
+        updatedAt: new Date().toISOString(),
       } as any;
 
       updateCockpit(updatedCockpit);
 
+      // Recharger le cockpit pour s'assurer que tout est synchronisé
       if (fetchCockpit) {
-        setTimeout(async () => {
-          await fetchCockpit(cockpitId);
-        }, 500);
+        await fetchCockpit(cockpitId);
       }
 
-      setHasOriginals(true);
+      // Ne pas mettre à jour hasOriginals ici - on garde l'état actuel
+      // Fermer seulement le modal d'aperçu, pas le modal principal
       setShowPreviewModal(false);
-      alert('✅ Traduction appliquée avec succès.');
+      // Ne pas fermer le modal principal, juste fermer l'aperçu
     } catch (error: any) {
       console.error('Erreur application traduction:', error);
       alert(`Erreur : ${error.message || 'Erreur inconnue'}`);
