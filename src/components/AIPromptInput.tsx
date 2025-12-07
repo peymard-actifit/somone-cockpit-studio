@@ -651,13 +651,30 @@ export default function AIPromptInput() {
           const names = action.params.names || [];
           let subCategoryId = action.params.subCategoryId;
           if (!subCategoryId && action.params.subCategoryName) {
-            subCategoryId = findSubCategoryByName(action.params.subCategoryName)?.id;
+            // Chercher dans l'élément courant si spécifié
+            const elementId = action.params.elementId || currentElementId;
+            const subCategory = findSubCategoryByName(action.params.subCategoryName, elementId);
+            // findSubCategoryByName retourne null ou un objet avec .id
+            subCategoryId = subCategory ? subCategory.id : undefined;
+            
+            // Si pas trouvé avec elementId, chercher globalement
+            if (!subCategoryId) {
+              const subCategoryGlobal = findSubCategoryByName(action.params.subCategoryName);
+              subCategoryId = subCategoryGlobal ? subCategoryGlobal.id : undefined;
+            }
           }
-          if (subCategoryId && names.length > 0) {
+          
+          if (!subCategoryId) {
+            console.error(`[addSubElements] Sous-catégorie "${action.params.subCategoryName || action.params.subCategoryId || 'non spécifiée'}" non trouvée`);
+            console.error(`[addSubElements] Paramètres:`, action.params);
+            return `❌ Sous-catégorie "${action.params.subCategoryName || action.params.subCategoryId || 'non spécifiée'}" non trouvée pour addSubElements`;
+          }
+          
+          if (names.length > 0) {
             names.forEach((name: string) => addSubElement(subCategoryId!, name));
-            return `✅ ${names.length} sous-éléments créés`;
+            return `✅ ${names.length} sous-éléments créés dans la sous-catégorie`;
           }
-          return '❌ Paramètres invalides pour addSubElements';
+          return '❌ Liste de noms vide pour addSubElements';
         }
           
         case 'deleteSubElement': {
@@ -1235,19 +1252,34 @@ export default function AIPromptInput() {
         // Si l'action référence une sous-catégorie par nom et qu'elle vient d'être créée, utiliser son ID
         if (action.type === 'addSubElement' || action.type === 'addSubElements') {
           const subCategoryName = action.params.subCategoryName;
-          if (subCategoryName && createdIds.subCategories.has(subCategoryName)) {
-            action.params.subCategoryId = createdIds.subCategories.get(subCategoryName);
-            delete action.params.subCategoryName; // Utiliser l'ID au lieu du nom
-            console.log(`🤖 [AIPromptInput] Résolution sous-catégorie "${subCategoryName}" -> ID: ${action.params.subCategoryId}`);
-          } else if (subCategoryName) {
-            // Si pas dans le cache, chercher dans le store
-            const subCategory = findSubCategoryByName(subCategoryName, action.params.elementId);
-            if (subCategory) {
-              action.params.subCategoryId = subCategory.id;
-              delete action.params.subCategoryName;
-              console.log(`🤖 [AIPromptInput] Résolution sous-catégorie "${subCategoryName}" depuis store -> ID: ${subCategory.id}`);
+          if (subCategoryName) {
+            // D'abord, vérifier si elle est dans le cache des IDs créés
+            if (createdIds.subCategories.has(subCategoryName)) {
+              action.params.subCategoryId = createdIds.subCategories.get(subCategoryName);
+              delete action.params.subCategoryName; // Utiliser l'ID au lieu du nom
+              console.log(`🤖 [AIPromptInput] Résolution sous-catégorie "${subCategoryName}" depuis cache -> ID: ${action.params.subCategoryId}`);
             } else {
-              console.warn(`🤖 [AIPromptInput] Sous-catégorie "${subCategoryName}" non trouvée`);
+              // Si pas dans le cache, chercher dans le store
+              const elementId = action.params.elementId || currentElementId;
+              const subCategory = findSubCategoryByName(subCategoryName, elementId);
+              // findSubCategoryByName retourne null ou un objet avec .id
+              if (subCategory && subCategory.id) {
+                action.params.subCategoryId = subCategory.id;
+                delete action.params.subCategoryName;
+                createdIds.subCategories.set(subCategoryName, subCategory.id); // Mettre en cache
+                console.log(`🤖 [AIPromptInput] Résolution sous-catégorie "${subCategoryName}" depuis store -> ID: ${subCategory.id}`);
+              } else {
+                // Essayer une recherche globale (sans elementId)
+                const subCategoryGlobal = findSubCategoryByName(subCategoryName);
+                if (subCategoryGlobal && subCategoryGlobal.id) {
+                  action.params.subCategoryId = subCategoryGlobal.id;
+                  delete action.params.subCategoryName;
+                  createdIds.subCategories.set(subCategoryName, subCategoryGlobal.id); // Mettre en cache
+                  console.log(`🤖 [AIPromptInput] Résolution sous-catégorie "${subCategoryName}" depuis recherche globale -> ID: ${subCategoryGlobal.id}`);
+                } else {
+                  console.warn(`🤖 [AIPromptInput] Sous-catégorie "${subCategoryName}" non trouvée dans le store`);
+                }
+              }
             }
           }
         }
