@@ -801,9 +801,9 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       }
       
       setPreviewChanges(finalChanges);
-      setShowModal(false);
       
-      // Toujours afficher le modal, même s'il n'y a pas d'éléments (pour l'info)
+      // Fermer le modal principal et ouvrir le modal d'aperçu
+      setShowModal(false);
       setShowPreviewModal(true);
     } catch (error: any) {
       console.error('Erreur préparation aperçu:', error);
