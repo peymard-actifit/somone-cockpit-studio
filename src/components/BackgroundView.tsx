@@ -820,12 +820,59 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               crossOrigin="anonymous"
               onLoad={(e) => {
                 const img = e.target as HTMLImageElement;
+                const container = imageContainerRef.current;
+                const parentContainer = containerRef.current;
+                const computedStyle = window.getComputedStyle(img);
+                const containerRect = container?.getBoundingClientRect();
+                const parentRect = parentContainer?.getBoundingClientRect();
+                const imgRect = img.getBoundingClientRect();
+                
                 console.log(`[BackgroundView] ✅ Image chargée avec succès pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
                 console.log(`[BackgroundView] Image src length: ${domain.backgroundImage?.length || 0}`);
-                console.log(`[BackgroundView] Image element computed style:`, window.getComputedStyle(img).display);
+                console.log(`[BackgroundView] Image element computed style:`, {
+                  display: computedStyle.display,
+                  width: computedStyle.width,
+                  height: computedStyle.height,
+                  visibility: computedStyle.visibility,
+                  opacity: computedStyle.opacity,
+                  position: computedStyle.position,
+                  top: computedStyle.top,
+                  left: computedStyle.left,
+                  right: computedStyle.right,
+                  bottom: computedStyle.bottom,
+                });
+                console.log(`[BackgroundView] Image getBoundingClientRect:`, {
+                  width: imgRect.width,
+                  height: imgRect.height,
+                  top: imgRect.top,
+                  left: imgRect.left,
+                  bottom: imgRect.bottom,
+                  right: imgRect.right,
+                });
+                if (container) {
+                  console.log(`[BackgroundView] Container dimensions:`, {
+                    offsetWidth: container.offsetWidth,
+                    offsetHeight: container.offsetHeight,
+                    clientWidth: container.clientWidth,
+                    clientHeight: container.clientHeight,
+                    rect: containerRect,
+                  });
+                }
+                if (parentContainer) {
+                  console.log(`[BackgroundView] Parent container dimensions:`, {
+                    offsetWidth: parentContainer.offsetWidth,
+                    offsetHeight: parentContainer.offsetHeight,
+                    clientWidth: parentContainer.clientWidth,
+                    clientHeight: parentContainer.clientHeight,
+                    rect: parentRect,
+                  });
+                }
                 calculateImageBounds();
                 if (_readOnly) {
                   console.log(`[BackgroundView READ-ONLY] ✅ Image chargée avec succès pour le domaine "${domain.name}"`);
+                  console.log(`[BackgroundView READ-ONLY] Image rect:`, imgRect);
+                  console.log(`[BackgroundView READ-ONLY] Container rect:`, containerRect);
+                  console.log(`[BackgroundView READ-ONLY] Parent container rect:`, parentRect);
                 }
               }}
               onError={(e) => {
