@@ -856,7 +856,12 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     offsetHeight: container.offsetHeight,
                     clientWidth: container.clientWidth,
                     clientHeight: container.clientHeight,
-                    rect: containerRect,
+                    rectWidth: containerRect?.width,
+                    rectHeight: containerRect?.height,
+                    rectTop: containerRect?.top,
+                    rectLeft: containerRect?.left,
+                    rectBottom: containerRect?.bottom,
+                    rectRight: containerRect?.right,
                   });
                 }
                 if (parentContainer) {
@@ -865,15 +870,44 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     offsetHeight: parentContainer.offsetHeight,
                     clientWidth: parentContainer.clientWidth,
                     clientHeight: parentContainer.clientHeight,
-                    rect: parentRect,
+                    rectWidth: parentRect?.width,
+                    rectHeight: parentRect?.height,
+                    rectTop: parentRect?.top,
+                    rectLeft: parentRect?.left,
+                    rectBottom: parentRect?.bottom,
+                    rectRight: parentRect?.right,
                   });
                 }
                 calculateImageBounds();
                 if (_readOnly) {
                   console.log(`[BackgroundView READ-ONLY] ✅ Image chargée avec succès pour le domaine "${domain.name}"`);
-                  console.log(`[BackgroundView READ-ONLY] Image rect:`, imgRect);
-                  console.log(`[BackgroundView READ-ONLY] Container rect:`, containerRect);
-                  console.log(`[BackgroundView READ-ONLY] Parent container rect:`, parentRect);
+                  console.log(`[BackgroundView READ-ONLY] Image rect:`, {
+                    width: imgRect.width,
+                    height: imgRect.height,
+                    top: imgRect.top,
+                    left: imgRect.left,
+                    bottom: imgRect.bottom,
+                    right: imgRect.right
+                  });
+                  console.log(`[BackgroundView READ-ONLY] Container rect:`, containerRect ? {
+                    width: containerRect.width,
+                    height: containerRect.height,
+                    top: containerRect.top,
+                    left: containerRect.left,
+                    bottom: containerRect.bottom,
+                    right: containerRect.right
+                  } : 'NULL');
+                  console.log(`[BackgroundView READ-ONLY] Parent container rect:`, parentRect ? {
+                    width: parentRect.width,
+                    height: parentRect.height,
+                    top: parentRect.top,
+                    left: parentRect.left,
+                    bottom: parentRect.bottom,
+                    right: parentRect.right
+                  } : 'NULL');
+                  console.log(`[BackgroundView READ-ONLY] 🔍 DIAGNOSTIC - Image visible:`, imgRect.width > 1 && imgRect.height > 1 ? 'OUI' : 'NON');
+                  console.log(`[BackgroundView READ-ONLY] 🔍 DIAGNOSTIC - Container visible:`, containerRect && containerRect.width > 1 && containerRect.height > 1 ? 'OUI' : 'NON');
+                  console.log(`[BackgroundView READ-ONLY] 🔍 DIAGNOSTIC - Parent visible:`, parentRect && parentRect.width > 1 && parentRect.height > 1 ? 'OUI' : 'NON');
                 }
               }}
               onError={(e) => {
