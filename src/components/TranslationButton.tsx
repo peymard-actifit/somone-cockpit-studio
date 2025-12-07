@@ -919,7 +919,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       
       {showModal && (
         <Modal
-          key={`translation-modal-${cockpitId}`}
+          key={`translation-modal-${cockpitId}-${hasOriginals ? 'has-originals' : 'no-originals'}`}
           title="Traduire le cockpit"
           onClose={() => setShowModal(false)}
           onConfirm={handlePreparePreview}
@@ -928,7 +928,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           showSaveButton={true}
           onSaveOriginals={handleSaveOriginals}
           isSavingOriginals={isSavingOriginals}
-          showRestoreButton={hasOriginals}
+          showRestoreButton={!!hasOriginals}
           onRestore={handleRestore}
           isRestoring={isRestoring}
         >
