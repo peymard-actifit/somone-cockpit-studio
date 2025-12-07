@@ -222,7 +222,12 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
   // Fonction pour charger les langues (sans l'option Restaurer, maintenant gérée par le bouton)
   const loadLanguages = async () => {
     try {
-      const response = await fetch('/api/translation/languages');
+      const token = useAuthStore.getState().token;
+      const response = await fetch('/api/translation/languages', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
