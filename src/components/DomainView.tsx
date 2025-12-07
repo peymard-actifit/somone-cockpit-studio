@@ -460,86 +460,88 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               
               {/* Mode d'affichage */}
               {((bgImageUrl && bgImageUrl.trim() !== '') || (domain.backgroundImage && domain.backgroundImage.trim() !== '')) && (
-                <div>
-                  <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Mode d'affichage</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => {
-                        setBgMode('behind');
-                        if (bgDarkness === undefined || bgDarkness === null) {
-                          setBgDarkness(domain.backgroundDarkness ?? 60);
-                        }
-                      }}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        bgMode === 'behind'
-                          ? 'border-[#1E3A5F] bg-[#1E3A5F]/5'
-                          : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <MuiIcon name="Layers" size={20} className="text-[#1E3A5F]" />
-                        <span className="font-medium text-[#1E3A5F]">En fond</span>
-                      </div>
-                      <p className="text-xs text-[#64748B]">Image derrière le contenu avec un voile semi-transparent</p>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setBgMode('overlay');
-                        if (bgDarkness === undefined || bgDarkness === null) {
-                          setBgDarkness(domain.backgroundDarkness ?? 40);
-                        }
-                      }}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        bgMode === 'overlay'
-                          ? 'border-[#1E3A5F] bg-[#1E3A5F]/5'
-                          : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <MuiIcon name="Square" size={20} className="text-[#1E3A5F]" />
-                        <span className="font-medium text-[#1E3A5F]">En overlay</span>
-                      </div>
-                      <p className="text-xs text-[#64748B]">Image par-dessus, transparente, sans gêner les clics</p>
-                    </button>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Mode d'affichage</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => {
+                          setBgMode('behind');
+                          if (bgDarkness === undefined || bgDarkness === null) {
+                            setBgDarkness(domain.backgroundDarkness ?? 60);
+                          }
+                        }}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          bgMode === 'behind'
+                            ? 'border-[#1E3A5F] bg-[#1E3A5F]/5'
+                            : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <MuiIcon name="Layers" size={20} className="text-[#1E3A5F]" />
+                          <span className="font-medium text-[#1E3A5F]">En fond</span>
+                        </div>
+                        <p className="text-xs text-[#64748B]">Image derrière le contenu avec un voile semi-transparent</p>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setBgMode('overlay');
+                          if (bgDarkness === undefined || bgDarkness === null) {
+                            setBgDarkness(domain.backgroundDarkness ?? 40);
+                          }
+                        }}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          bgMode === 'overlay'
+                            ? 'border-[#1E3A5F] bg-[#1E3A5F]/5'
+                            : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <MuiIcon name="Square" size={20} className="text-[#1E3A5F]" />
+                          <span className="font-medium text-[#1E3A5F]">En overlay</span>
+                        </div>
+                        <p className="text-xs text-[#64748B]">Image par-dessus, transparente, sans gêner les clics</p>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                  
+                  {/* Réglage de l'assombrissement/opacité - TOUJOURS VISIBLE */}
+                  <div className="mt-4 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg">
+                    <label className="block text-sm font-bold text-[#1E3A5F] mb-3">
+                      {bgMode === 'behind' 
+                        ? `Assombrissement de l'image : ${bgDarkness ?? getDefaultDarkness(bgMode)}%`
+                        : `Opacité de l'image : ${bgDarkness ?? getDefaultDarkness(bgMode)}%`
+                      }
+                    </label>
+                    <div className="space-y-3">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={bgDarkness ?? getDefaultDarkness(bgMode)}
+                        onChange={(e) => {
+                          const newValue = Number(e.target.value);
+                          setBgDarkness(newValue);
+                        }}
+                        className="w-full h-3 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer"
+                        style={{
+                          background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${bgDarkness ?? getDefaultDarkness(bgMode)}%, #E2E8F0 ${bgDarkness ?? getDefaultDarkness(bgMode)}%, #E2E8F0 100%)`
+                        }}
+                      />
+                      <div className="flex justify-between text-xs font-medium text-[#64748B]">
+                        <span>Clair/Transparent (0%)</span>
+                        <span>Foncé/Opaque (100%)</span>
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-2">
+                        {bgMode === 'behind' 
+                          ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
+                          : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </>
               )}
-              
-              {/* Réglage de l'assombrissement/opacité - TOUJOURS VISIBLE */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                  {bgMode === 'behind' 
-                    ? `Assombrissement de l'image : ${bgDarkness ?? getDefaultDarkness(bgMode)}%`
-                    : `Opacité de l'image : ${bgDarkness ?? getDefaultDarkness(bgMode)}%`
-                  }
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={bgDarkness ?? getDefaultDarkness(bgMode)}
-                    onChange={(e) => {
-                      const newValue = Number(e.target.value);
-                      setBgDarkness(newValue);
-                    }}
-                    className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-                    style={{
-                      background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${bgDarkness ?? getDefaultDarkness(bgMode)}%, #E2E8F0 ${bgDarkness ?? getDefaultDarkness(bgMode)}%, #E2E8F0 100%)`
-                    }}
-                  />
-                  <div className="flex justify-between text-xs text-[#64748B]">
-                    <span>Clair/Transparent (0%)</span>
-                    <span>Foncé/Opaque (100%)</span>
-                  </div>
-                  <p className="text-xs text-[#64748B] mt-1">
-                    {bgMode === 'behind' 
-                      ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
-                      : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
-                    }
-                  </p>
-                </div>
-              </div>
               
               {/* Aperçu */}
               {bgImageUrl && (
