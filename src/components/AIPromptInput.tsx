@@ -1168,22 +1168,41 @@ export default function AIPromptInput() {
         
         // Extraire le base64 de l'image
         // Le contenu est en format data:image/...;base64,...
-        let base64Content = attachedFile.content;
+        let base64Content = String(attachedFile.content);
+        
+        console.log('[AIPromptInput] Extraction base64 - Longueur contenu:', base64Content.length);
+        console.log('[AIPromptInput] Extraction base64 - Début:', base64Content.substring(0, 100));
         
         // Extraire uniquement la partie base64 (après "base64,")
+        let extractedBase64 = '';
+        
         if (base64Content.includes('base64,')) {
-          const index = base64Content.indexOf('base64,');
-          imageBase64 = base64Content.substring(index + 7); // +7 pour "base64,"
-        } else if (base64Content.includes(',')) {
-          // Fallback : prendre après la virgule
-          imageBase64 = base64Content.split(',')[1] || base64Content;
+          const base64Index = base64Content.indexOf('base64,');
+          extractedBase64 = base64Content.substring(base64Index + 7); // +7 pour "base64,"
+          console.log('[AIPromptInput] Base64 extrait après base64, - Longueur:', extractedBase64.length);
+        } else if (base64Content.includes('data:image/') && base64Content.includes(',')) {
+          // Format: data:image/...;base64,...
+          const commaIndex = base64Content.lastIndexOf(',');
+          extractedBase64 = base64Content.substring(commaIndex + 1);
+          console.log('[AIPromptInput] Base64 extrait après virgule - Longueur:', extractedBase64.length);
         } else {
           // Si pas de préfixe, c'est peut-être déjà du base64 pur
-          imageBase64 = base64Content;
+          extractedBase64 = base64Content;
+          console.log('[AIPromptInput] Base64 utilisé tel quel - Longueur:', extractedBase64.length);
         }
         
         // Nettoyer le base64 : enlever espaces, retours à la ligne, etc.
-        imageBase64 = imageBase64.trim().replace(/\s+/g, '');
+        imageBase64 = extractedBase64.trim().replace(/\s+/g, '').replace(/\n/g, '').replace(/\r/g, '');
+        
+        console.log('[AIPromptInput] Base64 final nettoyé - Longueur:', imageBase64.length);
+        console.log('[AIPromptInput] Base64 final - Début:', imageBase64.substring(0, 50));
+        console.log('[AIPromptInput] Base64 valide (regex):', /^[A-Za-z0-9+/=]+$/.test(imageBase64));
+        
+        // Vérifier que le base64 est valide
+        if (!/^[A-Za-z0-9+/=]+$/.test(imageBase64)) {
+          console.error('[AIPromptInput] Base64 invalide détecté, nettoyage supplémentaire');
+          imageBase64 = imageBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+        }
         
         // Pour les images, préparer un message qui demande l'OCR
         const fileExtension = attachedFile.name.split('.').pop()?.toUpperCase() || 'IMAGE';

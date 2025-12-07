@@ -2507,19 +2507,28 @@ ANALYSE D'IMAGES ET OCR:
         if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
           console.error('[AI] Base64 invalide détecté, nettoyage supplémentaire...');
           console.error('[AI] Base64 (premiers 100 caractères):', cleanBase64.substring(0, 100));
+          console.error('[AI] Base64 (derniers 100 caractères):', cleanBase64.substring(Math.max(0, cleanBase64.length - 100)));
           // Nettoyer encore plus agressivement
+          const beforeLength = cleanBase64.length;
           cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+          console.error('[AI] Base64 nettoyé: ' + beforeLength + ' -> ' + cleanBase64.length + ' caractères');
         }
         
-        // Valider la longueur minimale du base64
+        // Valider la longueur minimale du base64 (une image devrait avoir au moins quelques centaines de caractères)
         if (cleanBase64.length < 100) {
-          console.error('[AI] Base64 trop court (' + cleanBase64.length + ' caractères), peut-être une erreur d\'extraction');
-        } else {
-          console.log('[AI] Base64 valide: ' + cleanBase64.length + ' caractères, MIME type: ' + mimeType);
+          console.error('[AI] ERREUR: Base64 trop court (' + cleanBase64.length + ' caractères), erreur d\'extraction probable');
+          console.error('[AI] Base64 reçu (complet):', cleanBase64);
+          return res.status(400).json({ error: 'Base64 image invalide ou trop court. Extraction échouée.' });
         }
+        
+        console.log('[AI] ✅ Base64 valide: ' + cleanBase64.length + ' caractères, MIME type: ' + mimeType);
+        console.log('[AI] Base64 (premiers 50 caractères):', cleanBase64.substring(0, 50));
         
         // Construire l'URL avec le format correct pour OpenAI
         const imageUrl = `data:${mimeType};base64,${cleanBase64}`;
+        
+        console.log('[AI] Image URL construite - Longueur totale:', imageUrl.length);
+        console.log('[AI] Image URL (début):', imageUrl.substring(0, 100));
         
         messages.push({
           role: 'user',
