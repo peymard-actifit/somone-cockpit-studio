@@ -1010,6 +1010,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               // Utiliser 3% de la largeur de l'image visible (comme BackgroundView)
               clusterSize = Math.max(20, Math.min(80, imageRect.width * 0.03));
             }
+            // Augmenter de 15% si le statut est mineur, critique ou fatal
+            if (cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal') {
+              clusterSize = clusterSize * 1.15;
+            }
             
             // Handler pour zoomer sur le cluster
             const handleClusterClick = () => {
@@ -1112,6 +1116,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               const imageRectForPoint = imageContainerForPoint.getBoundingClientRect();
               // Utiliser environ 2% de la largeur de l'image visible (taille raisonnable pour un point, équivalent à BackgroundView)
               dynamicSize = Math.max(16, Math.min(48, imageRectForPoint.width * 0.02));
+              // Augmenter de 15% si le statut est mineur, critique ou fatal
+              if (point.status === 'mineur' || point.status === 'critique' || point.status === 'fatal') {
+                dynamicSize = dynamicSize * 1.15;
+              }
               // Taille d'icône proportionnelle à la taille du point (comme BackgroundView qui utilise 8x la taille)
               iconSize = Math.max(12, Math.round(dynamicSize * 0.5));
             }
