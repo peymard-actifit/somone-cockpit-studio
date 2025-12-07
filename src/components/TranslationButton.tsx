@@ -406,198 +406,6 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
     }
   };
 
-  // Fonction récursive pour extraire tous les champs textuels avec leurs chemins complets
-  const extractTextFields = (
-    data: any,
-    _parentPath: string[] = [],
-    changes: TranslationChange[] = [],
-    useTranslated: boolean = false
-  ): TranslationChange[] => {
-    const textFields = ['name', 'description', 'actions', 'scrollingBanner', 'unit', 'duration', 'ticketNumber', 'zone', 'address', 'templateName'];
-    
-    if (!data || typeof data !== 'object') {
-      return changes;
-    }
-
-    // Traiter scrollingBanner au niveau racine
-    if (data.scrollingBanner && typeof data.scrollingBanner === 'string' && data.scrollingBanner.trim() !== '') {
-      const pathStr = 'Bannière défilante';
-      if (!changes.find(c => c.path === pathStr && c.field === 'scrollingBanner')) {
-        changes.push({
-          path: pathStr,
-          field: 'scrollingBanner',
-          original: useTranslated ? data.scrollingBanner : data.scrollingBanner,
-          translated: useTranslated ? data.scrollingBanner : data.scrollingBanner,
-          editable: true,
-        });
-      }
-    }
-
-    // Traiter les domaines
-    if (data.domains && Array.isArray(data.domains)) {
-      data.domains.forEach((domain: any) => {
-        const domainPath = [domain.name || domain.id || 'Domaine'];
-        
-        // Champs du domaine
-        textFields.forEach(field => {
-          if (domain[field] && typeof domain[field] === 'string' && domain[field].trim() !== '') {
-            const pathStr = domainPath.join(' > ');
-            if (!changes.find(c => c.path === pathStr && c.field === field)) {
-              changes.push({
-                path: pathStr,
-                field,
-                original: useTranslated ? domain[field] : domain[field],
-                translated: useTranslated ? domain[field] : domain[field],
-                editable: true,
-              });
-            }
-          }
-        });
-
-        // Traiter les catégories
-        if (domain.categories && Array.isArray(domain.categories)) {
-          domain.categories.forEach((category: any) => {
-            const categoryPath = [...domainPath, category.name || category.id || 'Catégorie'];
-            
-            textFields.forEach(field => {
-              if (category[field] && typeof category[field] === 'string' && category[field].trim() !== '') {
-                const pathStr = categoryPath.join(' > ');
-                if (!changes.find(c => c.path === pathStr && c.field === field)) {
-                  changes.push({
-                    path: pathStr,
-                    field,
-                    original: useTranslated ? category[field] : category[field],
-                    translated: useTranslated ? category[field] : category[field],
-                    editable: true,
-                  });
-                }
-              }
-            });
-
-            // Traiter les éléments
-            if (category.elements && Array.isArray(category.elements)) {
-              category.elements.forEach((element: any) => {
-                const elementPath = [...categoryPath, element.name || element.id || 'Élément'];
-                
-                textFields.forEach(field => {
-                  if (element[field] && typeof element[field] === 'string' && element[field].trim() !== '') {
-                    const pathStr = elementPath.join(' > ');
-                    if (!changes.find(c => c.path === pathStr && c.field === field)) {
-                      changes.push({
-                        path: pathStr,
-                        field,
-                        original: useTranslated ? element[field] : element[field],
-                        translated: useTranslated ? element[field] : element[field],
-                        editable: true,
-                      });
-                    }
-                  }
-                });
-
-                // Traiter value (si c'est un texte)
-                if (element.value && typeof element.value === 'string' && element.value.trim() !== '') {
-                  const numValue = parseFloat(element.value);
-                  if (isNaN(numValue)) {
-                    const pathStr = elementPath.join(' > ');
-                    if (!changes.find(c => c.path === pathStr && c.field === 'value')) {
-                      changes.push({
-                        path: pathStr,
-                        field: 'value',
-                        original: useTranslated ? element.value : element.value,
-                        translated: useTranslated ? element.value : element.value,
-                        editable: true,
-                      });
-                    }
-                  }
-                }
-
-                // Traiter les sous-catégories
-                if (element.subCategories && Array.isArray(element.subCategories)) {
-                  element.subCategories.forEach((subCategory: any) => {
-                    const subCategoryPath = [...elementPath, subCategory.name || subCategory.id || 'Sous-catégorie'];
-                    
-                    textFields.forEach(field => {
-                      if (subCategory[field] && typeof subCategory[field] === 'string' && subCategory[field].trim() !== '') {
-                        const pathStr = subCategoryPath.join(' > ');
-                        if (!changes.find(c => c.path === pathStr && c.field === field)) {
-                          changes.push({
-                            path: pathStr,
-                            field,
-                            original: useTranslated ? subCategory[field] : subCategory[field],
-                            translated: useTranslated ? subCategory[field] : subCategory[field],
-                            editable: true,
-                          });
-                        }
-                      }
-                    });
-
-                    // Traiter les sous-éléments
-                    if (subCategory.subElements && Array.isArray(subCategory.subElements)) {
-                      subCategory.subElements.forEach((subElement: any) => {
-                        const subElementPath = [...subCategoryPath, subElement.name || subElement.id || 'Sous-élément'];
-                        
-                        textFields.forEach(field => {
-                          if (subElement[field] && typeof subElement[field] === 'string' && subElement[field].trim() !== '') {
-                            const pathStr = subElementPath.join(' > ');
-                            if (!changes.find(c => c.path === pathStr && c.field === field)) {
-                              changes.push({
-                                path: pathStr,
-                                field,
-                                original: useTranslated ? subElement[field] : subElement[field],
-                                translated: useTranslated ? subElement[field] : subElement[field],
-                                editable: true,
-                              });
-                            }
-                          }
-                        });
-
-                        // Traiter value des sous-éléments
-                        if (subElement.value && typeof subElement.value === 'string' && subElement.value.trim() !== '') {
-                          const numValue = parseFloat(subElement.value);
-                          if (isNaN(numValue)) {
-                            const pathStr = subElementPath.join(' > ');
-                            if (!changes.find(c => c.path === pathStr && c.field === 'value')) {
-                              changes.push({
-                                path: pathStr,
-                                field: 'value',
-                                original: useTranslated ? subElement.value : subElement.value,
-                                translated: useTranslated ? subElement.value : subElement.value,
-                                editable: true,
-                              });
-                            }
-                          }
-                        }
-                      });
-                    }
-                  });
-                }
-              });
-            }
-          });
-        }
-      });
-    }
-
-    // Traiter les zones
-    if (data.zones && Array.isArray(data.zones)) {
-      data.zones.forEach((zone: any) => {
-        if (zone.name && typeof zone.name === 'string' && zone.name.trim() !== '') {
-          const pathStr = `Zone: ${zone.name}`;
-          if (!changes.find(c => c.path === pathStr && c.field === 'name')) {
-            changes.push({
-              path: pathStr,
-              field: 'name',
-              original: useTranslated ? zone.name : zone.name,
-              translated: useTranslated ? zone.name : zone.name,
-              editable: true,
-            });
-          }
-        }
-      });
-    }
-
-    return changes;
-  };
 
   // Fonction pour appliquer les traductions modifiées aux données en utilisant les IDs
   const applyEditedTranslations = (data: any, changes: TranslationChange[]): any => {
@@ -699,9 +507,177 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
     return applyRecursive(data);
   };
 
+  // Fonction pour extraire les champs avec leurs IDs pour faciliter la correspondance
+  interface FieldWithId {
+    id: string;
+    path: string;
+    field: string;
+    value: string;
+  }
+
+  const extractFieldsWithIds = (data: any, _pathParts: string[] = [], fields: FieldWithId[] = []): FieldWithId[] => {
+    if (!data || typeof data !== 'object') return fields;
+
+    const textFields = ['name', 'description', 'actions', 'scrollingBanner', 'unit', 'duration', 'ticketNumber', 'zone', 'address', 'templateName'];
+
+    // Traiter scrollingBanner au niveau racine
+    if (data.scrollingBanner && typeof data.scrollingBanner === 'string' && data.scrollingBanner.trim() !== '') {
+      fields.push({
+        id: 'cockpit-root',
+        path: 'Bannière défilante',
+        field: 'scrollingBanner',
+        value: data.scrollingBanner,
+      });
+    }
+
+    // Traiter les domaines
+    if (data.domains && Array.isArray(data.domains)) {
+      data.domains.forEach((domain: any) => {
+        const domainPath = [domain.name || domain.id || 'Domaine'];
+        const domainId = domain.id || `domain-${domainPath[0]}`;
+
+        textFields.forEach(field => {
+          if (domain[field] && typeof domain[field] === 'string' && domain[field].trim() !== '') {
+            fields.push({
+              id: `${domainId}|${field}`,
+              path: domainPath.join(' > '),
+              field,
+              value: domain[field],
+            });
+          }
+        });
+
+        // Traiter les catégories
+        if (domain.categories && Array.isArray(domain.categories)) {
+          domain.categories.forEach((category: any) => {
+            const categoryPath = [...domainPath, category.name || category.id || 'Catégorie'];
+            const categoryId = category.id || `category-${categoryPath[categoryPath.length - 1]}`;
+
+            textFields.forEach(field => {
+              if (category[field] && typeof category[field] === 'string' && category[field].trim() !== '') {
+                fields.push({
+                  id: `${domainId}|${categoryId}|${field}`,
+                  path: categoryPath.join(' > '),
+                  field,
+                  value: category[field],
+                });
+              }
+            });
+
+            // Traiter les éléments
+            if (category.elements && Array.isArray(category.elements)) {
+              category.elements.forEach((element: any) => {
+                const elementPath = [...categoryPath, element.name || element.id || 'Élément'];
+                const elementId = element.id || `element-${elementPath[elementPath.length - 1]}`;
+
+                textFields.forEach(field => {
+                  if (element[field] && typeof element[field] === 'string' && element[field].trim() !== '') {
+                    fields.push({
+                      id: `${domainId}|${categoryId}|${elementId}|${field}`,
+                      path: elementPath.join(' > '),
+                      field,
+                      value: element[field],
+                    });
+                  }
+                });
+
+                // Traiter value (si c'est un texte)
+                if (element.value && typeof element.value === 'string' && element.value.trim() !== '') {
+                  const numValue = parseFloat(element.value);
+                  if (isNaN(numValue)) {
+                    fields.push({
+                      id: `${domainId}|${categoryId}|${elementId}|value`,
+                      path: elementPath.join(' > '),
+                      field: 'value',
+                      value: element.value,
+                    });
+                  }
+                }
+
+                // Traiter les sous-catégories
+                if (element.subCategories && Array.isArray(element.subCategories)) {
+                  element.subCategories.forEach((subCategory: any) => {
+                    const subCategoryPath = [...elementPath, subCategory.name || subCategory.id || 'Sous-catégorie'];
+                    const subCategoryId = subCategory.id || `subcategory-${subCategoryPath[subCategoryPath.length - 1]}`;
+
+                    textFields.forEach(field => {
+                      if (subCategory[field] && typeof subCategory[field] === 'string' && subCategory[field].trim() !== '') {
+                        fields.push({
+                          id: `${domainId}|${categoryId}|${elementId}|${subCategoryId}|${field}`,
+                          path: subCategoryPath.join(' > '),
+                          field,
+                          value: subCategory[field],
+                        });
+                      }
+                    });
+
+                    // Traiter les sous-éléments
+                    if (subCategory.subElements && Array.isArray(subCategory.subElements)) {
+                      subCategory.subElements.forEach((subElement: any) => {
+                        const subElementPath = [...subCategoryPath, subElement.name || subElement.id || 'Sous-élément'];
+                        const subElementId = subElement.id || `subelement-${subElementPath[subElementPath.length - 1]}`;
+
+                        textFields.forEach(field => {
+                          if (subElement[field] && typeof subElement[field] === 'string' && subElement[field].trim() !== '') {
+                            fields.push({
+                              id: `${domainId}|${categoryId}|${elementId}|${subCategoryId}|${subElementId}|${field}`,
+                              path: subElementPath.join(' > '),
+                              field,
+                              value: subElement[field],
+                            });
+                          }
+                        });
+
+                        // Traiter value des sous-éléments
+                        if (subElement.value && typeof subElement.value === 'string' && subElement.value.trim() !== '') {
+                          const numValue = parseFloat(subElement.value);
+                          if (isNaN(numValue)) {
+                            fields.push({
+                              id: `${domainId}|${categoryId}|${elementId}|${subCategoryId}|${subElementId}|value`,
+                              path: subElementPath.join(' > '),
+                              field: 'value',
+                              value: subElement.value,
+                            });
+                          }
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // Traiter les zones
+    if (data.zones && Array.isArray(data.zones)) {
+      data.zones.forEach((zone: any) => {
+        if (zone.name && typeof zone.name === 'string' && zone.name.trim() !== '') {
+          const zoneId = zone.id || `zone-${zone.name}`;
+          fields.push({
+            id: `${zoneId}|name`,
+            path: `Zone: ${zone.name}`,
+            field: 'name',
+            value: zone.name,
+          });
+        }
+      });
+    }
+
+    return fields;
+  };
+
   // Préparer l'aperçu de traduction
   const handlePreparePreview = async () => {
     if (!currentCockpit || !token) return;
+    
+    // Si la langue sélectionnée est FR et qu'on est déjà en français, pas besoin de traduire
+    if (selectedLang === 'FR') {
+      alert('La langue sélectionnée est déjà le français. Sélectionnez une autre langue pour traduire.');
+      return;
+    }
     
     try {
       setIsTranslating(true);
@@ -724,31 +700,46 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
 
       const { translatedData } = await response.json();
       
-      // Extraire les champs textuels des données actuelles
-      const currentChanges = extractTextFields(currentCockpit, [], [], false);
+      console.log('[Translation Preview] Données actuelles:', currentCockpit);
+      console.log('[Translation Preview] Données traduites:', translatedData);
       
-      // Extraire les champs textuels des données traduites
-      const translatedChanges = extractTextFields(translatedData, [], [], true);
+      // Extraire les champs avec IDs depuis les données actuelles
+      const currentFields = extractFieldsWithIds(currentCockpit);
       
-      // Créer un mapping des changements par chemin+champ
+      // Extraire les champs avec IDs depuis les données traduites
+      const translatedFields = extractFieldsWithIds(translatedData);
+      
+      console.log('[Translation Preview] Champs actuels:', currentFields.length);
+      console.log('[Translation Preview] Champs traduits:', translatedFields.length);
+      
+      // Créer un mapping par ID pour faire correspondre les champs
       const changesMap = new Map<string, TranslationChange>();
       
-      // Remplir avec les originaux
-      currentChanges.forEach(change => {
-        const key = `${change.path}|${change.field}`;
-        changesMap.set(key, { ...change });
+      // Remplir avec les champs actuels
+      currentFields.forEach(field => {
+        changesMap.set(field.id, {
+          path: field.path,
+          field: field.field,
+          original: field.value,
+          translated: field.value, // Par défaut, même valeur
+          editable: true,
+        });
       });
       
-      // Mettre à jour avec les traductions en faisant correspondre par chemin
-      translatedChanges.forEach(translatedChange => {
-        const key = `${translatedChange.path}|${translatedChange.field}`;
-        if (changesMap.has(key)) {
-          // Mettre à jour la traduction
-          const existing = changesMap.get(key)!;
-          existing.translated = translatedChange.translated;
+      // Mettre à jour avec les valeurs traduites
+      translatedFields.forEach(translatedField => {
+        if (changesMap.has(translatedField.id)) {
+          const existing = changesMap.get(translatedField.id)!;
+          existing.translated = translatedField.value;
         } else {
           // Nouveau champ dans la traduction
-          changesMap.set(key, translatedChange);
+          changesMap.set(translatedField.id, {
+            path: translatedField.path,
+            field: translatedField.field,
+            original: translatedField.value,
+            translated: translatedField.value,
+            editable: true,
+          });
         }
       });
       
@@ -756,6 +747,11 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       const finalChanges = Array.from(changesMap.values()).filter(
         change => change.original.trim() !== change.translated.trim()
       );
+      
+      console.log('[Translation Preview] Changements détectés:', finalChanges.length);
+      finalChanges.forEach(change => {
+        console.log(`  - ${change.path} > ${change.field}: "${change.original}" -> "${change.translated}"`);
+      });
       
       setPreviewChanges(finalChanges);
       setShowModal(false);
