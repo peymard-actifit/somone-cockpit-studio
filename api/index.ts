@@ -1377,7 +1377,14 @@ INSTRUCTIONS:
         // Détecter la langue source (FR par défaut)
         const sourceLang = 'FR';
         
-        const response = await fetch('https://api-free.deepl.com/v2/translate', {
+        // Déterminer l'URL de l'API DeepL (gratuite ou payante)
+        // Si la clé commence par "fx" ou "free", utiliser l'API gratuite
+        const isFreeApi = DEEPL_API_KEY.startsWith('fx') || DEEPL_API_KEY.startsWith('free') || !DEEPL_API_KEY.includes(':');
+        const apiUrl = isFreeApi 
+          ? 'https://api-free.deepl.com/v2/translate'
+          : 'https://api.deepl.com/v2/translate';
+        
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Authorization': `DeepL-Auth-Key ${DEEPL_API_KEY}`,
@@ -1392,7 +1399,14 @@ INSTRUCTIONS:
         });
         
         if (!response.ok) {
-          console.error(`DeepL API error: ${response.status} ${response.statusText}`);
+          const errorText = await response.text();
+          console.error(`DeepL API error: ${response.status} ${response.statusText}`, errorText);
+          
+          // Si erreur 403 ou 401, la clé API est probablement invalide
+          if (response.status === 403 || response.status === 401) {
+            console.error('❌ Clé API DeepL invalide ou expirée');
+          }
+          
           return text; // Retourner le texte original en cas d'erreur
         }
         
@@ -1437,6 +1451,193 @@ INSTRUCTIONS:
       return data;
     };
     
+    // Mapping des en-têtes Excel français vers d'autres langues
+    const excelHeaders: Record<string, Record<string, string>> = {
+      FR: {
+        'ID': 'ID',
+        'Nom': 'Nom',
+        'Type': 'Type',
+        'Template': 'Template',
+        'Ordre': 'Ordre',
+        'Domaine': 'Domaine',
+        'Catégorie': 'Catégorie',
+        'Élément': 'Élément',
+        'Sous-catégorie': 'Sous-catégorie',
+        'Sous-élément': 'Sous-élément',
+        'Valeur': 'Valeur',
+        'Unité': 'Unité',
+        'Icône': 'Icône',
+        'Icône 2': 'Icône 2',
+        'Icône 3': 'Icône 3',
+        'Statut': 'Statut',
+        'Zone': 'Zone',
+        'Orientation': 'Orientation',
+        'Date': 'Date',
+        'Description': 'Description',
+        'Durée': 'Durée',
+        'Ticket': 'Ticket',
+        'Actions': 'Actions',
+      },
+      EN: {
+        'ID': 'ID',
+        'Nom': 'Name',
+        'Type': 'Type',
+        'Template': 'Template',
+        'Ordre': 'Order',
+        'Domaine': 'Domain',
+        'Catégorie': 'Category',
+        'Élément': 'Element',
+        'Sous-catégorie': 'Sub-category',
+        'Sous-élément': 'Sub-element',
+        'Valeur': 'Value',
+        'Unité': 'Unit',
+        'Icône': 'Icon',
+        'Icône 2': 'Icon 2',
+        'Icône 3': 'Icon 3',
+        'Statut': 'Status',
+        'Zone': 'Zone',
+        'Orientation': 'Orientation',
+        'Date': 'Date',
+        'Description': 'Description',
+        'Durée': 'Duration',
+        'Ticket': 'Ticket',
+        'Actions': 'Actions',
+      },
+    };
+    
+    // Traduire les en-têtes Excel
+    const translateHeaders = async (headers: Record<string, any>, targetLang: string): Promise<Record<string, any>> => {
+      if (targetLang === 'FR') {
+        return headers; // Pas de traduction nécessaire
+      }
+      
+      const translatedHeaders: Record<string, any> = {};
+      
+      // Si on a un mapping direct, l'utiliser
+      if (excelHeaders[targetLang]) {
+        for (const [key, value] of Object.entries(headers)) {
+          const translatedKey = excelHeaders[targetLang][key] || excelHeaders['EN'][key] || key;
+          translatedHeaders[translatedKey] = value;
+        }
+        return translatedHeaders;
+      }
+      
+      // Sinon, traduire avec DeepL
+      if (DEEPL_API_KEY) {
+        for (const [key, value] of Object.entries(headers)) {
+          const translatedKey = await translateWithDeepL(key, targetLang);
+          translatedHeaders[translatedKey] = value;
+        }
+        return translatedHeaders;
+      }
+      
+      // Fallback : utiliser les en-têtes anglais
+      for (const [key, value] of Object.entries(headers)) {
+        const translatedKey = excelHeaders['EN'][key] || key;
+        translatedHeaders[translatedKey] = value;
+      }
+      return translatedHeaders;
+    };
+    
+    // Traduire le nom d'un onglet Excel
+    const translateSheetName = async (sheetName: string, targetLang: string): Promise<string> => {
+      if (targetLang === 'FR') return sheetName;
+      
+      const sheetNames: Record<string, Record<string, string>> = {
+        FR: {
+          'Domaines': 'Domaines',
+          'Catégories': 'Catégories',
+          'Éléments': 'Éléments',
+          'Sous-catégories': 'Sous-catégories',
+          'Sous-éléments': 'Sous-éléments',
+          'Alertes': 'Alertes',
+          'Zones': 'Zones',
+        },
+        EN: {
+          'Domaines': 'Domains',
+          'Catégories': 'Categories',
+          'Éléments': 'Elements',
+          'Sous-catégories': 'Sub-categories',
+          'Sous-éléments': 'Sub-elements',
+          'Alertes': 'Alerts',
+          'Zones': 'Zones',
+        },
+      };
+      
+      if (sheetNames[targetLang] && sheetNames[targetLang][sheetName]) {
+        return sheetNames[targetLang][sheetName];
+      }
+      
+      if (DEEPL_API_KEY) {
+        return await translateWithDeepL(sheetName, targetLang);
+      }
+      
+      return sheetNames['EN'][sheetName] || sheetName;
+    };
+    
+    // Obtenir les en-têtes traduits (synchrone pour performance)
+    const getTranslatedHeaderSync = (headerFr: string, targetLang: string): string => {
+      if (targetLang === 'FR') return headerFr;
+      
+      // Utiliser le mapping direct si disponible
+      if (excelHeaders[targetLang] && excelHeaders[targetLang][headerFr]) {
+        return excelHeaders[targetLang][headerFr];
+      }
+      
+      // Sinon utiliser la version anglaise comme fallback
+      if (excelHeaders['EN'][headerFr]) {
+        return excelHeaders['EN'][headerFr];
+      }
+      
+      return headerFr; // Fallback : garder l'original
+    };
+    
+    // Obtenir les en-têtes traduits (async pour DeepL si nécessaire)
+    const getTranslatedHeader = async (headerFr: string, targetLang: string): Promise<string> => {
+      if (targetLang === 'FR') return headerFr;
+      
+      // Utiliser le mapping direct si disponible
+      if (excelHeaders[targetLang] && excelHeaders[targetLang][headerFr]) {
+        return excelHeaders[targetLang][headerFr];
+      }
+      
+      // Sinon utiliser la version anglaise comme fallback
+      if (excelHeaders['EN'][headerFr]) {
+        return excelHeaders['EN'][headerFr];
+      }
+      
+      // Si DeepL est disponible, traduire
+      if (DEEPL_API_KEY) {
+        return await translateWithDeepL(headerFr, targetLang);
+      }
+      
+      return headerFr; // Fallback : garder l'original
+    };
+    
+    // Traduire les clés d'un tableau d'objets (pour les en-têtes Excel)
+    const translateObjectsKeys = async (objects: Record<string, any>[], targetLang: string): Promise<Record<string, any>[]> => {
+      if (targetLang === 'FR' || objects.length === 0) return objects;
+      
+      // Obtenir toutes les clés uniques du premier objet
+      const firstObject = objects[0] || {};
+      const keys = Object.keys(firstObject);
+      
+      // Créer un mapping des clés françaises vers les clés traduites
+      const keyMapping: Record<string, string> = {};
+      for (const key of keys) {
+        keyMapping[key] = await getTranslatedHeader(key, targetLang);
+      }
+      
+      // Traduire chaque objet
+      return objects.map(obj => {
+        const translated: Record<string, any> = {};
+        for (const [key, value] of Object.entries(obj)) {
+          translated[keyMapping[key] || key] = value;
+        }
+        return translated;
+      });
+    };
+    
     // Export Excel
     const exportMatch = path.match(/^\/cockpits\/([^/]+)\/export(?:\/([^/]+))?$/);
     if (exportMatch && method === 'GET') {
@@ -1455,11 +1656,11 @@ INSTRUCTIONS:
       const requestedLang = exportMatch[2] || 'FR'; // Par défaut FR (original)
       const data = cockpit.data || { domains: [], zones: [] };
       
-      // Si on demande la version EN, traduire les données
+      // Traduire les données si nécessaire (toutes les langues sauf FR)
       let dataToExport = data;
-      if (requestedLang === 'EN' && DEEPL_API_KEY) {
-        console.log('[Excel Export] Traduction en cours...');
-        dataToExport = await translateDataRecursively(JSON.parse(JSON.stringify(data)), 'EN');
+      if (requestedLang !== 'FR' && DEEPL_API_KEY) {
+        console.log(`[Excel Export] Traduction en cours vers ${requestedLang}...`);
+        dataToExport = await translateDataRecursively(JSON.parse(JSON.stringify(data)), requestedLang);
         console.log('[Excel Export] Traduction terminée');
       }
       
@@ -1467,18 +1668,23 @@ INSTRUCTIONS:
       const wb = XLSX.utils.book_new();
       
       // Onglet Domaines
-      const domainsData = (dataToExport.domains || []).map((d: any) => ({
+      let domainsData = (dataToExport.domains || []).map((d: any) => ({
         'ID': d.id,
         'Nom': d.name,
         'Type': d.templateType,
         'Template': d.templateName || '',
         'Ordre': d.order,
       }));
-      const wsDomainsData = XLSX.utils.json_to_sheet(domainsData.length ? domainsData : [{ 'ID': '', 'Nom': '', 'Type': '', 'Template': '', 'Ordre': '' }]);
-      XLSX.utils.book_append_sheet(wb, wsDomainsData, 'Domaines');
+      if (domainsData.length === 0) {
+        domainsData = [{ 'ID': '', 'Nom': '', 'Type': '', 'Template': '', 'Ordre': '' }];
+      }
+      const translatedDomainsData = await translateObjectsKeys(domainsData, requestedLang);
+      const wsDomainsData = XLSX.utils.json_to_sheet(translatedDomainsData);
+      const translatedDomainsSheetName = await translateSheetName('Domaines', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsDomainsData, translatedDomainsSheetName);
       
       // Onglet Catégories
-      const categoriesData: any[] = [];
+      let categoriesData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           categoriesData.push({
@@ -1491,11 +1697,16 @@ INSTRUCTIONS:
           });
         });
       });
-      const wsCategoriesData = XLSX.utils.json_to_sheet(categoriesData.length ? categoriesData : [{ 'ID': '', 'Domaine': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }]);
-      XLSX.utils.book_append_sheet(wb, wsCategoriesData, 'Catégories');
+      if (categoriesData.length === 0) {
+        categoriesData = [{ 'ID': '', 'Domaine': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }];
+      }
+      const translatedCategoriesData = await translateObjectsKeys(categoriesData, requestedLang);
+      const wsCategoriesData = XLSX.utils.json_to_sheet(translatedCategoriesData);
+      const translatedCategoriesSheetName = await translateSheetName('Catégories', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsCategoriesData, translatedCategoriesSheetName);
       
       // Onglet Éléments
-      const elementsData: any[] = [];
+      let elementsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
@@ -1516,11 +1727,16 @@ INSTRUCTIONS:
           });
         });
       });
-      const wsElements = XLSX.utils.json_to_sheet(elementsData.length ? elementsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Icône': '', 'Icône 2': '', 'Icône 3': '', 'Statut': '', 'Zone': '', 'Ordre': '' }]);
-      XLSX.utils.book_append_sheet(wb, wsElements, 'Éléments');
+      if (elementsData.length === 0) {
+        elementsData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Icône': '', 'Icône 2': '', 'Icône 3': '', 'Statut': '', 'Zone': '', 'Ordre': '' }];
+      }
+      const translatedElementsData = await translateObjectsKeys(elementsData, requestedLang);
+      const wsElements = XLSX.utils.json_to_sheet(translatedElementsData);
+      const translatedElementsSheetName = await translateSheetName('Éléments', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsElements, translatedElementsSheetName);
       
       // Onglet Sous-catégories
-      const subCategoriesData: any[] = [];
+      let subCategoriesData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
@@ -1539,11 +1755,16 @@ INSTRUCTIONS:
           });
         });
       });
-      const wsSubCategories = XLSX.utils.json_to_sheet(subCategoriesData.length ? subCategoriesData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }]);
-      XLSX.utils.book_append_sheet(wb, wsSubCategories, 'Sous-catégories');
+      if (subCategoriesData.length === 0) {
+        subCategoriesData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }];
+      }
+      const translatedSubCategoriesData = await translateObjectsKeys(subCategoriesData, requestedLang);
+      const wsSubCategories = XLSX.utils.json_to_sheet(translatedSubCategoriesData);
+      const translatedSubCategoriesSheetName = await translateSheetName('Sous-catégories', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsSubCategories, translatedSubCategoriesSheetName);
       
       // Onglet Sous-éléments
-      const subElementsData: any[] = [];
+      let subElementsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
@@ -1566,11 +1787,16 @@ INSTRUCTIONS:
           });
         });
       });
-      const wsSubElements = XLSX.utils.json_to_sheet(subElementsData.length ? subElementsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Statut': '', 'Ordre': '' }]);
-      XLSX.utils.book_append_sheet(wb, wsSubElements, 'Sous-éléments');
+      if (subElementsData.length === 0) {
+        subElementsData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Statut': '', 'Ordre': '' }];
+      }
+      const translatedSubElementsData = await translateObjectsKeys(subElementsData, requestedLang);
+      const wsSubElements = XLSX.utils.json_to_sheet(translatedSubElementsData);
+      const translatedSubElementsSheetName = await translateSheetName('Sous-éléments', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsSubElements, translatedSubElementsSheetName);
       
       // Onglet Alertes
-      const alertsData: any[] = [];
+      let alertsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
@@ -1596,23 +1822,33 @@ INSTRUCTIONS:
           });
         });
       });
-      const wsAlerts = XLSX.utils.json_to_sheet(alertsData.length ? alertsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Date': '', 'Description': '', 'Durée': '', 'Ticket': '', 'Actions': '' }]);
-      XLSX.utils.book_append_sheet(wb, wsAlerts, 'Alertes');
+      if (alertsData.length === 0) {
+        alertsData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Date': '', 'Description': '', 'Durée': '', 'Ticket': '', 'Actions': '' }];
+      }
+      const translatedAlertsData = await translateObjectsKeys(alertsData, requestedLang);
+      const wsAlerts = XLSX.utils.json_to_sheet(translatedAlertsData);
+      const translatedAlertsSheetName = await translateSheetName('Alertes', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsAlerts, translatedAlertsSheetName);
       
       // Onglet Zones
-      const zonesData = (dataToExport.zones || []).map((z: any) => ({
+      let zonesData = (dataToExport.zones || []).map((z: any) => ({
         'ID': z.id,
         'Nom': z.name,
       }));
-      const wsZones = XLSX.utils.json_to_sheet(zonesData.length ? zonesData : [{ 'ID': '', 'Nom': '' }]);
-      XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
+      if (zonesData.length === 0) {
+        zonesData = [{ 'ID': '', 'Nom': '' }];
+      }
+      const translatedZonesData = await translateObjectsKeys(zonesData, requestedLang);
+      const wsZones = XLSX.utils.json_to_sheet(translatedZonesData);
+      const translatedZonesSheetName = await translateSheetName('Zones', requestedLang);
+      XLSX.utils.book_append_sheet(wb, wsZones, translatedZonesSheetName);
       
       // Générer le buffer Excel
       try {
         const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         
         // Encoder le nom du fichier pour éviter les problèmes avec les caractères spéciaux
-        const langSuffix = requestedLang === 'EN' ? '_EN' : '_FR';
+        const langSuffix = requestedLang === 'FR' ? '_FR' : `_${requestedLang}`;
         const encodedFileName = encodeURIComponent(cockpit.name.replace(/[^\w\s-]/g, '') + langSuffix).replace(/'/g, '%27');
         
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

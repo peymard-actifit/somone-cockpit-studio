@@ -54,11 +54,54 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
   const { currentCockpit, fetchCockpit, updateCockpit } = useCockpitStore();
   
   useEffect(() => {
-    // Charger les langues disponibles
-    fetch('/api/translation/languages')
-      .then(res => res.json())
-      .then(data => setLanguages(data.languages || []))
-      .catch(err => console.error('Erreur chargement langues:', err));
+    // Charger les langues disponibles avec fallback
+    const loadLanguages = async () => {
+      try {
+        const response = await fetch('/api/translation/languages');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.languages && data.languages.length > 0) {
+          setLanguages(data.languages);
+        } else {
+          // Fallback : langues par défaut si l'API ne retourne rien
+          setLanguages([
+            { code: 'FR', name: 'Français (Originale)' },
+            { code: 'EN', name: 'English' },
+            { code: 'DE', name: 'Deutsch' },
+            { code: 'ES', name: 'Español' },
+            { code: 'IT', name: 'Italiano' },
+            { code: 'PT', name: 'Português' },
+            { code: 'RU', name: 'Русский' },
+            { code: 'JA', name: '日本語' },
+            { code: 'ZH', name: '中文' },
+            { code: 'NL', name: 'Nederlands' },
+            { code: 'PL', name: 'Polski' },
+            { code: 'AR', name: 'العربية' },
+          ]);
+        }
+      } catch (err) {
+        console.error('Erreur chargement langues:', err);
+        // Fallback : langues par défaut en cas d'erreur
+        setLanguages([
+          { code: 'FR', name: 'Français (Originale)' },
+          { code: 'EN', name: 'English' },
+          { code: 'DE', name: 'Deutsch' },
+          { code: 'ES', name: 'Español' },
+          { code: 'IT', name: 'Italiano' },
+          { code: 'PT', name: 'Português' },
+          { code: 'RU', name: 'Русский' },
+          { code: 'JA', name: '日本語' },
+          { code: 'ZH', name: '中文' },
+          { code: 'NL', name: 'Nederlands' },
+          { code: 'PL', name: 'Polski' },
+          { code: 'AR', name: 'العربية' },
+        ]);
+      }
+    };
+    
+    loadLanguages();
   }, []);
   
   const handleTranslate = async () => {
