@@ -454,7 +454,9 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         });
         if (checkResponse.ok) {
           const cockpit = await checkResponse.json();
-          const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
+          // IMPORTANT: Les données sont spread dans la réponse API, donc originals est directement dans cockpit, pas dans cockpit.data
+          const hasOriginalsValue = !!(cockpit.originals);
+          console.log('[Translation] Vérification après restauration: originaux présents =', hasOriginalsValue);
           setHasOriginals(hasOriginalsValue);
         }
       } catch (err) {
