@@ -327,7 +327,11 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
       }
       
-      // Vérifier immédiatement les originaux après la sauvegarde
+      // FORCER la mise à jour immédiate : la sauvegarde a réussi, donc on a des originaux
+      console.log('[Translation] Sauvegarde réussie, mise à jour hasOriginals à true');
+      setHasOriginals(true);
+      
+      // Vérifier immédiatement pour confirmer (mais on a déjà mis à jour l'état)
       try {
         const checkResponse = await fetch(`/api/cockpits/${cockpitId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
@@ -335,13 +339,15 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         if (checkResponse.ok) {
           const cockpit = await checkResponse.json();
           const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
-          setHasOriginals(hasOriginalsValue);
-          console.log('[Translation] hasOriginals mis à jour après figement:', hasOriginalsValue);
+          console.log('[Translation] Vérification: originaux présents =', hasOriginalsValue);
+          // Mettre à jour à nouveau pour être sûr
+          if (hasOriginalsValue) {
+            setHasOriginals(true);
+          }
         }
       } catch (err) {
         console.error('Erreur vérification originaux après sauvegarde:', err);
-        // Même en cas d'erreur, on suppose que la sauvegarde a réussi
-        setHasOriginals(true);
+        // On garde hasOriginals à true car la sauvegarde a réussi
       }
       
       // Recharger le cockpit pour mettre à jour les données (en arrière-plan)
@@ -870,7 +876,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           showSaveButton={true}
           onSaveOriginals={handleSaveOriginals}
           isSavingOriginals={isSavingOriginals}
-          showRestoreButton={hasOriginals}
+          showRestoreButton={hasOriginals === true}
           onRestore={handleRestore}
           isRestoring={isRestoring}
         >
