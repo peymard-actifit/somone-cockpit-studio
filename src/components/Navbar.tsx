@@ -61,7 +61,7 @@ function SortableDomainTab({ domain, isActive, onSelect, onDelete, domainsCount 
       {/* Indicateur point de couleur basé sur le statut le plus critique */}
       {worstStatus !== 'ok' && (
         <div 
-          className={`absolute -top-1 ${domainsCount > 1 ? 'right-10' : 'right-2'} w-2 h-2 rounded-full z-10`}
+          className={`absolute top-1 ${domainsCount > 1 ? 'right-10' : 'right-2'} w-2.5 h-2.5 rounded-full z-10`}
           style={{ backgroundColor: statusColor }}
           title={`Statut le plus critique: ${worstStatus}`}
         />
