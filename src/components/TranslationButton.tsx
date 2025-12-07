@@ -5,6 +5,7 @@ import { MuiIcon } from './IconPicker';
 
 // Interface pour représenter un changement de traduction
 interface TranslationChange {
+  id: string; // ID unique de l'élément (ex: "domainId|categoryId|elementId|field")
   path: string; // Chemin hiérarchique (ex: "Domaine > Catégorie > Élément")
   field: string; // Nom du champ (name, description, etc.)
   original: string; // Texte original
@@ -425,96 +426,95 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
 
   // Fonction pour appliquer les traductions modifiées aux données en utilisant les IDs
   const applyEditedTranslations = (data: any, changes: TranslationChange[]): any => {
-    // Créer un mapping rapide : path|field -> valeur traduite
+    // Créer un mapping par ID : id -> valeur traduite
     const changeMap = new Map<string, string>();
     changes.forEach(change => {
-      const key = `${change.path}|${change.field}`;
-      changeMap.set(key, change.translated);
+      // Utiliser l'ID unique plutôt que le chemin (les noms peuvent changer)
+      changeMap.set(change.id, change.translated);
     });
 
-    // Fonction récursive pour appliquer les changements en utilisant les noms/chemins
-    const applyRecursive = (obj: any, pathParts: string[] = []): any => {
+    // Fonction récursive pour appliquer les changements en utilisant les IDs
+    const applyRecursive = (obj: any, idParts: string[] = []): any => {
       if (!obj || typeof obj !== 'object') {
         return obj;
       }
 
       if (Array.isArray(obj)) {
-        return obj.map((item, index) => {
+        return obj.map((item) => {
           if (item && typeof item === 'object') {
-            // Construire le chemin pour cet élément
-            const itemPath = item.name || item.id || `${pathParts[pathParts.length - 1]}[${index}]`;
-            return applyRecursive(item, [...pathParts, itemPath]);
+            const itemId = item.id || '';
+            return applyRecursive(item, itemId ? [...idParts, itemId] : idParts);
           }
           return item;
         });
       }
 
-      const result: any = {};
+      const result: any = { ...obj };
 
       // Traiter scrollingBanner au niveau racine
       if ('scrollingBanner' in obj && typeof obj.scrollingBanner === 'string') {
-        const key = 'Bannière défilante|scrollingBanner';
-        result.scrollingBanner = changeMap.get(key) || obj.scrollingBanner;
+        const id = 'cockpit-root';
+        if (changeMap.has(`${id}|scrollingBanner`)) {
+          result.scrollingBanner = changeMap.get(`${id}|scrollingBanner`);
+        }
       }
 
+      // Construire l'ID complet pour cet objet
+      const currentId = idParts.length > 0 ? idParts.join('|') : null;
+      const objId = obj.id || '';
+
       for (const [key, value] of Object.entries(obj)) {
-        if (key === 'originals') {
-          result[key] = value;
-          continue;
+        if (key === 'originals' || key === 'id') {
+          continue; // Conserver l'ID et ignorer originals
         }
 
         const textFields = ['name', 'description', 'actions', 'unit', 'duration', 'ticketNumber', 'zone', 'address', 'templateName', 'value'];
         
         if (textFields.includes(key) && typeof value === 'string') {
-          // Construire la clé pour chercher dans changeMap
-          const currentPath = pathParts.join(' > ');
-          const mapKey = `${currentPath}|${key}`;
-          
-          // Chercher correspondance exacte ou partielle
-          let translatedValue = value;
-          for (const [changeKey, changeValue] of changeMap.entries()) {
-            if (changeKey === mapKey) {
-              translatedValue = changeValue;
-              break;
-            }
-            // Si le chemin correspond partiellement (pour gérer les cas où le nom a changé)
-            const [changePath, changeField] = changeKey.split('|');
-            if (changeField === key && changePath.endsWith(pathParts[pathParts.length - 1] || '')) {
-              translatedValue = changeValue;
-              break;
-            }
+          // Construire l'ID complet pour ce champ
+          let fieldId: string;
+          if (key === 'scrollingBanner') {
+            fieldId = 'cockpit-root|scrollingBanner';
+          } else if (currentId) {
+            fieldId = `${currentId}|${key}`;
+          } else if (objId) {
+            fieldId = `${objId}|${key}`;
+          } else {
+            fieldId = key; // Fallback
           }
-          result[key] = translatedValue;
+          
+          // Chercher dans changeMap par ID
+          if (changeMap.has(fieldId)) {
+            result[key] = changeMap.get(fieldId);
+          }
         } else if (value && typeof value === 'object') {
           if (key === 'domains' && Array.isArray(value)) {
             result[key] = value.map((domain: any) => 
-              applyRecursive(domain, [domain.name || domain.id || 'Domaine'])
+              applyRecursive(domain, domain.id ? [domain.id] : [])
             );
           } else if (key === 'categories' && Array.isArray(value)) {
             result[key] = value.map((category: any) => 
-              applyRecursive(category, [...pathParts, category.name || category.id || 'Catégorie'])
+              applyRecursive(category, category.id ? [...idParts, category.id] : idParts)
             );
           } else if (key === 'elements' && Array.isArray(value)) {
             result[key] = value.map((element: any) => 
-              applyRecursive(element, [...pathParts, element.name || element.id || 'Élément'])
+              applyRecursive(element, element.id ? [...idParts, element.id] : idParts)
             );
           } else if (key === 'subCategories' && Array.isArray(value)) {
             result[key] = value.map((subCategory: any) => 
-              applyRecursive(subCategory, [...pathParts, subCategory.name || subCategory.id || 'Sous-catégorie'])
+              applyRecursive(subCategory, subCategory.id ? [...idParts, subCategory.id] : idParts)
             );
           } else if (key === 'subElements' && Array.isArray(value)) {
             result[key] = value.map((subElement: any) => 
-              applyRecursive(subElement, [...pathParts, subElement.name || subElement.id || 'Sous-élément'])
+              applyRecursive(subElement, subElement.id ? [...idParts, subElement.id] : idParts)
             );
           } else if (key === 'zones' && Array.isArray(value)) {
             result[key] = value.map((zone: any) => 
-              applyRecursive(zone, [`Zone: ${zone.name || zone.id || 'Zone'}`])
+              applyRecursive(zone, zone.id ? [zone.id] : [])
             );
           } else {
-            result[key] = applyRecursive(value, pathParts);
+            result[key] = applyRecursive(value, idParts);
           }
-        } else {
-          result[key] = value;
         }
       }
       return result;
@@ -728,10 +728,11 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       // Remplir avec les champs actuels
       currentFields.forEach(field => {
         changesMap.set(field.id, {
+          id: field.id, // IMPORTANT: Stocker l'ID pour l'application des changements
           path: field.path,
           field: field.field,
           original: field.value,
-          translated: field.value, // Par défaut, même valeur
+          translated: field.value, // Par défaut, même valeur (sera remplacé par la traduction)
           editable: true,
         });
       });
@@ -744,6 +745,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         } else {
           // Nouveau champ dans la traduction
           changesMap.set(translatedField.id, {
+            id: translatedField.id,
             path: translatedField.path,
             field: translatedField.field,
             original: translatedField.value,
@@ -753,10 +755,9 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         }
       });
       
-      // Filtrer pour ne garder que ceux qui ont changé
-      const finalChanges = Array.from(changesMap.values()).filter(
-        change => change.original.trim() !== change.translated.trim()
-      );
+      // AFFICHER TOUS LES ÉLÉMENTS, même ceux qui n'ont pas changé
+      // Cela permet à l'utilisateur de voir et modifier toutes les traductions
+      const finalChanges = Array.from(changesMap.values());
       
       console.log('[Translation Preview] Changements détectés:', finalChanges.length);
       finalChanges.forEach(change => {
