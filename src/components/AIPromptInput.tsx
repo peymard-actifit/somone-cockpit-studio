@@ -194,20 +194,13 @@ export default function AIPromptInput() {
           reader.readAsDataURL(file);
         });
         
-        // Créer une description pour l'IA
+        // Stocker directement le base64 (format data:image/...;base64,...)
+        // On stocke le base64 complet pour l'extraction facile plus tard
+        content = base64; // Stocker directement le data URL complet
+        
         const imageFormat = fileName.split('.').pop()?.toUpperCase() || 'IMAGE';
         const imageSizeKB = (file.size / 1024).toFixed(2);
-        content = `[IMAGE: ${file.name}]
-Format: ${imageFormat}
-Taille: ${imageSizeKB} KB
-Dimensions: À analyser par l'IA
-
-Description: Cette image a été chargée pour analyse. L'IA peut examiner son contenu pour extraire des informations, du texte (OCR), ou décrire ce qu'elle contient.
-
-Image en base64 (utilisée par l'IA pour l'analyse visuelle):
-${base64}`;
-        
-        addMessage('assistant', `🖼️ Fichier image "${file.name}" chargé (${imageSizeKB} KB). L'IA pourra analyser le contenu de l'image.`);
+        addMessage('assistant', `🖼️ Fichier image "${file.name}" chargé (${imageSizeKB} KB, Format: ${imageFormat}). L'IA pourra analyser le contenu et faire de l'OCR.`);
       } else if (fileName.endsWith('.docx')) {
         // Fichier Word - utiliser mammoth.js pour extraire le texte
         try {
@@ -1162,16 +1155,30 @@ ${base64}`;
       
       if (hasImage) {
         // Extraire le base64 de l'image (format: data:image/...;base64,...)
-        const base64Match = attachedFile.content.match(/data:image\/[^;]+;base64,(.+)/);
-        if (base64Match) {
-          imageBase64 = base64Match[1];
-        } else if (attachedFile.content.startsWith('data:')) {
-          imageBase64 = attachedFile.content.split(',')[1];
+        // Le contenu est déjà en format data:image/...;base64,...
+        let base64Content = attachedFile.content;
+        
+        // Si le contenu contient le préfixe data:, extraire uniquement le base64
+        if (base64Content.includes('data:image/')) {
+          const parts = base64Content.split('base64,');
+          if (parts.length > 1) {
+            imageBase64 = parts[1]; // Prendre tout après "base64,"
+          } else if (base64Content.includes(',')) {
+            imageBase64 = base64Content.split(',')[1];
+          } else {
+            // Si pas de préfixe, c'est déjà du base64 pur
+            imageBase64 = base64Content;
+          }
         } else {
-          imageBase64 = attachedFile.content;
+          // Si pas de préfixe data:, c'est déjà du base64 pur
+          imageBase64 = base64Content;
         }
+        
+        // Détecter le type de fichier pour le message
+        const fileExtension = attachedFile.name.split('.').pop()?.toUpperCase() || 'IMAGE';
+        
         // Pour les images, préparer un message qui demande l'OCR
-        fullMessage = `[IMAGE ATTACHÉE: ${attachedFile.name}]\n\nAnalyse cette image et fais de l'OCR si elle contient du texte. Extrais toutes les informations pertinentes.\n\nQuestion de l'utilisateur: ${userMessage}`;
+        fullMessage = `[IMAGE ATTACHÉE: ${attachedFile.name} - Format: ${fileExtension}]\n\nAnalyse cette image et fais de l'OCR si elle contient du texte. Extrais toutes les informations pertinentes.\n\nQuestion de l'utilisateur: ${userMessage}`;
       } else {
         // Pour les autres fichiers, utiliser le format texte
         fullMessage = `[FICHIER ATTACHÉ: ${attachedFile.name}]\n\nContenu du fichier:\n\`\`\`\n${attachedFile.content}\n\`\`\`\n\nQuestion de l'utilisateur: ${userMessage}`;

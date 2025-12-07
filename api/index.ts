@@ -2472,6 +2472,51 @@ ANALYSE D'IMAGES ET OCR:
       
       // Si une image est attachée, utiliser le format multi-modal
       if (hasImage && imageBase64) {
+        // Nettoyer le base64 : enlever les espaces, retours à la ligne, etc.
+        let cleanBase64 = imageBase64.trim().replace(/\s+/g, '');
+        
+        // Si le base64 contient encore le préfixe data:, l'extraire complètement
+        if (cleanBase64.includes('data:')) {
+          const mimeMatch = cleanBase64.match(/data:([^;]+);base64,([\s\S]*)/);
+          if (mimeMatch && mimeMatch.length >= 3) {
+            cleanBase64 = mimeMatch[2].trim().replace(/\s+/g, '');
+          } else {
+            // Fallback : prendre tout après la dernière virgule ou "base64,"
+            const afterComma = cleanBase64.split(',').pop();
+            const afterBase64 = cleanBase64.split('base64,').pop();
+            cleanBase64 = (afterBase64 && afterBase64 !== cleanBase64) ? afterBase64 : (afterComma || cleanBase64);
+            cleanBase64 = cleanBase64.trim().replace(/\s+/g, '');
+          }
+        }
+        
+        // Détecter le type MIME à partir du message ou utiliser un format par défaut
+        let mimeType = 'image/png'; // Par défaut PNG
+        if (typeof message === 'string') {
+          if (message.includes('Format: PNG') || message.match(/\.png/i)) {
+            mimeType = 'image/png';
+          } else if (message.includes('Format: JPEG') || message.includes('Format: JPG') || message.match(/\.jpe?g/i)) {
+            mimeType = 'image/jpeg';
+          } else if (message.includes('Format: GIF') || message.match(/\.gif/i)) {
+            mimeType = 'image/gif';
+          } else if (message.includes('Format: WEBP') || message.match(/\.webp/i)) {
+            mimeType = 'image/webp';
+          }
+        }
+        
+        // Vérifier que le base64 est valide (ne contient que des caractères base64 valides)
+        if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
+          console.error('[AI] Base64 invalide détecté, nettoyage supplémentaire...');
+          // Nettoyer encore plus agressivement
+          cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+        }
+        
+        // Valider la longueur minimale du base64
+        if (cleanBase64.length < 100) {
+          console.error('[AI] Base64 trop court, peut-être une erreur d\'extraction');
+        }
+        
+        const imageUrl = `data:${mimeType};base64,${cleanBase64}`;
+        
         messages.push({
           role: 'user',
           content: [
@@ -2482,7 +2527,7 @@ ANALYSE D'IMAGES ET OCR:
             {
               type: 'image_url',
               image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`
+                url: imageUrl
               }
             }
           ]
