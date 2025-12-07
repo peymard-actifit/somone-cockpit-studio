@@ -58,9 +58,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   };
 
   // État du zoom et position (comme MapView) - initialisé depuis localStorage
-  const initialViewState = loadSavedViewState(domain.id);
-  const [scale, setScale] = useState(initialViewState.scale);
-  const [position, setPosition] = useState(initialViewState.position);
+  // Utiliser une fonction d'initialisation pour éviter de recalculer à chaque render
+  const [scale, setScale] = useState(() => loadSavedViewState(domain.id).scale);
+  const [position, setPosition] = useState(() => loadSavedViewState(domain.id).position);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
