@@ -793,6 +793,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       <div
         ref={containerRef}
         className={`w-full flex-1 overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        style={{ 
+          minHeight: _readOnly ? 'calc(100vh - 200px)' : undefined,
+          height: _readOnly ? '100%' : undefined,
+          position: _readOnly ? 'relative' : undefined
+        }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -822,17 +827,18 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               alt="Carte"
               className="absolute inset-0 w-full h-full object-contain"
               style={{ 
-                minWidth: '100%', 
-                minHeight: '100%',
-                width: 'auto',
-                height: 'auto',
-                maxWidth: '100%',
-                maxHeight: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
                 zIndex: 0,
                 opacity: 1,
                 display: 'block',
                 visibility: 'visible',
-                objectFit: 'contain',
                 pointerEvents: 'none' // Permettre les clics à travers l'image
               }}
               crossOrigin="anonymous"

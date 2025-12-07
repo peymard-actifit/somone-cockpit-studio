@@ -768,7 +768,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         className={`w-full flex-1 overflow-hidden ${
           isDrawing ? 'cursor-crosshair' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
-        style={{ minHeight: '400px', height: _readOnly ? '100%' : undefined }}
+        style={{ 
+          minHeight: _readOnly ? 'calc(100vh - 200px)' : '400px', 
+          height: _readOnly ? '100%' : undefined,
+          position: _readOnly ? 'relative' : undefined
+        }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -783,8 +787,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center',
             transition: isDragging || isDrawing || draggingElementId ? 'none' : 'transform 0.1s ease-out',
+            height: _readOnly ? '100%' : undefined,
+            width: _readOnly ? '100%' : undefined,
             minHeight: _readOnly ? '100%' : undefined,
             minWidth: _readOnly ? '100%' : undefined,
+            position: 'relative'
           }}
         >
           {/* Image de fond */}
@@ -798,16 +805,17 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               draggable={false}
               style={{ 
-                minWidth: '100%', 
-                minHeight: '100%',
-                width: 'auto',
-                height: 'auto',
-                maxWidth: '100%',
-                maxHeight: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
                 zIndex: 0,
                 opacity: 1,
-                display: 'block',
-                objectFit: 'contain'
+                display: 'block'
               }}
               crossOrigin="anonymous"
               onLoad={(e) => {
