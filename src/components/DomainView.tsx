@@ -503,47 +503,47 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               )}
               
               {/* Réglage de l'assombrissement/opacité - TOUJOURS AFFICHER */}
-              <div className="mt-4">
-                {(() => {
-                  const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
-                  return (
-                    <>
-                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                        {bgMode === 'behind' 
-                          ? `Assombrissement de l'image : ${currentDarkness}%`
-                          : `Opacité de l'image : ${currentDarkness}%`
-                        }
-                      </label>
-                      <div className="space-y-2">
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={currentDarkness}
-                          onChange={(e) => {
-                            const newValue = Number(e.target.value);
-                            setBgDarkness(newValue);
-                          }}
-                          className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-                          style={{
-                            background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${currentDarkness}%, #E2E8F0 ${currentDarkness}%, #E2E8F0 100%)`
-                          }}
-                        />
-                        <div className="flex justify-between text-xs text-[#64748B]">
-                          <span>Clair/Transparent (0%)</span>
-                          <span>Foncé/Opaque (100%)</span>
-                        </div>
-                        <p className="text-xs text-[#64748B] mt-1">
-                          {bgMode === 'behind' 
-                            ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
-                            : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
-                          }
-                        </p>
+              {(() => {
+                const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
+                console.log('[DomainView] Slider render:', { bgDarkness, currentDarkness, bgMode, showModal: showBgConfigModal });
+                return (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                      {bgMode === 'behind' 
+                        ? `Assombrissement de l'image : ${currentDarkness}%`
+                        : `Opacité de l'image : ${currentDarkness}%`
+                      }
+                    </label>
+                    <div className="space-y-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={currentDarkness}
+                        onChange={(e) => {
+                          const newValue = Number(e.target.value);
+                          console.log('[DomainView] Slider change:', newValue);
+                          setBgDarkness(newValue);
+                        }}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                        style={{
+                          background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${currentDarkness}%, #E2E8F0 ${currentDarkness}%, #E2E8F0 100%)`
+                        }}
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B]">
+                        <span>Clair/Transparent (0%)</span>
+                        <span>Foncé/Opaque (100%)</span>
                       </div>
-                    </>
-                  );
-                })()}
-              </div>
+                      <p className="text-xs text-[#64748B] mt-1">
+                        {bgMode === 'behind' 
+                          ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
+                          : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
               
               {/* Aperçu */}
               {bgImageUrl && (
