@@ -86,9 +86,8 @@ export default function HomePage() {
     try {
       const importedCockpit = await importCockpit(file);
       if (importedCockpit) {
-        // Recharger la liste et naviguer vers la maquette importée
+        // Recharger la liste seulement (ne pas naviguer vers l'édition)
         await fetchCockpits();
-        navigate(`/studio/${importedCockpit.id}`);
       }
     } catch (error) {
       console.error('Erreur import:', error);
@@ -104,7 +103,8 @@ export default function HomePage() {
     if (!newName.trim()) return;
     const cockpit = await createCockpit(newName.trim());
     if (cockpit) {
-      navigate(`/studio/${cockpit.id}`);
+      // Recharger la liste seulement (ne pas naviguer vers l'édition)
+      await fetchCockpits();
     }
     setShowNewModal(false);
     setNewName('');

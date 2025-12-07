@@ -89,7 +89,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         const data = await response.json();
         
         // Toujours inclure le français dans la liste, indépendamment de la version sauvegardée
-        const frenchLanguage: Language = { code: 'FR', name: 'Français (Version sauvegardée)' };
+        const frenchLanguage: Language = { code: 'FR', name: 'Français' };
         
         if (data.languages && data.languages.length > 0) {
           // S'assurer que le français est dans la liste
@@ -99,7 +99,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         } else {
           // Fallback : langues par défaut
           setLanguages([
-            frenchLanguage,
+            { code: 'FR', name: 'Français' },
             { code: 'EN', name: 'English' },
             { code: 'DE', name: 'Deutsch' },
             { code: 'ES', name: 'Español' },
@@ -117,7 +117,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         console.error('Erreur chargement langues:', err);
         // Fallback : langues par défaut en cas d'erreur
         setLanguages([
-          { code: 'FR', name: 'Français (Version sauvegardée)' },
+          { code: 'FR', name: 'Français' },
           { code: 'EN', name: 'English' },
           { code: 'DE', name: 'Deutsch' },
           { code: 'ES', name: 'Español' },
@@ -190,7 +190,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       }
       
       setHasOriginals(true);
-      alert('✅ Version actuelle sauvegardée comme originaux. Vous pourrez restaurer cette version en sélectionnant "Français (Version sauvegardée)".');
+      alert('✅ Version actuelle sauvegardée comme originaux. Vous pourrez restaurer cette version en sélectionnant "Français".');
       
       // Recharger le cockpit pour mettre à jour les données
       if (fetchCockpit) {
