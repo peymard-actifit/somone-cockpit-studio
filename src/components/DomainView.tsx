@@ -141,7 +141,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
             src={domain.backgroundImage}
             alt=""
             className="w-full h-full object-contain"
-            style={{ opacity: (domain.backgroundDarkness ?? 40) / 100 }}
+            style={{ opacity: ((domain.backgroundDarkness !== undefined && domain.backgroundDarkness !== null) ? domain.backgroundDarkness : 40) / 100 }}
           />
           </div>
         </div>
