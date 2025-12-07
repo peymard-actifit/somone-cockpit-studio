@@ -161,7 +161,7 @@ const Modal = ({
               Figer
             </button>
           )}
-          {showRestoreButton && onRestore && (
+          {showRestoreButton && onRestore ? (
             <button
               onClick={onRestore}
               disabled={isLoading || isSavingOriginals || isRestoring}
@@ -172,7 +172,7 @@ const Modal = ({
               <MuiIcon name="RotateCcw" size={16} />
               Restaurer
             </button>
-          )}
+          ) : null}
         </div>
         
         {/* Boutons de droite : Annuler et Confirmer */}
