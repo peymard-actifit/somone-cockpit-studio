@@ -3,8 +3,124 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 import { MuiIcon } from './IconPicker';
 
+// Interface pour représenter un changement de traduction
+interface TranslationChange {
+  path: string; // Chemin hiérarchique (ex: "Domaine > Catégorie > Élément")
+  field: string; // Nom du champ (name, description, etc.)
+  original: string; // Texte original
+  translated: string; // Texte traduit
+  editable: boolean; // Peut être édité
+}
+
+// Composant Modal pour l'aperçu de traduction
+const TranslationPreviewModal = ({
+  changes,
+  onApply,
+  onCancel,
+  isLoading,
+}: {
+  changes: TranslationChange[];
+  onApply: (editedChanges: TranslationChange[]) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) => {
+  const [editedChanges, setEditedChanges] = useState<TranslationChange[]>(changes);
+
+  useEffect(() => {
+    setEditedChanges(changes);
+  }, [changes]);
+
+  const handleChange = (index: number, newValue: string) => {
+    const updated = [...editedChanges];
+    updated[index] = { ...updated[index], translated: newValue };
+    setEditedChanges(updated);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
+      <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 max-w-6xl w-full max-h-[90vh] flex flex-col">
+        <div className="p-6 border-b border-slate-700">
+          <h2 className="text-xl font-semibold text-white">Aperçu de la traduction</h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Vérifiez et modifiez les traductions avant de les appliquer
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-4">
+            {editedChanges.length === 0 ? (
+              <p className="text-slate-400 text-center py-8">
+                Aucune traduction nécessaire
+              </p>
+            ) : (
+              <>
+                {/* En-têtes du tableau */}
+                <div className="grid grid-cols-12 gap-4 pb-2 border-b border-slate-700">
+                  <div className="col-span-3 text-sm font-medium text-slate-400">Désignation</div>
+                  <div className="col-span-4 text-sm font-medium text-slate-400">Version actuelle</div>
+                  <div className="col-span-5 text-sm font-medium text-slate-400">Version traduite</div>
+                </div>
+                {/* Lignes de traduction */}
+                {editedChanges.map((change, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-4 items-start py-2 border-b border-slate-700/50">
+                    <div className="col-span-3 text-sm text-slate-300">
+                      <div className="font-medium">{change.path}</div>
+                      <div className="text-xs text-slate-500 mt-1">{change.field}</div>
+                    </div>
+                    <div className="col-span-4 text-sm text-slate-400 bg-slate-900/50 p-2 rounded border border-slate-700">
+                      {change.original}
+                    </div>
+                    <div className="col-span-5">
+                      <input
+                        type="text"
+                        value={change.translated}
+                        onChange={(e) => handleChange(index, e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                        disabled={!change.editable || isLoading}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+        <div className="p-6 border-t border-slate-700 flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            disabled={isLoading}
+            className="px-4 py-2 text-slate-300 hover:text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => onApply(editedChanges)}
+            disabled={isLoading || editedChanges.length === 0}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {isLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+            Appliquer la traduction
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Composant Modal simple pour la traduction
-const Modal = ({ title, children, onClose, onConfirm, confirmText, isLoading, showSaveButton, onSaveOriginals, isSavingOriginals }: {
+const Modal = ({
+  title,
+  children,
+  onClose,
+  onConfirm,
+  confirmText,
+  isLoading,
+  showSaveButton,
+  onSaveOriginals,
+  isSavingOriginals,
+  showRestoreButton,
+  onRestore,
+  isRestoring,
+}: {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
@@ -14,6 +130,9 @@ const Modal = ({ title, children, onClose, onConfirm, confirmText, isLoading, sh
   showSaveButton?: boolean;
   onSaveOriginals?: () => void;
   isSavingOriginals?: boolean;
+  showRestoreButton?: boolean;
+  onRestore?: () => void;
+  isRestoring?: boolean;
 }) => (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 max-w-lg w-full mx-4">
@@ -23,26 +142,40 @@ const Modal = ({ title, children, onClose, onConfirm, confirmText, isLoading, sh
       <div className="p-6">
         {children}
       </div>
-      <div className="p-6 border-t border-slate-700 flex justify-between items-center">
-        {/* Bouton pour figer la version actuelle */}
-        {showSaveButton && onSaveOriginals && (
-          <button
-            onClick={onSaveOriginals}
-            disabled={isLoading || isSavingOriginals}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-            title="Figer la version actuelle comme originaux à restaurer"
-          >
-            {isSavingOriginals && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
-            <MuiIcon name="Save" size={16} />
-            Figer la version actuelle
-          </button>
-        )}
-        {!showSaveButton && <div />}
+      <div className="p-6 border-t border-slate-700 flex justify-between items-center gap-3">
+        {/* Boutons de gauche : Figer et Restaurer */}
+        <div className="flex gap-3">
+          {showSaveButton && onSaveOriginals && (
+            <button
+              onClick={onSaveOriginals}
+              disabled={isLoading || isSavingOriginals || isRestoring}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              title="Figer la version actuelle comme originaux à restaurer"
+            >
+              {isSavingOriginals && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+              <MuiIcon name="Save" size={16} />
+              Figer
+            </button>
+          )}
+          {showRestoreButton && onRestore && (
+            <button
+              onClick={onRestore}
+              disabled={isLoading || isSavingOriginals || isRestoring}
+              className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              title="Restaurer la version sauvegardée"
+            >
+              {isRestoring && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+              <MuiIcon name="RotateCcw" size={16} />
+              Restaurer
+            </button>
+          )}
+        </div>
         
+        {/* Boutons de droite : Annuler et Confirmer */}
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            disabled={isLoading || isSavingOriginals}
+            disabled={isLoading || isSavingOriginals || isRestoring}
             className="px-4 py-2 text-slate-300 hover:text-white rounded-lg transition-colors disabled:opacity-50"
           >
             Annuler
@@ -50,7 +183,7 @@ const Modal = ({ title, children, onClose, onConfirm, confirmText, isLoading, sh
           {onConfirm && (
             <button
               onClick={onConfirm}
-              disabled={isLoading || isSavingOriginals}
+              disabled={isLoading || isSavingOriginals || isRestoring}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {isLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
@@ -70,16 +203,19 @@ interface Language {
 
 export default function TranslationButton({ cockpitId }: { cockpitId: string }) {
   const [showModal, setShowModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [selectedLang, setSelectedLang] = useState<string>('FR');
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSavingOriginals, setIsSavingOriginals] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [hasOriginals, setHasOriginals] = useState(false);
+  const [previewChanges, setPreviewChanges] = useState<TranslationChange[]>([]);
   const { currentCockpit, updateCockpit, fetchCockpit } = useCockpitStore();
   const { token, user } = useAuthStore();
-  
-  // Fonction pour charger les langues avec l'option "Restaurer" si nécessaire
-  const loadLanguagesWithRestore = async (hasOriginalsValue: boolean) => {
+
+  // Fonction pour charger les langues (sans l'option Restaurer, maintenant gérée par le bouton)
+  const loadLanguages = async () => {
     try {
       const response = await fetch('/api/translation/languages');
       if (!response.ok) {
@@ -88,19 +224,11 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       const data = await response.json();
       
       const frenchLanguage: Language = { code: 'FR', name: 'Français' };
-      const restoreOption: Language | null = hasOriginalsValue ? { code: 'Restauration', name: '🔙 Restaurer la version sauvegardée' } : null;
       
       if (data.languages && data.languages.length > 0) {
         const languagesWithFrench = data.languages.filter((l: Language) => l.code !== 'FR');
-        // TOUJOURS mettre Français en premier si pas de restauration
-        // Si restauration existe, la mettre en PREMIER, puis Français
-        const languagesList: Language[] = [];
-        if (restoreOption) {
-          languagesList.push(restoreOption); // Restauration EN PREMIER
-        }
-        languagesList.push(frenchLanguage); // Puis Français
-        languagesList.push(...languagesWithFrench); // Puis les autres langues
-        setLanguages(languagesList);
+        languagesWithFrench.unshift(frenchLanguage);
+        setLanguages(languagesWithFrench);
       } else {
         const defaultLanguages: Language[] = [
           { code: 'FR', name: 'Français' },
@@ -116,13 +244,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           { code: 'PL', name: 'Polski' },
           { code: 'AR', name: 'العربية' },
         ];
-        // Construire la liste avec Restauration en premier si elle existe
-        const languagesList: Language[] = [];
-        if (restoreOption) {
-          languagesList.push(restoreOption); // Restauration EN PREMIER
-        }
-        languagesList.push(...defaultLanguages); // Puis toutes les autres langues
-        setLanguages(languagesList);
+        setLanguages(defaultLanguages);
       }
     } catch (err) {
       console.error('Erreur chargement langues:', err);
@@ -141,20 +263,14 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         { code: 'PL', name: 'Polski' },
         { code: 'AR', name: 'العربية' },
       ];
-      // Construire la liste avec Restauration en premier si elle existe
-      const languagesList: Language[] = [];
-      if (hasOriginalsValue) {
-        languagesList.push({ code: 'Restauration', name: '🔙 Restaurer la version sauvegardée' }); // Restauration EN PREMIER
-      }
-      languagesList.push(...defaultLanguages); // Puis toutes les autres langues
-      setLanguages(languagesList);
+      setLanguages(defaultLanguages);
     }
   };
   
   // Charger les langues initialement
   useEffect(() => {
-    loadLanguagesWithRestore(hasOriginals);
-  }, [hasOriginals]);
+    loadLanguages();
+  }, []);
   
   // Vérifier si des originaux sont sauvegardés
   useEffect(() => {
@@ -170,8 +286,6 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           const cockpit = await response.json();
           const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
           setHasOriginals(hasOriginalsValue);
-          // Recharger les langues immédiatement après la vérification pour mettre à jour la liste
-          await loadLanguagesWithRestore(hasOriginalsValue);
         }
       } catch (err) {
         console.error('Erreur vérification originaux:', err);
@@ -213,15 +327,12 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       }
       
       setHasOriginals(true);
-      alert('✅ Version actuelle sauvegardée. Vous pourrez restaurer cette version à tout moment en sélectionnant "Restauration" dans la liste des langues.');
+      alert('✅ Version actuelle sauvegardée. Vous pourrez restaurer cette version à tout moment avec le bouton "Restaurer".');
       
       // Recharger le cockpit pour mettre à jour les données
       if (fetchCockpit) {
         await fetchCockpit(cockpitId);
       }
-      
-      // Recharger immédiatement les langues pour ajouter l'option "Restaurer" en haut
-      await loadLanguagesWithRestore(true);
     } catch (error: any) {
       console.error('Erreur sauvegarde originaux:', error);
       alert(`Erreur lors de la sauvegarde : ${error.message || 'Erreur inconnue'}`);
@@ -229,18 +340,15 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       setIsSavingOriginals(false);
     }
   };
-  
-  const handleTranslate = async () => {
-    // Traduire ou restaurer (même route pour les deux cas)
+
+  // Restaurer la version sauvegardée
+  const handleRestore = async () => {
     try {
-      setIsTranslating(true);
+      setIsRestoring(true);
       if (!token) {
-        throw new Error('Vous devez être connecté pour traduire le cockpit');
+        throw new Error('Vous devez être connecté');
       }
-      
-      // Si "Restauration" est sélectionné, utiliser 'Restauration' comme targetLang
-      const targetLangToSend = selectedLang === 'Restauration' ? 'Restauration' : selectedLang;
-      
+
       const response = await fetch(`/api/cockpits/${cockpitId}/translate`, {
         method: 'POST',
         headers: {
@@ -248,10 +356,10 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          targetLang: targetLangToSend,
+          targetLang: 'Restauration',
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         let errorData;
@@ -260,96 +368,467 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         } catch {
           errorData = { error: errorText || 'Erreur inconnue' };
         }
-        console.error(`Erreur API (${response.status}):`, errorData);
-        const actionText = selectedLang === 'Restauration' ? 'restauration' : 'traduction';
-        throw new Error(errorData.error || `Erreur ${actionText}`);
+        throw new Error(errorData.error || 'Erreur lors de la restauration');
       }
-      
+
       const { translatedData } = await response.json();
-      
-      // Mettre à jour le cockpit avec les données traduites ou restaurées
-      // IMPORTANT: Remplacer COMPLÈTEMENT les données pour garantir que tout est mis à jour
+
       if (currentCockpit && translatedData) {
-        // Créer un nouveau cockpit avec toutes les données traduites/restaurées
-        // En préservant les métadonnées (id, userId, createdAt, etc.)
         const updatedCockpit = {
           id: currentCockpit.id,
           name: currentCockpit.name,
           userId: currentCockpit.userId,
           createdAt: currentCockpit.createdAt,
           updatedAt: new Date().toISOString(),
-          // Remplacer TOUTES les données par celles traduites/restaurées
           domains: translatedData.domains || [],
           zones: translatedData.zones || [],
           scrollingBanner: translatedData.scrollingBanner,
           logo: currentCockpit.logo,
           publicId: currentCockpit.publicId,
         } as any;
-        
-        // Vérifier que les domaines contiennent bien les éléments traduits
-        if (updatedCockpit.domains && updatedCockpit.domains.length > 0) {
-          const firstDomain = updatedCockpit.domains[0];
-          if (firstDomain.categories && firstDomain.categories.length > 0) {
-            const firstCategory = firstDomain.categories[0];
-            if (firstCategory.elements && firstCategory.elements.length > 0) {
-              const firstElement = firstCategory.elements[0];
-              console.log('[Translation] Avant updateCockpit - Premier élément:', {
-                id: firstElement.id,
-                name: firstElement.name,
-              });
-            }
-          }
-        }
-        
-        console.log('[Translation] Mise à jour du cockpit avec données traduites/restaurées:', {
-          domainsCount: updatedCockpit.domains.length,
-          zonesCount: updatedCockpit.zones?.length || 0,
-        });
-        
+
         updateCockpit(updatedCockpit);
-        
-        // Vérifier après mise à jour
-        setTimeout(() => {
-          const { currentCockpit } = useCockpitStore.getState();
-          if (currentCockpit && currentCockpit.domains && currentCockpit.domains.length > 0) {
-            const firstDomain = currentCockpit.domains[0];
-            if (firstDomain.categories && firstDomain.categories.length > 0) {
-              const firstCategory = firstDomain.categories[0];
-              if (firstCategory.elements && firstCategory.elements.length > 0) {
-                const firstElement = firstCategory.elements[0];
-                console.log('[Translation] Après updateCockpit dans le store - Premier élément:', {
-                  id: firstElement.id,
-                  name: firstElement.name,
-                });
-              }
-            }
-          }
-        }, 100);
-        
-        // Forcer un rechargement du cockpit depuis le serveur pour s'assurer que tout est synchronisé
+
         if (fetchCockpit) {
           setTimeout(async () => {
             await fetchCockpit(cockpitId);
           }, 500);
         }
       }
-      
-      // Re-vérifier si des originaux sont sauvegardés après traduction
-      if (selectedLang !== 'Restauration') {
-        setHasOriginals(true);
-      }
-      
+
       setShowModal(false);
+      alert('✅ Version sauvegardée restaurée avec succès.');
     } catch (error: any) {
-      console.error(`Erreur ${selectedLang === 'Restauration' ? 'restauration' : 'traduction'}:`, error);
-      const errorMessage = error.message || 'Erreur inconnue';
-      const actionText = selectedLang === 'Restauration' ? 'restauration' : 'traduction';
-      alert(`Erreur lors de la ${actionText}: ${errorMessage}`);
+      console.error('Erreur restauration:', error);
+      alert(`Erreur lors de la restauration : ${error.message || 'Erreur inconnue'}`);
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  // Fonction récursive pour extraire tous les champs textuels avec leurs chemins complets
+  const extractTextFields = (
+    data: any,
+    _parentPath: string[] = [],
+    changes: TranslationChange[] = [],
+    useTranslated: boolean = false
+  ): TranslationChange[] => {
+    const textFields = ['name', 'description', 'actions', 'scrollingBanner', 'unit', 'duration', 'ticketNumber', 'zone', 'address', 'templateName'];
+    
+    if (!data || typeof data !== 'object') {
+      return changes;
+    }
+
+    // Traiter scrollingBanner au niveau racine
+    if (data.scrollingBanner && typeof data.scrollingBanner === 'string' && data.scrollingBanner.trim() !== '') {
+      const pathStr = 'Bannière défilante';
+      if (!changes.find(c => c.path === pathStr && c.field === 'scrollingBanner')) {
+        changes.push({
+          path: pathStr,
+          field: 'scrollingBanner',
+          original: useTranslated ? data.scrollingBanner : data.scrollingBanner,
+          translated: useTranslated ? data.scrollingBanner : data.scrollingBanner,
+          editable: true,
+        });
+      }
+    }
+
+    // Traiter les domaines
+    if (data.domains && Array.isArray(data.domains)) {
+      data.domains.forEach((domain: any) => {
+        const domainPath = [domain.name || domain.id || 'Domaine'];
+        
+        // Champs du domaine
+        textFields.forEach(field => {
+          if (domain[field] && typeof domain[field] === 'string' && domain[field].trim() !== '') {
+            const pathStr = domainPath.join(' > ');
+            if (!changes.find(c => c.path === pathStr && c.field === field)) {
+              changes.push({
+                path: pathStr,
+                field,
+                original: useTranslated ? domain[field] : domain[field],
+                translated: useTranslated ? domain[field] : domain[field],
+                editable: true,
+              });
+            }
+          }
+        });
+
+        // Traiter les catégories
+        if (domain.categories && Array.isArray(domain.categories)) {
+          domain.categories.forEach((category: any) => {
+            const categoryPath = [...domainPath, category.name || category.id || 'Catégorie'];
+            
+            textFields.forEach(field => {
+              if (category[field] && typeof category[field] === 'string' && category[field].trim() !== '') {
+                const pathStr = categoryPath.join(' > ');
+                if (!changes.find(c => c.path === pathStr && c.field === field)) {
+                  changes.push({
+                    path: pathStr,
+                    field,
+                    original: useTranslated ? category[field] : category[field],
+                    translated: useTranslated ? category[field] : category[field],
+                    editable: true,
+                  });
+                }
+              }
+            });
+
+            // Traiter les éléments
+            if (category.elements && Array.isArray(category.elements)) {
+              category.elements.forEach((element: any) => {
+                const elementPath = [...categoryPath, element.name || element.id || 'Élément'];
+                
+                textFields.forEach(field => {
+                  if (element[field] && typeof element[field] === 'string' && element[field].trim() !== '') {
+                    const pathStr = elementPath.join(' > ');
+                    if (!changes.find(c => c.path === pathStr && c.field === field)) {
+                      changes.push({
+                        path: pathStr,
+                        field,
+                        original: useTranslated ? element[field] : element[field],
+                        translated: useTranslated ? element[field] : element[field],
+                        editable: true,
+                      });
+                    }
+                  }
+                });
+
+                // Traiter value (si c'est un texte)
+                if (element.value && typeof element.value === 'string' && element.value.trim() !== '') {
+                  const numValue = parseFloat(element.value);
+                  if (isNaN(numValue)) {
+                    const pathStr = elementPath.join(' > ');
+                    if (!changes.find(c => c.path === pathStr && c.field === 'value')) {
+                      changes.push({
+                        path: pathStr,
+                        field: 'value',
+                        original: useTranslated ? element.value : element.value,
+                        translated: useTranslated ? element.value : element.value,
+                        editable: true,
+                      });
+                    }
+                  }
+                }
+
+                // Traiter les sous-catégories
+                if (element.subCategories && Array.isArray(element.subCategories)) {
+                  element.subCategories.forEach((subCategory: any) => {
+                    const subCategoryPath = [...elementPath, subCategory.name || subCategory.id || 'Sous-catégorie'];
+                    
+                    textFields.forEach(field => {
+                      if (subCategory[field] && typeof subCategory[field] === 'string' && subCategory[field].trim() !== '') {
+                        const pathStr = subCategoryPath.join(' > ');
+                        if (!changes.find(c => c.path === pathStr && c.field === field)) {
+                          changes.push({
+                            path: pathStr,
+                            field,
+                            original: useTranslated ? subCategory[field] : subCategory[field],
+                            translated: useTranslated ? subCategory[field] : subCategory[field],
+                            editable: true,
+                          });
+                        }
+                      }
+                    });
+
+                    // Traiter les sous-éléments
+                    if (subCategory.subElements && Array.isArray(subCategory.subElements)) {
+                      subCategory.subElements.forEach((subElement: any) => {
+                        const subElementPath = [...subCategoryPath, subElement.name || subElement.id || 'Sous-élément'];
+                        
+                        textFields.forEach(field => {
+                          if (subElement[field] && typeof subElement[field] === 'string' && subElement[field].trim() !== '') {
+                            const pathStr = subElementPath.join(' > ');
+                            if (!changes.find(c => c.path === pathStr && c.field === field)) {
+                              changes.push({
+                                path: pathStr,
+                                field,
+                                original: useTranslated ? subElement[field] : subElement[field],
+                                translated: useTranslated ? subElement[field] : subElement[field],
+                                editable: true,
+                              });
+                            }
+                          }
+                        });
+
+                        // Traiter value des sous-éléments
+                        if (subElement.value && typeof subElement.value === 'string' && subElement.value.trim() !== '') {
+                          const numValue = parseFloat(subElement.value);
+                          if (isNaN(numValue)) {
+                            const pathStr = subElementPath.join(' > ');
+                            if (!changes.find(c => c.path === pathStr && c.field === 'value')) {
+                              changes.push({
+                                path: pathStr,
+                                field: 'value',
+                                original: useTranslated ? subElement.value : subElement.value,
+                                translated: useTranslated ? subElement.value : subElement.value,
+                                editable: true,
+                              });
+                            }
+                          }
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // Traiter les zones
+    if (data.zones && Array.isArray(data.zones)) {
+      data.zones.forEach((zone: any) => {
+        if (zone.name && typeof zone.name === 'string' && zone.name.trim() !== '') {
+          const pathStr = `Zone: ${zone.name}`;
+          if (!changes.find(c => c.path === pathStr && c.field === 'name')) {
+            changes.push({
+              path: pathStr,
+              field: 'name',
+              original: useTranslated ? zone.name : zone.name,
+              translated: useTranslated ? zone.name : zone.name,
+              editable: true,
+            });
+          }
+        }
+      });
+    }
+
+    return changes;
+  };
+
+  // Fonction pour appliquer les traductions modifiées aux données en utilisant les IDs
+  const applyEditedTranslations = (data: any, changes: TranslationChange[]): any => {
+    // Créer un mapping rapide : path|field -> valeur traduite
+    const changeMap = new Map<string, string>();
+    changes.forEach(change => {
+      const key = `${change.path}|${change.field}`;
+      changeMap.set(key, change.translated);
+    });
+
+    // Fonction récursive pour appliquer les changements en utilisant les noms/chemins
+    const applyRecursive = (obj: any, pathParts: string[] = []): any => {
+      if (!obj || typeof obj !== 'object') {
+        return obj;
+      }
+
+      if (Array.isArray(obj)) {
+        return obj.map((item, index) => {
+          if (item && typeof item === 'object') {
+            // Construire le chemin pour cet élément
+            const itemPath = item.name || item.id || `${pathParts[pathParts.length - 1]}[${index}]`;
+            return applyRecursive(item, [...pathParts, itemPath]);
+          }
+          return item;
+        });
+      }
+
+      const result: any = {};
+
+      // Traiter scrollingBanner au niveau racine
+      if ('scrollingBanner' in obj && typeof obj.scrollingBanner === 'string') {
+        const key = 'Bannière défilante|scrollingBanner';
+        result.scrollingBanner = changeMap.get(key) || obj.scrollingBanner;
+      }
+
+      for (const [key, value] of Object.entries(obj)) {
+        if (key === 'originals') {
+          result[key] = value;
+          continue;
+        }
+
+        const textFields = ['name', 'description', 'actions', 'unit', 'duration', 'ticketNumber', 'zone', 'address', 'templateName', 'value'];
+        
+        if (textFields.includes(key) && typeof value === 'string') {
+          // Construire la clé pour chercher dans changeMap
+          const currentPath = pathParts.join(' > ');
+          const mapKey = `${currentPath}|${key}`;
+          
+          // Chercher correspondance exacte ou partielle
+          let translatedValue = value;
+          for (const [changeKey, changeValue] of changeMap.entries()) {
+            if (changeKey === mapKey) {
+              translatedValue = changeValue;
+              break;
+            }
+            // Si le chemin correspond partiellement (pour gérer les cas où le nom a changé)
+            const [changePath, changeField] = changeKey.split('|');
+            if (changeField === key && changePath.endsWith(pathParts[pathParts.length - 1] || '')) {
+              translatedValue = changeValue;
+              break;
+            }
+          }
+          result[key] = translatedValue;
+        } else if (value && typeof value === 'object') {
+          if (key === 'domains' && Array.isArray(value)) {
+            result[key] = value.map((domain: any) => 
+              applyRecursive(domain, [domain.name || domain.id || 'Domaine'])
+            );
+          } else if (key === 'categories' && Array.isArray(value)) {
+            result[key] = value.map((category: any) => 
+              applyRecursive(category, [...pathParts, category.name || category.id || 'Catégorie'])
+            );
+          } else if (key === 'elements' && Array.isArray(value)) {
+            result[key] = value.map((element: any) => 
+              applyRecursive(element, [...pathParts, element.name || element.id || 'Élément'])
+            );
+          } else if (key === 'subCategories' && Array.isArray(value)) {
+            result[key] = value.map((subCategory: any) => 
+              applyRecursive(subCategory, [...pathParts, subCategory.name || subCategory.id || 'Sous-catégorie'])
+            );
+          } else if (key === 'subElements' && Array.isArray(value)) {
+            result[key] = value.map((subElement: any) => 
+              applyRecursive(subElement, [...pathParts, subElement.name || subElement.id || 'Sous-élément'])
+            );
+          } else if (key === 'zones' && Array.isArray(value)) {
+            result[key] = value.map((zone: any) => 
+              applyRecursive(zone, [`Zone: ${zone.name || zone.id || 'Zone'}`])
+            );
+          } else {
+            result[key] = applyRecursive(value, pathParts);
+          }
+        } else {
+          result[key] = value;
+        }
+      }
+      return result;
+    };
+
+    return applyRecursive(data);
+  };
+
+  // Préparer l'aperçu de traduction
+  const handlePreparePreview = async () => {
+    if (!currentCockpit || !token) return;
+    
+    try {
+      setIsTranslating(true);
+      
+      // Obtenir les données traduites depuis l'API (sans les appliquer)
+      const response = await fetch(`/api/cockpits/${cockpitId}/translate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetLang: selectedLang,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la préparation de la traduction');
+      }
+
+      const { translatedData } = await response.json();
+      
+      // Extraire les champs textuels des données actuelles
+      const currentChanges = extractTextFields(currentCockpit, [], [], false);
+      
+      // Extraire les champs textuels des données traduites
+      const translatedChanges = extractTextFields(translatedData, [], [], true);
+      
+      // Créer un mapping des changements par chemin+champ
+      const changesMap = new Map<string, TranslationChange>();
+      
+      // Remplir avec les originaux
+      currentChanges.forEach(change => {
+        const key = `${change.path}|${change.field}`;
+        changesMap.set(key, { ...change });
+      });
+      
+      // Mettre à jour avec les traductions en faisant correspondre par chemin
+      translatedChanges.forEach(translatedChange => {
+        const key = `${translatedChange.path}|${translatedChange.field}`;
+        if (changesMap.has(key)) {
+          // Mettre à jour la traduction
+          const existing = changesMap.get(key)!;
+          existing.translated = translatedChange.translated;
+        } else {
+          // Nouveau champ dans la traduction
+          changesMap.set(key, translatedChange);
+        }
+      });
+      
+      // Filtrer pour ne garder que ceux qui ont changé
+      const finalChanges = Array.from(changesMap.values()).filter(
+        change => change.original.trim() !== change.translated.trim()
+      );
+      
+      setPreviewChanges(finalChanges);
+      setShowModal(false);
+      setShowPreviewModal(true);
+    } catch (error: any) {
+      console.error('Erreur préparation aperçu:', error);
+      alert(`Erreur : ${error.message || 'Erreur inconnue'}`);
     } finally {
       setIsTranslating(false);
     }
   };
-  
+
+  // Appliquer les traductions éditées
+  const handleApplyTranslation = async (editedChanges: TranslationChange[]) => {
+    try {
+      setIsTranslating(true);
+      
+      if (!currentCockpit || !token) return;
+
+      // Obtenir les données traduites depuis l'API
+      const response = await fetch(`/api/cockpits/${cockpitId}/translate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetLang: selectedLang,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la traduction');
+      }
+
+      const { translatedData } = await response.json();
+      
+      // Appliquer les modifications manuelles
+      const finalData = applyEditedTranslations(translatedData, editedChanges);
+
+      // Mettre à jour le cockpit
+      const updatedCockpit = {
+        id: currentCockpit.id,
+        name: currentCockpit.name,
+        userId: currentCockpit.userId,
+        createdAt: currentCockpit.createdAt,
+        updatedAt: new Date().toISOString(),
+        domains: finalData.domains || [],
+        zones: finalData.zones || [],
+        scrollingBanner: finalData.scrollingBanner,
+        logo: currentCockpit.logo,
+        publicId: currentCockpit.publicId,
+      } as any;
+
+      updateCockpit(updatedCockpit);
+
+      if (fetchCockpit) {
+        setTimeout(async () => {
+          await fetchCockpit(cockpitId);
+        }, 500);
+      }
+
+      setHasOriginals(true);
+      setShowPreviewModal(false);
+      alert('✅ Traduction appliquée avec succès.');
+    } catch (error: any) {
+      console.error('Erreur application traduction:', error);
+      alert(`Erreur : ${error.message || 'Erreur inconnue'}`);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   return (
     <>
       <button
@@ -365,12 +844,15 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         <Modal
           title="Traduire le cockpit"
           onClose={() => setShowModal(false)}
-          onConfirm={handleTranslate}
-          confirmText={selectedLang === 'Restauration' ? 'Restaurer' : 'Traduire'}
+          onConfirm={handlePreparePreview}
+          confirmText="Traduire"
           isLoading={isTranslating}
           showSaveButton={true}
           onSaveOriginals={handleSaveOriginals}
           isSavingOriginals={isSavingOriginals}
+          showRestoreButton={hasOriginals}
+          onRestore={handleRestore}
+          isRestoring={isRestoring}
         >
           <div className="space-y-4">
             {!user || !token ? (
@@ -384,30 +866,10 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
               </div>
             ) : (
               <>
-                {!hasOriginals && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-                    <div className="flex items-start gap-2">
-                      <MuiIcon name="AlertTriangle" size={16} className="text-amber-400 mt-0.5" />
-                      <p className="text-xs text-amber-300">
-                        ⚠️ Aucune version n'est sauvegardée pour restauration. Si vous traduisez maintenant, la version actuelle sera automatiquement sauvegardée. Vous pouvez aussi cliquer sur "Figer la version actuelle" pour sauvegarder explicitement.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                
-                {hasOriginals && (
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                    <div className="flex items-start gap-2">
-                      <MuiIcon name="Info" size={16} className="text-blue-400 mt-0.5" />
-                      <p className="text-xs text-blue-300">
-                        💾 Une version est déjà sauvegardée. Vous pouvez cliquer sur "Figer la version actuelle" pour remplacer la version sauvegardée par la version actuelle.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                {/* Ne plus afficher le message d'avertissement si hasOriginals est true */}
                 
                 <p className="text-slate-300 text-sm">
-                  Sélectionnez la langue vers laquelle traduire le cockpit ou choisissez "Restauration" pour restaurer la dernière version sauvegardée.
+                  Sélectionnez la langue vers laquelle traduire le cockpit.
                 </p>
               </>
             )}
@@ -433,14 +895,24 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
               <div className="flex items-start gap-2">
                 <MuiIcon name="Info" size={16} className="text-blue-400 mt-0.5" />
                 <p className="text-xs text-blue-300">
-                  {selectedLang === 'Restauration'
-                    ? 'Vous allez restaurer la dernière version sauvegardée. Tous les textes reviendront à la version que vous avez figée précédemment (peut être dans n\'importe quelle langue).'
-                    : 'Les textes seront traduits dans la langue sélectionnée. Si aucune version n\'est sauvegardée, la version actuelle le sera automatiquement avant la traduction.'}
+                  Un aperçu des traductions sera affiché avant application. Vous pourrez modifier chaque traduction avant de l'appliquer.
                 </p>
               </div>
             </div>
           </div>
         </Modal>
+      )}
+
+      {showPreviewModal && (
+        <TranslationPreviewModal
+          changes={previewChanges}
+          onApply={handleApplyTranslation}
+          onCancel={() => {
+            setShowPreviewModal(false);
+            setShowModal(true);
+          }}
+          isLoading={isTranslating}
+        />
       )}
     </>
   );
