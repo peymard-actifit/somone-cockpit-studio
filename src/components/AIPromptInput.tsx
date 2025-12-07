@@ -175,6 +175,64 @@ export default function AIPromptInput() {
       } else if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
         // Fichier texte
         content = await file.text();
+      } else if (fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || fileName.endsWith('.webp')) {
+        // Fichier image - convertir en base64
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = (e) => {
+            resolve(e.target?.result as string);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        // Créer une description pour l'IA
+        const imageFormat = fileName.split('.').pop()?.toUpperCase() || 'IMAGE';
+        const imageSizeKB = (file.size / 1024).toFixed(2);
+        content = `[IMAGE: ${file.name}]
+Format: ${imageFormat}
+Taille: ${imageSizeKB} KB
+Dimensions: À analyser par l'IA
+
+Description: Cette image a été chargée pour analyse. L'IA peut examiner son contenu pour extraire des informations, du texte (OCR), ou décrire ce qu'elle contient.
+
+Image en base64 (utilisée par l'IA pour l'analyse visuelle):
+${base64}`;
+        
+        addMessage('assistant', `🖼️ Fichier image "${file.name}" chargé (${imageSizeKB} KB). L'IA pourra analyser le contenu de l'image.`);
+      } else if (fileName.endsWith('.docx')) {
+        // Fichier Word - utiliser mammoth.js pour extraire le texte
+        try {
+          const mammoth = await import('mammoth');
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          content = result.value;
+          
+          if (result.messages.length > 0) {
+            const warnings = result.messages.filter(m => m.type === 'warning').map(m => m.message).join(', ');
+            if (warnings) {
+              addMessage('assistant', `⚠️ Avertissements lors de la lecture du Word: ${warnings}`);
+            }
+          }
+          
+          addMessage('assistant', `📝 Fichier Word "${file.name}" lu avec succès`);
+        } catch (docxError) {
+          console.error('Erreur lecture Word:', docxError);
+          addMessage('assistant', `❌ Erreur lors de la lecture du fichier Word: ${docxError instanceof Error ? docxError.message : 'Format non supporté. Assurez-vous que le fichier est bien un .docx valide.'}`);
+          return;
+        }
+      } else if (fileName.endsWith('.pptx')) {
+        // Fichier PowerPoint - extraire le texte des diapositives
+        try {
+          // Pour PPTX, on va utiliser une approche simple : convertir en texte via une bibliothèque
+          // Pour l'instant, on informe l'utilisateur que le support PPTX est limité
+          addMessage('assistant', `⚠️ Le support PowerPoint (.pptx) est en cours de développement. Pour l'instant, veuillez convertir votre présentation en PDF ou exporter le texte.`);
+          return;
+        } catch (pptxError) {
+          console.error('Erreur lecture PowerPoint:', pptxError);
+          addMessage('assistant', `❌ Erreur lors de la lecture du fichier PowerPoint: ${pptxError instanceof Error ? pptxError.message : 'Format non supporté'}`);
+          return;
+        }
       } else {
         // Essayer de lire comme texte
         content = await file.text();
@@ -773,7 +831,16 @@ export default function AIPromptInput() {
     // Construire le message avec le fichier attaché si présent
     let fullMessage = userMessage;
     if (attachedFile) {
-      fullMessage = `[FICHIER ATTACHÉ: ${attachedFile.name}]\n\nContenu du fichier:\n\`\`\`\n${attachedFile.content}\n\`\`\`\n\nQuestion de l'utilisateur: ${userMessage}`;
+      const fileName = attachedFile.name.toLowerCase();
+      const isImage = fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || fileName.endsWith('.webp');
+      
+      if (isImage) {
+        // Pour les images, inclure directement le base64 dans le message
+        fullMessage = `[IMAGE ATTACHÉE: ${attachedFile.name}]\n\n${attachedFile.content}\n\nQuestion de l'utilisateur: ${userMessage}`;
+      } else {
+        // Pour les autres fichiers, utiliser le format texte
+        fullMessage = `[FICHIER ATTACHÉ: ${attachedFile.name}]\n\nContenu du fichier:\n\`\`\`\n${attachedFile.content}\n\`\`\`\n\nQuestion de l'utilisateur: ${userMessage}`;
+      }
     }
     
     const response = await fetch('/api/ai/chat', {
@@ -1038,7 +1105,7 @@ export default function AIPromptInput() {
               ref={fileInputRef}
               type="file"
               onChange={handleFileUpload}
-              accept=".txt,.csv,.json,.md,.xml,.xlsx,.xls,.pdf"
+              accept=".txt,.csv,.json,.md,.xml,.xlsx,.xls,.pdf,.docx,.pptx,.png,.jpg,.jpeg,.gif,.webp"
               className="hidden"
             />
             <button
@@ -1046,7 +1113,7 @@ export default function AIPromptInput() {
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
               className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-colors"
-              title="Attacher un fichier (PDF, Excel, CSV, JSON, TXT...)"
+              title="Attacher un fichier (PDF, Excel, Word, PowerPoint, Images, CSV, JSON, TXT...)"
             >
               <MuiIcon name="Plus" size={16} />
             </button>

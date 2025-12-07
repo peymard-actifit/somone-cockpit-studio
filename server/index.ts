@@ -765,10 +765,22 @@ CRÉATION:
 - addSubCategory: { name: "Nom", orientation?: "horizontal"|"vertical" }
 - addSubElement: { name: "Nom", subCategoryName?: "..." }
 - addSubElements: { names: ["Nom1", "Nom2"], subCategoryName?: "..." }
+- addZone: { name: "Nom de la zone" }
+- addMapElement: { name: "Nom", lat: number, lng: number, domainName?: "...", status?: "...", icon?: "..." }
 
 MODIFICATION:
-- updateElement: { elementName: "...", updates: { name?, value?, unit?, status?, icon? } }
+- updateDomain: { name?: "...", updates: { name?, templateType?, backgroundImage?, mapBounds?, enableClustering? } }
+- updateCategory: { name?: "...", updates: { name?, orientation?, icon? } }
+- updateElement: { elementName?: "...", updates: { name?, value?, unit?, status?, icon?, icon2?, icon3?, positionX?, positionY? } }
+- updateSubCategory: { name?: "...", updates: { name?, orientation?, icon? } }
+- updateSubElement: { name?: "...", updates: { name?, status?, value?, unit? } }
 - updateStatus: { elementName?: "...", subElementName?: "...", status: "ok"|"mineur"|"critique"|"fatal"|"deconnecte" }
+- updateMapElement: { name?: "...", updates: { name?, lat?, lng?, status?, icon? } }
+- updateMapBounds: { domainName?: "...", topLeft: { lat: number, lng: number }, bottomRight: { lat: number, lng: number } }
+
+DUPLICATION/CLONE:
+- cloneElement: { name?: "..." }
+- cloneMapElement: { name?: "..." }
 
 SUPPRESSION:
 - deleteDomain: { name: "..." }
@@ -776,17 +788,21 @@ SUPPRESSION:
 - deleteElement: { name: "..." }
 - deleteSubCategory: { name: "..." }
 - deleteSubElement: { name: "..." }
+- deleteZone: { name: "..." }
+- deleteMapElement: { name: "..." }
 
 NAVIGATION:
 - selectDomain: { name: "..." }
 - selectElement: { name: "..." }
 
-EXEMPLE - Créer 3 éléments:
+EXEMPLES D'ACTIONS:
+
+Créer 3 éléments:
 \`\`\`action
 { "type": "addElements", "params": { "names": ["Élément A", "Élément B", "Élément C"] } }
 \`\`\`
 
-EXEMPLE - Actions multiples:
+Actions multiples:
 \`\`\`action
 [
   { "type": "addCategory", "params": { "name": "Sécurité" } },
@@ -794,7 +810,29 @@ EXEMPLE - Actions multiples:
 ]
 \`\`\`
 
-Statuts: ok (vert), mineur (orange), critique (rouge), fatal (violet), deconnecte (gris)`;
+Modifier un élément:
+\`\`\`action
+{ "type": "updateElement", "params": { "elementName": "Température", "updates": { "value": "25", "unit": "°C", "status": "ok" } } }
+\`\`\`
+
+Cloner un élément:
+\`\`\`action
+{ "type": "cloneElement", "params": { "name": "Capteur 1" } }
+\`\`\`
+
+Ajouter un point GPS sur une carte:
+\`\`\`action
+{ "type": "addMapElement", "params": { "name": "Site A", "lat": 48.8566, "lng": 2.3522, "status": "ok" } }
+\`\`\`
+
+IMPORTANT - Statuts disponibles:
+- ok (vert)
+- mineur (orange) 
+- critique (rouge)
+- fatal (violet)
+- deconnecte (gris)
+
+Toutes les actions peuvent être combinées dans un tableau pour une exécution simultanée.`;
 
     // Construire les messages avec l'historique
     const chatMessages: Array<{ role: string; content: string }> = [
