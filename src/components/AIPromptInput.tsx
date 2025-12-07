@@ -1232,11 +1232,36 @@ export default function AIPromptInput() {
     });
     
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erreur API');
+      let errorMessage = 'Erreur API inconnue';
+      try {
+        const errorText = await response.text();
+        console.error('[AIPromptInput] Erreur API (raw):', errorText);
+        
+        try {
+          const error = JSON.parse(errorText);
+          errorMessage = error.error || error.message || errorText;
+        } catch (parseError) {
+          // Si ce n'est pas du JSON, utiliser le texte brut
+          errorMessage = errorText || `Erreur HTTP ${response.status}`;
+        }
+      } catch (textError) {
+        console.error('[AIPromptInput] Impossible de lire la réponse d\'erreur:', textError);
+        errorMessage = `Erreur HTTP ${response.status}: ${response.statusText}`;
+      }
+      
+      throw new Error(errorMessage);
     }
     
-    return response.json();
+    let result;
+    try {
+      const responseText = await response.text();
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[AIPromptInput] Erreur parsing réponse:', parseError);
+      throw new Error('Réponse serveur invalide (non-JSON). Vérifiez les logs serveur.');
+    }
+    
+    return result;
   };
 
   // Fallback local (pattern matching basique)
