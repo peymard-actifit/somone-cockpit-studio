@@ -1000,10 +1000,16 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           {clusters.map((cluster) => {
             const colors = STATUS_COLORS[cluster.worstStatus];
             
-            // Taille dynamique basée sur le nombre d'éléments ET inversement proportionnelle au zoom
-            const baseSize = Math.min(80, Math.max(40, cluster.count * 8));
-            const clusterSize = baseSize / scale;
-            const fontSize = Math.max(10, Math.round(16 / scale));
+            // Taille relative à l'image de la carte (comme BackgroundView : 3% de l'image)
+            // Calculer la taille de l'image pour avoir un équivalent
+            const container = containerRef.current;
+            const imageContainer = imageContainerRef.current;
+            let clusterSize = 40; // Taille par défaut
+            if (container && imageContainer) {
+              const imageRect = imageContainer.getBoundingClientRect();
+              // Utiliser 3% de la largeur de l'image visible (comme BackgroundView)
+              clusterSize = Math.max(20, Math.min(80, imageRect.width * 0.03));
+            }
             
             // Handler pour zoomer sur le cluster
             const handleClusterClick = () => {
@@ -1011,14 +1017,14 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               const newScale = Math.min(MAX_ZOOM, scale + 1);
               
               // Centrer la vue sur le cluster
-              const container = containerRef.current;
-              if (container) {
-                const containerRect = container.getBoundingClientRect();
+              const containerForClick = containerRef.current;
+              if (containerForClick) {
+                const containerRectForClick = containerForClick.getBoundingClientRect();
                 
                 // Calculer la position pour centrer le cluster
                 // Le cluster est à (center.x%, center.y%) - on calcule le décalage depuis le centre (50%)
-                const offsetX = (0.5 - cluster.center.x / 100) * containerRect.width * newScale;
-                const offsetY = (0.5 - cluster.center.y / 100) * containerRect.height * newScale;
+                const offsetX = (0.5 - cluster.center.x / 100) * containerRectForClick.width * newScale;
+                const offsetY = (0.5 - cluster.center.y / 100) * containerRectForClick.height * newScale;
                 
                 setPosition({ x: offsetX, y: offsetY });
               }
@@ -1053,12 +1059,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   style={{ 
                     width: `${clusterSize}px`,
                     height: `${clusterSize}px`,
-                    fontSize: `${fontSize}px`,
                     backgroundColor: colors.hex,
-                    boxShadow: `0 4px 12px ${colors.hex}50`
+                    boxShadow: `0 2px 8px ${colors.hex}50`
                   }}
                 >
-                  {cluster.count}
+                  <span className="text-white font-bold text-sm">{cluster.count}</span>
                 </div>
                 
                 {/* Tooltip rendu via Portal pour être toujours au premier plan */}
@@ -1097,10 +1102,19 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             const iconName = point.icon || 'MapPin';
             const hasLinkedElement = !!point.elementId;
             
-            // Taille dynamique inversement proportionnelle au zoom pour rester constante visuellement
-            const baseSize = 40; // Taille de base en pixels
-            const dynamicSize = baseSize / scale;
-            const iconSize = Math.max(12, Math.round(20 / scale));
+            // Taille relative à l'image de la carte (comme BackgroundView qui utilise les dimensions définies)
+            // Calculer la taille relative à l'image visible
+            const containerForPoint = containerRef.current;
+            const imageContainerForPoint = imageContainerRef.current;
+            let dynamicSize = 20; // Taille par défaut
+            let iconSize = 16; // Taille d'icône par défaut
+            if (containerForPoint && imageContainerForPoint) {
+              const imageRectForPoint = imageContainerForPoint.getBoundingClientRect();
+              // Utiliser environ 2% de la largeur de l'image visible (taille raisonnable pour un point, équivalent à BackgroundView)
+              dynamicSize = Math.max(16, Math.min(48, imageRectForPoint.width * 0.02));
+              // Taille d'icône proportionnelle à la taille du point (comme BackgroundView qui utilise 8x la taille)
+              iconSize = Math.max(12, Math.round(dynamicSize * 0.5));
+            }
             
             return (
               <div
@@ -1167,7 +1181,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     width: `${dynamicSize}px`,
                     height: `${dynamicSize}px`,
                     backgroundColor: colors.hex,
-                    boxShadow: `0 4px 12px ${colors.hex}50`
+                    boxShadow: `0 2px 8px ${colors.hex}50`
                   }}
                 >
                   <MuiIcon name={iconName} size={iconSize} className="text-white" />
