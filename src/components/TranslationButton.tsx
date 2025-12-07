@@ -327,15 +327,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
       }
       
-      // Forcer la mise à jour de l'état et recharger les données
-      setHasOriginals(true);
-      
-      // Recharger le cockpit pour mettre à jour les données
-      if (fetchCockpit) {
-        await fetchCockpit(cockpitId);
-      }
-      
-      // Vérifier à nouveau les originaux pour s'assurer que l'état est synchronisé
+      // Vérifier immédiatement les originaux après la sauvegarde
       try {
         const checkResponse = await fetch(`/api/cockpits/${cockpitId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
@@ -344,12 +336,20 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           const cockpit = await checkResponse.json();
           const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
           setHasOriginals(hasOriginalsValue);
+          console.log('[Translation] hasOriginals mis à jour après figement:', hasOriginalsValue);
         }
       } catch (err) {
         console.error('Erreur vérification originaux après sauvegarde:', err);
+        // Même en cas d'erreur, on suppose que la sauvegarde a réussi
+        setHasOriginals(true);
       }
       
-      alert('✅ Version actuelle sauvegardée. Le bouton "Restaurer" est maintenant disponible.');
+      // Recharger le cockpit pour mettre à jour les données (en arrière-plan)
+      if (fetchCockpit) {
+        fetchCockpit(cockpitId);
+      }
+      
+      // Ne pas fermer le modal, ne pas afficher d'alert
     } catch (error: any) {
       console.error('Erreur sauvegarde originaux:', error);
       alert(`Erreur lors de la sauvegarde : ${error.message || 'Erreur inconnue'}`);
