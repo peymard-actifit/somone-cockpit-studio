@@ -78,45 +78,27 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
   const { currentCockpit, updateCockpit, fetchCockpit } = useCockpitStore();
   const { token, user } = useAuthStore();
   
-  // Charger les langues et vérifier si des originaux sont sauvegardés
-  useEffect(() => {
-    const loadLanguages = async () => {
-      try {
-        const response = await fetch('/api/translation/languages');
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+  // Fonction pour charger les langues avec l'option "Restaurer" si nécessaire
+  const loadLanguagesWithRestore = async (hasOriginalsValue: boolean) => {
+    try {
+      const response = await fetch('/api/translation/languages');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      
+      const frenchLanguage: Language = { code: 'FR', name: 'Français' };
+      const restoreOption: Language | null = hasOriginalsValue ? { code: 'RESTORE', name: '🔙 Restaurer la version sauvegardée' } : null;
+      
+      if (data.languages && data.languages.length > 0) {
+        const languagesWithFrench = data.languages.filter((l: Language) => l.code !== 'FR');
+        languagesWithFrench.unshift(frenchLanguage);
+        if (restoreOption) {
+          languagesWithFrench.unshift(restoreOption);
         }
-        const data = await response.json();
-        
-        // Toujours inclure le français dans la liste, indépendamment de la version sauvegardée
-        const frenchLanguage: Language = { code: 'FR', name: 'Français' };
-        
-        if (data.languages && data.languages.length > 0) {
-          // S'assurer que le français est dans la liste
-          const languagesWithFrench = data.languages.filter((l: Language) => l.code !== 'FR');
-          languagesWithFrench.unshift(frenchLanguage);
-          setLanguages(languagesWithFrench);
-        } else {
-          // Fallback : langues par défaut
-          setLanguages([
-            { code: 'FR', name: 'Français' },
-            { code: 'EN', name: 'English' },
-            { code: 'DE', name: 'Deutsch' },
-            { code: 'ES', name: 'Español' },
-            { code: 'IT', name: 'Italiano' },
-            { code: 'PT', name: 'Português' },
-            { code: 'RU', name: 'Русский' },
-            { code: 'JA', name: '日本語' },
-            { code: 'ZH', name: '中文' },
-            { code: 'NL', name: 'Nederlands' },
-            { code: 'PL', name: 'Polski' },
-            { code: 'AR', name: 'العربية' },
-          ]);
-        }
-      } catch (err) {
-        console.error('Erreur chargement langues:', err);
-        // Fallback : langues par défaut en cas d'erreur
-        setLanguages([
+        setLanguages(languagesWithFrench);
+      } else {
+        const defaultLanguages: Language[] = [
           { code: 'FR', name: 'Français' },
           { code: 'EN', name: 'English' },
           { code: 'DE', name: 'Deutsch' },
@@ -129,12 +111,40 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           { code: 'NL', name: 'Nederlands' },
           { code: 'PL', name: 'Polski' },
           { code: 'AR', name: 'العربية' },
-        ]);
+        ];
+        if (restoreOption) {
+          defaultLanguages.unshift(restoreOption);
+        }
+        setLanguages(defaultLanguages);
       }
-    };
-    
-    loadLanguages();
-  }, []);
+    } catch (err) {
+      console.error('Erreur chargement langues:', err);
+      // Fallback : langues par défaut en cas d'erreur
+      const defaultLanguages: Language[] = [
+        { code: 'FR', name: 'Français' },
+        { code: 'EN', name: 'English' },
+        { code: 'DE', name: 'Deutsch' },
+        { code: 'ES', name: 'Español' },
+        { code: 'IT', name: 'Italiano' },
+        { code: 'PT', name: 'Português' },
+        { code: 'RU', name: 'Русский' },
+        { code: 'JA', name: '日本語' },
+        { code: 'ZH', name: '中文' },
+        { code: 'NL', name: 'Nederlands' },
+        { code: 'PL', name: 'Polski' },
+        { code: 'AR', name: 'العربية' },
+      ];
+      if (hasOriginalsValue) {
+        defaultLanguages.unshift({ code: 'RESTORE', name: '🔙 Restaurer la version sauvegardée' });
+      }
+      setLanguages(defaultLanguages);
+    }
+  };
+  
+  // Charger les langues initialement
+  useEffect(() => {
+    loadLanguagesWithRestore(hasOriginals);
+  }, [hasOriginals]);
   
   // Vérifier si des originaux sont sauvegardés
   useEffect(() => {
@@ -148,7 +158,8 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         
         if (response.ok) {
           const cockpit = await response.json();
-          setHasOriginals(!!(cockpit.data && cockpit.data.originals));
+          const hasOriginalsValue = !!(cockpit.data && cockpit.data.originals);
+          setHasOriginals(hasOriginalsValue);
         }
       } catch (err) {
         console.error('Erreur vérification originaux:', err);
@@ -190,12 +201,15 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       }
       
       setHasOriginals(true);
-      alert('✅ Version actuelle sauvegardée comme originaux. Vous pourrez restaurer cette version en sélectionnant "Français".');
+      alert('✅ Version actuelle sauvegardée comme originaux. Vous pourrez restaurer cette version en sélectionnant "Restaurer la version sauvegardée".');
       
       // Recharger le cockpit pour mettre à jour les données
       if (fetchCockpit) {
         await fetchCockpit(cockpitId);
       }
+      
+      // Recharger les langues pour ajouter l'option "Restaurer" sans recharger la page
+      // Le useEffect avec showModal va se déclencher automatiquement
     } catch (error: any) {
       console.error('Erreur sauvegarde originaux:', error);
       alert(`Erreur lors de la sauvegarde : ${error.message || 'Erreur inconnue'}`);
@@ -212,6 +226,9 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         throw new Error('Vous devez être connecté pour traduire le cockpit');
       }
       
+      // Si "RESTORE" est sélectionné, utiliser 'RESTORE' comme targetLang
+      const targetLangToSend = selectedLang === 'RESTORE' ? 'RESTORE' : selectedLang;
+      
       const response = await fetch(`/api/cockpits/${cockpitId}/translate`, {
         method: 'POST',
         headers: {
@@ -219,7 +236,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          targetLang: selectedLang,
+          targetLang: targetLangToSend,
         }),
       });
       
@@ -232,29 +249,57 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           errorData = { error: errorText || 'Erreur inconnue' };
         }
         console.error(`Erreur API (${response.status}):`, errorData);
-        throw new Error(errorData.error || (selectedLang === 'FR' ? 'Erreur restauration' : 'Erreur traduction'));
+        const actionText = selectedLang === 'RESTORE' ? 'restauration' : (selectedLang === 'FR' ? 'restauration' : 'traduction');
+        throw new Error(errorData.error || `Erreur ${actionText}`);
       }
       
       const { translatedData } = await response.json();
       
       // Mettre à jour le cockpit avec les données traduites ou restaurées
-      if (currentCockpit) {
+      // IMPORTANT: Remplacer COMPLÈTEMENT les données pour garantir que tout est mis à jour
+      if (currentCockpit && translatedData) {
+        // Créer un nouveau cockpit avec toutes les données traduites/restaurées
+        // En préservant les métadonnées (id, userId, createdAt, etc.)
         const updatedCockpit = {
-          ...currentCockpit,
-          ...translatedData, // Remplacer toutes les données
-          domains: translatedData.domains || currentCockpit.domains,
+          id: currentCockpit.id,
+          name: currentCockpit.name,
+          userId: currentCockpit.userId,
+          createdAt: currentCockpit.createdAt,
+          updatedAt: new Date().toISOString(),
+          // Remplacer TOUTES les données par celles traduites/restaurées
+          domains: translatedData.domains || [],
+          zones: translatedData.zones || [],
+          scrollingBanner: translatedData.scrollingBanner,
+          logo: currentCockpit.logo,
+          publicId: currentCockpit.publicId,
         } as any;
+        
+        console.log('[Translation] Mise à jour du cockpit avec données traduites/restaurées:', {
+          domainsCount: updatedCockpit.domains.length,
+          zonesCount: updatedCockpit.zones?.length || 0,
+        });
+        
         updateCockpit(updatedCockpit);
+        
+        // Forcer un rechargement du cockpit depuis le serveur pour s'assurer que tout est synchronisé
+        if (fetchCockpit) {
+          setTimeout(async () => {
+            await fetchCockpit(cockpitId);
+          }, 500);
+        }
       }
       
       // Re-vérifier si des originaux sont sauvegardés après traduction
-      setHasOriginals(selectedLang === 'FR' ? hasOriginals : true);
+      if (selectedLang !== 'RESTORE') {
+        setHasOriginals(true);
+      }
       
       setShowModal(false);
     } catch (error: any) {
-      console.error(`Erreur ${selectedLang === 'FR' ? 'restauration' : 'traduction'}:`, error);
+      console.error(`Erreur ${selectedLang === 'RESTORE' ? 'restauration' : 'traduction'}:`, error);
       const errorMessage = error.message || 'Erreur inconnue';
-      alert(`Erreur lors de la ${selectedLang === 'FR' ? 'restauration des textes originaux' : 'traduction'}: ${errorMessage}`);
+      const actionText = selectedLang === 'RESTORE' ? 'restauration des textes originaux' : 'traduction';
+      alert(`Erreur lors de la ${actionText}: ${errorMessage}`);
     } finally {
       setIsTranslating(false);
     }
@@ -276,7 +321,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
           title="Traduire le cockpit"
           onClose={() => setShowModal(false)}
           onConfirm={handleTranslate}
-          confirmText={selectedLang === 'FR' ? 'Restaurer' : 'Traduire'}
+          confirmText={selectedLang === 'RESTORE' ? 'Restaurer' : (selectedLang === 'FR' ? 'Traduire en français' : 'Traduire')}
           isLoading={isTranslating}
           showSaveButton={true}
           onSaveOriginals={handleSaveOriginals}
@@ -306,7 +351,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
                 )}
                 
                 <p className="text-slate-300 text-sm">
-                  Sélectionnez la langue vers laquelle traduire le cockpit. Le français permet de restaurer la dernière version sauvegardée.
+                  Sélectionnez la langue vers laquelle traduire le cockpit ou choisissez "Restaurer la version sauvegardée" pour revenir aux textes originaux.
                 </p>
               </>
             )}
@@ -332,10 +377,10 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
               <div className="flex items-start gap-2">
                 <MuiIcon name="Info" size={16} className="text-blue-400 mt-0.5" />
                 <p className="text-xs text-blue-300">
-                  {selectedLang === 'FR' 
-                    ? hasOriginals
-                      ? 'Vous allez restaurer la dernière version sauvegardée en français.'
-                      : 'Aucune version n\'est sauvegardée. La version actuelle sera sauvegardée automatiquement.'
+                  {selectedLang === 'RESTORE'
+                    ? 'Vous allez restaurer la dernière version sauvegardée (tous les textes reviendront à la version française sauvegardée).'
+                    : selectedLang === 'FR'
+                    ? 'Les textes seront traduits en français. Si aucune version n\'est sauvegardée, la version actuelle le sera automatiquement avant la traduction.'
                     : 'Les textes seront traduits dans la langue sélectionnée. Si aucune version n\'est sauvegardée, la version actuelle le sera automatiquement avant la traduction.'}
                 </p>
               </div>

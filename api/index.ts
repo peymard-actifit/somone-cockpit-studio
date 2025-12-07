@@ -1448,8 +1448,8 @@ INSTRUCTIONS:
           ];
           
           if (textFieldsToTranslate.includes(key) && typeof value === 'string' && value.trim() !== '') {
-            // Traduire ces champs texte
-            translated[key] = await translateDataRecursively(value, targetLang);
+            // Traduire ces champs texte directement avec DeepL (ne pas récurser)
+            translated[key] = await translateWithDeepL(value, targetLang);
           } else if (key === 'value' && typeof value === 'string' && value.trim() !== '') {
             // Traduire les valeurs textuelles (mais pas les nombres)
             const numValue = parseFloat(value);
@@ -1878,8 +1878,9 @@ INSTRUCTIONS:
         return res.status(401).json({ error: 'Non authentifié' });
       }
       
-      if (!targetLang || targetLang === 'FR') {
-        // Si FR ou pas de langue, restaurer les données originales si disponibles
+      // Si targetLang est 'RESTORE', restaurer les données originales
+      if (!targetLang || targetLang === 'RESTORE') {
+        // Restaurer les données originales si disponibles
         try {
           const db = await getDb();
           const cockpit = db.cockpits.find(c => c.id === id);
@@ -1901,8 +1902,14 @@ INSTRUCTIONS:
               // IMPORTANT: Faire une copie profonde des originaux pour restaurer
               const originalsCopy = JSON.parse(JSON.stringify(cockpit.data.originals));
               
-              // Remplacer les données par les originaux, MAIS conserver les originaux dans cockpit.data.originals
-              cockpit.data = { ...originalsCopy, originals: cockpit.data.originals };
+              // Sauvegarder les originaux avant de remplacer
+              const savedOriginals = cockpit.data.originals;
+              
+              // Remplacer COMPLÈTEMENT les données par les originaux
+              cockpit.data = JSON.parse(JSON.stringify(originalsCopy));
+              
+              // Remettre les originaux sauvegardés
+              cockpit.data.originals = savedOriginals;
               
               cockpit.updatedAt = new Date().toISOString();
               await saveDb(db);
@@ -1910,6 +1917,7 @@ INSTRUCTIONS:
               // Préparer les données à retourner (sans le champ originals)
               dataToReturn = JSON.parse(JSON.stringify(originalsCopy));
               console.log(`[Translation] ✅ Originaux restaurés avec succès (${JSON.stringify(dataToReturn).length} caractères, originaux conservés pour restaurations futures)`);
+              console.log(`[Translation] Nombre de domaines restaurés: ${dataToReturn.domains?.length || 0}`);
             } catch (restoreError: any) {
               console.error(`[Translation] Erreur lors de la restauration des originaux:`, restoreError);
               return res.status(500).json({ error: 'Erreur lors de la restauration des originaux: ' + restoreError.message });
@@ -2004,8 +2012,18 @@ INSTRUCTIONS:
         
         // Traduire les données
         console.log(`[Translation] Traduction en cours vers ${targetLang}...`);
-        const translatedData = await translateDataRecursively(JSON.parse(JSON.stringify(data)), targetLang);
+        console.log(`[Translation] Nombre de domaines avant traduction: ${data.domains?.length || 0}`);
+        
+        const dataToTranslate = JSON.parse(JSON.stringify(data));
+        const translatedData = await translateDataRecursively(dataToTranslate, targetLang);
+        
         console.log(`[Translation] Traduction terminée`);
+        console.log(`[Translation] Nombre de domaines après traduction: ${translatedData.domains?.length || 0}`);
+        
+        // Vérifier que les noms des domaines ont été traduits
+        if (translatedData.domains && translatedData.domains.length > 0) {
+          console.log(`[Translation] Exemples de domaines traduits:`, translatedData.domains.slice(0, 2).map((d: any) => ({ id: d.id, name: d.name })));
+        }
         
         return res.json({ translatedData });
       } catch (error: any) {
