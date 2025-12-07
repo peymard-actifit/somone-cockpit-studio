@@ -27,10 +27,50 @@ export default function HomePage() {
   const [exportFileName, setExportFileName] = useState('');
   const [selectedDirectory, setSelectedDirectory] = useState<FileSystemDirectoryHandle | null>(null);
   const [useCustomDirectory, setUseCustomDirectory] = useState(false);
+  const [showSystemPromptModal, setShowSystemPromptModal] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const { token } = useAuthStore();
   
   useEffect(() => {
     fetchCockpits();
+    fetchSystemPrompt();
   }, [fetchCockpits]);
+  
+  const fetchSystemPrompt = async () => {
+    try {
+      const response = await fetch('/api/ai/system-prompt', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSystemPrompt(data.prompt || '');
+      }
+    } catch (error) {
+      console.error('Erreur récupération prompt système:', error);
+    }
+  };
+  
+  const saveSystemPrompt = async () => {
+    try {
+      const response = await fetch('/api/ai/system-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ prompt: systemPrompt }),
+      });
+      if (response.ok) {
+        setShowSystemPromptModal(false);
+        alert('Prompt système sauvegardé avec succès');
+      } else {
+        alert('Erreur lors de la sauvegarde du prompt système');
+      }
+    } catch (error) {
+      console.error('Erreur sauvegarde prompt système:', error);
+      alert('Erreur lors de la sauvegarde du prompt système');
+    }
+  };
   
   const handleExport = async (id: string, fileName?: string) => {
     try {
@@ -309,6 +349,17 @@ export default function HomePage() {
               <MuiIcon name="Upload" size={20} />
               Importer
             </label>
+            <button
+              onClick={() => {
+                setShowSystemPromptModal(true);
+                fetchSystemPrompt();
+              }}
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25"
+              title="Configurer le prompt système de l'IA"
+            >
+              <MuiIcon name="Settings" size={20} />
+              <span>Prompt IA</span>
+            </button>
             <button
               onClick={() => setShowNewModal(true)}
               className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25"
@@ -917,6 +968,53 @@ export default function HomePage() {
               >
                 {authLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
                 {user?.isAdmin ? 'Quitter le mode admin' : 'Activer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal: Prompt Système IA */}
+      {showSystemPromptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-fade-in flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
+              <h3 className="text-lg font-semibold text-white">Prompt Système de l'IA</h3>
+              <button
+                onClick={() => setShowSystemPromptModal(false)}
+                className="p-1 text-slate-500 hover:text-white transition-colors"
+              >
+                <MuiIcon name="X" size={20} />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto flex-1">
+              <p className="text-sm text-slate-400 mb-4">
+                Ce prompt sera utilisé en première instruction pour toutes les interactions avec l'IA du studio.
+                Il définit les principes et objectifs de création des cockpits.
+              </p>
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                rows={15}
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm font-mono resize-none focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="Définissez ici les principes et objectifs de l'IA pour la création de cockpits..."
+              />
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-700/50">
+              <button
+                onClick={() => setShowSystemPromptModal(false)}
+                className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={saveSystemPrompt}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all flex items-center gap-2"
+              >
+                <MuiIcon name="Save" size={16} />
+                Sauvegarder
               </button>
             </div>
           </div>

@@ -38,6 +38,7 @@ interface CockpitData {
 interface Database {
   users: User[];
   cockpits: CockpitData[];
+  systemPrompt?: string; // Prompt système personnalisé pour l'IA
 }
 
 // Helpers
@@ -2302,6 +2303,36 @@ INSTRUCTIONS:
       });
     }
     
+    // Get System Prompt
+    if (path === '/ai/system-prompt' && method === 'GET') {
+      const db = await getDb();
+      const defaultPrompt = `Le cockpit a pour vocation de remonter à des directeurs des informations synthétiques fiables avec un code couleur strict :
+- Rouge : service coupé
+- Orange : service en danger  
+- Vert : service en fonctionnement
+
+Le cockpit doit aussi montrer les vraies douleurs des managers :
+- Argent : suivi budgétaire et financier
+- Temps : avoir des informations fiables et visibles sans avoir à les chercher (gain de cerveau disponible)
+- Management : suivi visuel de l'avancement des actions réalisées par les équipes
+- Tout autre suivi utile au manager pour avoir plus de cerveau disponible et prendre de meilleures décisions
+
+Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`;
+      return res.json({ prompt: db.systemPrompt || defaultPrompt });
+    }
+    
+    // Save System Prompt
+    if (path === '/ai/system-prompt' && method === 'POST') {
+      const { prompt } = req.body;
+      if (!prompt || typeof prompt !== 'string') {
+        return res.status(400).json({ error: 'Prompt invalide' });
+      }
+      const db = await getDb();
+      db.systemPrompt = prompt;
+      await saveDb(db);
+      return res.json({ success: true, prompt });
+    }
+    
     // AI Chat
     if (path === '/ai/chat' && method === 'POST') {
       if (!OPENAI_API_KEY) {
@@ -2310,7 +2341,24 @@ INSTRUCTIONS:
       
       const { message, cockpitContext, history } = req.body;
       
-      const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, une application de création de tableaux de bord visuels.
+      // Récupérer le prompt système personnalisé depuis la base de données
+      const db = await getDb();
+      const customSystemPrompt = db.systemPrompt || `Le cockpit a pour vocation de remonter à des directeurs des informations synthétiques fiables avec un code couleur strict :
+- Rouge : service coupé
+- Orange : service en danger  
+- Vert : service en fonctionnement
+
+Le cockpit doit aussi montrer les vraies douleurs des managers :
+- Argent : suivi budgétaire et financier
+- Temps : avoir des informations fiables et visibles sans avoir à les chercher (gain de cerveau disponible)
+- Management : suivi visuel de l'avancement des actions réalisées par les équipes
+- Tout autre suivi utile au manager pour avoir plus de cerveau disponible et prendre de meilleures décisions
+
+Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`;
+      
+      const systemPrompt = `${customSystemPrompt}
+
+Tu es un assistant IA pour SOMONE Cockpit Studio, une application de création de tableaux de bord visuels.
 
 STRUCTURE DU COCKPIT:
 - Cockpit contient des Domaines (onglets principaux, max 6)
@@ -2319,7 +2367,40 @@ STRUCTURE DU COCKPIT:
 - Éléments contiennent des Sous-catégories
 - Sous-catégories contiennent des Sous-éléments
 
-STATUTS DISPONIBLES: ok (vert), mineur (orange), critique (rouge), fatal (violet), deconnecte (gris)
+STATUTS DISPONIBLES: 
+- ok (vert) : service en fonctionnement normal
+- mineur (orange) : service en danger
+- critique (rouge) : service en danger critique
+- fatal (rouge foncé/violet) : service coupé
+- deconnecte (gris) : élément déconnecté
+
+STRUCTURE COMPLÈTE:
+- Cockpit contient des Domaines (onglets principaux, max 6)
+- Domaines contiennent des Catégories (groupes d'éléments)
+- Catégories contiennent des Éléments (tuiles avec statut coloré)
+- Éléments contiennent des Sous-catégories
+- Sous-catégories contiennent des Sous-éléments
+- Sous-éléments peuvent avoir des Sources de données et des Calculs associés
+
+SOURCES DE DONNÉES:
+Les sous-éléments peuvent avoir des sources de données pour se connecter à :
+- Excel, CSV, JSON
+- APIs externes
+- Bases de données
+- E-mails
+- Outils de supervision, hypervision, observabilité
+
+CALCULS:
+Les sous-éléments peuvent avoir des calculs déclaratifs (JSON/YAML/DSL) qui :
+- Combinent plusieurs sources
+- Réalisent des opérations, filtres, agrégations, transformations
+- Produisent des résultats affichés dans le cockpit
+
+TU PEUX CRÉER DES COCKPITS:
+- Depuis des exemples non structurés (texte libre)
+- Depuis des fichiers (Excel, CSV, JSON, documents)
+- Depuis des idées ou besoins exprimés en langage naturel
+- En analysant et structurant l'information fournie
 
 ACTIONS DISPONIBLES (retourne-les dans le champ "actions"):
 - addDomain: { name: string }
@@ -2341,6 +2422,13 @@ ACTIONS DISPONIBLES (retourne-les dans le champ "actions"):
 - addSubElements: { subCategoryId?: string, subCategoryName?: string, names: string[] }
 - deleteSubElement: { subElementId?: string, name?: string }
 - updateSubElement: { subElementId?: string, updates: { status?, value?, unit?, name? } }
+- addDataSource: { subElementId?: string, subElementName?: string, name: string, type: 'excel'|'csv'|'json'|'api'|'database'|'email'|'supervision'|'hypervision'|'observability'|'other', location?: string, connection?: string, fields?: string, description?: string }
+- updateDataSource: { subElementId?: string, subElementName?: string, dataSourceId?: string, updates: { name?, type?, location?, connection?, fields?, description? } }
+- deleteDataSource: { subElementId?: string, subElementName?: string, dataSourceId?: string }
+- addCalculation: { subElementId?: string, subElementName?: string, name: string, description?: string, definition: string, sources?: string[] }
+- updateCalculation: { subElementId?: string, subElementName?: string, calculationId?: string, updates: { name?, description?, definition?, sources? } }
+- deleteCalculation: { subElementId?: string, subElementName?: string, calculationId?: string }
+- createCockpit: { name: string, description?: string, fromExample?: string, fromFile?: { type: string, content: string } }
 - addZone: { name: string }
 - deleteZone: { zoneId?: string, name?: string }
 - addMapElement: { domainId?: string, domainName?: string, name: string, lat: number, lng: number, status?: string, icon?: string }
@@ -2399,44 +2487,107 @@ INSTRUCTIONS:
         const data = await openaiResponse.json();
         const assistantMessage = data.choices[0]?.message?.content || '';
         
-        // Essayer d'extraire les actions du message
+        // Essayer d'extraire les actions du message avec retry et parsing robuste
         let actions: any[] = [];
-        try {
-          // Chercher un bloc JSON dans la réponse
-          const jsonMatch = assistantMessage.match(/```json\n?([\s\S]*?)\n?```/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[1]);
-            if (parsed.actions && Array.isArray(parsed.actions)) {
-              actions = parsed.actions;
-              console.log('[AI] Actions extraites depuis bloc JSON:', actions);
-            }
-          } else {
-            // Chercher un objet JSON direct
-            const directMatch = assistantMessage.match(/\{[\s\S]*"actions"[\s\S]*\}/);
-            if (directMatch) {
-              const parsed = JSON.parse(directMatch[0]);
-              if (parsed.actions && Array.isArray(parsed.actions)) {
-                actions = parsed.actions;
-                console.log('[AI] Actions extraites depuis objet JSON direct:', actions);
-              }
-            } else {
-              // Essayer de parser la réponse complète comme JSON si elle commence par {
-              if (assistantMessage.trim().startsWith('{')) {
-                try {
-                  const parsed = JSON.parse(assistantMessage.trim());
-                  if (parsed.actions && Array.isArray(parsed.actions)) {
-                    actions = parsed.actions;
-                    console.log('[AI] Actions extraites depuis réponse JSON complète:', actions);
+        const parseActionsWithRetry = (text: string, maxAttempts = 3): any[] => {
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+              // Tentative 1: Chercher un bloc JSON avec backticks
+              let jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/);
+              if (!jsonMatch) {
+                // Tentative 2: Chercher un bloc code avec json
+                jsonMatch = text.match(/```\n?([\s\S]*?)\n?```/);
+                if (jsonMatch) {
+                  const content = jsonMatch[1].trim();
+                  if (content.startsWith('{') || content.startsWith('[')) {
+                    const parsed = JSON.parse(content);
+                    if (parsed.actions && Array.isArray(parsed.actions)) {
+                      return parsed.actions;
+                    }
                   }
-                } catch (e2) {
-                  // Ce n'est pas un JSON complet, c'est ok
                 }
+              } else {
+                const parsed = JSON.parse(jsonMatch[1]);
+                if (parsed.actions && Array.isArray(parsed.actions)) {
+                  return parsed.actions;
+                }
+              }
+              
+              // Tentative 3: Chercher un objet JSON direct
+              const directMatch = text.match(/\{[\s\S]*?"actions"[\s\S]*?\}/);
+              if (directMatch) {
+                try {
+                  const parsed = JSON.parse(directMatch[0]);
+                  if (parsed.actions && Array.isArray(parsed.actions)) {
+                    return parsed.actions;
+                  }
+                } catch (e) {
+                  // Essayer de nettoyer le JSON
+                  const cleaned = directMatch[0]
+                    .replace(/,\s*}/g, '}')
+                    .replace(/,\s*]/g, ']')
+                    .replace(/'/g, '"');
+                  try {
+                    const parsed = JSON.parse(cleaned);
+                    if (parsed.actions && Array.isArray(parsed.actions)) {
+                      return parsed.actions;
+                    }
+                  } catch (e2) {
+                    // Ignorer
+                  }
+                }
+              }
+              
+              // Tentative 4: Si le texte commence par {, essayer de parser tout
+              const trimmed = text.trim();
+              if (trimmed.startsWith('{')) {
+                try {
+                  const parsed = JSON.parse(trimmed);
+                  if (parsed.actions && Array.isArray(parsed.actions)) {
+                    return parsed.actions;
+                  }
+                } catch (e) {
+                  // Essayer de trouver le dernier objet JSON valide
+                  let lastValidJson = '';
+                  let braceCount = 0;
+                  let startIdx = -1;
+                  for (let i = 0; i < trimmed.length; i++) {
+                    if (trimmed[i] === '{') {
+                      if (startIdx === -1) startIdx = i;
+                      braceCount++;
+                    } else if (trimmed[i] === '}') {
+                      braceCount--;
+                      if (braceCount === 0 && startIdx !== -1) {
+                        lastValidJson = trimmed.substring(startIdx, i + 1);
+                        try {
+                          const parsed = JSON.parse(lastValidJson);
+                          if (parsed.actions && Array.isArray(parsed.actions)) {
+                            return parsed.actions;
+                          }
+                        } catch (e2) {
+                          // Ignorer
+                        }
+                        startIdx = -1;
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              if (attempt === maxAttempts - 1) {
+                console.warn('[AI] Erreur parsing actions après', maxAttempts, 'tentatives:', e);
               }
             }
           }
-        } catch (e) {
-          console.warn('[AI] Erreur parsing actions:', e);
-          console.log('[AI] Message complet:', assistantMessage);
+          return [];
+        };
+        
+        actions = parseActionsWithRetry(assistantMessage);
+        
+        if (actions.length > 0) {
+          console.log('[AI] ✅ Actions extraites avec succès:', actions.length, 'action(s)');
+        } else {
+          console.log('[AI] Aucune action trouvée dans la réponse');
         }
         
         if (actions.length === 0) {

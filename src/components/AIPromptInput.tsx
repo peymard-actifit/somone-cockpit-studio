@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 import { MuiIcon } from './IconPicker';
-import type { TileStatus } from '../types';
+import type { TileStatus, SubElement } from '../types';
 import * as XLSX from 'xlsx';
 
 interface Message {
@@ -70,6 +70,8 @@ export default function AIPromptInput() {
     currentElementId,
     setCurrentDomain,
     setCurrentElement,
+    createCockpit,
+    fetchCockpits,
   } = useCockpitStore();
   
   // Vérifier le statut de l'API OpenAI au montage
@@ -913,6 +915,160 @@ ${base64}`;
           }
           return '❌ Paramètres invalides pour reorderSubElement';
         }
+        
+        case 'addDataSource': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId && action.params.subElementName) {
+            subElementId = findSubElementByName(action.params.subElementName)?.id;
+          }
+          if (!subElementId && currentElementId) {
+            const element = currentCockpit?.domains
+              .flatMap(d => d.categories)
+              .flatMap(c => c.elements)
+              .find(e => e.id === currentElementId);
+            const firstSubElement = element?.subCategories[0]?.subElements[0];
+            if (firstSubElement) subElementId = firstSubElement.id;
+          }
+          if (subElementId) {
+            const subElement = findSubElementById(subElementId);
+            if (subElement) {
+              const newSource = {
+                id: crypto.randomUUID(),
+                subElementId,
+                name: action.params.name,
+                type: action.params.type || 'other',
+                location: action.params.location,
+                connection: action.params.connection,
+                fields: action.params.fields,
+                description: action.params.description,
+              };
+              const sources = subElement.sources || [];
+              updateSubElement(subElementId, { sources: [...sources, newSource] });
+              return `✅ Source de données "${action.params.name}" ajoutée`;
+            }
+          }
+          return '❌ Sous-élément non trouvé. Sélectionnez un sous-élément ou spécifiez subElementName.';
+        }
+        
+        case 'updateDataSource': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId && action.params.subElementName) {
+            subElementId = findSubElementByName(action.params.subElementName)?.id;
+          }
+          if (subElementId) {
+            const subElement = findSubElementById(subElementId);
+            if (subElement) {
+              const sources = subElement.sources || [];
+              const sourceIndex = sources.findIndex(s => s.id === action.params.dataSourceId);
+              if (sourceIndex >= 0) {
+                const updated = { ...sources[sourceIndex], ...action.params.updates };
+                sources[sourceIndex] = updated;
+                updateSubElement(subElementId, { sources: [...sources] });
+                return `✅ Source de données mise à jour`;
+              }
+            }
+          }
+          return '❌ Source de données non trouvée';
+        }
+        
+        case 'deleteDataSource': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId && action.params.subElementName) {
+            subElementId = findSubElementByName(action.params.subElementName)?.id;
+          }
+          if (subElementId) {
+            const subElement = findSubElementById(subElementId);
+            if (subElement) {
+              const sources = (subElement.sources || []).filter(s => s.id !== action.params.dataSourceId);
+              updateSubElement(subElementId, { sources });
+              return `✅ Source de données supprimée`;
+            }
+          }
+          return '❌ Source de données non trouvée';
+        }
+        
+        case 'addCalculation': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId && action.params.subElementName) {
+            subElementId = findSubElementByName(action.params.subElementName)?.id;
+          }
+          if (!subElementId && currentElementId) {
+            const element = currentCockpit?.domains
+              .flatMap(d => d.categories)
+              .flatMap(c => c.elements)
+              .find(e => e.id === currentElementId);
+            const firstSubElement = element?.subCategories[0]?.subElements[0];
+            if (firstSubElement) subElementId = firstSubElement.id;
+          }
+          if (subElementId) {
+            const subElement = findSubElementById(subElementId);
+            if (subElement) {
+              const newCalculation = {
+                id: crypto.randomUUID(),
+                subElementId,
+                name: action.params.name,
+                description: action.params.description,
+                definition: action.params.definition || '',
+                sources: action.params.sources || [],
+              };
+              const calculations = subElement.calculations || [];
+              updateSubElement(subElementId, { calculations: [...calculations, newCalculation] });
+              return `✅ Calcul "${action.params.name}" ajouté`;
+            }
+          }
+          return '❌ Sous-élément non trouvé. Sélectionnez un sous-élément ou spécifiez subElementName.';
+        }
+        
+        case 'updateCalculation': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId && action.params.subElementName) {
+            subElementId = findSubElementByName(action.params.subElementName)?.id;
+          }
+          if (subElementId) {
+            const subElement = findSubElementById(subElementId);
+            if (subElement) {
+              const calculations = subElement.calculations || [];
+              const calcIndex = calculations.findIndex(c => c.id === action.params.calculationId);
+              if (calcIndex >= 0) {
+                const updated = { ...calculations[calcIndex], ...action.params.updates };
+                calculations[calcIndex] = updated;
+                updateSubElement(subElementId, { calculations: [...calculations] });
+                return `✅ Calcul mis à jour`;
+              }
+            }
+          }
+          return '❌ Calcul non trouvé';
+        }
+        
+        case 'deleteCalculation': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId && action.params.subElementName) {
+            subElementId = findSubElementByName(action.params.subElementName)?.id;
+          }
+          if (subElementId) {
+            const subElement = findSubElementById(subElementId);
+            if (subElement) {
+              const calculations = (subElement.calculations || []).filter(c => c.id !== action.params.calculationId);
+              updateSubElement(subElementId, { calculations });
+              return `✅ Calcul supprimé`;
+            }
+          }
+          return '❌ Calcul non trouvé';
+        }
+        
+        case 'createCockpit': {
+          const name = action.params.name || 'Nouveau Cockpit';
+          // Note: createCockpit est asynchrone mais executeAction est synchrone
+          // On lance la création en arrière-plan
+          createCockpit(name).then(newCockpit => {
+            if (newCockpit) {
+              fetchCockpits();
+            }
+          }).catch(error => {
+            console.error('Erreur création cockpit:', error);
+          });
+          return `✅ Création du cockpit "${name}" en cours... Tu peux ajouter des domaines et éléments dès qu'il sera créé.`;
+        }
           
         default:
           console.warn('Action non reconnue:', action.type);
@@ -922,6 +1078,22 @@ ${base64}`;
       console.error('❌ Erreur exécution action:', action.type, error);
       return `❌ Erreur: ${error instanceof Error ? error.message : 'inconnue'}`;
     }
+  };
+  
+  // Helper pour trouver un sous-élément par ID
+  const findSubElementById = (id: string): SubElement | undefined => {
+    if (!currentCockpit) return undefined;
+    for (const domain of currentCockpit.domains) {
+      for (const category of domain.categories) {
+        for (const element of category.elements) {
+          for (const subCategory of element.subCategories) {
+            const found = subCategory.subElements.find(se => se.id === id);
+            if (found) return found;
+          }
+        }
+      }
+    }
+    return undefined;
   };
   
   // Exécuter plusieurs actions
@@ -960,11 +1132,13 @@ ${base64}`;
             subCategories: e.subCategories.map(sc => ({
               id: sc.id,
               name: sc.name,
-              subElements: sc.subElements.map(se => ({
-                id: se.id,
-                name: se.name,
-                status: se.status,
-              }))
+                subElements: sc.subElements.map(se => ({
+                  id: se.id,
+                  name: se.name,
+                  status: se.status,
+                  sources: se.sources || [],
+                  calculations: se.calculations || [],
+                }))
             }))
           }))
         }))
