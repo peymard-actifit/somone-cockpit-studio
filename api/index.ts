@@ -1373,6 +1373,12 @@ INSTRUCTIONS:
         return text; // Retourner le texte original si pas de clé API ou texte vide
       }
       
+      // Si la langue cible est FR, ne pas traduire (retourner le texte tel quel)
+      // DeepL ne peut pas traduire FR -> FR
+      if (targetLang === 'FR') {
+        return text;
+      }
+      
       try {
         // Détecter la langue source (FR par défaut)
         const sourceLang = 'FR';
@@ -1878,8 +1884,8 @@ INSTRUCTIONS:
         return res.status(401).json({ error: 'Non authentifié' });
       }
       
-      // Si targetLang est 'RESTORE', restaurer les données originales
-      if (!targetLang || targetLang === 'RESTORE') {
+      // Si targetLang est 'Restauration', restaurer les données originales
+      if (!targetLang || targetLang === 'Restauration') {
         // Restaurer les données originales si disponibles
         try {
           const db = await getDb();
@@ -1979,6 +1985,39 @@ INSTRUCTIONS:
       const data = cockpit.data || { domains: [], zones: [] };
       
       try {
+        // IMPORTANT: Si la langue cible est FR, restaurer les originaux si disponibles
+        // Sinon retourner les données telles quelles (pas de traduction FR -> FR)
+        if (targetLang === 'FR') {
+          console.log(`[Translation] Langue cible = FR, restauration des originaux...`);
+          if (cockpit.data && cockpit.data.originals) {
+            // Restaurer les originaux
+            const originalsCopy = JSON.parse(JSON.stringify(cockpit.data.originals));
+            const savedOriginals = cockpit.data.originals;
+            
+            // Remplacer COMPLÈTEMENT les données par les originaux
+            cockpit.data = JSON.parse(JSON.stringify(originalsCopy));
+            cockpit.data.originals = savedOriginals;
+            cockpit.updatedAt = new Date().toISOString();
+            await saveDb(db);
+            
+            // Préparer les données à retourner (sans le champ originals)
+            const dataToReturn = JSON.parse(JSON.stringify(originalsCopy));
+            if (dataToReturn && dataToReturn.originals) {
+              delete dataToReturn.originals;
+            }
+            console.log(`[Translation] ✅ Originaux restaurés (${dataToReturn.domains?.length || 0} domaines)`);
+            return res.json({ translatedData: dataToReturn });
+          } else {
+            // Pas d'originaux, retourner les données telles quelles
+            console.log(`[Translation] ⚠️ Pas d'originaux sauvegardés, retour des données actuelles telles quelles`);
+            const dataToReturn = JSON.parse(JSON.stringify(data));
+            if (dataToReturn && dataToReturn.originals) {
+              delete dataToReturn.originals;
+            }
+            return res.json({ translatedData: dataToReturn });
+          }
+        }
+        
         // IMPORTANT: Toujours sauvegarder les originaux avant la première traduction
         // Si les originaux n'existent pas, sauvegarder les données actuelles comme originaux
         // Cela garantit qu'on peut TOUJOURS revenir aux textes originaux en français
@@ -2015,14 +2054,40 @@ INSTRUCTIONS:
         console.log(`[Translation] Nombre de domaines avant traduction: ${data.domains?.length || 0}`);
         
         const dataToTranslate = JSON.parse(JSON.stringify(data));
+        
+        // Log détaillé avant traduction pour vérifier la structure
+        if (dataToTranslate.domains && dataToTranslate.domains.length > 0) {
+          const firstDomain = dataToTranslate.domains[0];
+          if (firstDomain.categories && firstDomain.categories.length > 0) {
+            const firstCategory = firstDomain.categories[0];
+            if (firstCategory.elements && firstCategory.elements.length > 0) {
+              const firstElement = firstCategory.elements[0];
+              console.log(`[Translation] Structure avant traduction - Exemple:`);
+              console.log(`  Domaine: "${firstDomain.name}"`);
+              console.log(`  Catégorie: "${firstCategory.name}"`);
+              console.log(`  Élément: "${firstElement.name}"`);
+            }
+          }
+        }
+        
         const translatedData = await translateDataRecursively(dataToTranslate, targetLang);
         
         console.log(`[Translation] Traduction terminée`);
         console.log(`[Translation] Nombre de domaines après traduction: ${translatedData.domains?.length || 0}`);
         
-        // Vérifier que les noms des domaines ont été traduits
+        // Vérifier que les noms ont été traduits
         if (translatedData.domains && translatedData.domains.length > 0) {
-          console.log(`[Translation] Exemples de domaines traduits:`, translatedData.domains.slice(0, 2).map((d: any) => ({ id: d.id, name: d.name })));
+          const firstDomain = translatedData.domains[0];
+          if (firstDomain.categories && firstDomain.categories.length > 0) {
+            const firstCategory = firstDomain.categories[0];
+            if (firstCategory.elements && firstCategory.elements.length > 0) {
+              const firstElement = firstCategory.elements[0];
+              console.log(`[Translation] Structure après traduction - Exemple:`);
+              console.log(`  Domaine: "${firstDomain.name}"`);
+              console.log(`  Catégorie: "${firstCategory.name}"`);
+              console.log(`  Élément: "${firstElement.name}"`);
+            }
+          }
         }
         
         return res.json({ translatedData });
@@ -2065,11 +2130,29 @@ INSTRUCTIONS:
         delete originalsToSave.originals;
       }
       
+      // Log détaillé de ce qui est sauvegardé
+      const domainsCount = originalsToSave.domains?.length || 0;
+      let elementsCount = 0;
+      let categoriesCount = 0;
+      if (originalsToSave.domains) {
+        for (const domain of originalsToSave.domains) {
+          if (domain.categories) {
+            categoriesCount += domain.categories.length;
+            for (const category of domain.categories) {
+              if (category.elements) {
+                elementsCount += category.elements.length;
+              }
+            }
+          }
+        }
+      }
+      
       cockpit.data.originals = originalsToSave;
       cockpit.updatedAt = new Date().toISOString();
       await saveDb(db);
       
       console.log(`[Translation] ✅ Version actuelle figée comme originaux (${JSON.stringify(originalsToSave).length} caractères)`);
+      console.log(`[Translation] Détails sauvegardés: ${domainsCount} domaines, ${categoriesCount} catégories, ${elementsCount} éléments`);
       
       return res.json({ success: true, message: 'Version actuelle sauvegardée comme originaux' });
     }

@@ -41,12 +41,41 @@ interface IconPickerProps {
 
 export default function IconPicker({ value, onChange, onClose }: IconPickerProps) {
   const [search, setSearch] = useState('');
+  const [directName, setDirectName] = useState('');
+  const [showDirectInput, setShowDirectInput] = useState(false);
   
   const filteredIcons = useMemo(() => {
     if (!search) return ICON_NAMES;
     const searchLower = search.toLowerCase();
     return ICON_NAMES.filter(name => name.toLowerCase().includes(searchLower));
   }, [search]);
+  
+  // Vérifier si un nom d'icône est valide
+  const isValidIconName = (name: string) => {
+    return ICONS[name] !== undefined;
+  };
+  
+  // Gérer la sélection directe par nom
+  const handleDirectNameSelect = () => {
+    const trimmedName = directName.trim();
+    if (trimmedName && isValidIconName(trimmedName)) {
+      onChange(trimmedName);
+      setDirectName('');
+      setShowDirectInput(false);
+      onClose();
+    } else if (trimmedName) {
+      // Si le nom n'est pas valide, essayer de trouver une correspondance proche
+      const closeMatch = ICON_NAMES.find(name => 
+        name.toLowerCase() === trimmedName.toLowerCase()
+      );
+      if (closeMatch) {
+        onChange(closeMatch);
+        setDirectName('');
+        setShowDirectInput(false);
+        onClose();
+      }
+    }
+  };
   
   // Catégories d'icônes populaires
   const categories = [
@@ -59,8 +88,9 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
   
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       onClick={onClose}
+      style={{ zIndex: 9999 }}
     >
       <div 
         className="bg-[#1E293B] border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
@@ -81,32 +111,106 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
         </div>
         
         {/* Recherche */}
-        <div className="px-5 py-3 border-b border-slate-700">
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-              <MuiIcon name="SearchIcon" size={20} />
+        <div className="px-5 py-3 border-b border-slate-700 space-y-3">
+          {/* Mode recherche dans la liste */}
+          {!showDirectInput && (
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                <MuiIcon name="SearchIcon" size={20} />
+              </div>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher une icône..."
+                className="w-full pl-11 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                autoFocus
+              />
             </div>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher une icône..."
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-              autoFocus
-            />
-          </div>
+          )}
           
-          {value && (
+          {/* Input pour saisie directe par nom */}
+          {showDirectInput && (
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                <MuiIcon name="EditIcon" size={20} />
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={directName}
+                  onChange={(e) => setDirectName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleDirectNameSelect();
+                    }
+                  }}
+                  placeholder="Saisir le nom exact de l'icône (ex: Home, Settings, Person)..."
+                  className="flex-1 pl-11 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  autoFocus
+                />
+                <button
+                  onClick={handleDirectNameSelect}
+                  disabled={!directName.trim() || !isValidIconName(directName.trim())}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <MuiIcon name="Check" size={18} />
+                  Valider
+                </button>
+              </div>
+              {directName.trim() && !isValidIconName(directName.trim()) && (
+                <p className="mt-2 text-xs text-amber-400 flex items-center gap-1.5">
+                  <MuiIcon name="Warning" size={14} />
+                  Icône "{directName.trim()}" non trouvée. Utilisez la recherche pour trouver le nom correct.
+                </p>
+              )}
+              {directName.trim() && isValidIconName(directName.trim()) && (
+                <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-xs text-blue-400 flex items-center gap-2">
+                    <MuiIcon name="CheckCircle" size={14} />
+                    Icône "{directName.trim()}" trouvée. Appuyez sur Entrée ou cliquez sur Valider.
+                  </p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                      <MuiIcon name={directName.trim()} size={20} />
+                    </div>
+                    <span className="text-white text-sm font-medium">{directName.trim()}</span>
+                  </div>
+                </div>
+              )}
+              <p className="mt-2 text-xs text-slate-500">
+                💡 Astuce: Tapez le nom exact de l'icône Material UI (ex: "Home", "Settings", "Person", etc.)
+              </p>
+            </div>
+          )}
+          
+          {/* Boutons d'action */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                onChange(undefined);
-                onClose();
+                setShowDirectInput(!showDirectInput);
+                setSearch('');
+                setDirectName('');
               }}
-              className="mt-3 px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center gap-1.5"
+              title={showDirectInput ? "Retour à la recherche" : "Saisir directement le nom de l'icône"}
             >
-              Supprimer l'icône actuelle
+              <MuiIcon name={showDirectInput ? "SearchIcon" : "EditIcon"} size={14} />
+              {showDirectInput ? 'Retour à la recherche' : 'Saisir par nom'}
             </button>
-          )}
+            
+            {value && (
+              <button
+                onClick={() => {
+                  onChange(undefined);
+                  onClose();
+                }}
+                className="px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+              >
+                Supprimer l'icône
+              </button>
+            )}
+          </div>
         </div>
         
         {/* Icône sélectionnée */}
@@ -122,8 +226,8 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
           </div>
         )}
         
-        {/* Catégories populaires (si pas de recherche) */}
-        {!search && (
+        {/* Catégories populaires (si pas de recherche et pas de saisie directe) */}
+        {!search && !showDirectInput && (
           <div className="px-5 py-3 border-b border-slate-700">
             <p className="text-xs text-slate-500 mb-3">Catégories populaires</p>
             <div className="flex flex-wrap gap-2">
@@ -149,7 +253,8 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
           </div>
         )}
         
-        {/* Grille d'icônes */}
+        {/* Grille d'icônes (masquée en mode saisie directe) */}
+        {!showDirectInput && (
         <div className="flex-1 overflow-y-auto p-5">
           {filteredIcons.length === 0 ? (
             <p className="text-center text-slate-500 py-8">
@@ -179,6 +284,7 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
             </div>
           )}
         </div>
+        )}
         
         {/* Footer */}
         <div className="px-5 py-3 border-t border-slate-700 bg-slate-800/50">

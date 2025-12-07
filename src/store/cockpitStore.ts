@@ -299,8 +299,33 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   updateCockpit: (updates: Partial<Cockpit>) => {
     set((state) => {
       if (!state.currentCockpit) return state;
+      // Effectuer une fusion profonde pour s'assurer que les tableaux comme 'domains' sont complètement remplacés
+      // et non fusionnés superficiellement.
+      const updatedCockpit = {
+        ...state.currentCockpit,
+        ...updates,
+        domains: updates.domains !== undefined ? updates.domains : state.currentCockpit.domains,
+        zones: (updates as any).zones !== undefined ? (updates as any).zones : (state.currentCockpit as any).zones,
+        scrollingBanner: updates.scrollingBanner !== undefined ? updates.scrollingBanner : state.currentCockpit.scrollingBanner,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      // Log pour vérifier que les domaines sont bien remplacés
+      if (updates.domains && updates.domains.length > 0) {
+        const firstDomain = updates.domains[0];
+        if (firstDomain.categories && firstDomain.categories.length > 0) {
+          const firstCategory = firstDomain.categories[0];
+          if (firstCategory.elements && firstCategory.elements.length > 0) {
+            console.log('[updateCockpit] Domaines remplacés - Premier élément:', {
+              id: firstCategory.elements[0].id,
+              name: firstCategory.elements[0].name,
+            });
+          }
+        }
+      }
+      
       return {
-        currentCockpit: { ...state.currentCockpit, ...updates, updatedAt: new Date().toISOString() },
+        currentCockpit: updatedCockpit,
       };
     });
     get().triggerAutoSave();
