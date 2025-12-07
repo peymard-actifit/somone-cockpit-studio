@@ -1844,6 +1844,11 @@ INSTRUCTIONS:
       const id = match[1];
       const { targetLang, preserveOriginals } = req.body || {};
       
+      // Vérifier l'authentification
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+      
       if (!targetLang || targetLang === 'FR') {
         // Si FR ou pas de langue, retourner les données originales
         const db = await getDb();
@@ -1900,6 +1905,11 @@ INSTRUCTIONS:
         return res.status(400).json({ error: 'ID manquant' });
       }
       const id = match[1];
+      
+      // Vérifier l'authentification
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
       
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);

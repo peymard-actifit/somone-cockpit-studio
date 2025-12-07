@@ -488,18 +488,17 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   
   // Clic sur un point pour aller vers la vue Element (ou la créer)
   const handlePointClick = (point: MapElement) => {
-    if (!_readOnly) {
-      if (point.elementId) {
-        // Si le point est lié à un élément, ouvrir le menu d'édition via onElementClick
-        if (_onElementClick) {
-          _onElementClick(point.elementId);
-        } else {
-          setCurrentElement(point.elementId);
-        }
-      } else {
-        // Créer un Element pour ce point
-        createElementFromPoint(point);
+    if (point.elementId) {
+      // Si le point est lié à un élément, ouvrir les détails via onElementClick (fonctionne en mode read-only aussi)
+      if (_onElementClick) {
+        _onElementClick(point.elementId);
+      } else if (!_readOnly) {
+        // En mode édition, ouvrir le menu d'édition
+        setCurrentElement(point.elementId);
       }
+    } else if (!_readOnly) {
+      // En mode édition seulement, créer un Element pour ce point
+      createElementFromPoint(point);
     }
   };
   
