@@ -1202,22 +1202,102 @@ export default function AIPromptInput() {
     
     // Gérer de très gros tableaux d'actions (100+)
     if (actions.length > 50) {
-      console.log(`🤖 [AIPromptInput] ⚠️ Nombre élevé d'actions (${actions.length}), traitement par batch...`);
+      console.log(`🤖 [AIPromptInput] ⚠️ Nombre élevé d'actions (${actions.length}), traitement séquentiel...`);
     }
     
-    const results = actions.map((action, index) => {
+    // Mapping pour stocker les IDs créés (nom -> id)
+    const createdIds: { categories: Map<string, string>, subCategories: Map<string, string> } = {
+      categories: new Map(),
+      subCategories: new Map()
+    };
+    
+    // Exécuter les actions SÉQUENTIELLEMENT pour que les IDs créés soient disponibles
+    const results: string[] = [];
+    for (let index = 0; index < actions.length; index++) {
+      const action = actions[index];
+      
       // Log tous les 10 actions pour éviter de surcharger la console
       if (index % 10 === 0 || index === actions.length - 1) {
         console.log(`🤖 [AIPromptInput] Action ${index + 1}/${actions.length}:`, action.type);
       }
       
       try {
-        return executeAction(action);
+        // Si l'action référence une catégorie par nom et qu'elle vient d'être créée, utiliser son ID
+        if (action.type === 'addElement' || action.type === 'addElements') {
+          const categoryName = action.params.categoryName;
+          if (categoryName && createdIds.categories.has(categoryName)) {
+            action.params.categoryId = createdIds.categories.get(categoryName);
+            delete action.params.categoryName; // Utiliser l'ID au lieu du nom
+            console.log(`🤖 [AIPromptInput] Résolution catégorie "${categoryName}" -> ID: ${action.params.categoryId}`);
+          }
+        }
+        
+        // Si l'action référence une sous-catégorie par nom et qu'elle vient d'être créée, utiliser son ID
+        if (action.type === 'addSubElement' || action.type === 'addSubElements') {
+          const subCategoryName = action.params.subCategoryName;
+          if (subCategoryName && createdIds.subCategories.has(subCategoryName)) {
+            action.params.subCategoryId = createdIds.subCategories.get(subCategoryName);
+            delete action.params.subCategoryName; // Utiliser l'ID au lieu du nom
+            console.log(`🤖 [AIPromptInput] Résolution sous-catégorie "${subCategoryName}" -> ID: ${action.params.subCategoryId}`);
+          } else if (subCategoryName) {
+            // Si pas dans le cache, chercher dans le store
+            const subCategory = findSubCategoryByName(subCategoryName, action.params.elementId);
+            if (subCategory) {
+              action.params.subCategoryId = subCategory.id;
+              delete action.params.subCategoryName;
+              console.log(`🤖 [AIPromptInput] Résolution sous-catégorie "${subCategoryName}" depuis store -> ID: ${subCategory.id}`);
+            } else {
+              console.warn(`🤖 [AIPromptInput] Sous-catégorie "${subCategoryName}" non trouvée`);
+            }
+          }
+        }
+        
+        const result = executeAction(action);
+        results.push(result);
+        
+        // Si une catégorie a été créée, stocker son ID
+        if (action.type === 'addCategory' && action.params.name) {
+          // Trouver l'ID de la catégorie créée
+          const domainId = action.params.domainId || currentDomainId;
+          if (domainId) {
+            const domain = currentCockpit?.domains.find(d => d.id === domainId);
+            const category = domain?.categories.find(c => c.name === action.params.name);
+            if (category) {
+              createdIds.categories.set(action.params.name, category.id);
+              console.log(`🤖 [AIPromptInput] Catégorie "${action.params.name}" créée avec ID: ${category.id}`);
+            }
+          }
+        }
+        
+        // Si une sous-catégorie a été créée, stocker son ID
+        // Le store Zustand se met à jour de manière synchrone, donc on peut chercher immédiatement
+        if (action.type === 'addSubCategory' && action.params.name) {
+          const elementId = action.params.elementId || currentElementId;
+          if (elementId) {
+            // Utiliser findSubCategoryByName qui cherche dans currentCockpit (mis à jour par Zustand)
+            const subCategory = findSubCategoryByName(action.params.name, elementId);
+            if (subCategory) {
+              createdIds.subCategories.set(action.params.name, subCategory.id);
+              console.log(`🤖 [AIPromptInput] Sous-catégorie "${action.params.name}" créée avec ID: ${subCategory.id}`);
+            } else {
+              // Si pas trouvée, essayer une recherche plus large (sans elementId)
+              const subCategoryGlobal = findSubCategoryByName(action.params.name);
+              if (subCategoryGlobal) {
+                createdIds.subCategories.set(action.params.name, subCategoryGlobal.id);
+                console.log(`🤖 [AIPromptInput] Sous-catégorie "${action.params.name}" trouvée globalement avec ID: ${subCategoryGlobal.id}`);
+              } else {
+                console.warn(`🤖 [AIPromptInput] Sous-catégorie "${action.params.name}" pas trouvée après création`);
+              }
+            }
+          }
+        }
+        
       } catch (error) {
         console.error(`🤖 [AIPromptInput] Erreur action ${index + 1}:`, error);
-        return `❌ Erreur action ${index + 1}: ${error instanceof Error ? error.message : 'inconnue'}`;
+        results.push(`❌ Erreur action ${index + 1}: ${error instanceof Error ? error.message : 'inconnue'}`);
       }
-    });
+    }
+    
     const resultString = results.join('\n');
     console.log('🤖 [AIPromptInput] Résultats des actions:', resultString);
     return resultString;
