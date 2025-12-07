@@ -453,11 +453,19 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 </label>
               </div>
               
-              {/* Mode d'affichage */}
-              {(bgImageUrl || domain.backgroundImage) && (
-                <div>
-                  <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Mode d'affichage</label>
-                  <div className="grid grid-cols-2 gap-3">
+              {/* Helper pour vérifier si une image existe */}
+              {(() => {
+                const hasImage = (bgImageUrl && bgImageUrl.trim() !== '') || (domain.backgroundImage && domain.backgroundImage.trim() !== '');
+                if (!hasImage) return null;
+                
+                const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
+                
+                return (
+                  <>
+                    {/* Mode d'affichage */}
+                    <div>
+                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Mode d'affichage</label>
+                      <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => {
                         setBgMode('behind');
@@ -498,45 +506,42 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       </div>
                       <p className="text-xs text-[#64748B]">Image par-dessus, transparente, sans gêner les clics</p>
                     </button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Réglage de l'assombrissement/opacité - Toujours afficher si une image est chargée */}
-              {(bgImageUrl || domain.backgroundImage) && (() => {
-                const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
-                return (
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                      {bgMode === 'behind' 
-                        ? `Assombrissement de l'image : ${currentDarkness}%`
-                        : `Opacité de l'image : ${currentDarkness}%`
-                      }
-                    </label>
-                    <div className="space-y-2">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={currentDarkness}
-                        onChange={(e) => setBgDarkness(Number(e.target.value))}
-                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-                        style={{
-                          background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${currentDarkness}%, #E2E8F0 ${currentDarkness}%, #E2E8F0 100%)`
-                        }}
-                      />
-                      <div className="flex justify-between text-xs text-[#64748B]">
-                        <span>Clair/Transparent (0%)</span>
-                        <span>Foncé/Opaque (100%)</span>
                       </div>
-                      <p className="text-xs text-[#64748B] mt-1">
-                        {bgMode === 'behind' 
-                          ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
-                          : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
-                        }
-                      </p>
                     </div>
-                  </div>
+                    
+                    {/* Réglage de l'assombrissement/opacité - Toujours afficher si une image est chargée */}
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                        {bgMode === 'behind' 
+                          ? `Assombrissement de l'image : ${currentDarkness}%`
+                          : `Opacité de l'image : ${currentDarkness}%`
+                        }
+                      </label>
+                      <div className="space-y-2">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={currentDarkness}
+                          onChange={(e) => setBgDarkness(Number(e.target.value))}
+                          className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                          style={{
+                            background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${currentDarkness}%, #E2E8F0 ${currentDarkness}%, #E2E8F0 100%)`
+                          }}
+                        />
+                        <div className="flex justify-between text-xs text-[#64748B]">
+                          <span>Clair/Transparent (0%)</span>
+                          <span>Foncé/Opaque (100%)</span>
+                        </div>
+                        <p className="text-xs text-[#64748B] mt-1">
+                          {bgMode === 'behind' 
+                            ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
+                            : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </>
                 );
               })()}
               
