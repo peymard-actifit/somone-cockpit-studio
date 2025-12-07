@@ -2525,10 +2525,18 @@ ANALYSE D'IMAGES ET OCR:
         console.log('[AI] Base64 (premiers 50 caractères):', cleanBase64.substring(0, 50));
         
         // Construire l'URL avec le format correct pour OpenAI
+        // IMPORTANT: Le format doit être exactement "data:{mimeType};base64,{base64}"
         const imageUrl = `data:${mimeType};base64,${cleanBase64}`;
         
         console.log('[AI] Image URL construite - Longueur totale:', imageUrl.length);
         console.log('[AI] Image URL (début):', imageUrl.substring(0, 100));
+        console.log('[AI] Image URL (fin):', imageUrl.substring(Math.max(0, imageUrl.length - 100)));
+        
+        // Valider que l'URL commence bien par "data:"
+        if (!imageUrl.startsWith('data:')) {
+          console.error('[AI] ERREUR: L\'URL ne commence pas par "data:"');
+          return res.status(400).json({ error: 'Format d\'URL image invalide' });
+        }
         
         messages.push({
           role: 'user',

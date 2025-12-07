@@ -242,7 +242,9 @@ export default function AIPromptInput() {
       }
       
       // Limiter la taille du contenu (GPT a des limites de tokens)
-      if (content.length > 100000) {
+      // MAIS pour les images, on ne tronque PAS le base64 car il doit rester complet
+      const isImageFile = fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || fileName.endsWith('.webp');
+      if (!isImageFile && content.length > 100000) {
         content = content.substring(0, 100000) + '\n\n... (contenu tronqué, fichier trop long pour GPT)';
       }
       
