@@ -769,6 +769,7 @@ CRÉATION:
 - addMapElement: { name: "Nom", lat: number, lng: number, domainName?: "...", status?: "...", icon?: "..." }
 
 MODIFICATION:
+- updateCockpit: { name?: "...", logo?: "...", scrollingBanner?: "...", updates?: { name?, logo?, scrollingBanner? } }
 - updateDomain: { name?: "...", updates: { name?, templateType?, backgroundImage?, mapBounds?, enableClustering? } }
 - updateCategory: { name?: "...", updates: { name?, orientation?, icon? } }
 - updateElement: { elementName?: "...", updates: { name?, value?, unit?, status?, icon?, icon2?, icon3?, positionX?, positionY? } }
@@ -777,6 +778,11 @@ MODIFICATION:
 - updateStatus: { elementName?: "...", subElementName?: "...", status: "ok"|"mineur"|"critique"|"fatal"|"deconnecte" }
 - updateMapElement: { name?: "...", updates: { name?, lat?, lng?, status?, icon? } }
 - updateMapBounds: { domainName?: "...", topLeft: { lat: number, lng: number }, bottomRight: { lat: number, lng: number } }
+- reorderDomains: { domainIds: ["domainId1", "domainId2", ...] }
+- moveElement: { elementName?: "...", fromCategoryName?: "...", toCategoryName?: "..." }
+- reorderElement: { elementName?: "...", categoryName?: "...", newIndex: number }
+- moveSubElement: { subElementName?: "...", fromSubCategoryName?: "...", toSubCategoryName?: "..." }
+- reorderSubElement: { subElementName?: "...", subCategoryName?: "...", newIndex: number }
 
 DUPLICATION/CLONE:
 - cloneElement: { name?: "..." }
@@ -823,6 +829,26 @@ Cloner un élément:
 Ajouter un point GPS sur une carte:
 \`\`\`action
 { "type": "addMapElement", "params": { "name": "Site A", "lat": 48.8566, "lng": 2.3522, "status": "ok" } }
+\`\`\`
+
+Modifier le cockpit (nom, logo, bannière):
+\`\`\`action
+{ "type": "updateCockpit", "params": { "updates": { "name": "Nouveau nom", "logo": "data:image/..." } } }
+\`\`\`
+
+Réorganiser l'ordre des domaines:
+\`\`\`action
+{ "type": "reorderDomains", "params": { "domainIds": ["id1", "id2", "id3"] } }
+\`\`\`
+
+Déplacer un élément d'une catégorie à une autre:
+\`\`\`action
+{ "type": "moveElement", "params": { "elementName": "Température", "fromCategoryName": "Météo", "toCategoryName": "Environnement" } }
+\`\`\`
+
+Réorganiser l'ordre des éléments:
+\`\`\`action
+{ "type": "reorderElement", "params": { "elementName": "Capteur 1", "categoryName": "Capteurs", "newIndex": 0 } }
 \`\`\`
 
 IMPORTANT - Statuts disponibles:

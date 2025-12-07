@@ -36,15 +36,19 @@ export default function AIPromptInput() {
   const { token } = useAuthStore();
   const {
     currentCockpit,
+    updateCockpit,
     addDomain,
     deleteDomain,
     updateDomain,
+    reorderDomains,
     addCategory,
     updateCategory,
     deleteCategory,
     addElement,
     deleteElement,
     updateElement,
+    moveElement,
+    reorderElement,
     cloneElement,
     addSubCategory,
     updateSubCategory,
@@ -52,6 +56,8 @@ export default function AIPromptInput() {
     addSubElement,
     deleteSubElement,
     updateSubElement,
+    moveSubElement,
+    reorderSubElement,
     addZone,
     deleteZone,
     addMapElement,
@@ -763,6 +769,147 @@ ${base64}`;
             return `✅ Coordonnées GPS de la carte mises à jour`;
           }
           return '❌ Paramètres invalides pour updateMapBounds';
+        }
+        
+        case 'updateCockpit': {
+          if (!currentCockpit) return '❌ Aucun cockpit ouvert';
+          const updates = action.params.updates || {};
+          if (action.params.name && !updates.name) updates.name = action.params.name;
+          if (action.params.logo !== undefined && !updates.logo) updates.logo = action.params.logo;
+          if (action.params.scrollingBanner !== undefined && !updates.scrollingBanner) updates.scrollingBanner = action.params.scrollingBanner;
+          updateCockpit(updates);
+          return `✅ Cockpit mis à jour`;
+        }
+        
+        case 'reorderDomains': {
+          const domainIds = action.params.domainIds || [];
+          if (domainIds.length === 0) return '❌ Liste de domaines vide';
+          if (!currentCockpit) return '❌ Aucun cockpit ouvert';
+          
+          // Vérifier que tous les domaines existent
+          const validDomainIds = domainIds.filter(id => domainExists(id));
+          if (validDomainIds.length !== domainIds.length) {
+            return '❌ Certains domaines n\'existent pas';
+          }
+          
+          reorderDomains(validDomainIds);
+          return `✅ Ordre des domaines mis à jour`;
+        }
+        
+        case 'moveElement': {
+          let elementId = action.params.elementId;
+          if (!elementId || !elementExists(elementId)) {
+            elementId = findElementByName(action.params.elementName || '')?.id;
+          }
+          
+          let toCategoryId = action.params.toCategoryId;
+          if (!toCategoryId || !categoryExists(toCategoryId)) {
+            toCategoryId = findCategoryByName(action.params.toCategoryName || '')?.id;
+          }
+          
+          let fromCategoryId = action.params.fromCategoryId;
+          if (!fromCategoryId || !categoryExists(fromCategoryId)) {
+            // Trouver la catégorie actuelle de l'élément
+            for (const domain of currentCockpit?.domains || []) {
+              for (const category of domain.categories) {
+                if (category.elements.some(e => e.id === elementId)) {
+                  fromCategoryId = category.id;
+                  break;
+                }
+              }
+              if (fromCategoryId) break;
+            }
+          }
+          
+          if (elementId && fromCategoryId && toCategoryId) {
+            moveElement(elementId, fromCategoryId, toCategoryId);
+            return `✅ Élément déplacé`;
+          }
+          return '❌ Paramètres invalides pour moveElement';
+        }
+        
+        case 'reorderElement': {
+          let elementId = action.params.elementId;
+          if (!elementId || !elementExists(elementId)) {
+            elementId = findElementByName(action.params.elementName || '')?.id;
+          }
+          
+          let categoryId = action.params.categoryId;
+          if (!categoryId || !categoryExists(categoryId)) {
+            categoryId = findCategoryByName(action.params.categoryName || '')?.id;
+          }
+          
+          const newIndex = action.params.newIndex;
+          if (typeof newIndex !== 'number' || newIndex < 0) {
+            return '❌ Index invalide (doit être un nombre >= 0)';
+          }
+          
+          if (elementId && categoryId) {
+            reorderElement(elementId, categoryId, newIndex);
+            return `✅ Ordre de l'élément mis à jour`;
+          }
+          return '❌ Paramètres invalides pour reorderElement';
+        }
+        
+        case 'moveSubElement': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId) {
+            subElementId = findSubElementByName(action.params.subElementName || '')?.id;
+          }
+          
+          let toSubCategoryId = action.params.toSubCategoryId;
+          if (!toSubCategoryId) {
+            toSubCategoryId = findSubCategoryByName(action.params.toSubCategoryName || '')?.id;
+          }
+          
+          let fromSubCategoryId = action.params.fromSubCategoryId;
+          if (!fromSubCategoryId) {
+            // Trouver la sous-catégorie actuelle
+            for (const domain of currentCockpit?.domains || []) {
+              for (const category of domain.categories) {
+                for (const element of category.elements) {
+                  for (const subCategory of element.subCategories) {
+                    if (subCategory.subElements.some(se => se.id === subElementId)) {
+                      fromSubCategoryId = subCategory.id;
+                      break;
+                    }
+                  }
+                  if (fromSubCategoryId) break;
+                }
+                if (fromSubCategoryId) break;
+              }
+              if (fromSubCategoryId) break;
+            }
+          }
+          
+          if (subElementId && fromSubCategoryId && toSubCategoryId) {
+            moveSubElement(subElementId, fromSubCategoryId, toSubCategoryId);
+            return `✅ Sous-élément déplacé`;
+          }
+          return '❌ Paramètres invalides pour moveSubElement';
+        }
+        
+        case 'reorderSubElement': {
+          let subElementId = action.params.subElementId;
+          if (!subElementId) {
+            subElementId = findSubElementByName(action.params.subElementName || '')?.id;
+          }
+          
+          let subCategoryId = action.params.subCategoryId;
+          if (!subCategoryId) {
+            subCategoryId = findSubCategoryByName(action.params.subCategoryName || '')?.id;
+          }
+          
+          const newIndex = action.params.newIndex;
+          if (typeof newIndex !== 'number' || newIndex < 0) {
+            return '❌ Index invalide (doit être un nombre >= 0)';
+          }
+          
+          if (subElementId && subCategoryId) {
+            reorderSubElement(subElementId, subCategoryId, newIndex);
+            return `✅ Ordre du sous-élément mis à jour`;
+          }
+          return '❌ Paramètres invalides pour reorderSubElement';
         }
           
         default:
