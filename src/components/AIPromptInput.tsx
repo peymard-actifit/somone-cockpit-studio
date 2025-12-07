@@ -33,6 +33,75 @@ export default function AIPromptInput() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // État pour le drag de la fenêtre
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const windowRef = useRef<HTMLDivElement>(null);
+  
+  // Charger la position sauvegardée au montage
+  useEffect(() => {
+    const savedPosition = localStorage.getItem('aiWindowPosition');
+    if (savedPosition) {
+      try {
+        const { x, y } = JSON.parse(savedPosition);
+        setPosition({ x, y });
+      } catch (e) {
+        // Ignorer si le parsing échoue
+      }
+    }
+  }, []);
+  
+  // Sauvegarder la position quand elle change
+  useEffect(() => {
+    if (position.x !== 0 || position.y !== 0) {
+      localStorage.setItem('aiWindowPosition', JSON.stringify(position));
+    }
+  }, [position]);
+  
+  // Gérer le drag de la fenêtre
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (windowRef.current && isExpanded) {
+      setIsDragging(true);
+      const rect = windowRef.current.getBoundingClientRect();
+      setDragStart({
+        x: e.clientX - rect.left - position.x,
+        y: e.clientY - rect.top - position.y
+      });
+    }
+  };
+  
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging && isExpanded) {
+        const newX = e.clientX - dragStart.x;
+        const newY = e.clientY - dragStart.y;
+        
+        // Limiter la position dans les bounds de la fenêtre
+        const maxX = window.innerWidth - (windowRef.current?.offsetWidth || 384);
+        const maxY = window.innerHeight - (windowRef.current?.offsetHeight || 600);
+        
+        setPosition({
+          x: Math.max(0, Math.min(newX, maxX)),
+          y: Math.max(0, Math.min(newY, maxY))
+        });
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+    
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart, isExpanded]);
+  
   const { token } = useAuthStore();
   const {
     currentCockpit,
@@ -1388,13 +1457,25 @@ export default function AIPromptInput() {
   return (
     <div className="relative">
       {/* Panneau de chat */}
-      <div className="absolute right-0 top-full mt-2 w-96 bg-[#1E293B] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
-        {/* Header */}
-        <div className={`flex items-center justify-between px-4 py-3 ${
-          aiStatus?.configured 
-            ? 'bg-gradient-to-r from-violet-600 to-purple-600'
-            : 'bg-slate-700'
-        }`}>
+      <div 
+        ref={windowRef}
+        className="fixed w-96 bg-[#1E293B] border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50"
+        style={{
+          right: position.x === 0 ? '1rem' : 'auto',
+          top: position.y === 0 ? '4rem' : 'auto',
+          left: position.x !== 0 ? `${position.x}px` : 'auto',
+          transform: position.y !== 0 ? `translateY(${position.y}px)` : 'none',
+          cursor: isDragging ? 'grabbing' : 'default'
+        }}
+      >
+        {/* Header - zone de drag */}
+        <div 
+          onMouseDown={handleMouseDown}
+          className={`flex items-center justify-between px-4 py-3 cursor-grab active:cursor-grabbing select-none ${
+            aiStatus?.configured 
+              ? 'bg-gradient-to-r from-violet-600 to-purple-600'
+              : 'bg-slate-700'
+          }`}>
           <div className="flex items-center gap-2">
             <MuiIcon name="Sparkles" size={20} className="text-white" />
             <span className="font-semibold text-white">Assistant IA</span>
