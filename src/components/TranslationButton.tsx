@@ -135,6 +135,8 @@ const Modal = ({
   onRestore?: () => void;
   isRestoring?: boolean;
 }) => {
+  // Log pour déboguer l'affichage du bouton restaurer
+  console.log('[Modal] Rendu - showRestoreButton =', showRestoreButton, 'onRestore =', !!onRestore);
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 max-w-lg w-full mx-4">
