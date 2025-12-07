@@ -209,13 +209,15 @@ ${base64}`;
       } else if (fileName.endsWith('.docx')) {
         // Fichier Word - utiliser mammoth.js pour extraire le texte
         try {
+          // @ts-ignore - mammoth n'a pas de types TypeScript officiels
           const mammoth = await import('mammoth');
           const arrayBuffer = await file.arrayBuffer();
+          // @ts-ignore
           const result = await mammoth.extractRawText({ arrayBuffer });
           content = result.value;
           
           if (result.messages.length > 0) {
-            const warnings = result.messages.filter(m => m.type === 'warning').map(m => m.message).join(', ');
+            const warnings = result.messages.filter((m: any) => m.type === 'warning').map((m: any) => m.message).join(', ');
             if (warnings) {
               addMessage('assistant', `⚠️ Avertissements lors de la lecture du Word: ${warnings}`);
             }
@@ -787,7 +789,7 @@ ${base64}`;
           if (!currentCockpit) return '❌ Aucun cockpit ouvert';
           
           // Vérifier que tous les domaines existent
-          const validDomainIds = domainIds.filter(id => domainExists(id));
+          const validDomainIds = domainIds.filter((id: string) => domainExists(id));
           if (validDomainIds.length !== domainIds.length) {
             return '❌ Certains domaines n\'existent pas';
           }
