@@ -2339,7 +2339,7 @@ Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`
         return res.status(400).json({ error: 'OpenAI API key not configured' });
       }
       
-      const { message, cockpitContext, history, hasImage, imageBase64 } = req.body;
+      const { message, cockpitContext, history, hasImage, imageBase64, imageMimeType } = req.body;
       
       // Récupérer le prompt système personnalisé depuis la base de données
       const db = await getDb();
@@ -2473,25 +2473,23 @@ ANALYSE D'IMAGES ET OCR:
       // Si une image est attachée, utiliser le format multi-modal
       if (hasImage && imageBase64) {
         // Nettoyer le base64 : enlever les espaces, retours à la ligne, etc.
-        let cleanBase64 = imageBase64.trim().replace(/\s+/g, '');
+        let cleanBase64 = String(imageBase64).trim().replace(/\s+/g, '');
         
         // Si le base64 contient encore le préfixe data:, l'extraire complètement
         if (cleanBase64.includes('data:')) {
-          const mimeMatch = cleanBase64.match(/data:([^;]+);base64,([\s\S]*)/);
-          if (mimeMatch && mimeMatch.length >= 3) {
-            cleanBase64 = mimeMatch[2].trim().replace(/\s+/g, '');
-          } else {
-            // Fallback : prendre tout après la dernière virgule ou "base64,"
-            const afterComma = cleanBase64.split(',').pop();
-            const afterBase64 = cleanBase64.split('base64,').pop();
-            cleanBase64 = (afterBase64 && afterBase64 !== cleanBase64) ? afterBase64 : (afterComma || cleanBase64);
-            cleanBase64 = cleanBase64.trim().replace(/\s+/g, '');
+          const base64Match = cleanBase64.match(/data:[^;]+;base64,([\s\S]*)/);
+          if (base64Match && base64Match[1]) {
+            cleanBase64 = base64Match[1].trim().replace(/\s+/g, '');
+          } else if (cleanBase64.includes('base64,')) {
+            cleanBase64 = cleanBase64.split('base64,')[1].trim().replace(/\s+/g, '');
+          } else if (cleanBase64.includes(',')) {
+            cleanBase64 = cleanBase64.split(',')[1].trim().replace(/\s+/g, '');
           }
         }
         
-        // Détecter le type MIME à partir du message ou utiliser un format par défaut
-        let mimeType = 'image/png'; // Par défaut PNG
-        if (typeof message === 'string') {
+        // Utiliser le type MIME fourni ou détecter depuis le message
+        let mimeType = imageMimeType || 'image/png';
+        if (!mimeType && typeof message === 'string') {
           if (message.includes('Format: PNG') || message.match(/\.png/i)) {
             mimeType = 'image/png';
           } else if (message.includes('Format: JPEG') || message.includes('Format: JPG') || message.match(/\.jpe?g/i)) {
@@ -2500,21 +2498,27 @@ ANALYSE D'IMAGES ET OCR:
             mimeType = 'image/gif';
           } else if (message.includes('Format: WEBP') || message.match(/\.webp/i)) {
             mimeType = 'image/webp';
+          } else {
+            mimeType = 'image/png'; // Par défaut
           }
         }
         
         // Vérifier que le base64 est valide (ne contient que des caractères base64 valides)
         if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
           console.error('[AI] Base64 invalide détecté, nettoyage supplémentaire...');
+          console.error('[AI] Base64 (premiers 100 caractères):', cleanBase64.substring(0, 100));
           // Nettoyer encore plus agressivement
           cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
         }
         
         // Valider la longueur minimale du base64
         if (cleanBase64.length < 100) {
-          console.error('[AI] Base64 trop court, peut-être une erreur d\'extraction');
+          console.error('[AI] Base64 trop court (' + cleanBase64.length + ' caractères), peut-être une erreur d\'extraction');
+        } else {
+          console.log('[AI] Base64 valide: ' + cleanBase64.length + ' caractères, MIME type: ' + mimeType);
         }
         
+        // Construire l'URL avec le format correct pour OpenAI
         const imageUrl = `data:${mimeType};base64,${cleanBase64}`;
         
         messages.push({

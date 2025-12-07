@@ -1148,36 +1148,45 @@ export default function AIPromptInput() {
     let fullMessage = userMessage;
     let hasImage = false;
     let imageBase64 = '';
+    let imageMimeType = 'image/png';
     
     if (attachedFile) {
       const fileName = attachedFile.name.toLowerCase();
       hasImage = fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || fileName.endsWith('.webp');
       
       if (hasImage) {
-        // Extraire le base64 de l'image (format: data:image/...;base64,...)
-        // Le contenu est déjà en format data:image/...;base64,...
+        // Détecter le type MIME à partir de l'extension du fichier
+        if (fileName.endsWith('.png')) {
+          imageMimeType = 'image/png';
+        } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+          imageMimeType = 'image/jpeg';
+        } else if (fileName.endsWith('.gif')) {
+          imageMimeType = 'image/gif';
+        } else if (fileName.endsWith('.webp')) {
+          imageMimeType = 'image/webp';
+        }
+        
+        // Extraire le base64 de l'image
+        // Le contenu est en format data:image/...;base64,...
         let base64Content = attachedFile.content;
         
-        // Si le contenu contient le préfixe data:, extraire uniquement le base64
-        if (base64Content.includes('data:image/')) {
-          const parts = base64Content.split('base64,');
-          if (parts.length > 1) {
-            imageBase64 = parts[1]; // Prendre tout après "base64,"
-          } else if (base64Content.includes(',')) {
-            imageBase64 = base64Content.split(',')[1];
-          } else {
-            // Si pas de préfixe, c'est déjà du base64 pur
-            imageBase64 = base64Content;
-          }
+        // Extraire uniquement la partie base64 (après "base64,")
+        if (base64Content.includes('base64,')) {
+          const index = base64Content.indexOf('base64,');
+          imageBase64 = base64Content.substring(index + 7); // +7 pour "base64,"
+        } else if (base64Content.includes(',')) {
+          // Fallback : prendre après la virgule
+          imageBase64 = base64Content.split(',')[1] || base64Content;
         } else {
-          // Si pas de préfixe data:, c'est déjà du base64 pur
+          // Si pas de préfixe, c'est peut-être déjà du base64 pur
           imageBase64 = base64Content;
         }
         
-        // Détecter le type de fichier pour le message
-        const fileExtension = attachedFile.name.split('.').pop()?.toUpperCase() || 'IMAGE';
+        // Nettoyer le base64 : enlever espaces, retours à la ligne, etc.
+        imageBase64 = imageBase64.trim().replace(/\s+/g, '');
         
         // Pour les images, préparer un message qui demande l'OCR
+        const fileExtension = attachedFile.name.split('.').pop()?.toUpperCase() || 'IMAGE';
         fullMessage = `[IMAGE ATTACHÉE: ${attachedFile.name} - Format: ${fileExtension}]\n\nAnalyse cette image et fais de l'OCR si elle contient du texte. Extrais toutes les informations pertinentes.\n\nQuestion de l'utilisateur: ${userMessage}`;
       } else {
         // Pour les autres fichiers, utiliser le format texte
@@ -1197,6 +1206,7 @@ export default function AIPromptInput() {
         history, // Envoyer l'historique complet
         hasImage: hasImage && imageBase64 ? true : false, // Indiquer qu'il y a une image
         imageBase64: hasImage && imageBase64 ? imageBase64 : undefined, // Envoyer le base64 de l'image si présent
+        imageMimeType: hasImage ? imageMimeType : undefined, // Envoyer le type MIME
       }),
     });
     
