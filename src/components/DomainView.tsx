@@ -29,15 +29,17 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   const [bgImageUrl, setBgImageUrl] = useState(domain.backgroundImage || '');
   const [bgMode, setBgMode] = useState<BackgroundMode>(domain.backgroundMode || 'behind');
   // Défaut : 60% pour "behind" (voile), 40% pour "overlay" (opacité image)
+  const getDefaultDarkness = (mode: BackgroundMode) => mode === 'overlay' ? 40 : 60;
   const [bgDarkness, setBgDarkness] = useState<number>(
-    domain.backgroundDarkness ?? (domain.backgroundMode === 'overlay' ? 40 : 60)
+    domain.backgroundDarkness ?? getDefaultDarkness(domain.backgroundMode || 'behind')
   );
   
   // Mettre à jour quand le domaine change
   useEffect(() => {
     setBgImageUrl(domain.backgroundImage || '');
-    setBgMode(domain.backgroundMode || 'behind');
-    setBgDarkness(domain.backgroundDarkness ?? (domain.backgroundMode === 'overlay' ? 40 : 60));
+    const newMode = domain.backgroundMode || 'behind';
+    setBgMode(newMode);
+    setBgDarkness(domain.backgroundDarkness ?? getDefaultDarkness(newMode));
   }, [domain.backgroundImage, domain.backgroundMode, domain.backgroundDarkness]);
   
   // Gérer l'upload de fichier
@@ -55,10 +57,11 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   
   // Sauvegarder la configuration
   const handleSaveBgConfig = () => {
+    const darknessToSave = bgDarkness ?? getDefaultDarkness(bgMode);
     updateDomain(domain.id, { 
       backgroundImage: bgImageUrl || undefined,
       backgroundMode: bgMode,
-      backgroundDarkness: bgDarkness
+      backgroundDarkness: darknessToSave
     });
     setShowBgConfigModal(false);
   };
@@ -141,7 +144,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
             src={domain.backgroundImage}
             alt=""
             className="w-full h-full object-contain"
-            style={{ opacity: ((domain.backgroundDarkness !== undefined && domain.backgroundDarkness !== null) ? domain.backgroundDarkness : 40) / 100 }}
+            style={{ opacity: (domain.backgroundDarkness ?? 40) / 100 }}
           />
           </div>
         </div>
@@ -459,7 +462,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       onClick={() => {
                         setBgMode('behind');
                         // Si pas de valeur sauvegardée, utiliser la valeur par défaut pour "behind"
-                        if (bgDarkness === undefined || bgDarkness === null || (bgMode === 'overlay' && bgDarkness === 40)) {
+                        if (bgDarkness === undefined || bgDarkness === null) {
                           setBgDarkness(domain.backgroundDarkness ?? 60);
                         }
                       }}
@@ -479,7 +482,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       onClick={() => {
                         setBgMode('overlay');
                         // Si pas de valeur sauvegardée, utiliser la valeur par défaut pour "overlay"
-                        if (bgDarkness === undefined || bgDarkness === null || (bgMode === 'behind' && bgDarkness === 60)) {
+                        if (bgDarkness === undefined || bgDarkness === null) {
                           setBgDarkness(domain.backgroundDarkness ?? 40);
                         }
                       }}
@@ -500,39 +503,42 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               )}
               
               {/* Réglage de l'assombrissement/opacité - Toujours afficher si une image est chargée */}
-              {(bgImageUrl || domain.backgroundImage) && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                    {bgMode === 'behind' 
-                      ? `Assombrissement de l'image : ${bgDarkness || (bgMode === 'behind' ? 60 : 40)}%`
-                      : `Opacité de l'image : ${bgDarkness || 40}%`
-                    }
-                  </label>
-                  <div className="space-y-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={bgDarkness || (bgMode === 'behind' ? 60 : 40)}
-                      onChange={(e) => setBgDarkness(Number(e.target.value))}
-                      className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-                      style={{
-                        background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${bgDarkness}%, #E2E8F0 ${bgDarkness}%, #E2E8F0 100%)`
-                      }}
-                    />
-                    <div className="flex justify-between text-xs text-[#64748B]">
-                      <span>Clair/Transparent (0%)</span>
-                      <span>Foncé/Opaque (100%)</span>
-                    </div>
-                    <p className="text-xs text-[#64748B] mt-1">
+              {(bgImageUrl || domain.backgroundImage) && (() => {
+                const currentDarkness = bgDarkness ?? getDefaultDarkness(bgMode);
+                return (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
                       {bgMode === 'behind' 
-                        ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
-                        : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
+                        ? `Assombrissement de l'image : ${currentDarkness}%`
+                        : `Opacité de l'image : ${currentDarkness}%`
                       }
-                    </p>
+                    </label>
+                    <div className="space-y-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={currentDarkness}
+                        onChange={(e) => setBgDarkness(Number(e.target.value))}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                        style={{
+                          background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${currentDarkness}%, #E2E8F0 ${currentDarkness}%, #E2E8F0 100%)`
+                        }}
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B]">
+                        <span>Clair/Transparent (0%)</span>
+                        <span>Foncé/Opaque (100%)</span>
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-1">
+                        {bgMode === 'behind' 
+                          ? 'Plus la valeur est élevée, plus l\'image de fond est assombrie pour améliorer la lisibilité du contenu.'
+                          : 'Plus la valeur est élevée, plus l\'image est opaque (visible). Plus la valeur est faible, plus l\'image est transparente.'
+                        }
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
               
               {/* Aperçu */}
               {bgImageUrl && (
