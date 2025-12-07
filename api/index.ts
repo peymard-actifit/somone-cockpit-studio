@@ -2409,7 +2409,7 @@ TU PEUX CRÉER DES COCKPITS:
 ACTIONS DISPONIBLES (retourne-les dans le champ "actions"):
 - addDomain: { name: string }
 - deleteDomain: { domainId?: string, name?: string }
-- updateDomain: { domainId?: string, name?: string, updates: { name?, templateType?, templateName?, backgroundImage?, backgroundMode?, mapBounds?, enableClustering? } }
+            - updateDomain: { domainId?: string, name?: string, updates: { name?, templateType?, templateName?, backgroundImage?, backgroundMode?, backgroundDarkness?, mapBounds?, enableClustering? } }
 - addCategory: { domainId?: string, domainName?: string, name: string, orientation?: 'horizontal'|'vertical' }
 - updateCategory: { categoryId?: string, name?: string, updates: { name?, orientation?, icon? } }
 - deleteCategory: { categoryId?: string, name?: string }
