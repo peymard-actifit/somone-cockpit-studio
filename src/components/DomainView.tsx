@@ -130,7 +130,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
           {/* Voile semi-transparent pour la lisibilité */}
           <div 
             className="absolute inset-0 bg-[#F5F7FA]" 
-            style={{ opacity: (domain.backgroundDarkness ?? 60) / 100 }}
+            style={{ opacity: (domain.backgroundDarkness !== undefined && domain.backgroundDarkness !== null ? domain.backgroundDarkness : 60) / 100 }}
           />
           </div>
         </div>
