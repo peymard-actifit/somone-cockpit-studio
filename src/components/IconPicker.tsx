@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { ICONS, ICON_NAMES } from './icons';
 
 // Composant SVG pour afficher une icône
@@ -86,11 +87,21 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
     { name: 'Sécurité', icons: ['Security', 'Shield', 'Lock', 'Key', 'Visibility', 'Fingerprint'] },
   ];
   
-  return (
+  // Utiliser un portail pour éviter les problèmes de z-index avec les parents
+  // Utiliser un portail pour rendre le modal directement dans document.body
+  // Cela garantit qu'il sera toujours au-dessus de tout le reste
+  const modalContent = (
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       onClick={onClose}
-      style={{ zIndex: 9999 }}
+      style={{ 
+        zIndex: 99999,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}
     >
       <div 
         className="bg-[#1E293B] border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
@@ -295,4 +306,9 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
       </div>
     </div>
   );
+  
+  // Rendre via un portail dans document.body pour garantir le z-index
+  return typeof document !== 'undefined' 
+    ? createPortal(modalContent, document.body)
+    : null;
 }
