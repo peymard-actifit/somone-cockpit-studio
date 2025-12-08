@@ -731,8 +731,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       console.log(`[BackgroundView READ-ONLY] ====================`);
     }
   }, [domain, imageUrl, _readOnly]);
-  
-  }, [domain, imageUrl, _readOnly]);
 
   // Vérification de sécurité APRÈS tous les hooks
   if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
