@@ -741,9 +741,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       </div>
     );
   }
-
-  return (
-
   // Vérification de sécurité APRÈS tous les hooks
   if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
     console.error('[BackgroundView] Domain invalide:', domain);
@@ -753,9 +750,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       </div>
     );
   }
-
-  return (
-
   // Vérification de sécurité APRÈS tous les hooks
   if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
     console.error('[BackgroundView] Domain invalide:', domain);
