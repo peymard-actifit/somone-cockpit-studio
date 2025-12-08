@@ -63,14 +63,14 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
   // État du zoom et position (comme MapView) - initialisé depuis localStorage
   // Utiliser une fonction d'initialisation pour éviter de recalculer à chaque render
-  const [scale, setScale] = useState(() => loadSavedViewState(domain.id).scale);
-  const [position, setPosition] = useState(() => loadSavedViewState(domain.id).position);
+  const [scale, setScale] = useState(() => loadSavedViewState(domain?.id || '').scale);
+  const [position, setPosition] = useState(() => loadSavedViewState(domain?.id || '').position);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   // Ref pour suivre si on doit restaurer l'état sauvegardé quand le domaine change
-  const lastDomainIdRef = useRef<string>(domain.id);
-  const lastBackgroundImageRef = useRef<string | undefined>(domain.backgroundImage);
+  const lastDomainIdRef = useRef<string>(domain?.id || '');
+  const lastBackgroundImageRef = useRef<string | undefined>(domain?.backgroundImage || undefined);
   
   // État pour le drag d'un élément
   const [draggingElementId, setDraggingElementId] = useState<string | null>(null);
@@ -80,8 +80,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Modal de configuration
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const [imageUrl, setImageUrl] = useState(domain.backgroundImage || '');
-  const [enableClustering, setEnableClustering] = useState(domain.enableClustering !== false);
+  const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
+  const [enableClustering, setEnableClustering] = useState(domain?.enableClustering !== false);
   
   // Modal d'ajout d'élément
   const [showAddModal, setShowAddModal] = useState(false);
@@ -111,7 +111,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Récupérer tous les éléments du domaine avec position et taille
   // Sécurité : s'assurer que categories existe et que chaque catégorie a bien un tableau elements
-  const allElements = (domain.categories || [])
+  const allElements = (domain?.categories || [])
     .filter(c => c && Array.isArray(c.elements))
     .flatMap(c => c.elements || [])
     .filter(e => e && typeof e === 'object' && e.id); // Vérifier que chaque élément est valide
