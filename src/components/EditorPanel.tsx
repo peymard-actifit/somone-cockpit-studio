@@ -22,6 +22,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     deleteElement,
     updateSubElement,
     deleteSubElement,
+    updateCategory,
+    updateSubCategory,
     updateCockpit,
     currentCockpit,
     zones,
@@ -37,7 +39,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [activeSection, setActiveSection] = useState<string | null>('properties');
   const [newZoneName, setNewZoneName] = useState('');
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
-  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | 'subElement' | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
   
   const toggleSection = (section: string) => {
     setActiveSection(activeSection === section ? null : section);
@@ -159,8 +163,41 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 />
               </div>
             </div>
+            
+            {/* Icône du sous-élément */}
+            <div>
+              <label className="block text-sm text-[#64748B] mb-2">Icône</label>
+              <button
+                onClick={() => setShowIconPicker('subElement')}
+                className="w-full flex items-center gap-3 px-3 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] hover:border-[#1E3A5F] transition-colors"
+              >
+                {selectedSubElement.icon ? (
+                  <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
+                    <MuiIcon name={selectedSubElement.icon} size={20} className="text-white" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 bg-[#E2E8F0] rounded-lg flex items-center justify-center">
+                    <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
+                  </div>
+                )}
+                <span className="text-sm">{selectedSubElement.icon || 'Choisir une icône...'}</span>
+              </button>
+            </div>
           </div>
         </Section>
+        
+        {/* Icône du sous-élément - Sélecteur */}
+        {showIconPicker === 'subElement' && (
+          <IconPicker
+            value={selectedSubElement.icon}
+            onChange={(iconName) => {
+              updateSubElement(selectedSubElement.id, { icon: iconName || undefined });
+              setSelectedSubElement({ ...selectedSubElement, icon: iconName || undefined });
+              setShowIconPicker(null);
+            }}
+            onClose={() => setShowIconPicker(null)}
+          />
+        )}
         
         {/* Statut / Couleur du sous-élément */}
         <Section 
@@ -487,6 +524,20 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onClose={() => setShowIconPicker(null)}
               />
             )}
+            {showIconPicker === 'subCategory' && selectedSubCategoryId && (
+              <IconPicker
+                value={element.subCategories.find(sc => sc.id === selectedSubCategoryId)?.icon}
+                onChange={(iconName) => {
+                  updateSubCategory(selectedSubCategoryId, { icon: iconName });
+                  setShowIconPicker(null);
+                  setSelectedSubCategoryId(null);
+                }}
+                onClose={() => {
+                  setShowIconPicker(null);
+                  setSelectedSubCategoryId(null);
+                }}
+              />
+            )}
           </div>
         </Section>
         
@@ -517,6 +568,44 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             ))}
           </div>
         </Section>
+        
+        {/* Liste des sous-catégories à éditer */}
+        {element.subCategories.length > 0 && (
+          <Section 
+            title={`Sous-catégories (${element.subCategories.length})`}
+            iconName="Folder" 
+            isOpen={activeSection === 'subcategories'}
+            onToggle={() => toggleSection('subcategories')}
+          >
+            <div className="space-y-2">
+              <p className="text-xs text-[#94A3B8] mb-3">
+                Cliquez sur une sous-catégorie pour modifier son icône.
+              </p>
+              {element.subCategories.map((subCategory) => (
+                <button
+                  key={subCategory.id}
+                  onClick={() => {
+                    setSelectedSubCategoryId(subCategory.id);
+                    setShowIconPicker('subCategory');
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 bg-[#F5F7FA] hover:bg-[#EEF2F7] rounded-lg transition-colors text-left border border-[#E2E8F0]"
+                >
+                  {subCategory.icon ? (
+                    <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MuiIcon name={subCategory.icon} size={18} className="text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 bg-[#E2E8F0] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
+                    </div>
+                  )}
+                  <span className="text-sm text-[#1E3A5F] truncate flex-1">{subCategory.name}</span>
+                  <MuiIcon name="Pencil" size={16} className="text-[#94A3B8] flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
         
         {/* Liste des sous-éléments à éditer */}
         {allSubElements.length > 0 && (
@@ -1042,6 +1131,44 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           </div>
         </Section>
         
+        {/* Liste des catégories à éditer */}
+        {domain.categories.length > 0 && (
+          <Section 
+            title={`Catégories (${domain.categories.length})`}
+            iconName="Folder" 
+            isOpen={activeSection === 'categories'}
+            onToggle={() => toggleSection('categories')}
+          >
+            <div className="space-y-2">
+              <p className="text-xs text-[#94A3B8] mb-3">
+                Cliquez sur une catégorie pour modifier son icône.
+              </p>
+              {domain.categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => {
+                    setSelectedCategoryId(category.id);
+                    setShowIconPicker('category');
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 bg-[#F5F7FA] hover:bg-[#EEF2F7] rounded-lg transition-colors text-left border border-[#E2E8F0]"
+                >
+                  {category.icon ? (
+                    <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MuiIcon name={category.icon} size={18} className="text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 bg-[#E2E8F0] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
+                    </div>
+                  )}
+                  <span className="text-sm text-[#1E3A5F] truncate flex-1">{category.name}</span>
+                  <MuiIcon name="Pencil" size={16} className="text-[#94A3B8] flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
+        
         {/* Paramètres du cockpit */}
         <Section 
           title="Cockpit" 
@@ -1083,6 +1210,22 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </div>
         </Section>
+        
+        {/* Icône de catégorie - Sélecteur */}
+        {showIconPicker === 'category' && selectedCategoryId && domain && (
+          <IconPicker
+            value={domain.categories.find(c => c.id === selectedCategoryId)?.icon}
+            onChange={(iconName) => {
+              updateCategory(selectedCategoryId, { icon: iconName || undefined });
+              setShowIconPicker(null);
+              setSelectedCategoryId(null);
+            }}
+            onClose={() => {
+              setShowIconPicker(null);
+              setSelectedCategoryId(null);
+            }}
+          />
+        )}
       </div>
     );
   }

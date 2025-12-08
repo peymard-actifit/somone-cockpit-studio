@@ -174,6 +174,7 @@ export interface SubElement {
   name: string;
   value?: string;
   unit?: string;
+  icon?: string;
   status: TileStatus;
   order: number;
   alert?: Alert;
