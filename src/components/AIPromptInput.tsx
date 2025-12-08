@@ -218,9 +218,9 @@ export default function AIPromptInput() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    const maxSize = 5 * 1024 * 1024; // 5 MB max
+    const maxSize = 10 * 1024 * 1024; // 10 MB max
     if (file.size > maxSize) {
-      addMessage('assistant', `❌ Fichier trop volumineux (max 5 MB). Taille: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      addMessage('assistant', `❌ Fichier trop volumineux (max 10 MB). Taille: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
       return;
     }
     
