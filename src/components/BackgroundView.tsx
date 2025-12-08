@@ -168,7 +168,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     let newImageUrl = '';
     
     if (domain?.backgroundImage && typeof domain.backgroundImage === 'string') {
-      const trimmed = domain.backgroundImage.trim();
+      const trimmed = domain?.backgroundImage?.trim();
       if (isValidBase64Image(trimmed)) {
         newImageUrl = trimmed;
       } else {
@@ -185,7 +185,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       domainName: domain?.name,
       hasBackgroundImage: !!domain?.backgroundImage,
       backgroundImageType: typeof domain?.backgroundImage,
-      backgroundImageLength: domain?.backgroundImage ? domain.backgroundImage.length : 0,
+      backgroundImageLength: domain?.backgroundImage ? domain?.backgroundImage?.length || 0 : 0,
       isValidImage: isValidBase64Image(domain?.backgroundImage),
       newImageUrlLength: newImageUrl.length,
       newImageUrlPreview: newImageUrl.substring(0, 50)
@@ -697,7 +697,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       console.log(`[BackgroundView READ-ONLY] Domain "${domain?.name}" (templateType: ${domain?.templateType})`);
       console.log(`[BackgroundView READ-ONLY] Domain object keys:`, domain ? Object.keys(domain) : 'DOMAIN IS NULL');
       console.log(`[BackgroundView READ-ONLY] backgroundImage type:`, typeof domain?.backgroundImage);
-      console.log(`[BackgroundView READ-ONLY] backgroundImage value:`, domain?.backgroundImage ? `${domain.backgroundImage.substring(0, 50)}...` : 'null/undefined');
+      console.log(`[BackgroundView READ-ONLY] backgroundImage value:`, domain?.backgroundImage ? `${domain?.backgroundImage?.substring(0, 50)}...` : 'null/undefined');
       console.log(`[BackgroundView READ-ONLY] imageUrl state:`, imageUrl ? `${imageUrl.substring(0, 50)}...` : 'EMPTY');
       console.log(`[BackgroundView READ-ONLY] imageUrl length:`, imageUrl?.length || 0);
       
@@ -708,14 +708,14 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         }
       } else {
         const isValid = isValidBase64Image(domain?.backgroundImage);
-        console.log(`[BackgroundView READ-ONLY] ✅ Domain "${domain?.name}": backgroundImage présente (${domain.backgroundImage.length} caractères)`);
-        console.log(`[BackgroundView READ-ONLY] backgroundImage starts with:`, domain.backgroundImage.substring(0, 30));
-        console.log(`[BackgroundView READ-ONLY] Starts with 'data:':`, domain.backgroundImage.startsWith('data:'));
-        console.log(`[BackgroundView READ-ONLY] Starts with 'data:image/':`, domain.backgroundImage.startsWith('data:image/'));
+        console.log(`[BackgroundView READ-ONLY] ✅ Domain "${domain?.name}": backgroundImage présente (${domain?.backgroundImage?.length || 0} caractères)`);
+        console.log(`[BackgroundView READ-ONLY] backgroundImage starts with:`, domain?.backgroundImage?.substring(0, 30));
+        console.log(`[BackgroundView READ-ONLY] Starts with 'data:':`, domain?.backgroundImage?.startsWith('data:'));
+        console.log(`[BackgroundView READ-ONLY] Starts with 'data:image/':`, domain?.backgroundImage?.startsWith('data:image/'));
         console.log(`[BackgroundView READ-ONLY] Is valid base64 image:`, isValid);
         if (!isValid) {
           console.error(`[BackgroundView READ-ONLY] ❌ Image INVALIDE pour "${domain?.name}" - ne passera pas la validation`);
-          const base64Part = domain.backgroundImage.split(',')[1];
+          const base64Part = domain?.backgroundImage?.split(',')[1];
           console.error(`[BackgroundView READ-ONLY] Base64 part length:`, base64Part?.length || 0);
           console.error(`[BackgroundView READ-ONLY] Base64 part preview:`, base64Part?.substring(0, 50) || 'NONE');
         }
@@ -731,6 +731,18 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       console.log(`[BackgroundView READ-ONLY] ====================`);
     }
   }, [domain, imageUrl, _readOnly]);
+
+  // Vérification de sécurité APRÈS tous les hooks
+  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
+    console.error('[BackgroundView] Domain invalide:', domain);
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
+      </div>
+    );
+  }
+
+  return (
 
   // Vérification de sécurité APRÈS tous les hooks
   if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
@@ -979,7 +991,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 console.error(`[BackgroundView] Longueur totale:`, imageUrl?.length || 0);
                 console.error(`[BackgroundView] Type:`, typeof imageUrl);
                 console.error(`[BackgroundView] Starts with data:`, imageUrl?.startsWith('data:'));
-                console.error(`[BackgroundView] Domain backgroundImage:`, domain?.backgroundImage ? `${typeof domain.backgroundImage} (${domain.backgroundImage.length} chars)` : 'ABSENT');
+                console.error(`[BackgroundView] Domain backgroundImage:`, domain?.backgroundImage ? `${typeof domain.backgroundImage} (${domain?.backgroundImage?.length || 0} chars)` : 'ABSENT');
                 console.error(`[BackgroundView] Image element:`, img);
                 if (_readOnly) {
                   console.error(`[BackgroundView READ-ONLY] ❌ Image non chargée - imageUrl length: ${imageUrl?.length || 0} caractères`);
