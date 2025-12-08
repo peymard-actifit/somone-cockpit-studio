@@ -755,6 +755,18 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   }
 
   return (
+
+  // Vérification de sécurité APRÈS tous les hooks
+  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
+    console.error('[BackgroundView] Domain invalide:', domain);
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
+      </div>
+    );
+  }
+
+  return (
     <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
       {/* Header - Style PDF SOMONE mode clair */}
       <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
