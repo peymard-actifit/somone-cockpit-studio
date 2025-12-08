@@ -1132,7 +1132,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         </Section>
         
         {/* Liste des catégories à éditer */}
-        {domain.categories.length > 0 && (
+        {domain && domain.categories && domain.categories.length > 0 && (
           <Section 
             title={`Catégories (${domain.categories.length})`}
             iconName="Folder" 
