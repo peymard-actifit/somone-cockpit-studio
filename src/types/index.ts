@@ -174,6 +174,7 @@ export interface SubElement {
   name: string;
   value?: string;
   unit?: string;
+  icon?: string;
   status: TileStatus;
   order: number;
   alert?: Alert;
@@ -296,8 +297,8 @@ export function getEffectiveStatus(element: { status: TileStatus; subCategories:
 
 // Fonction pour obtenir les couleurs effectives (gère le cas hérité)
 export function getEffectiveColors(element: { status: TileStatus; subCategories: Array<{ subElements: Array<{ status: TileStatus }> }> }) {
-  const effectiveStatus = getEffectiveStatus(element);
-  return STATUS_COLORS[effectiveStatus];
+  const effectiveStatus = getEffectiveStatus(element) || element.status || 'ok';
+  return STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
 }
 
 // Fonction pour calculer le statut le plus critique d'un domaine
