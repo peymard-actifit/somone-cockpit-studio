@@ -741,29 +741,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       </div>
     );
   }
-  // Vérification de sécurité APRÈS tous les hooks
-  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
-    console.error('[BackgroundView] Domain invalide:', domain);
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
-      </div>
-    );
-  }
-  // Vérification de sécurité APRÈS tous les hooks
-  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
-    console.error('[BackgroundView] Domain invalide:', domain);
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
-      {/* Header - Style PDF SOMONE mode clair */}
-      <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
           <MuiIcon name="ImageIcon" size={20} className="text-[#1E3A5F]" />
           {domain.name}
