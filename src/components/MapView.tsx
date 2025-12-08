@@ -1,4 +1,4 @@
-﻿import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { Domain, TileStatus, MapBounds, GpsCoords, MapElement } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { MuiIcon } from './IconPicker';
 
-// Liste des icÃ´nes populaires pour les points de carte
+// Liste des icônes populaires pour les points de carte
 const POPULAR_MAP_ICONS = [
   'Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Building2',
   'MapPin', 'Navigation', 'Truck', 'Package', 'ShoppingCart', 'Users',
@@ -14,7 +14,7 @@ const POPULAR_MAP_ICONS = [
   'AlertTriangle', 'Shield', 'Lock', 'Key', 'Eye', 'Camera',
 ];
 
-// Ordre de prioritÃ© des statuts (du plus critique au moins critique)
+// Ordre de priorité des statuts (du plus critique au moins critique)
 // Note: Utilise maintenant STATUS_PRIORITY_MAP depuis types/index.ts
 const STATUS_PRIORITY: Record<TileStatus, number> = {
   fatal: 6,
@@ -47,7 +47,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement } = useCockpitStore();
   const { token } = useAuthStore();
   
-  // Ã‰tat de l'analyse IA
+  // État de l'analyse IA
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{
     detected: boolean;
@@ -56,22 +56,22 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     description?: string;
   } | null>(null);
   
-  // Ã‰tat du zoom et position
+  // État du zoom et position
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
-  // Ã‰tat pour le drag d'un point
+  // État pour le drag d'un point
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
   const pointDragStartPosRef = useRef<{ pointId: string; x: number; y: number } | null>(null);
   const hasDraggedPointRef = useRef<boolean>(false);
-  const preventClickRef = useRef<boolean>(false); // Pour empÃªcher le onClick aprÃ¨s un drag
+  const preventClickRef = useRef<boolean>(false); // Pour empêcher le onClick après un drag
   
   // Modales
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showAddPointModal, setShowAddPointModal] = useState(false);
-  // Modal d'Ã©dition supprimÃ© - l'Ã©dition se fait maintenant via EditorPanel
+  // Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel
   
   // Formulaire configuration carte
   const [configForm, setConfigForm] = useState({
@@ -80,7 +80,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     topLeftLng: domain.mapBounds?.topLeft.lng?.toString() || '',
     bottomRightLat: domain.mapBounds?.bottomRight.lat?.toString() || '',
     bottomRightLng: domain.mapBounds?.bottomRight.lng?.toString() || '',
-    enableClustering: domain.enableClustering !== false, // Par dÃ©faut true
+    enableClustering: domain.enableClustering !== false, // Par défaut true
   });
   
   // Formulaire ajout point
@@ -99,7 +99,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; pointId: string; isCluster: boolean } | null>(null);
   
-  // Formulaire Ã©dition point supprimÃ© - l'Ã©dition se fait maintenant via EditorPanel
+  // Formulaire édition point supprimé - l'édition se fait maintenant via EditorPanel
   
   // Limites de zoom
   const MIN_ZOOM = 0.5;
@@ -112,7 +112,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     setPosition({ x: 0, y: 0 });
   }, [domain.backgroundImage]);
   
-  // Mettre Ã  jour le formulaire quand le domaine change
+  // Mettre à jour le formulaire quand le domaine change
   useEffect(() => {
     setConfigForm({
       imageUrl: domain.backgroundImage || '',
@@ -124,37 +124,37 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     });
   }, [domain]);
   
-  // Convertir coordonnÃ©es GPS en position % sur l'image
-  // Utilise une projection linÃ©aire simple (Ã©quirectangulaire)
-  // adaptÃ©e aux cartes statiques (images) qui ne sont gÃ©nÃ©ralement pas en Mercator
+  // Convertir coordonnées GPS en position % sur l'image
+  // Utilise une projection linéaire simple (équirectangulaire)
+  // adaptée aux cartes statiques (images) qui ne sont généralement pas en Mercator
   const gpsToPosition = (gps: GpsCoords): { x: number; y: number } | null => {
     if (!domain.mapBounds) return null;
     
     const { topLeft, bottomRight } = domain.mapBounds;
     
-    // VÃ©rifier que les bounds sont valides
+    // Vérifier que les bounds sont valides
     if (!topLeft || !bottomRight) return null;
     if (topLeft.lat === bottomRight.lat || topLeft.lng === bottomRight.lng) return null;
     
-    // Projection linÃ©aire simple (Ã©quirectangulaire)
+    // Projection linéaire simple (équirectangulaire)
     // X: 0% = ouest (topLeft.lng), 100% = est (bottomRight.lng)
     const x = ((gps.lng - topLeft.lng) / (bottomRight.lng - topLeft.lng)) * 100;
     
     // Y: 0% = nord (topLeft.lat), 100% = sud (bottomRight.lat)
-    // Note: topLeft.lat > bottomRight.lat car le nord a une latitude plus Ã©levÃ©e
+    // Note: topLeft.lat > bottomRight.lat car le nord a une latitude plus élevée
     const y = ((topLeft.lat - gps.lat) / (topLeft.lat - bottomRight.lat)) * 100;
     
     
     return { x, y };
   };
   
-  // Convertir position % sur l'image en coordonnÃ©es GPS (inverse de gpsToPosition)
+  // Convertir position % sur l'image en coordonnées GPS (inverse de gpsToPosition)
   const positionToGps = (pos: { x: number; y: number }): GpsCoords | null => {
     if (!domain.mapBounds) return null;
     
     const { topLeft, bottomRight } = domain.mapBounds;
     
-    // VÃ©rifier que les bounds sont valides
+    // Vérifier que les bounds sont valides
     if (!topLeft || !bottomRight) return null;
     if (topLeft.lat === bottomRight.lat || topLeft.lng === bottomRight.lng) return null;
     
@@ -174,7 +174,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     
     const containerRect = containerRef.current.getBoundingClientRect();
     
-    // Position de la souris relative au conteneur (pas transformÃ© - coordonnÃ©es de l'Ã©cran)
+    // Position de la souris relative au conteneur (pas transformé - coordonnées de l'écran)
     const mouseX = clientX - containerRect.left;
     const mouseY = clientY - containerRect.top;
     
@@ -182,7 +182,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     const containerCenterX = containerRect.width / 2;
     const containerCenterY = containerRect.height / 2;
     
-    // Convertir en coordonnÃ©es locales du conteneur AVANT transformation
+    // Convertir en coordonnées locales du conteneur AVANT transformation
     // Inverser la transformation: point = center + ((mouse - center) - translate) / scale
     const localX = containerCenterX + ((mouseX - containerCenterX) - position.x) / scale;
     const localY = containerCenterY + ((mouseY - containerCenterY) - position.y) / scale;
@@ -209,14 +209,14 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     setPosition({ x: 0, y: 0 });
   };
   
-  // DÃ©but du drag
+  // Début du drag
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     
-    // Ne pas dÃ©marrer le drag de la vue si on drague un point
+    // Ne pas démarrer le drag de la vue si on drague un point
     if (draggingPointId) return;
     
-    // Ne pas dÃ©marrer le drag si le clic est sur un point ou un bouton d'action
+    // Ne pas démarrer le drag si le clic est sur un point ou un bouton d'action
     const target = e.target as HTMLElement;
     const isPointElement = target.closest('[data-point-element]') || target.closest('.cursor-move');
     const isActionButton = target.closest('button');
@@ -236,7 +236,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     // Drag d'un point
     if (draggingPointId) {
-      // ArrÃªter le drag de la vue si elle est en cours
+      // Arrêter le drag de la vue si elle est en cours
       if (isDragging) {
         setIsDragging(false);
       }
@@ -275,10 +275,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     
     setIsDragging(false);
     
-    // Si on a fait un drag, marquer pour empÃªcher le onClick
+    // Si on a fait un drag, marquer pour empêcher le onClick
     if (wasDraggingPoint) {
       preventClickRef.current = true;
-      // RÃ©initialiser aprÃ¨s un court dÃ©lai pour permettre au onClick de vÃ©rifier le flag
+      // Réinitialiser après un court délai pour permettre au onClick de vérifier le flag
       setTimeout(() => {
         preventClickRef.current = false;
       }, 300);
@@ -288,7 +288,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       }
     }
     
-    // RÃ©initialiser immÃ©diatement pour Ã©viter les conflits
+    // Réinitialiser immédiatement pour éviter les conflits
     setDraggingPointId(null);
     pointDragStartPosRef.current = null;
     hasDraggedPointRef.current = false;
@@ -304,7 +304,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     }
   };
   
-  // Analyser l'image avec l'IA pour dÃ©tecter les coordonnÃ©es GPS
+  // Analyser l'image avec l'IA pour détecter les coordonnées GPS
   const analyzeMapImage = async () => {
     if (!configForm.imageUrl) return;
     
@@ -335,7 +335,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       }
       
       if (result.detected && result.topLeft && result.bottomRight) {
-        // PrÃ©-remplir les coordonnÃ©es dÃ©tectÃ©es
+        // Pré-remplir les coordonnées détectées
         setConfigForm(prev => ({
           ...prev,
           topLeftLat: result.topLeft.lat.toString(),
@@ -344,7 +344,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           bottomRightLng: result.bottomRight.lng.toString(),
         }));
         
-        // Sauvegarder automatiquement les coordonnÃ©es GPS dÃ©tectÃ©es
+        // Sauvegarder automatiquement les coordonnées GPS détectées
         const bounds: MapBounds = {
           topLeft: { lat: result.topLeft.lat, lng: result.topLeft.lng },
           bottomRight: { lat: result.bottomRight.lat, lng: result.bottomRight.lng },
@@ -355,12 +355,12 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           detected: true,
           region: result.region,
           confidence: result.confidence,
-          description: `${result.description} â€” CoordonnÃ©es enregistrÃ©es automatiquement.`,
+          description: `${result.description} — Coordonnées enregistrées automatiquement.`,
         });
       } else {
         setAnalysisResult({
           detected: false,
-          description: result.reason || 'Zone gÃ©ographique non reconnue',
+          description: result.reason || 'Zone géographique non reconnue',
         });
       }
     } catch (error: any) {
@@ -379,15 +379,13 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     // Validation de l'image avant sauvegarde
     if (configForm.imageUrl && configForm.imageUrl.trim().length > 0) {
       if (!isValidBase64Image(configForm.imageUrl)) {
-        alert('Erreur: L\'image n\'est pas valide. Veuillez rÃ©essayer de charger l\'image.');
-        console.error('[MapView] âŒ Tentative de sauvegarde d\'une image invalide');
+        alert('Erreur: L\'image n\'est pas valide. Veuillez réessayer de charger l\'image.');
+        console.error('[MapView] ❌ Tentative de sauvegarde d\'une image invalide');
         return;
       }
       
-      // VÃ©rifier la taille (avertir si > 3MB)
       const sizeMB = configForm.imageUrl.length / 1024 / 1024;
-      
-      console.log(`[MapView] ðŸ’¾ Sauvegarde image: ${sizeMB.toFixed(2)} MB (${configForm.imageUrl.length} chars)`);
+      console.log(`[MapView] 💾 Sauvegarde image: ${sizeMB.toFixed(2)} MB (${configForm.imageUrl.length} chars)`);
     }
     
     // Sauvegarder l'URL de l'image et le clustering
@@ -396,7 +394,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       enableClustering: configForm.enableClustering,
     });
     
-    // Sauvegarder les coordonnÃ©es GPS si toutes sont remplies
+    // Sauvegarder les coordonnées GPS si toutes sont remplies
     const lat1 = parseFloat(configForm.topLeftLat);
     const lng1 = parseFloat(configForm.topLeftLng);
     const lat2 = parseFloat(configForm.bottomRightLat);
@@ -413,7 +411,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     setShowConfigModal(false);
   };
   
-  // GÃ©ocoder une adresse en coordonnÃ©es GPS avec l'IA
+  // Géocoder une adresse en coordonnées GPS avec l'IA
   const geocodeAddress = async () => {
     if (!pointForm.address.trim()) return;
     
@@ -427,7 +425,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          message: `Donne-moi les coordonnÃ©es GPS (latitude et longitude en degrÃ©s dÃ©cimaux) de l'adresse suivante : "${pointForm.address}". RÃ©ponds UNIQUEMENT avec un JSON de ce format exact, sans texte avant ou aprÃ¨s : {"lat": 48.8566, "lng": 2.3522}`,
+          message: `Donne-moi les coordonnées GPS (latitude et longitude en degrés décimaux) de l'adresse suivante : "${pointForm.address}". Réponds UNIQUEMENT avec un JSON de ce format exact, sans texte avant ou après : {"lat": 48.8566, "lng": 2.3522}`,
           cockpitContext: {},
           history: [],
         }),
@@ -435,7 +433,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       
       if (response.ok) {
         const result = await response.json();
-        // Extraire les coordonnÃ©es du message
+        // Extraire les coordonnées du message
         const coordsMatch = result.message.match(/\{[^}]*"lat"\s*:\s*([-\d.]+)[^}]*"lng"\s*:\s*([-\d.]+)[^}]*\}/);
         if (coordsMatch) {
           setPointForm(prev => ({
@@ -444,7 +442,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             lng: coordsMatch[2],
           }));
         } else {
-          // Essayer de parser directement la rÃ©ponse
+          // Essayer de parser directement la réponse
           try {
             const coords = JSON.parse(result.message);
             if (coords.lat && coords.lng) {
@@ -455,12 +453,12 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               }));
             }
           } catch {
-            console.error('Impossible de parser les coordonnÃ©es');
+            console.error('Impossible de parser les coordonnées');
           }
         }
       }
     } catch (error) {
-      console.error('Erreur gÃ©ocodage:', error);
+      console.error('Erreur géocodage:', error);
     }
     
     setIsGeocodingAddress(false);
@@ -478,36 +476,36 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     }
   };
   
-  // Ouvrir l'Ã©dition d'un point
-  // Les fonctions d'Ã©dition ont Ã©tÃ© dÃ©placÃ©es vers EditorPanel
+  // Ouvrir l'édition d'un point
+  // Les fonctions d'édition ont été déplacées vers EditorPanel
   
-  // Clic sur un point pour aller vers la vue Element (ou la crÃ©er)
+  // Clic sur un point pour aller vers la vue Element (ou la créer)
   const handlePointClick = (point: MapElement) => {
     if (point.elementId) {
-      // Si le point est liÃ© Ã  un Ã©lÃ©ment, ouvrir les dÃ©tails via onElementClick (fonctionne en mode read-only aussi)
+      // Si le point est lié à un élément, ouvrir les détails via onElementClick (fonctionne en mode read-only aussi)
       if (_onElementClick) {
         _onElementClick(point.elementId);
       } else if (!_readOnly) {
-        // En mode Ã©dition, ouvrir le menu d'Ã©dition
+        // En mode édition, ouvrir le menu d'édition
         setCurrentElement(point.elementId);
       }
     } else if (!_readOnly) {
-      // En mode Ã©dition seulement, crÃ©er un Element pour ce point
+      // En mode édition seulement, créer un Element pour ce point
       createElementFromPoint(point);
     }
   };
   
-  // CrÃ©er un Element Ã  partir d'un point de carte
+  // Créer un Element à partir d'un point de carte
   const createElementFromPoint = (point: MapElement) => {
-    // Chercher ou crÃ©er une catÃ©gorie "Points de carte" dans le domaine
+    // Chercher ou créer une catégorie "Points de carte" dans le domaine
     let mapCategory = domain.categories.find(c => c.name === 'Points de carte');
     
     if (!mapCategory) {
-      // CrÃ©er la catÃ©gorie si elle n'existe pas
+      // Créer la catégorie si elle n'existe pas
       addCategory(domain.id, 'Points de carte', 'horizontal');
-      // On doit attendre que le store soit mis Ã  jour, donc on utilise un setTimeout
+      // On doit attendre que le store soit mis à jour, donc on utilise un setTimeout
       setTimeout(() => {
-        // Re-rÃ©cupÃ©rer la catÃ©gorie crÃ©Ã©e
+        // Re-récupérer la catégorie créée
         const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
         const newCategory = updatedDomain?.categories.find(c => c.name === 'Points de carte');
         if (newCategory) {
@@ -519,26 +517,26 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     }
   };
   
-  // CrÃ©er l'Ã©lÃ©ment dans une catÃ©gorie et lier le point
+  // Créer l'élément dans une catégorie et lier le point
   const createElementInCategory = (categoryId: string, point: MapElement) => {
-    // CrÃ©er l'Ã©lÃ©ment
+    // Créer l'élément
     addElement(categoryId, point.name);
     
-    // Attendre que l'Ã©lÃ©ment soit crÃ©Ã© puis le lier au point
+    // Attendre que l'élément soit créé puis le lier au point
     setTimeout(() => {
       const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
       const category = updatedDomain?.categories.find(c => c.id === categoryId);
       const newElement = category?.elements.find(e => e.name === point.name);
       
       if (newElement) {
-        // Lier le point Ã  l'Ã©lÃ©ment crÃ©Ã©
+        // Lier le point à l'élément créé
         updateMapElement(point.id, { elementId: newElement.id });
-        // Copier le statut et l'icÃ´ne du point vers l'Ã©lÃ©ment
+        // Copier le statut et l'icône du point vers l'élément
         updateElement(newElement.id, { 
           status: point.status,
           icon: point.icon 
         });
-        // Naviguer vers l'Ã©lÃ©ment
+        // Naviguer vers l'élément
         setCurrentElement(newElement.id);
       }
     }, 100);
@@ -548,36 +546,36 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const isValidBase64Image = (str: string | undefined | null): boolean => {
     if (!str || typeof str !== 'string') return false;
     const trimmed = str.trim();
-    if (trimmed.length < 100) return false; // Une vraie image fait au moins 100 caractÃ¨res
+    if (trimmed.length < 100) return false; // Une vraie image fait au moins 100 caractères
     if (!trimmed.startsWith('data:image/')) return false;
     const base64Part = trimmed.split(',')[1];
     if (!base64Part || base64Part.length < 50) return false;
-    // VÃ©rifier que c'est du base64 valide
+    // Vérifier que c'est du base64 valide
     return /^[A-Za-z0-9+/]*={0,2}$/.test(base64Part);
   };
   
   // Normaliser l'URL de l'image - s'assurer qu'elle est valide
-  // CRITIQUE : VÃ©rifier explicitement la prÃ©sence et le type de backgroundImage
+  // CRITIQUE : Vérifier explicitement la présence et le type de backgroundImage
   const mapImageUrl = (() => {
     if (!domain) return '';
     if (!domain.backgroundImage) {
-      console.log(`[MapView] âŒ Domain "${domain.name}": backgroundImage est undefined/null/absent`);
+      console.log(`[MapView] ❌ Domain "${domain.name}": backgroundImage est undefined/null/absent`);
       return '';
     }
     if (typeof domain.backgroundImage !== 'string') {
-      console.log(`[MapView] âŒ Domain "${domain.name}": backgroundImage n'est pas une string (type: ${typeof domain.backgroundImage})`);
+      console.log(`[MapView] ❌ Domain "${domain.name}": backgroundImage n'est pas une string (type: ${typeof domain.backgroundImage})`);
       return '';
     }
     const trimmed = domain.backgroundImage.trim();
     if (!isValidBase64Image(trimmed)) {
-      console.warn(`[MapView] âš ï¸ Domain "${domain.name}": backgroundImage invalide (length: ${trimmed.length}, startsWith: ${trimmed.substring(0, 20)}, valid: ${isValidBase64Image(trimmed)})`);
+      console.warn(`[MapView] ⚠️ Domain "${domain.name}": backgroundImage invalide (length: ${trimmed.length}, startsWith: ${trimmed.substring(0, 20)}, valid: ${isValidBase64Image(trimmed)})`);
       return '';
     }
-    console.log(`[MapView] âœ… Domain "${domain.name}": backgroundImage valide (${trimmed.length} chars, preview: ${trimmed.substring(0, 30)}...)`);
+    console.log(`[MapView] ✅ Domain "${domain.name}": backgroundImage valide (${trimmed.length} chars, preview: ${trimmed.substring(0, 30)}...)`);
     return trimmed;
   })();
   
-  // Diagnostic en mode read-only - VÃ©rifications approfondies
+  // Diagnostic en mode read-only - Vérifications approfondies
   useEffect(() => {
     if (_readOnly) {
       console.log(`[MapView READ-ONLY] ====================`);
@@ -590,12 +588,12 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       console.log(`[MapView READ-ONLY] mapImageUrl.trim():`, mapImageUrl?.trim() || 'EMPTY');
       
       if (!mapImageUrl || !mapImageUrl.trim()) {
-        console.error(`[MapView READ-ONLY] âŒ Domain "${domain?.name}": backgroundImage est ${mapImageUrl ? 'VIDE' : 'ABSENTE'}`);
+        console.error(`[MapView READ-ONLY] ❌ Domain "${domain?.name}": backgroundImage est ${mapImageUrl ? 'VIDE' : 'ABSENTE'}`);
         if (domain) {
           console.error(`[MapView READ-ONLY] Domain object (preview):`, JSON.stringify(domain, null, 2).substring(0, 1000));
         }
       } else {
-        console.log(`[MapView READ-ONLY] âœ… Domain "${domain?.name}": backgroundImage prÃ©sente (${mapImageUrl.length} caractÃ¨res)`);
+        console.log(`[MapView READ-ONLY] ✅ Domain "${domain?.name}": backgroundImage présente (${mapImageUrl.length} caractères)`);
         console.log(`[MapView READ-ONLY] backgroundImage starts with:`, mapImageUrl.substring(0, 30));
         console.log(`[MapView READ-ONLY] Starts with 'data:':`, mapImageUrl.startsWith('data:'));
       }
@@ -604,7 +602,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   }, [domain, mapImageUrl, _readOnly]);
   const hasMapBounds = domain.mapBounds?.topLeft && domain.mapBounds?.bottomRight;
   
-  // Ã‰tat local pour le toggle (rÃ©actif) - avec localStorage en mode readOnly
+  // État local pour le toggle (réactif) - avec localStorage en mode readOnly
   const getInitialClustering = (): boolean => {
     if (_readOnly) {
       const localValue = localStorage.getItem(`clustering-${domain.id}`);
@@ -636,16 +634,16 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     const points = domain.mapElements || [];
     if (points.length === 0) return { clusters: [], singlePoints: [] };
     
-    // VÃ©rifier si le clustering est activÃ©
+    // Vérifier si le clustering est activé
     const clusteringEnabled = localClustering;
     
-    // Si le clustering est dÃ©sactivÃ©, retourner tous les points individuellement
+    // Si le clustering est désactivé, retourner tous les points individuellement
     if (!clusteringEnabled) {
       return { clusters: [], singlePoints: points };
     }
     
-    // Distance de clustering en % (augmente quand on dÃ©zoome)
-    const clusterDistance = 15 / scale; // Plus on dÃ©zoome, plus la distance est grande
+    // Distance de clustering en % (augmente quand on dézoome)
+    const clusterDistance = 15 / scale; // Plus on dézoome, plus la distance est grande
     
     // Si zoom > 1.5, pas de clustering
     if (scale > 1.5) {
@@ -673,7 +671,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       });
       
       if (nearbyPoints.length > 0) {
-        // CrÃ©er un cluster
+        // Créer un cluster
         const clusterPoints = [point, ...nearbyPoints];
         clusterPoints.forEach(p => usedPoints.add(p.id));
         
@@ -727,20 +725,20 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         {!_readOnly && !hasMapBounds && mapImageUrl && (
           <p className="text-xs text-[#FFB74D] mt-1 flex items-center gap-1">
             <MuiIcon name="AlertTriangleIcon" size={12} />
-            Configurez les coordonnÃ©es GPS
+            Configurez les coordonnées GPS
           </p>
         )}
       </div>
       
-      {/* ContrÃ´les de zoom */}
+      {/* Contrôles de zoom */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
         <button onClick={zoomIn} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer">
           <MuiIcon name="Plus" size={20} />
         </button>
-        <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="DÃ©zoomer">
+        <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
           <MuiIcon name="Minus" size={20} />
         </button>
-        <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="RÃ©initialiser">
+        <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Réinitialiser">
           <MuiIcon name="Maximize2" size={20} />
         </button>
       </div>
@@ -750,7 +748,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
       </div>
       
-      {/* Toggle regroupement - Visible dans le studio et les cockpits publiÃ©s */}
+      {/* Toggle regroupement - Visible dans le studio et les cockpits publiés */}
       <div className="absolute top-40 right-4 z-30 bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
         <div className="flex items-center gap-1.5">
           <MuiIcon name="Layers" size={12} className="text-[#1E3A5F]" />
@@ -772,7 +770,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             }`}
             role="switch"
             aria-checked={localClustering}
-            title={localClustering ? 'DÃ©sactiver le regroupement' : 'Activer le regroupement'}
+            title={localClustering ? 'Désactiver le regroupement' : 'Activer le regroupement'}
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
@@ -819,7 +817,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           }}
         >
           {/* Image de fond */}
-          {/* CRITIQUE: VÃ©rifier que l'image est valide avant de l'afficher */}
+          {/* CRITIQUE: Vérifier que l'image est valide avant de l'afficher */}
           {mapImageUrl && mapImageUrl.trim().length > 0 && mapImageUrl.startsWith('data:image/') && isValidBase64Image(mapImageUrl) ? (
             <img 
               key={`map-image-${domain.id}-${mapImageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
@@ -839,7 +837,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 opacity: 1,
                 display: 'block',
                 visibility: 'visible',
-                pointerEvents: 'none' // Permettre les clics Ã  travers l'image
+                pointerEvents: 'none' // Permettre les clics à travers l'image
               }}
               crossOrigin="anonymous"
               onLoad={(e) => {
@@ -851,7 +849,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 const parentRect = parentContainer?.getBoundingClientRect();
                 const imgRect = img.getBoundingClientRect();
                 
-                console.log(`[MapView] âœ… Image chargÃ©e avec succÃ¨s pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
+                console.log(`[MapView] ✅ Image chargée avec succès pour "${domain.name}" - dimensions: ${img.naturalWidth}x${img.naturalHeight}`);
                 console.log(`[MapView] Image src length: ${mapImageUrl?.length || 0}`);
                 console.log(`[MapView] Image src preview: ${mapImageUrl?.substring(0, 50) || 'EMPTY'}`);
                 console.log(`[MapView] Domain backgroundImage type:`, typeof domain?.backgroundImage);
@@ -905,7 +903,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   });
                 }
                 if (_readOnly) {
-                  console.log(`[MapView READ-ONLY] âœ… Image de carte chargÃ©e avec succÃ¨s pour le domaine "${domain.name}"`);
+                  console.log(`[MapView READ-ONLY] ✅ Image de carte chargée avec succès pour le domaine "${domain.name}"`);
                   console.log(`[MapView READ-ONLY] Image rect:`, {
                     width: imgRect.width,
                     height: imgRect.height,
@@ -930,14 +928,14 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     bottom: parentRect.bottom,
                     right: parentRect.right
                   } : 'NULL');
-                  console.log(`[MapView READ-ONLY] ðŸ” DIAGNOSTIC - Image visible:`, imgRect.width > 1 && imgRect.height > 1 ? 'OUI' : 'NON');
-                  console.log(`[MapView READ-ONLY] ðŸ” DIAGNOSTIC - Container visible:`, containerRect && containerRect.width > 1 && containerRect.height > 1 ? 'OUI' : 'NON');
-                  console.log(`[MapView READ-ONLY] ðŸ” DIAGNOSTIC - Parent visible:`, parentRect && parentRect.width > 1 && parentRect.height > 1 ? 'OUI' : 'NON');
+                  console.log(`[MapView READ-ONLY] 🔍 DIAGNOSTIC - Image visible:`, imgRect.width > 1 && imgRect.height > 1 ? 'OUI' : 'NON');
+                  console.log(`[MapView READ-ONLY] 🔍 DIAGNOSTIC - Container visible:`, containerRect && containerRect.width > 1 && containerRect.height > 1 ? 'OUI' : 'NON');
+                  console.log(`[MapView READ-ONLY] 🔍 DIAGNOSTIC - Parent visible:`, parentRect && parentRect.width > 1 && parentRect.height > 1 ? 'OUI' : 'NON');
                 }
               }}
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
-                console.error(`[MapView] âŒ ERREUR chargement image carte pour le domaine "${domain.name}"`);
+                console.error(`[MapView] ❌ ERREUR chargement image carte pour le domaine "${domain.name}"`);
                 console.error(`[MapView] URL preview:`, mapImageUrl?.substring(0, 100));
                 console.error(`[MapView] Longueur totale:`, mapImageUrl?.length || 0);
                 console.error(`[MapView] Type:`, typeof mapImageUrl);
@@ -947,7 +945,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   const base64Part = mapImageUrl.split(',')[1];
                   console.error(`[MapView] Base64 part length:`, base64Part?.length || 0);
                   console.error(`[MapView] Base64 part preview:`, base64Part?.substring(0, 50) || 'NONE');
-                  // VÃ©rifier si c'est du base64 valide
+                  // Vérifier si c'est du base64 valide
                   const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
                   console.error(`[MapView] Base64 regex valid:`, base64Part ? base64Regex.test(base64Part) : false);
                 }
@@ -960,7 +958,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   src: img.src?.substring(0, 100),
                 });
                 if (_readOnly) {
-                  console.error(`[MapView READ-ONLY] âŒ Image de carte non chargÃ©e - longueur: ${mapImageUrl?.length || 0} caractÃ¨res`);
+                  console.error(`[MapView READ-ONLY] ❌ Image de carte non chargée - longueur: ${mapImageUrl?.length || 0} caractères`);
                   console.error(`[MapView READ-ONLY] Domain backgroundImage:`, domain?.backgroundImage ? `PRESENTE (${domain.backgroundImage.length} chars)` : 'ABSENTE');
                   console.error(`[MapView READ-ONLY] Image validity check:`, {
                     isValid: isValidBase64Image(domain?.backgroundImage),
@@ -977,8 +975,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             <div className="absolute inset-0 flex items-center justify-center bg-[#EEF2F7]">
               <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
                 <MuiIcon name="MapPinIcon" size={48} className="text-[#94A3B8] mx-auto mb-4" />
-                <p className="text-[#64748B] font-medium mb-2">Aucune carte configurÃ©e</p>
-                <p className="text-sm text-[#94A3B8] mb-4">Configurez l'image et les coordonnÃ©es GPS</p>
+                <p className="text-[#64748B] font-medium mb-2">Aucune carte configurée</p>
+                <p className="text-sm text-[#94A3B8] mb-4">Configurez l'image et les coordonnées GPS</p>
                 <button
                   onClick={() => setShowConfigModal(true)}
                   className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
@@ -989,34 +987,34 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             </div>
           )}
           
-          {/* Clusters de points (quand on dÃ©zoome) - cliquables pour zoomer */}
+          {/* Clusters de points (quand on dézoome) - cliquables pour zoomer */}
           {clusters.map((cluster) => {
             const colors = STATUS_COLORS[cluster.worstStatus];
             
-            // Taille relative Ã  l'image de la carte (comme BackgroundView : 3% de l'image)
-            // Calculer la taille de l'image pour avoir un Ã©quivalent
+            // Taille relative à l'image de la carte (comme BackgroundView : 3% de l'image)
+            // Calculer la taille de l'image pour avoir un équivalent
             const container = containerRef.current;
             const imageContainer = imageContainerRef.current;
-            let clusterSize = 40; // Taille par dÃ©faut
+            let clusterSize = 40; // Taille par défaut
             if (container && imageContainer) {
               const imageRect = imageContainer.getBoundingClientRect();
               // Utiliser 3% de la largeur de l'image visible (comme BackgroundView)
               clusterSize = Math.max(20, Math.min(80, imageRect.width * 0.03));
             }
-            // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publiÃ©)
+            // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
             const isCriticalCluster = cluster.worstStatus === 'mineur' || cluster.worstStatus === 'critique' || cluster.worstStatus === 'fatal';
             const clusterSizeMultiplier = isCriticalCluster ? 1.15 : 1.0;
             const originalClusterSize = clusterSize;
-            clusterSize = clusterSize * clusterSizeMultiplier; // AppliquÃ© Ã  width ET height (cercle)
+            clusterSize = clusterSize * clusterSizeMultiplier; // Appliqué à width ET height (cercle)
             
-            // Log de dÃ©bogage pour vÃ©rifier l'augmentation
+            // Log de débogage pour vérifier l'augmentation
             if (isCriticalCluster) {
-              console.log(`[MapView] ðŸ” Cluster - Statut: ${cluster.worstStatus}, Multiplicateur: ${clusterSizeMultiplier}, Taille: ${originalClusterSize.toFixed(1)} â†’ ${clusterSize.toFixed(1)}`);
+              console.log(`[MapView] 🔍 Cluster - Statut: ${cluster.worstStatus}, Multiplicateur: ${clusterSizeMultiplier}, Taille: ${originalClusterSize.toFixed(1)} → ${clusterSize.toFixed(1)}`);
             }
             
             // Handler pour zoomer sur le cluster
             const handleClusterClick = () => {
-              // Zoom +100% (ajouter 1 Ã  l'Ã©chelle actuelle)
+              // Zoom +100% (ajouter 1 à l'échelle actuelle)
               const newScale = Math.min(MAX_ZOOM, scale + 1);
               
               // Centrer la vue sur le cluster
@@ -1025,7 +1023,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 const containerRectForClick = containerForClick.getBoundingClientRect();
                 
                 // Calculer la position pour centrer le cluster
-                // Le cluster est Ã  (center.x%, center.y%) - on calcule le dÃ©calage depuis le centre (50%)
+                // Le cluster est à (center.x%, center.y%) - on calcule le décalage depuis le centre (50%)
                 const offsetX = (0.5 - cluster.center.x / 100) * containerRectForClick.width * newScale;
                 const offsetY = (0.5 - cluster.center.y / 100) * containerRectForClick.height * newScale;
                 
@@ -1069,7 +1067,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   <span className="text-white font-bold text-sm">{cluster.count}</span>
                 </div>
                 
-                {/* Tooltip rendu via Portal pour Ãªtre toujours au premier plan */}
+                {/* Tooltip rendu via Portal pour être toujours au premier plan */}
               </div>
             );
           })}
@@ -1105,27 +1103,27 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             const iconName = point.icon || 'MapPin';
             const hasLinkedElement = !!point.elementId;
             
-            // Taille relative Ã  l'image de la carte (comme BackgroundView qui utilise les dimensions dÃ©finies)
-            // Calculer la taille relative Ã  l'image visible
+            // Taille relative à l'image de la carte (comme BackgroundView qui utilise les dimensions définies)
+            // Calculer la taille relative à l'image visible
             const containerForPoint = containerRef.current;
             const imageContainerForPoint = imageContainerRef.current;
-            let dynamicSize = 20; // Taille par dÃ©faut
-            let iconSize = 16; // Taille d'icÃ´ne par dÃ©faut
+            let dynamicSize = 20; // Taille par défaut
+            let iconSize = 16; // Taille d'icône par défaut
             if (containerForPoint && imageContainerForPoint) {
               const imageRectForPoint = imageContainerForPoint.getBoundingClientRect();
-              // Utiliser environ 2% de la largeur de l'image visible (taille raisonnable pour un point, Ã©quivalent Ã  BackgroundView)
+              // Utiliser environ 2% de la largeur de l'image visible (taille raisonnable pour un point, équivalent à BackgroundView)
               const baseSize = Math.max(16, Math.min(48, imageRectForPoint.width * 0.02));
-              // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publiÃ©)
+              // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
               const isCritical = point.status === 'mineur' || point.status === 'critique' || point.status === 'fatal';
               const sizeMultiplier = isCritical ? 1.15 : 1.0;
               const originalSize = baseSize;
-              dynamicSize = baseSize * sizeMultiplier; // AppliquÃ© Ã  width ET height (cercle)
+              dynamicSize = baseSize * sizeMultiplier; // Appliqué à width ET height (cercle)
               
-              // Log de dÃ©bogage pour vÃ©rifier l'augmentation
+              // Log de débogage pour vérifier l'augmentation
               if (isCritical) {
-                console.log(`[MapView] ðŸ” Point "${point.name}" - Statut: ${point.status}, Multiplicateur: ${sizeMultiplier}, Taille: ${originalSize.toFixed(1)} â†’ ${dynamicSize.toFixed(1)}`);
+                console.log(`[MapView] 🔍 Point "${point.name}" - Statut: ${point.status}, Multiplicateur: ${sizeMultiplier}, Taille: ${originalSize.toFixed(1)} → ${dynamicSize.toFixed(1)}`);
               }
-              // Taille d'icÃ´ne proportionnelle Ã  la taille du point (comme BackgroundView qui utilise 8x la taille)
+              // Taille d'icône proportionnelle à la taille du point (comme BackgroundView qui utilise 8x la taille)
               iconSize = Math.max(12, Math.round(dynamicSize * 0.5));
             }
             
@@ -1139,7 +1137,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 style={{ 
                   left: `${pos.x}%`, 
                   top: `${pos.y}%`,
-                  // Zone de drag plus large que l'icÃ´ne pour faciliter la saisie
+                  // Zone de drag plus large que l'icône pour faciliter la saisie
                   padding: `${Math.max(8, dynamicSize * 0.3)}px`,
                   minWidth: `${dynamicSize * 1.6}px`,
                   minHeight: `${dynamicSize * 1.6}px`,
@@ -1167,7 +1165,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     }
                     e.stopPropagation();
                     e.preventDefault();
-                    // ArrÃªter le drag de la vue si elle est en cours
+                    // Arrêter le drag de la vue si elle est en cours
                     setIsDragging(false);
                     setDraggingPointId(point.id);
                     pointDragStartPosRef.current = { pointId: point.id, x: e.clientX, y: e.clientY };
@@ -1187,7 +1185,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   handlePointClick(point);
                 }}
               >
-                {/* IcÃ´ne colorÃ©e - draggable en mode studio */}
+                {/* Icône colorée - draggable en mode studio */}
                 <div 
                   className="rounded-full shadow-lg flex items-center justify-center transition-all hover:brightness-110 pointer-events-none"
                   style={{ 
@@ -1221,7 +1219,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                           marginTop: `${2 / scale}px`
                         }}
                       >
-                        ðŸ“ {point.gps.lat.toFixed(4)}, {point.gps.lng.toFixed(4)}
+                        📍 {point.gps.lat.toFixed(4)}, {point.gps.lng.toFixed(4)}
                       </div>
                       <div 
                         className="text-[#94A3B8]"
@@ -1230,7 +1228,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                           marginTop: `${2 / scale}px`
                         }}
                       >
-                        {hasLinkedElement ? 'Cliquez pour voir l\'Ã©lÃ©ment' : 'Cliquez pour crÃ©er l\'Ã©lÃ©ment'}
+                        {hasLinkedElement ? 'Cliquez pour voir l\'élément' : 'Cliquez pour créer l\'élément'}
                       </div>
                     </div>
                     <div 
@@ -1244,10 +1242,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   </div>
                 )}
                 
-                {/* Boutons d'action au survol - collÃ©s au coin supÃ©rieur droit du point */}
+                {/* Boutons d'action au survol - collés au coin supérieur droit du point */}
                 {hoveredPoint === point.id && !_readOnly && (
                   <div className="absolute top-0 right-0 flex items-center gap-0.5 z-30 transform translate-x-1/2 -translate-y-1/2 pointer-events-auto">
-                    {/* Bouton crayon supprimÃ© - l'Ã©dition se fait maintenant via le menu de droite */}
+                    {/* Bouton crayon supprimé - l'édition se fait maintenant via le menu de droite */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1278,24 +1276,24 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       {/* Barre d'instructions */}
       <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-[#E2E8F0]">
         <p className="text-xs text-[#64748B] flex items-center gap-4">
-          <span>ðŸ–±ï¸ Glisser = dÃ©placer</span>
-          <span>ðŸ”„ Molette = zoom</span>
-          <span>ðŸ‘† Double-clic = zoom</span>
+          <span>🖱️ Glisser = déplacer</span>
+          <span>🔄 Molette = zoom</span>
+          <span>👆 Double-clic = zoom</span>
         </p>
       </div>
       
-      {/* LÃ©gende */}
+      {/* Légende */}
       <div className="absolute bottom-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <div className="flex items-center gap-6">
           <LegendItem color="#8B5CF6" label="Fatal" />
           <LegendItem color="#E57373" label="Critique" />
           <LegendItem color="#FFB74D" label="Mineur" />
           <LegendItem color="#9CCC65" label="OK" />
-          <LegendItem color="#9E9E9E" label="DÃ©connectÃ©" />
+          <LegendItem color="#9E9E9E" label="Déconnecté" />
         </div>
       </div>
       
-      {/* Boutons d'action (masquÃ©s en mode lecture seule) */}
+      {/* Boutons d'action (masqués en mode lecture seule) */}
       {!_readOnly && (
         <div className="absolute bottom-4 right-4 z-20 flex gap-2">
           <button
@@ -1309,7 +1307,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             onClick={() => setShowAddPointModal(true)}
             disabled={!hasMapBounds}
             className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] text-white rounded-xl hover:bg-[#2C4A6E] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            title={!hasMapBounds ? 'Configurez d\'abord les coordonnÃ©es GPS de la carte' : 'Ajouter un point'}
+            title={!hasMapBounds ? 'Configurez d\'abord les coordonnées GPS de la carte' : 'Ajouter un point'}
           >
             <MuiIcon name="Plus" size={20} />
             Ajouter un point
@@ -1351,7 +1349,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 >
                   <MuiIcon name="Upload" size={24} className="mb-2" />
                   <span className="text-sm font-medium">Cliquez pour uploader une image</span>
-                  <span className="text-xs mt-1">ou glissez-dÃ©posez ici</span>
+                  <span className="text-xs mt-1">ou glissez-déposez ici</span>
                 </label>
               </div>
               
@@ -1371,7 +1369,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   onClick={analyzeMapImage}
                   disabled={!configForm.imageUrl || isAnalyzing}
                   className="px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
-                  title="Analyser l'image avec l'IA pour dÃ©tecter les coordonnÃ©es GPS"
+                  title="Analyser l'image avec l'IA pour détecter les coordonnées GPS"
                 >
                   {isAnalyzing ? (
                     <>
@@ -1381,19 +1379,19 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   ) : (
                     <>
                       <MuiIcon name="Sparkles" size={16} />
-                      <span>DÃ©tecter GPS</span>
+                      <span>Détecter GPS</span>
                     </>
                   )}
                 </button>
               </div>
               
-              {/* AperÃ§u de l'image */}
+              {/* Aperçu de l'image */}
               {configForm.imageUrl && (
                 <div className="mt-3 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                  <p className="text-xs text-[#64748B] mb-2">AperÃ§u :</p>
+                  <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
                   <img 
                     src={configForm.imageUrl} 
-                    alt="AperÃ§u de la carte" 
+                    alt="Aperçu de la carte" 
                     className="max-h-32 rounded border border-[#E2E8F0] mx-auto"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
@@ -1402,7 +1400,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 </div>
               )}
               
-              {/* RÃ©sultat de l'analyse */}
+              {/* Résultat de l'analyse */}
               {analysisResult && (
                 <div className={`mt-3 p-3 rounded-lg text-sm ${
                   analysisResult.detected 
@@ -1413,7 +1411,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     <div className="flex items-start gap-2">
                       <MuiIcon name="CheckCircle" size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-medium">Zone dÃ©tectÃ©e : {analysisResult.region}</p>
+                        <p className="font-medium">Zone détectée : {analysisResult.region}</p>
                         <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
                         <p className="text-xs mt-1 opacity-60">Confiance : {analysisResult.confidence}</p>
                       </div>
@@ -1422,7 +1420,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     <div className="flex items-start gap-2">
                       <MuiIcon name="AlertTriangleIcon" size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-medium">DÃ©tection impossible</p>
+                        <p className="font-medium">Détection impossible</p>
                         <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
                       </div>
                     </div>
@@ -1431,28 +1429,28 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               )}
             </div>
             
-            {/* CoordonnÃ©es GPS */}
+            {/* Coordonnées GPS */}
             <div className="p-4 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
               <h4 className="font-medium text-[#1E3A5F] mb-3 flex items-center gap-2">
                 <MuiIcon name="MapPinIcon" size={16} />
-                CoordonnÃ©es GPS des coins de l'image
+                Coordonnées GPS des coins de l'image
               </h4>
               <p className="text-xs text-[#64748B] mb-4">
-                Ces coordonnÃ©es correspondent aux pixels des coins de l'image (pas Ã  la zone gÃ©ographique).
+                Ces coordonnées correspondent aux pixels des coins de l'image (pas à la zone géographique).
               </p>
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-                <p className="font-medium mb-1">ðŸ’¡ Astuce pour ajuster :</p>
+                <p className="font-medium mb-1">💡 Astuce pour ajuster :</p>
                 <ul className="list-disc list-inside space-y-1 text-blue-700">
-                  <li><strong>Point trop haut</strong> â†’ Augmentez la latitude du coin Nord-Ouest</li>
-                  <li><strong>Point trop bas</strong> â†’ Diminuez la latitude du coin Sud-Est</li>
-                  <li><strong>Point trop Ã  gauche</strong> â†’ Diminuez la longitude du coin Nord-Ouest</li>
-                  <li><strong>Point trop Ã  droite</strong> â†’ Augmentez la longitude du coin Sud-Est</li>
+                  <li><strong>Point trop haut</strong> → Augmentez la latitude du coin Nord-Ouest</li>
+                  <li><strong>Point trop bas</strong> → Diminuez la latitude du coin Sud-Est</li>
+                  <li><strong>Point trop à gauche</strong> → Diminuez la longitude du coin Nord-Ouest</li>
+                  <li><strong>Point trop à droite</strong> → Augmentez la longitude du coin Sud-Est</li>
                 </ul>
               </div>
               
               {/* Coin haut-gauche */}
               <div className="mb-4">
-                <label className="block text-sm text-[#64748B] mb-2">ðŸ“ Coin haut-gauche (Nord-Ouest)</label>
+                <label className="block text-sm text-[#64748B] mb-2">📍 Coin haut-gauche (Nord-Ouest)</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-[#94A3B8] mb-1">Latitude</label>
@@ -1481,7 +1479,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               
               {/* Coin bas-droite */}
               <div>
-                <label className="block text-sm text-[#64748B] mb-2">ðŸ“ Coin bas-droite (Sud-Est)</label>
+                <label className="block text-sm text-[#64748B] mb-2">📍 Coin bas-droite (Sud-Est)</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-[#94A3B8] mb-1">Latitude</label>
@@ -1521,7 +1519,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 <div>
                   <label className="block text-sm font-medium text-[#1E3A5F]">Regroupement des points</label>
                   <p className="text-xs text-[#64748B] mt-1">
-                    Regrouper les points proches en clusters pour amÃ©liorer la lisibilitÃ©
+                    Regrouper les points proches en clusters pour améliorer la lisibilité
                   </p>
                 </div>
                 <button
@@ -1560,13 +1558,13 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         </Modal>
       )}
       
-      {/* Modal Ajouter un Ã©lÃ©ment/point */}
+      {/* Modal Ajouter un élément/point */}
       {showAddPointModal && (
-        <Modal title="Ajouter un Ã©lÃ©ment sur la carte" onClose={() => setShowAddPointModal(false)}>
+        <Modal title="Ajouter un élément sur la carte" onClose={() => setShowAddPointModal(false)}>
           <div className="space-y-4">
             {/* Nom */}
             <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Nom de l'Ã©lÃ©ment *</label>
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Nom de l'élément *</label>
               <input
                 type="text"
                 value={pointForm.name}
@@ -1583,7 +1581,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               <textarea
                 value={pointForm.description}
                 onChange={(e) => setPointForm({ ...pointForm, description: e.target.value })}
-                placeholder="Description de l'Ã©lÃ©ment..."
+                placeholder="Description de l'élément..."
                 rows={2}
                 className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] resize-none"
               />
@@ -1613,7 +1611,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   }`}
                 >
                   <MuiIcon name="Navigation" size={16} />
-                  CoordonnÃ©es GPS
+                  Coordonnées GPS
                 </button>
               </div>
               
@@ -1632,7 +1630,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                       onClick={geocodeAddress}
                       disabled={!pointForm.address.trim() || isGeocodingAddress}
                       className="px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      title="Convertir l'adresse en coordonnÃ©es GPS"
+                      title="Convertir l'adresse en coordonnées GPS"
                     >
                       {isGeocodingAddress ? (
                         <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
@@ -1642,19 +1640,19 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     </button>
                   </div>
                   
-                  {/* CoordonnÃ©es dÃ©tectÃ©es */}
+                  {/* Coordonnées détectées */}
                   {(pointForm.lat || pointForm.lng) && (
                     <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
                       <div className="flex items-center gap-2 text-green-800">
                         <MuiIcon name="CheckCircle" size={16} className="text-green-600" />
-                        <span>CoordonnÃ©es dÃ©tectÃ©es : {pointForm.lat}, {pointForm.lng}</span>
+                        <span>Coordonnées détectées : {pointForm.lat}, {pointForm.lng}</span>
                       </div>
                     </div>
                   )}
                 </div>
               )}
               
-              {/* Saisie par coordonnÃ©es GPS */}
+              {/* Saisie par coordonnées GPS */}
               {pointForm.locationType === 'gps' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1704,9 +1702,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               </div>
             </div>
             
-            {/* IcÃ´ne */}
+            {/* Icône */}
             <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">IcÃ´ne</label>
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Icône</label>
               <div className="relative">
                 <button
                   onClick={() => setShowIconPicker(!showIconPicker)}
@@ -1766,16 +1764,16 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 className="px-6 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <MuiIcon name="Plus" size={16} />
-                Ajouter l'Ã©lÃ©ment
+                Ajouter l'élément
               </button>
             </div>
           </div>
         </Modal>
       )}
       
-      {/* Modal d'Ã©dition supprimÃ© - l'Ã©dition se fait maintenant via EditorPanel */}
+      {/* Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel */}
       
-      {/* Tooltip au survol - rendu via Portal pour Ãªtre toujours au premier plan */}
+      {/* Tooltip au survol - rendu via Portal pour être toujours au premier plan */}
       {tooltipPosition && createPortal(
         <div 
           className="fixed pointer-events-none z-[99999]"
@@ -1789,7 +1787,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-2 py-1 whitespace-nowrap">
             <p className="font-medium text-xs">
               {tooltipPosition.isCluster 
-                ? `${clusters.find(c => c.id === tooltipPosition.pointId)?.count || 0} Ã©lÃ©ments groupÃ©s`
+                ? `${clusters.find(c => c.id === tooltipPosition.pointId)?.count || 0} éléments groupés`
                 : (domain.mapElements?.find(p => p.id === tooltipPosition.pointId)?.name || 'Point')}
             </p>
           </div>
