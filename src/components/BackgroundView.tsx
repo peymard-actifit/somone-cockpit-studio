@@ -33,15 +33,10 @@ interface BackgroundViewProps {
 }
 
 export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
-  // V√©rification de s√©curit√© : si domain est invalide, ne rien rendre
-  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
-    console.error('[BackgroundView] Domain invalide:', domain);
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-red-500">Erreur : Domaine invalide ou donn√©es manquantes</p>
-      </div>
-    );
-  }
+export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
+  // TOUS LES HOOKS DOIVENT  TRE APPEL…S AVANT TOUT RETURN CONDITIONNEL
+  // C'est une rËgle fondamentale de React Hooks (erreur React #300)
+
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
