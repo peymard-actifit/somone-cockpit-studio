@@ -167,7 +167,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   useEffect(() => {
     let newImageUrl = '';
     
-    if (domain?.backgroundImage && typeof domain.backgroundImage === 'string') {
+    if (domain?.backgroundImage && typeof domain?.backgroundImage === 'string') {
       const trimmed = domain?.backgroundImage?.trim();
       if (isValidBase64Image(trimmed)) {
         newImageUrl = trimmed;
@@ -1427,7 +1427,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             <div className="flex justify-end gap-3 pt-4 border-t border-[#E2E8F0]">
               <button
                 onClick={() => {
-                  setImageUrl(domain.backgroundImage || '');
+                  setImageUrl(domain?.backgroundImage || '');
                   setEnableClustering(domain?.enableClustering !== false);
                   setShowConfigModal(false);
                 }}
