@@ -1067,8 +1067,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             if (isCriticalCluster) {
               console.log(`[BackgroundView] 🔍 Cluster - Statut: ${cluster.worstStatus}, Multiplicateur: ${clusterSizeMultiplier}, Taille: ${originalClusterSize.toFixed(1)} → ${clusterSize.toFixed(1)}`);
             }
-            
-            return (
+
+  return (
               <div
                 key={cluster.id}
                 className="absolute z-10 group transform -translate-x-1/2 -translate-y-1/2"
