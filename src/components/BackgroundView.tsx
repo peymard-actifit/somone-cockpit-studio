@@ -1,4 +1,4 @@
-import type { Domain, Element, TileStatus } from '../types';
+﻿import type { Domain, Element, TileStatus } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS, STATUS_PRIORITY_MAP, getEffectiveColors, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
@@ -33,15 +33,8 @@ interface BackgroundViewProps {
 }
 
 export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
-  // Vérification de sécurité : si domain est invalide, ne rien rendre
-  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
-    console.error('[BackgroundView] Domain invalide:', domain);
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
-      </div>
-    );
-  }
+  // TOUS LES HOOKS DOIVENT ÊTRE APPELÉS AVANT TOUT RETURN CONDITIONNEL
+  // C'est une règle fondamentale de React Hooks (erreur React #300)
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -739,6 +732,18 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     }
   }, [domain, imageUrl, _readOnly]);
   
+  }, [domain, imageUrl, _readOnly]);
+
+  // Vérification de sécurité APRÈS tous les hooks
+  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
+    console.error('[BackgroundView] Domain invalide:', domain);
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
       {/* Header - Style PDF SOMONE mode clair */}
