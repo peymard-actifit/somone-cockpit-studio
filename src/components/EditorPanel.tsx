@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import type { Domain, Element, SubElement, TileStatus, TemplateType, Alert } from '../types';
+import type { Domain, Element, SubElement, TileStatus, TemplateType, Alert, Category, SubCategory } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import IconPicker, { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
 import ElementTile from './ElementTile';
 import SourcesAndCalculationsPanel from './subelements/SourcesAndCalculationsPanel';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface EditorPanelProps {
   domain: Domain | undefined;
@@ -14,12 +17,168 @@ interface EditorPanelProps {
   selectedSubElementId?: string | null; // ID du sous-élément à sélectionner depuis l'extérieur
 }
 
+// Composant pour une catégorie sortable
+function SortableCategoryItem({ 
+  category, 
+  onUpdateName, 
+  onUpdateIcon, 
+  onShowIconPicker, 
+  showIconPicker,
+  IconPickerComponent 
+}: {
+  category: Category;
+  onUpdateName: (name: string) => void;
+  onUpdateIcon: (icon: string) => void;
+  onShowIconPicker: (categoryId: string) => void;
+  showIconPicker: string | null;
+  IconPickerComponent: React.ComponentType<any>;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#E2E8F0] rounded transition-colors"
+          title="Glisser pour réorganiser"
+        >
+          <MuiIcon name="GripVertical" size={16} className="text-[#94A3B8]" />
+        </div>
+        <input
+          type="text"
+          value={category.name}
+          onChange={(e) => onUpdateName(e.target.value)}
+          className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+          placeholder="Nom de la catégorie"
+        />
+        <button
+          onClick={() => onShowIconPicker(category.id)}
+          className="p-2 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors"
+          title="Choisir une icône"
+        >
+          {category.icon ? (
+            <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
+          ) : (
+            <MuiIcon name="ImageIcon" size={18} className="text-[#94A3B8]" />
+          )}
+        </button>
+      </div>
+      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+        <span>{category.elements.length} élément{category.elements.length > 1 ? 's' : ''}</span>
+        <span className="capitalize">{category.orientation}</span>
+      </div>
+      {showIconPicker === category.id && (
+        <div className="mt-2">
+          <IconPickerComponent
+            value={category.icon}
+            onChange={(iconName: string) => {
+              onUpdateIcon(iconName);
+            }}
+            onClose={() => onShowIconPicker(null as any)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Composant pour une sous-catégorie sortable
+function SortableSubCategoryItem({ 
+  subCategory, 
+  onUpdateName, 
+  onUpdateIcon, 
+  onShowIconPicker, 
+  showIconPicker,
+  IconPickerComponent 
+}: {
+  subCategory: SubCategory;
+  onUpdateName: (name: string) => void;
+  onUpdateIcon: (icon: string) => void;
+  onShowIconPicker: (subCategoryId: string) => void;
+  showIconPicker: string | null;
+  IconPickerComponent: React.ComponentType<any>;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subCategory.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#E2E8F0] rounded transition-colors"
+          title="Glisser pour réorganiser"
+        >
+          <MuiIcon name="GripVertical" size={16} className="text-[#94A3B8]" />
+        </div>
+        <input
+          type="text"
+          value={subCategory.name}
+          onChange={(e) => onUpdateName(e.target.value)}
+          className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+          placeholder="Nom de la sous-catégorie"
+        />
+        <button
+          onClick={() => onShowIconPicker(`subcat-${subCategory.id}`)}
+          className="p-2 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors"
+          title="Choisir une icône"
+        >
+          {subCategory.icon ? (
+            <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
+          ) : (
+            <MuiIcon name="ImageIcon" size={18} className="text-[#94A3B8]" />
+          )}
+        </button>
+      </div>
+      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+        <span>{subCategory.subElements.length} sous-élément{subCategory.subElements.length > 1 ? 's' : ''}</span>
+        <span className="capitalize">{subCategory.orientation}</span>
+      </div>
+      {showIconPicker === `subcat-${subCategory.id}` && (
+        <div className="mt-2">
+          <IconPickerComponent
+            value={subCategory.icon}
+            onChange={(iconName: string) => {
+              onUpdateIcon(iconName);
+            }}
+            onClose={() => onShowIconPicker(null as any)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function EditorPanel({ domain, element, selectedSubElementId }: EditorPanelProps) {
   const { 
     updateDomain,
     deleteDomain,
     updateCategory,
     updateSubCategory,
+    reorderCategory,
+    reorderSubCategory,
     updateElement,
     deleteElement,
     updateSubElement,
@@ -47,6 +206,46 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
   // Trouver tous les sous-éléments de l'élément courant
   const allSubElements: SubElement[] = element?.subCategories?.flatMap(sc => sc.subElements) || [];
+
+  // Capteurs pour le drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handler pour le drag & drop des catégories
+  const handleCategoryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id && domain) {
+      const sortedCategories = [...domain.categories].sort((a, b) => a.order - b.order);
+      const oldIndex = sortedCategories.findIndex(c => c.id === active.id);
+      const newIndex = sortedCategories.findIndex(c => c.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(sortedCategories, oldIndex, newIndex);
+        reorderCategory(domain.id, newOrder.map(c => c.id));
+      }
+    }
+  };
+
+  // Handler pour le drag & drop des sous-catégories
+  const handleSubCategoryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id && element) {
+      const sortedSubCategories = [...element.subCategories].sort((a, b) => a.order - b.order);
+      const oldIndex = sortedSubCategories.findIndex(sc => sc.id === active.id);
+      const newIndex = sortedSubCategories.findIndex(sc => sc.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(sortedSubCategories, oldIndex, newIndex);
+        reorderSubCategory(element.id, newOrder.map(sc => sc.id));
+      }
+    }
+  };
   
   // Ouvrir automatiquement la section "Statut (couleur)" quand on sélectionne un sous-élément
   useEffect(() => {
@@ -528,48 +727,33 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             isOpen={activeSection === 'subcategories'}
             onToggle={() => toggleSection('subcategories')}
           >
-            <div className="space-y-3">
-              {element.subCategories.map((subCategory) => (
-                <div key={subCategory.id} className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={subCategory.name}
-                      onChange={(e) => updateSubCategory(subCategory.id, { name: e.target.value })}
-                      className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                      placeholder="Nom de la sous-catégorie"
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleSubCategoryDragEnd}
+            >
+              <SortableContext
+                items={[...element.subCategories].sort((a, b) => a.order - b.order).map(sc => sc.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {[...element.subCategories].sort((a, b) => a.order - b.order).map((subCategory) => (
+                    <SortableSubCategoryItem
+                      key={subCategory.id}
+                      subCategory={subCategory}
+                      onUpdateName={(name) => updateSubCategory(subCategory.id, { name })}
+                      onUpdateIcon={(icon) => {
+                        updateSubCategory(subCategory.id, { icon });
+                        setShowIconPicker(null);
+                      }}
+                      onShowIconPicker={(subCategoryId) => setShowIconPicker(subCategoryId)}
+                      showIconPicker={showIconPicker}
+                      IconPickerComponent={IconPicker}
                     />
-                    <button
-                      onClick={() => setShowIconPicker(`subcat-${subCategory.id}`)}
-                      className="p-2 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors"
-                      title="Choisir une icône"
-                    >
-                      {subCategory.icon ? (
-                        <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
-                      ) : (
-                        <MuiIcon name="ImageIcon" size={18} className="text-[#94A3B8]" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-[#94A3B8]">
-                    <span>{subCategory.subElements.length} sous-élément{subCategory.subElements.length > 1 ? 's' : ''}</span>
-                    <span className="capitalize">{subCategory.orientation}</span>
-                  </div>
-                  {showIconPicker === `subcat-${subCategory.id}` && (
-                    <div className="mt-2">
-                      <IconPicker
-                        value={subCategory.icon}
-                        onChange={(iconName) => {
-                          updateSubCategory(subCategory.id, { icon: iconName });
-                          setShowIconPicker(null);
-                        }}
-                        onClose={() => setShowIconPicker(null)}
-                      />
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </Section>
         )}
         
@@ -1105,48 +1289,33 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             isOpen={activeSection === 'categories'}
             onToggle={() => toggleSection('categories')}
           >
-            <div className="space-y-3">
-              {domain.categories.map((category) => (
-                <div key={category.id} className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={category.name}
-                      onChange={(e) => updateCategory(category.id, { name: e.target.value })}
-                      className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                      placeholder="Nom de la catégorie"
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleCategoryDragEnd}
+            >
+              <SortableContext
+                items={[...domain.categories].sort((a, b) => a.order - b.order).map(c => c.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {[...domain.categories].sort((a, b) => a.order - b.order).map((category) => (
+                    <SortableCategoryItem
+                      key={category.id}
+                      category={category}
+                      onUpdateName={(name) => updateCategory(category.id, { name })}
+                      onUpdateIcon={(icon) => {
+                        updateCategory(category.id, { icon });
+                        setShowIconPicker(null);
+                      }}
+                      onShowIconPicker={(categoryId) => setShowIconPicker(categoryId)}
+                      showIconPicker={showIconPicker}
+                      IconPickerComponent={IconPicker}
                     />
-                    <button
-                      onClick={() => setShowIconPicker(category.id as any)}
-                      className="p-2 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors"
-                      title="Choisir une icône"
-                    >
-                      {category.icon ? (
-                        <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
-                      ) : (
-                        <MuiIcon name="ImageIcon" size={18} className="text-[#94A3B8]" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-[#94A3B8]">
-                    <span>{category.elements.length} élément{category.elements.length > 1 ? 's' : ''}</span>
-                    <span className="capitalize">{category.orientation}</span>
-                  </div>
-                  {showIconPicker === category.id && (
-                    <div className="mt-2">
-                      <IconPicker
-                        value={category.icon}
-                        onChange={(iconName) => {
-                          updateCategory(category.id, { icon: iconName });
-                          setShowIconPicker(null);
-                        }}
-                        onClose={() => setShowIconPicker(null)}
-                      />
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </Section>
         )}
         

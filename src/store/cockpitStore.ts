@@ -37,6 +37,7 @@ interface CockpitState {
   addCategory: (domainId: string, name: string, orientation: 'horizontal' | 'vertical') => void;
   updateCategory: (categoryId: string, updates: Partial<Category>) => void;
   deleteCategory: (categoryId: string) => void;
+  reorderCategory: (domainId: string, categoryIds: string[]) => void;
   
   addElement: (categoryId: string, name: string) => void;
   updateElement: (elementId: string, updates: Partial<Element>) => void;
@@ -47,6 +48,7 @@ interface CockpitState {
   addSubCategory: (elementId: string, name: string, orientation: 'horizontal' | 'vertical') => void;
   updateSubCategory: (subCategoryId: string, updates: Partial<SubCategory>) => void;
   deleteSubCategory: (subCategoryId: string) => void;
+  reorderSubCategory: (elementId: string, subCategoryIds: string[]) => void;
   
   addSubElement: (subCategoryId: string, name: string) => void;
   updateSubElement: (subElementId: string, updates: Partial<SubElement>) => void;
@@ -485,6 +487,47 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     get().triggerAutoSave();
   },
 
+  reorderCategory: (domainId: string, categoryIds: string[]) => {
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      const domain = state.currentCockpit.domains.find(d => d.id === domainId);
+      if (!domain) return state;
+      
+      // Créer un map pour un accès rapide aux catégories par ID
+      const categoryMap = new Map(domain.categories.map(c => [c.id, c]));
+      
+      // Reconstruire le tableau des catégories dans le nouvel ordre
+      const reorderedCategories = categoryIds
+        .map((categoryId, index) => {
+          const category = categoryMap.get(categoryId);
+          if (!category) return null;
+          return { ...category, order: index };
+        })
+        .filter((c): c is Category => c !== null);
+      
+      // Ajouter les catégories qui n'étaient pas dans la liste (au cas où)
+      const missingCategories = domain.categories.filter(c => !categoryIds.includes(c.id));
+      reorderedCategories.push(...missingCategories.map((c, index) => ({ ...c, order: reorderedCategories.length + index })));
+      
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d =>
+            d.id === domainId
+              ? {
+                  ...d,
+                  categories: reorderedCategories.sort((a, b) => a.order - b.order),
+                }
+              : d
+          ),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+    get().triggerAutoSave();
+  },
+
   addElement: (categoryId: string, name: string) => {
     const newElement: Element = {
       id: generateId(),
@@ -638,6 +681,72 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
               })),
             })),
           })),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+    get().triggerAutoSave();
+  },
+
+  reorderSubCategory: (elementId: string, subCategoryIds: string[]) => {
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      
+      // Trouver l'élément qui contient les sous-catégories
+      let targetElement: Element | null = null;
+      let targetDomain: Domain | null = null;
+      
+      for (const domain of state.currentCockpit.domains) {
+        for (const category of domain.categories) {
+          const element = category.elements.find(e => e.id === elementId);
+          if (element) {
+            targetElement = element;
+            targetDomain = domain;
+            break;
+          }
+        }
+        if (targetElement) break;
+      }
+      
+      if (!targetElement || !targetDomain) return state;
+      
+      // Créer un map pour un accès rapide aux sous-catégories par ID
+      const subCategoryMap = new Map(targetElement.subCategories.map(sc => [sc.id, sc]));
+      
+      // Reconstruire le tableau des sous-catégories dans le nouvel ordre
+      const reorderedSubCategories = subCategoryIds
+        .map((subCategoryId, index) => {
+          const subCategory = subCategoryMap.get(subCategoryId);
+          if (!subCategory) return null;
+          return { ...subCategory, order: index };
+        })
+        .filter((sc): sc is SubCategory => sc !== null);
+      
+      // Ajouter les sous-catégories qui n'étaient pas dans la liste (au cas où)
+      const missingSubCategories = targetElement.subCategories.filter(sc => !subCategoryIds.includes(sc.id));
+      reorderedSubCategories.push(...missingSubCategories.map((sc, index) => ({ ...sc, order: reorderedSubCategories.length + index })));
+      
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d =>
+            d.id === targetDomain!.id
+              ? {
+                  ...d,
+                  categories: d.categories.map(c => ({
+                    ...c,
+                    elements: c.elements.map(e =>
+                      e.id === elementId
+                        ? {
+                            ...e,
+                            subCategories: reorderedSubCategories.sort((a, b) => a.order - b.order),
+                          }
+                        : e
+                    ),
+                  })),
+                }
+              : d
+          ),
           updatedAt: new Date().toISOString(),
         },
       };
