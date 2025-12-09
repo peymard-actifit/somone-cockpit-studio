@@ -250,7 +250,7 @@ export default function HomePage() {
             <MuiIcon name="Dashboard" size={32} className="text-blue-400" />
             <div>
               <h1 className="text-xl font-bold text-white">SOMONE Cockpit Studio</h1>
-              <p className="text-xs text-slate-500">Studio de création de maquettes</p>
+              <p className="text-xs text-slate-500">Studio de création de maquettes · v8.6.0</p>
             </div>
           </div>
           
