@@ -119,7 +119,7 @@ export default function StudioPage() {
           <div>
             <h1 className="text-lg font-semibold text-white">{currentCockpit.name}</h1>
             <p className="text-xs text-white/60">
-              Par {user?.username} · Modifié il y a quelques secondes
+              Par {user?.username} · Modifié il y a quelques secondes · v8.6.0
             </p>
           </div>
           
