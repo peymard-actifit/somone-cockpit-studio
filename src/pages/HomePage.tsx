@@ -1020,6 +1020,15 @@ export default function HomePage() {
           </div>
         </div>
       )}
+      
+      {/* Footer */}
+      <footer className="bg-cockpit-nav-bg/50 border-t border-slate-700/50 py-4 mt-12">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p className="text-xs text-slate-500">
+            SOMONE Cockpit Studio v8.6.0
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
