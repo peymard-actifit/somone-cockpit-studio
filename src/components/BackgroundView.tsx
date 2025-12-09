@@ -1005,16 +1005,18 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
               <div className="mx-auto mb-4"><MuiIcon name="ImageIcon" size={64} className="text-[#CBD5E1]" /></div>
-              <p className="text-[#64748B]">Aucune image de fond configurÃ©e</p>
+              <p className="text-[#64748B]">Aucune image de fond configurée</p>
                 <p className="text-sm text-[#94A3B8] mt-2 mb-4">
                   Ajoutez une image depuis un fichier ou une URL
                 </p>
-                <button
-                  onClick={() => setShowConfigModal(true)}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
-                >
-                  Configurer l'image
-                </button>
+                {!_readOnly && (
+                  <button
+                    onClick={() => setShowConfigModal(true)}
+                    className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
+                  >
+                    Configurer l'image
+                  </button>
+                )}
               </div>
           </div>
         )}
@@ -1090,7 +1092,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 {hoveredElement === cluster.id && (
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-[9999] pointer-events-none">
                     <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-3 py-2 whitespace-nowrap">
-                      <p className="font-medium text-sm">{cluster.count} Ã©lÃ©ments groupÃ©s</p>
+                      <p className="font-medium text-sm">{cluster.count} éléments groupés</p>
                       <p className="text-xs text-[#94A3B8] mt-1">Zoomez pour voir les dÃ©tails</p>
                       <div className="text-xs mt-1 space-y-0.5">
                         {cluster.elements.slice(0, 3).map(e => {
@@ -1294,25 +1296,27 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         </div>
       </div>
       
-      {/* Boutons d'action */}
-      <div className="absolute bottom-4 right-4 z-20 flex gap-2">
-        <button
-          onClick={() => setShowConfigModal(true)}
-          className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
-        >
-          <MuiIcon name="SettingsIcon" size={20} />
-          Configurer
-        </button>
-        <button 
-          onClick={startDrawingMode}
-          disabled={!domain.backgroundImage}
-          className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          title={!domain.backgroundImage ? 'Configurez d\'abord une image de fond' : 'Dessinez un rectangle pour ajouter un Ã©lÃ©ment'}
-        >
-          <MuiIcon name="Plus" size={20} />
-          Ajouter un Ã©lÃ©ment
-        </button>
-      </div>
+      {/* Boutons d'action - masqués en mode readOnly */}
+      {!_readOnly && (
+        <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+          <button 
+            onClick={() => setShowConfigModal(true)}
+            className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
+          >
+            <MuiIcon name="SettingsIcon" size={20} />
+            Configurer
+          </button>
+          <button 
+            onClick={startDrawingMode}
+            disabled={!domain.backgroundImage}
+            className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!domain.backgroundImage ? 'Configurez d\'abord une image de fond' : 'Dessinez un rectangle pour ajouter un élément'}
+          >
+            <MuiIcon name="Plus" size={20} />
+            Ajouter un élément
+          </button>
+        </div>
+      )}
       
       {/* Modal Configuration Image */}
       {showConfigModal && (
@@ -1461,7 +1465,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       
       {/* Modal Ajouter Ã‰lÃ©ment */}
       {showAddModal && drawnRect && (
-        <Modal title="Ajouter un Ã©lÃ©ment" onClose={() => { 
+        <Modal title="Ajouter un élément" onClose={() => { 
           setShowAddModal(false); 
           setDrawnRect(null); 
           setNewElementForm({ name: '', status: 'ok', categoryMode: 'existing', categoryId: '', newCategoryName: '', icon: '' });
@@ -1478,7 +1482,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             
             {/* Nom */}
             <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Nom de l'Ã©lÃ©ment *</label>
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Nom de l'élément *</label>
               <input
                 type="text"
                 value={newElementForm.name}
@@ -1605,7 +1609,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               )}
               
               <p className="text-xs text-[#94A3B8] mt-2">
-                Les Ã©lÃ©ments seront affichÃ©s par catÃ©gorie en vue classique (horizontal)
+                Les éléments seront affichés par catégorie en vue classique (horizontal)
               </p>
             </div>
             

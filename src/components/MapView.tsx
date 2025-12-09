@@ -727,7 +727,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         {!_readOnly && !hasMapBounds && mapImageUrl && (
           <p className="text-xs text-[#FFB74D] mt-1 flex items-center gap-1">
             <MuiIcon name="AlertTriangleIcon" size={12} />
-            Configurez les coordonnÃ©es GPS
+            Configurez les coordonnées GPS
           </p>
         )}
       </div>
@@ -977,7 +977,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             <div className="absolute inset-0 flex items-center justify-center bg-[#EEF2F7]">
               <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
                 <MuiIcon name="MapPinIcon" size={48} className="text-[#94A3B8] mx-auto mb-4" />
-                <p className="text-[#64748B] font-medium mb-2">Aucune carte configurÃ©e</p>
+                <p className="text-[#64748B] font-medium mb-2">Aucune carte configurée</p>
                 <p className="text-sm text-[#94A3B8] mb-4">Configurez l'image et les coordonnÃ©es GPS</p>
                 <button
                   onClick={() => setShowConfigModal(true)}
@@ -1230,7 +1230,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                           marginTop: `${2 / scale}px`
                         }}
                       >
-                        {hasLinkedElement ? 'Cliquez pour voir l\'Ã©lÃ©ment' : 'Cliquez pour crÃ©er l\'Ã©lÃ©ment'}
+                        {hasLinkedElement ? 'Cliquez pour voir l\'élément' : 'Cliquez pour créer l\'élément'}
                       </div>
                     </div>
                     <div 
@@ -1309,7 +1309,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             onClick={() => setShowAddPointModal(true)}
             disabled={!hasMapBounds}
             className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] text-white rounded-xl hover:bg-[#2C4A6E] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            title={!hasMapBounds ? 'Configurez d\'abord les coordonnÃ©es GPS de la carte' : 'Ajouter un point'}
+            title={!hasMapBounds ? 'Configurez d\'abord les coordonnées GPS de la carte' : 'Ajouter un point'}
           >
             <MuiIcon name="Plus" size={20} />
             Ajouter un point
@@ -1380,7 +1380,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   onClick={analyzeMapImage}
                   disabled={!configForm.imageUrl || isAnalyzing}
                   className="px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
-                  title="Analyser l'image avec l'IA pour dÃ©tecter les coordonnÃ©es GPS"
+                  title="Analyser l'image avec l'IA pour détecter les coordonnées GPS"
                 >
                   {isAnalyzing ? (
                     <>
@@ -1447,7 +1447,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 CoordonnÃ©es GPS des coins de l'image
               </h4>
               <p className="text-xs text-[#64748B] mb-4">
-                Ces coordonnÃ©es correspondent aux pixels des coins de l'image (pas Ã  la zone gÃ©ographique).
+                Ces coordonnées correspondent aux pixels des coins de l'image (pas à la zone géographique).
               </p>
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
                 <p className="font-medium mb-1">ðŸ’¡ Astuce pour ajuster :</p>
@@ -1571,11 +1571,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       
       {/* Modal Ajouter un Ã©lÃ©ment/point */}
       {showAddPointModal && (
-        <Modal title="Ajouter un Ã©lÃ©ment sur la carte" onClose={() => setShowAddPointModal(false)}>
+        <Modal title="Ajouter un élément sur la carte" onClose={() => setShowAddPointModal(false)}>
           <div className="space-y-4">
             {/* Nom */}
             <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Nom de l'Ã©lÃ©ment *</label>
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Nom de l'élément *</label>
               <input
                 type="text"
                 value={pointForm.name}
@@ -1592,7 +1592,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               <textarea
                 value={pointForm.description}
                 onChange={(e) => setPointForm({ ...pointForm, description: e.target.value })}
-                placeholder="Description de l'Ã©lÃ©ment..."
+                placeholder="Description de l'élément..."
                 rows={2}
                 className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] resize-none"
               />
@@ -1641,7 +1641,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                       onClick={geocodeAddress}
                       disabled={!pointForm.address.trim() || isGeocodingAddress}
                       className="px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      title="Convertir l'adresse en coordonnÃ©es GPS"
+                      title="Convertir l'adresse en coordonnées GPS"
                     >
                       {isGeocodingAddress ? (
                         <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
@@ -1775,7 +1775,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 className="px-6 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <MuiIcon name="Plus" size={16} />
-                Ajouter l'Ã©lÃ©ment
+                Ajouter l'élément
               </button>
             </div>
           </div>
@@ -1798,7 +1798,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           <div className="bg-[#1E3A5F] text-white rounded-lg shadow-lg px-2 py-1 whitespace-nowrap">
             <p className="font-medium text-xs">
               {tooltipPosition.isCluster 
-                ? `${clusters.find(c => c.id === tooltipPosition.pointId)?.count || 0} Ã©lÃ©ments groupÃ©s`
+                ? `${clusters.find(c => c.id === tooltipPosition.pointId)?.count || 0} éléments groupés`
                 : (domain.mapElements?.find(p => p.id === tooltipPosition.pointId)?.name || 'Point')}
             </p>
           </div>

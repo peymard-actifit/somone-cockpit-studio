@@ -29,7 +29,7 @@ function SortableCategoryItem({
   category: Category;
   onUpdateName: (name: string) => void;
   onUpdateIcon: (icon: string) => void;
-  onShowIconPicker: (categoryId: string) => void;
+  onShowIconPicker: (categoryId: string | null) => void;
   showIconPicker: string | null;
   IconPickerComponent: React.ComponentType<any>;
 }) {
@@ -86,7 +86,7 @@ function SortableCategoryItem({
             onChange={(iconName: string) => {
               onUpdateIcon(iconName);
             }}
-            onClose={() => onShowIconPicker(null as any)}
+            onClose={() => onShowIconPicker(null)}
           />
         </div>
       )}
@@ -106,7 +106,7 @@ function SortableSubCategoryItem({
   subCategory: SubCategory;
   onUpdateName: (name: string) => void;
   onUpdateIcon: (icon: string) => void;
-  onShowIconPicker: (subCategoryId: string) => void;
+  onShowIconPicker: (subCategoryId: string | null) => void;
   showIconPicker: string | null;
   IconPickerComponent: React.ComponentType<any>;
 }) {
@@ -163,7 +163,7 @@ function SortableSubCategoryItem({
             onChange={(iconName: string) => {
               onUpdateIcon(iconName);
             }}
-            onClose={() => onShowIconPicker(null as any)}
+            onClose={() => onShowIconPicker(null)}
           />
         </div>
       )}
