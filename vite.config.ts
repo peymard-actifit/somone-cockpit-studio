@@ -19,6 +19,10 @@ export default defineConfig({
       },
     },
   },
+  json: {
+    namedExports: true,
+    stringify: false,
+  },
 })
 
 

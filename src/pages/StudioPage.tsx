@@ -9,6 +9,7 @@ import EditorPanel from '../components/EditorPanel';
 import AIPromptInput from '../components/AIPromptInput';
 import TranslationButton from '../components/TranslationButton';
 import { MuiIcon } from '../components/IconPicker';
+import { VERSION_DISPLAY } from '../config/version';
 
 export default function StudioPage() {
   const { cockpitId } = useParams<{ cockpitId: string }>();
@@ -60,7 +61,7 @@ export default function StudioPage() {
     return (
       <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin mx-auto mb-4"><MuiIcon name="Loader2" size={40} className="text-[#1E3A5F]" /></div>
+          <div className="animate-spin mx-auto mb-4"><MuiIcon name="Refresh" size={40} className="text-[#1E3A5F]" /></div>
           <p className="text-[#64748B]">Chargement de la maquette...</p>
         </div>
       </div>
@@ -113,13 +114,13 @@ export default function StudioPage() {
             onClick={() => navigate('/')}
             className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
           >
-            <MuiIcon name="ArrowLeftIcon" size={20} />
+            <MuiIcon name="ArrowLeft" size={20} />
           </button>
           
           <div>
             <h1 className="text-lg font-semibold text-white">{currentCockpit.name}</h1>
             <p className="text-xs text-white/60">
-              Par {user?.username} · Modifié il y a quelques secondes · v8.6.0
+              Par {user?.username} · Modifié il y a quelques secondes · {VERSION_DISPLAY}
             </p>
           </div>
           

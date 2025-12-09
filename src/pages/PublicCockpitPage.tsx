@@ -252,7 +252,7 @@ export default function PublicCockpitPage() {
       <footer className="bg-cockpit-bg-card border-t border-slate-700/50 py-3">
         <div className="px-6 text-center">
           <p className="text-xs text-slate-600">
-            Cockpit publié avec SOMONE Studio v8.6.0
+            Cockpit publié avec SOMONE Studio {VERSION_DISPLAY}
           </p>
         </div>
       </footer>
