@@ -212,7 +212,7 @@ export default function CalculationManager({ subElement, sources, calculations, 
       {sources.length === 0 ? (
         <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200 text-center">
           <p className="text-sm text-yellow-800 mb-2">
-            <MuiIcon name="AlertTriangle" size={16} className="inline mr-1" />
+            <MuiIcon name="Warning" size={16} className="inline mr-1" />
             Aucune source disponible
           </p>
           <p className="text-xs text-yellow-600">

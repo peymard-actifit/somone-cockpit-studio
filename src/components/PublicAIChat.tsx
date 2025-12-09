@@ -241,7 +241,7 @@ export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProp
               }`}
             >
               <div className="flex items-center gap-2">
-                <MuiIcon name="Sparkles" size={20} className="text-white" />
+                <MuiIcon name="AutoAwesome" size={20} className="text-white" />
                 <span className="font-semibold text-white">Assistant IA</span>
                 {isConfigured && (
                   <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full text-white">
@@ -283,7 +283,7 @@ export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProp
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 && (
                 <div className="text-center text-slate-500 text-sm py-8">
-                  <div className="mx-auto mb-3"><MuiIcon name="Sparkles" size={32} className="text-slate-600" /></div>
+                  <div className="mx-auto mb-3"><MuiIcon name="AutoAwesome" size={32} className="text-slate-600" /></div>
                   <p>Posez-moi une question sur le cockpit "{cockpitName}"</p>
                   <p className="mt-2 text-xs">
                     Exemples : "Combien d'éléments sont en statut critique ?" • "Quels sont les domaines ?"

@@ -267,7 +267,7 @@ export default function HomePage() {
               </div>
               <span className="text-slate-300">{user?.username}</span>
               {user?.isAdmin && (
-                <MuiIcon name="ShieldIcon" size={16} className="text-amber-400" />
+                <MuiIcon name="Shield" size={16} className="text-amber-400" />
               )}
             </button>
             
@@ -293,7 +293,7 @@ export default function HomePage() {
                       }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-blue-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-blue-500/50 mb-2"
                     >
-                      <MuiIcon name="KeyRound" size={18} className="text-blue-400" />
+                      <MuiIcon name="VpnKey" size={18} className="text-blue-400" />
                       <span className="text-base">Changer le mot de passe</span>
                     </button>
                     <button 
@@ -303,7 +303,7 @@ export default function HomePage() {
                       }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-amber-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-amber-500/50 mb-2"
                     >
-                      <MuiIcon name="SettingsIcon" size={18} className="text-amber-400" />
+                      <MuiIcon name="Settings" size={18} className="text-amber-400" />
                       <span className="text-base">{user?.isAdmin ? 'Quitter le mode admin' : 'Passer administrateur'}</span>
                     </button>
                     <hr className="my-3 border-slate-700" />
@@ -311,7 +311,7 @@ export default function HomePage() {
                       onClick={logout}
                       className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-red-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-red-500/50"
                     >
-                      <MuiIcon name="LogOut" size={18} className="text-red-400" />
+                      <MuiIcon name="Logout" size={18} className="text-red-400" />
                       <span className="text-base">Déconnexion</span>
                     </button>
                   </div>
@@ -374,7 +374,7 @@ export default function HomePage() {
         {/* Loading State */}
         {isLoading && cockpits.length === 0 && (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin"><MuiIcon name="Loader2" size={32} className="text-blue-400" /></div>
+            <div className="animate-spin"><MuiIcon name="Refresh" size={32} className="text-blue-400" /></div>
           </div>
         )}
         
@@ -415,7 +415,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium">
                     Ouvrir
-                    <MuiIcon name="ChevronRightIcon" size={16} />
+                    <MuiIcon name="ChevronRight" size={16} />
                   </span>
                 </div>
               </div>
@@ -484,7 +484,7 @@ export default function HomePage() {
                     className="p-2 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded-lg transition-colors"
                     title="Dupliquer"
                   >
-                    <MuiIcon name="CopyIcon" size={16} />
+                    <MuiIcon name="ContentCopy" size={16} />
                   </button>
                   <button
                     onClick={() => handleExportClick(cockpit.id)}
@@ -498,7 +498,7 @@ export default function HomePage() {
                     className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                     title="Supprimer"
                   >
-                    <MuiIcon name="Trash2" size={16} />
+                    <MuiIcon name="Delete" size={16} />
                   </button>
                 </div>
               </div>
@@ -607,7 +607,7 @@ export default function HomePage() {
                             className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
                             title="Copier"
                           >
-                            <MuiIcon name="CopyIcon" size={18} />
+                            <MuiIcon name="ContentCopy" size={18} />
                           </button>
                           <a
                             href={publishedUrl}
@@ -630,7 +630,7 @@ export default function HomePage() {
                         disabled={isLoading}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl transition-colors"
                       >
-                        <MuiIcon name="EyeOff" size={16} />
+                        <MuiIcon name="VisibilityOff" size={16} />
                         Dépublier
                       </button>
                     </>
@@ -657,7 +657,7 @@ export default function HomePage() {
                       className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
                     >
                       {isLoading ? (
-                        <div className="animate-spin"><MuiIcon name="Loader2" size={18} /></div>
+                        <div className="animate-spin"><MuiIcon name="Refresh" size={18} /></div>
                       ) : (
                         <MuiIcon name="Globe" size={18} />
                       )}
@@ -796,7 +796,7 @@ export default function HomePage() {
           <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <MuiIcon name="KeyRound" size={20} className="text-blue-400" />
+                <MuiIcon name="VpnKey" size={20} className="text-blue-400" />
                 Changer le mot de passe
               </h3>
               <button
@@ -885,7 +885,7 @@ export default function HomePage() {
                 disabled={authLoading || !oldPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {authLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+                {authLoading && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
                 Changer
               </button>
             </div>
@@ -899,7 +899,7 @@ export default function HomePage() {
           <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <MuiIcon name="SettingsIcon" size={20} className="text-blue-400" />
+                <MuiIcon name="Settings" size={20} className="text-blue-400" />
                 {user?.isAdmin ? 'Quitter le mode administrateur' : 'Activer le mode administrateur'}
               </h3>
               <button
@@ -967,7 +967,7 @@ export default function HomePage() {
                 disabled={authLoading || (!user?.isAdmin && !adminCode)}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {authLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+                {authLoading && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
                 {user?.isAdmin ? 'Quitter le mode admin' : 'Activer'}
               </button>
             </div>
@@ -1079,7 +1079,7 @@ function Modal({ title, children, onClose, onConfirm, confirmText, confirmVarian
                 : 'bg-blue-600 hover:bg-blue-500 text-white'
             } disabled:opacity-50`}
           >
-            {isLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+            {isLoading && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
             {confirmText}
           </button>
         </div>

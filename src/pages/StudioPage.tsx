@@ -130,7 +130,7 @@ export default function StudioPage() {
               ? 'bg-green-500/20 text-green-300' 
               : 'bg-white/10 text-white/60'
           }`}>
-            <MuiIcon name="SaveIcon" size={12} />
+            <MuiIcon name="Save" size={12} />
             {isSaving ? 'Sauvegardé' : 'Auto-save'}
           </div>
         </div>
@@ -148,9 +148,9 @@ export default function StudioPage() {
             className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
           >
             {isExporting ? (
-              <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
+              <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>
             ) : (
-              <MuiIcon name="DownloadIcon" size={16} />
+              <MuiIcon name="Download" size={16} />
             )}
             Export Excel
           </button>

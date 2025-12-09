@@ -398,7 +398,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {['fatal', 'critique', 'mineur'].includes(selectedSubElement.status) && (
           <Section 
             title="Alerte" 
-            iconName="AlertTriangleIcon" 
+            iconName="Warning" 
             isOpen={activeSection === 'alert'}
             onToggle={() => toggleSection('alert')}
           >
@@ -628,7 +628,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   </div>
                 ) : (
                   <div className="w-8 h-8 bg-[#E2E8F0] rounded-lg flex items-center justify-center">
-                    <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
+                    <MuiIcon name="Image" size={16} className="text-[#94A3B8]" />
                   </div>
                 )}
                 <span className="text-sm">{element.icon || 'Choisir une icône...'}</span>
@@ -645,7 +645,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   {element.icon2 ? (
                     <MuiIcon name={element.icon2} size={18} className="text-[#1E3A5F]" />
                   ) : (
-                    <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
+                    <MuiIcon name="Image" size={16} className="text-[#94A3B8]" />
                   )}
                   <span className="text-xs truncate">{element.icon2 || 'Choisir...'}</span>
                 </button>
@@ -659,7 +659,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   {element.icon3 ? (
                     <MuiIcon name={element.icon3} size={18} className="text-[#1E3A5F]" />
                   ) : (
-                    <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
+                    <MuiIcon name="Image" size={16} className="text-[#94A3B8]" />
                   )}
                   <span className="text-xs truncate">{element.icon3 || 'Choisir...'}</span>
                 </button>
@@ -897,7 +897,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           return mapElement ? (
             <Section 
               title="Point de carte (GPS)" 
-              iconName="MapPinIcon" 
+              iconName="Place" 
               isOpen={activeSection === 'gps'}
               onToggle={() => toggleSection('gps')}
             >
@@ -1010,7 +1010,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     }}
                     className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm"
                   >
-                    <MuiIcon name="Trash2" size={16} />
+                    <MuiIcon name="Delete" size={16} />
                     <span>Supprimer le point</span>
                   </button>
                   <button
@@ -1077,7 +1077,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         onClick={() => deleteZone(zone.id)}
                         className="p-1 text-[#94A3B8] hover:text-[#E57373]"
                       >
-                        <MuiIcon name="Trash2" size={12} />
+                        <MuiIcon name="Delete" size={12} />
                       </button>
                     </div>
                   ))}
@@ -1189,7 +1189,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Image de fond */}
         <Section 
           title="Image de fond" 
-          iconName="ImageIcon" 
+            iconName="Image"
           isOpen={activeSection === 'background'}
           onToggle={() => toggleSection('background')}
         >

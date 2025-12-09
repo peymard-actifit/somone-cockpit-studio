@@ -156,7 +156,7 @@ const Modal = ({
               className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
               title="Figer la version actuelle comme originaux à restaurer"
             >
-              {isSavingOriginals && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+              {isSavingOriginals && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
               <MuiIcon name="Save" size={16} />
               Figer
             </button>
@@ -168,8 +168,8 @@ const Modal = ({
               className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
               title="Restaurer la version sauvegardée"
             >
-              {isRestoring && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
-              <MuiIcon name="RotateCcw" size={16} />
+              {isRestoring && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
+              <MuiIcon name="Undo" size={16} />
               Restaurer
             </button>
           ) : null}
@@ -985,7 +985,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
         title="Traduire le cockpit"
       >
-        <MuiIcon name="Languages" size={16} />
+        <MuiIcon name="Language" size={16} />
         Traduction
       </button>
       
@@ -1008,7 +1008,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
             {!user || !token ? (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
                 <div className="flex items-start gap-2">
-                  <MuiIcon name="AlertTriangle" size={16} className="text-red-400 mt-0.5" />
+                  <MuiIcon name="Warning" size={16} className="text-red-400 mt-0.5" />
                   <p className="text-xs text-red-300">
                     Vous devez être connecté pour utiliser la traduction. Veuillez vous connecter ou rafraîchir la page.
                   </p>
