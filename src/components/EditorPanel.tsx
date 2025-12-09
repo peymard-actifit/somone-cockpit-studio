@@ -18,6 +18,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const { 
     updateDomain,
     deleteDomain,
+    updateCategory,
+    updateSubCategory,
     updateElement,
     deleteElement,
     updateSubElement,
@@ -37,7 +39,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [activeSection, setActiveSection] = useState<string | null>('properties');
   const [newZoneName, setNewZoneName] = useState('');
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
-  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | string | null>(null);
   
   const toggleSection = (section: string) => {
     setActiveSection(activeSection === section ? null : section);
@@ -517,6 +519,59 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             ))}
           </div>
         </Section>
+        
+        {/* Édition des sous-catégories */}
+        {element.subCategories && element.subCategories.length > 0 && (
+          <Section 
+            title={`Sous-catégories (${element.subCategories.length})`}
+            iconName="FolderOpen" 
+            isOpen={activeSection === 'subcategories'}
+            onToggle={() => toggleSection('subcategories')}
+          >
+            <div className="space-y-3">
+              {element.subCategories.map((subCategory) => (
+                <div key={subCategory.id} className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={subCategory.name}
+                      onChange={(e) => updateSubCategory(subCategory.id, { name: e.target.value })}
+                      className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      placeholder="Nom de la sous-catégorie"
+                    />
+                    <button
+                      onClick={() => setShowIconPicker(`subcat-${subCategory.id}`)}
+                      className="p-2 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors"
+                      title="Choisir une icône"
+                    >
+                      {subCategory.icon ? (
+                        <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
+                      ) : (
+                        <MuiIcon name="ImageIcon" size={18} className="text-[#94A3B8]" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+                    <span>{subCategory.subElements.length} sous-élément{subCategory.subElements.length > 1 ? 's' : ''}</span>
+                    <span className="capitalize">{subCategory.orientation}</span>
+                  </div>
+                  {showIconPicker === `subcat-${subCategory.id}` && (
+                    <div className="mt-2">
+                      <IconPicker
+                        value={subCategory.icon}
+                        onChange={(iconName) => {
+                          updateSubCategory(subCategory.id, { icon: iconName });
+                          setShowIconPicker(null);
+                        }}
+                        onClose={() => setShowIconPicker(null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
         
         {/* Liste des sous-éléments à éditer */}
         {allSubElements.length > 0 && (
@@ -1041,6 +1096,59 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             )}
           </div>
         </Section>
+        
+        {/* Édition des catégories */}
+        {domain.categories && domain.categories.length > 0 && (
+          <Section 
+            title={`Catégories (${domain.categories.length})`}
+            iconName="FolderOpen" 
+            isOpen={activeSection === 'categories'}
+            onToggle={() => toggleSection('categories')}
+          >
+            <div className="space-y-3">
+              {domain.categories.map((category) => (
+                <div key={category.id} className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={category.name}
+                      onChange={(e) => updateCategory(category.id, { name: e.target.value })}
+                      className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      placeholder="Nom de la catégorie"
+                    />
+                    <button
+                      onClick={() => setShowIconPicker(category.id as any)}
+                      className="p-2 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors"
+                      title="Choisir une icône"
+                    >
+                      {category.icon ? (
+                        <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
+                      ) : (
+                        <MuiIcon name="ImageIcon" size={18} className="text-[#94A3B8]" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+                    <span>{category.elements.length} élément{category.elements.length > 1 ? 's' : ''}</span>
+                    <span className="capitalize">{category.orientation}</span>
+                  </div>
+                  {showIconPicker === category.id && (
+                    <div className="mt-2">
+                      <IconPicker
+                        value={category.icon}
+                        onChange={(iconName) => {
+                          updateCategory(category.id, { icon: iconName });
+                          setShowIconPicker(null);
+                        }}
+                        onClose={() => setShowIconPicker(null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
         
         {/* Paramètres du cockpit */}
         <Section 

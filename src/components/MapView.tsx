@@ -1333,6 +1333,15 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
+                      // Vérifier la taille du fichier (30MB max)
+                      const maxSizeMB = 30;
+                      const maxSizeBytes = maxSizeMB * 1024 * 1024;
+                      if (file.size > maxSizeBytes) {
+                        alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
+                        e.target.value = ''; // Réinitialiser l'input
+                        return;
+                      }
+                      
                       const reader = new FileReader();
                       reader.onload = (event) => {
                         const base64 = event.target?.result as string;
