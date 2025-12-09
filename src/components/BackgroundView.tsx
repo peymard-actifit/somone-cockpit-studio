@@ -1,4 +1,4 @@
-﻿import type { Domain, Element, TileStatus } from '../types';
+import type { Domain, Element, TileStatus } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS, STATUS_PRIORITY_MAP, getEffectiveColors, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
@@ -33,8 +33,15 @@ interface BackgroundViewProps {
 }
 
 export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
-  // TOUS LES HOOKS DOIVENT ÊTRE APPELÉS AVANT TOUT RETURN CONDITIONNEL
-  // C'est une règle fondamentale de React Hooks (erreur React #300)
+  // Vérification de sécurité : si domain est invalide, ne rien rendre
+  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
+    console.error('[BackgroundView] Domain invalide:', domain);
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
+      </div>
+    );
+  }
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -63,14 +70,14 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
   // État du zoom et position (comme MapView) - initialisé depuis localStorage
   // Utiliser une fonction d'initialisation pour éviter de recalculer à chaque render
-  const [scale, setScale] = useState(() => loadSavedViewState(domain?.id || '').scale);
-  const [position, setPosition] = useState(() => loadSavedViewState(domain?.id || '').position);
+  const [scale, setScale] = useState(() => loadSavedViewState(domain.id).scale);
+  const [position, setPosition] = useState(() => loadSavedViewState(domain.id).position);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   // Ref pour suivre si on doit restaurer l'état sauvegardé quand le domaine change
-  const lastDomainIdRef = useRef<string>(domain?.id || '');
-  const lastBackgroundImageRef = useRef<string | undefined>(domain?.backgroundImage || undefined);
+  const lastDomainIdRef = useRef<string>(domain.id);
+  const lastBackgroundImageRef = useRef<string | undefined>(domain.backgroundImage);
   
   // État pour le drag d'un élément
   const [draggingElementId, setDraggingElementId] = useState<string | null>(null);
@@ -80,8 +87,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Modal de configuration
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
-  const [enableClustering, setEnableClustering] = useState(domain?.enableClustering !== false);
+  const [imageUrl, setImageUrl] = useState(domain.backgroundImage || '');
+  const [enableClustering, setEnableClustering] = useState(domain.enableClustering !== false);
   
   // Modal d'ajout d'élément
   const [showAddModal, setShowAddModal] = useState(false);
@@ -111,7 +118,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Récupérer tous les éléments du domaine avec position et taille
   // Sécurité : s'assurer que categories existe et que chaque catégorie a bien un tableau elements
-  const allElements = (domain?.categories || [])
+  const allElements = (domain.categories || [])
     .filter(c => c && Array.isArray(c.elements))
     .flatMap(c => c.elements || [])
     .filter(e => e && typeof e === 'object' && e.id); // Vérifier que chaque élément est valide
@@ -125,31 +132,31 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   // Restaurer l'état sauvegardé quand on change de domaine (une seule fois au montage)
   useEffect(() => {
     // Au premier montage ou changement de domaine, restaurer depuis localStorage
-    if (lastDomainIdRef.current !== domain?.id) {
-      const savedState = loadSavedViewState(domain?.id || '');
+    if (lastDomainIdRef.current !== domain.id) {
+      const savedState = loadSavedViewState(domain.id);
       setScale(savedState.scale);
       setPosition(savedState.position);
-      lastDomainIdRef.current = domain?.id || '';
-      lastBackgroundImageRef.current = domain?.backgroundImage || undefined;
+      lastDomainIdRef.current = domain.id;
+      lastBackgroundImageRef.current = domain.backgroundImage;
     }
     // Si l'image change réellement (pas juste au remontage), réinitialiser
     // Mais seulement si c'est un vrai changement, pas juste un remontage du composant
-    else if (lastBackgroundImageRef.current !== domain?.backgroundImage && 
+    else if (lastBackgroundImageRef.current !== domain.backgroundImage && 
              lastBackgroundImageRef.current !== undefined && 
-             domain?.backgroundImage !== undefined) {
+             domain.backgroundImage !== undefined) {
       // C'est un vrai changement d'image (utilisateur a changé l'image), réinitialiser
       setScale(1);
       setPosition({ x: 0, y: 0 });
-      lastBackgroundImageRef.current = domain?.backgroundImage || undefined;
+      lastBackgroundImageRef.current = domain.backgroundImage;
     }
     // Sinon, on ne fait rien - on garde l'état actuel même si le composant se remonte
-  }, [domain?.id, domain?.backgroundImage]);
+  }, [domain.id, domain.backgroundImage]);
 
   // Sauvegarder le zoom et la position quand ils changent
   useEffect(() => {
     const viewStateKey = `backgroundView-${domain.id}`;
     localStorage.setItem(viewStateKey, JSON.stringify({ scale, position }));
-  }, [scale, position, domain?.id]);
+  }, [scale, position, domain.id]);
   
   // Fonction de validation d'image base64
   const isValidBase64Image = (str: string | undefined | null): boolean => {
@@ -167,8 +174,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   useEffect(() => {
     let newImageUrl = '';
     
-    if (domain?.backgroundImage && typeof domain?.backgroundImage === 'string') {
-      const trimmed = domain?.backgroundImage?.trim();
+    if (domain?.backgroundImage && typeof domain.backgroundImage === 'string') {
+      const trimmed = domain.backgroundImage.trim();
       if (isValidBase64Image(trimmed)) {
         newImageUrl = trimmed;
       } else {
@@ -185,7 +192,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       domainName: domain?.name,
       hasBackgroundImage: !!domain?.backgroundImage,
       backgroundImageType: typeof domain?.backgroundImage,
-      backgroundImageLength: domain?.backgroundImage ? domain?.backgroundImage?.length || 0 : 0,
+      backgroundImageLength: domain?.backgroundImage ? domain.backgroundImage.length : 0,
       isValidImage: isValidBase64Image(domain?.backgroundImage),
       newImageUrlLength: newImageUrl.length,
       newImageUrlPreview: newImageUrl.substring(0, 50)
@@ -218,7 +225,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     
     const sizeMB = imageUrl.length / 1024 / 1024;
     console.log(`[BackgroundView] 💾 Sauvegarde image: ${sizeMB.toFixed(2)} MB (${imageUrl.length} chars)`);
-    updateDomain(domain?.id || '', { 
+    updateDomain(domain.id, { 
       backgroundImage: imageUrl,
       enableClustering: enableClustering,
     });
@@ -292,11 +299,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     const y = (containerHeight - displayedHeight) / 2;
     
     setImageBounds({ x, y, width: displayedWidth, height: displayedHeight });
-  }, [domain?.backgroundImage]);
+  }, [domain.backgroundImage]);
   
   // Mettre à jour les bounds quand l'image charge ou que le conteneur change
   useEffect(() => {
-    if (!domain?.backgroundImage) {
+    if (!domain.backgroundImage) {
       setImageBounds(null);
       return;
     }
@@ -500,15 +507,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     if (newElementForm.categoryMode === 'new' && newElementForm.newCategoryName.trim()) {
       const categoryName = newElementForm.newCategoryName.trim();
       // Vérifier si la catégorie existe déjà
-      const existingCategory = domain?.categories?.find(c => c.name === categoryName);
+      const existingCategory = domain.categories.find(c => c.name === categoryName);
       if (existingCategory) {
         createElementInCategory(existingCategory.id);
       } else {
         // Créer la nouvelle catégorie
-        addCategory(domain?.id || '', categoryName, 'horizontal');
+        addCategory(domain.id, categoryName, 'horizontal');
         // Attendre la création
         setTimeout(() => {
-          const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain?.id);
+          const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
           const newCategory = updatedDomain?.categories.find(c => c.name === categoryName);
           if (newCategory) {
             createElementInCategory(newCategory.id);
@@ -523,12 +530,12 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     
     // Si pas de catégorie sélectionnée, créer une catégorie par défaut
     if (!categoryId) {
-      let defaultCategory = domain?.categories?.find(c => c.name === 'Éléments');
+      let defaultCategory = domain.categories.find(c => c.name === 'Éléments');
       if (!defaultCategory) {
-        addCategory(domain?.id || '', 'Éléments', 'horizontal');
+        addCategory(domain.id, 'Éléments', 'horizontal');
         // Attendre la création
         setTimeout(() => {
-          const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain?.id);
+          const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
           const newCategory = updatedDomain?.categories.find(c => c.name === 'Éléments');
           if (newCategory) {
             createElementInCategory(newCategory.id);
@@ -550,7 +557,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     
     // Attendre la création puis mettre à jour position/taille
     setTimeout(() => {
-      const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain?.id);
+      const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
       const category = updatedDomain?.categories.find(c => c.id === categoryId);
       const newElement = category?.elements.find(e => e.name === elementName);
       
@@ -580,7 +587,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         return localValue === 'true';
       }
     }
-    return domain?.enableClustering !== false;
+    return domain.enableClustering !== false;
   };
   
   const [localClustering, setLocalClustering] = useState(getInitialClustering);
@@ -592,12 +599,12 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       if (localValue !== null) {
         setLocalClustering(localValue === 'true');
       } else {
-        setLocalClustering(domain?.enableClustering !== false);
+        setLocalClustering(domain.enableClustering !== false);
       }
     } else {
-      setLocalClustering(domain?.enableClustering !== false);
+      setLocalClustering(domain.enableClustering !== false);
     }
-  }, [domain?.id, domain?.enableClustering, _readOnly]);
+  }, [domain.id, domain.enableClustering, _readOnly]);
   
   // Calculer les clusters d'éléments qui se chevauchent
   const calculateClusters = (): { clusters: ElementCluster[]; singleElements: Element[] } => {
@@ -697,25 +704,25 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       console.log(`[BackgroundView READ-ONLY] Domain "${domain?.name}" (templateType: ${domain?.templateType})`);
       console.log(`[BackgroundView READ-ONLY] Domain object keys:`, domain ? Object.keys(domain) : 'DOMAIN IS NULL');
       console.log(`[BackgroundView READ-ONLY] backgroundImage type:`, typeof domain?.backgroundImage);
-      console.log(`[BackgroundView READ-ONLY] backgroundImage value:`, domain?.backgroundImage ? `${domain?.backgroundImage?.substring(0, 50)}...` : 'null/undefined');
+      console.log(`[BackgroundView READ-ONLY] backgroundImage value:`, domain?.backgroundImage ? `${domain.backgroundImage.substring(0, 50)}...` : 'null/undefined');
       console.log(`[BackgroundView READ-ONLY] imageUrl state:`, imageUrl ? `${imageUrl.substring(0, 50)}...` : 'EMPTY');
       console.log(`[BackgroundView READ-ONLY] imageUrl length:`, imageUrl?.length || 0);
       
-      if (!domain?.backgroundImage || !domain?.backgroundImage.trim()) {
+      if (!domain?.backgroundImage || !domain.backgroundImage.trim()) {
         console.error(`[BackgroundView READ-ONLY] ❌ Domain "${domain?.name}": backgroundImage est ${domain?.backgroundImage ? 'VIDE' : 'ABSENTE'}`);
         if (domain) {
           console.error(`[BackgroundView READ-ONLY] Domain object (preview):`, JSON.stringify(domain, null, 2).substring(0, 1000));
         }
       } else {
-        const isValid = isValidBase64Image(domain?.backgroundImage);
-        console.log(`[BackgroundView READ-ONLY] ✅ Domain "${domain?.name}": backgroundImage présente (${domain?.backgroundImage?.length || 0} caractères)`);
-        console.log(`[BackgroundView READ-ONLY] backgroundImage starts with:`, domain?.backgroundImage?.substring(0, 30));
-        console.log(`[BackgroundView READ-ONLY] Starts with 'data:':`, domain?.backgroundImage?.startsWith('data:'));
-        console.log(`[BackgroundView READ-ONLY] Starts with 'data:image/':`, domain?.backgroundImage?.startsWith('data:image/'));
+        const isValid = isValidBase64Image(domain.backgroundImage);
+        console.log(`[BackgroundView READ-ONLY] ✅ Domain "${domain?.name}": backgroundImage présente (${domain.backgroundImage.length} caractères)`);
+        console.log(`[BackgroundView READ-ONLY] backgroundImage starts with:`, domain.backgroundImage.substring(0, 30));
+        console.log(`[BackgroundView READ-ONLY] Starts with 'data:':`, domain.backgroundImage.startsWith('data:'));
+        console.log(`[BackgroundView READ-ONLY] Starts with 'data:image/':`, domain.backgroundImage.startsWith('data:image/'));
         console.log(`[BackgroundView READ-ONLY] Is valid base64 image:`, isValid);
         if (!isValid) {
           console.error(`[BackgroundView READ-ONLY] ❌ Image INVALIDE pour "${domain?.name}" - ne passera pas la validation`);
-          const base64Part = domain?.backgroundImage?.split(',')[1];
+          const base64Part = domain.backgroundImage.split(',')[1];
           console.error(`[BackgroundView READ-ONLY] Base64 part length:`, base64Part?.length || 0);
           console.error(`[BackgroundView READ-ONLY] Base64 part preview:`, base64Part?.substring(0, 50) || 'NONE');
         }
@@ -731,16 +738,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       console.log(`[BackgroundView READ-ONLY] ====================`);
     }
   }, [domain, imageUrl, _readOnly]);
-
-  // Vérification de sécurité APRÈS tous les hooks
-  if (!domain || !domain.categories || !Array.isArray(domain.categories)) {
-    console.error('[BackgroundView] Domain invalide:', domain);
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-red-500">Erreur : Domaine invalide ou données manquantes</p>
-      </div>
-    );
-  }
+  
+  return (
+    <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
+      {/* Header - Style PDF SOMONE mode clair */}
+      <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
           <MuiIcon name="ImageIcon" size={20} className="text-[#1E3A5F]" />
           {domain.name}
@@ -782,7 +784,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 localStorage.setItem(`clustering-${domain.id}`, String(newValue));
               } else {
                 // En mode studio, sauvegarder dans le domaine
-                updateDomain(domain?.id || '', { enableClustering: newValue });
+                updateDomain(domain.id, { enableClustering: newValue });
               }
             }}
             className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
@@ -974,7 +976,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 console.error(`[BackgroundView] Longueur totale:`, imageUrl?.length || 0);
                 console.error(`[BackgroundView] Type:`, typeof imageUrl);
                 console.error(`[BackgroundView] Starts with data:`, imageUrl?.startsWith('data:'));
-                console.error(`[BackgroundView] Domain backgroundImage:`, domain?.backgroundImage ? `${typeof domain.backgroundImage} (${domain?.backgroundImage?.length || 0} chars)` : 'ABSENT');
+                console.error(`[BackgroundView] Domain backgroundImage:`, domain?.backgroundImage ? `${typeof domain.backgroundImage} (${domain.backgroundImage.length} chars)` : 'ABSENT');
                 console.error(`[BackgroundView] Image element:`, img);
                 if (_readOnly) {
                   console.error(`[BackgroundView READ-ONLY] ❌ Image non chargée - imageUrl length: ${imageUrl?.length || 0} caractères`);
@@ -989,7 +991,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           )}
           
         {/* Placeholder si pas d'image */}
-        {!domain?.backgroundImage && (
+        {!domain.backgroundImage && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
               <div className="mx-auto mb-4"><MuiIcon name="ImageIcon" size={64} className="text-[#CBD5E1]" /></div>
@@ -1050,8 +1052,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             if (isCriticalCluster) {
               console.log(`[BackgroundView] 🔍 Cluster - Statut: ${cluster.worstStatus}, Multiplicateur: ${clusterSizeMultiplier}, Taille: ${originalClusterSize.toFixed(1)} → ${clusterSize.toFixed(1)}`);
             }
-
-  return (
+            
+            return (
               <div
                 key={cluster.id}
                 className="absolute z-10 group transform -translate-x-1/2 -translate-y-1/2"
@@ -1293,9 +1295,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         </button>
         <button 
           onClick={startDrawingMode}
-          disabled={!domain?.backgroundImage}
+          disabled={!domain.backgroundImage}
           className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          title={!domain?.backgroundImage ? 'Configurez d\'abord une image de fond' : 'Dessinez un rectangle pour ajouter un élément'}
+          title={!domain.backgroundImage ? 'Configurez d\'abord une image de fond' : 'Dessinez un rectangle pour ajouter un élément'}
         >
           <MuiIcon name="Plus" size={20} />
           Ajouter un élément
@@ -1404,8 +1406,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             <div className="flex justify-end gap-3 pt-4 border-t border-[#E2E8F0]">
               <button
                 onClick={() => {
-                  setImageUrl(domain?.backgroundImage || '');
-                  setEnableClustering(domain?.enableClustering !== false);
+                  setImageUrl(domain.backgroundImage || '');
+                  setEnableClustering(domain.enableClustering !== false);
                   setShowConfigModal(false);
                 }}
                 className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"
@@ -1552,7 +1554,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
                 >
                   <option value="">-- Sélectionner une catégorie --</option>
-                  {domain?.categories?.map((cat) => (
+                  {domain.categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
