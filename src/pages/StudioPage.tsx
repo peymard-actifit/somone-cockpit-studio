@@ -160,9 +160,9 @@ export default function StudioPage() {
             title={showEditor ? 'Masquer le panneau' : 'Afficher le panneau'}
           >
             {showEditor ? (
-              <MuiIcon name="PanelRightClose" size={20} />
+              <MuiIcon name="MenuOpen" size={20} />
             ) : (
-              <MuiIcon name="PanelRight" size={20} />
+              <MuiIcon name="Menu" size={20} />
             )}
           </button>
         </div>
