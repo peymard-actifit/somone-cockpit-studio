@@ -105,7 +105,7 @@ export default function AuthPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  {showPassword ? <MuiIcon name="EyeOff" size={20} /> : <MuiIcon name="Eye" size={20} />}
+                  {showPassword ? <MuiIcon name="VisibilityOff" size={20} /> : <MuiIcon name="Visibility" size={20} />}
                 </button>
               </div>
             </div>

@@ -163,7 +163,7 @@ export default function PublicCockpitPage() {
               )}
               
               <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-                <MuiIcon name="Eye" size={16} className="text-blue-400" />
+                <MuiIcon name="Visibility" size={16} className="text-blue-400" />
                 <span className="text-sm text-blue-400">Lecture seule</span>
               </div>
             </div>
