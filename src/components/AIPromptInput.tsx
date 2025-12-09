@@ -1605,7 +1605,7 @@ export default function AIPromptInput() {
         }`}
         title={aiStatus?.configured ? 'Assistant IA OpenAI' : 'Assistant IA (mode local)'}
       >
-        <MuiIcon name="Sparkles" size={16} />
+        <MuiIcon name="AutoAwesome" size={16} />
         <span className="font-medium">IA</span>
         {aiStatus?.configured && <span className="text-xs opacity-75">GPT</span>}
       </button>
@@ -1708,7 +1708,7 @@ export default function AIPromptInput() {
           {isLoading && (
             <div className="flex justify-start">
               <div className="bg-slate-700 px-4 py-2 rounded-xl flex items-center gap-2">
-                <div className="animate-spin"><MuiIcon name="Loader2" size={16} className="text-slate-400" /></div>
+                <div className="animate-spin"><MuiIcon name="Refresh" size={16} className="text-slate-400" /></div>
                 <span className="text-xs text-slate-400">
                   {aiStatus?.configured ? 'GPT réfléchit...' : 'Traitement...'}
                 </span>
@@ -1790,7 +1790,7 @@ export default function AIPromptInput() {
               disabled={!prompt.trim() || isLoading}
               className="p-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
             >
-              <MuiIcon name="SendIcon" size={16} />
+              <MuiIcon name="Send" size={16} />
             </button>
           </div>
         </form>
@@ -1805,9 +1805,9 @@ export default function AIPromptInput() {
             : 'bg-slate-600'
         }`}
       >
-        <MuiIcon name="Sparkles" size={16} />
+        <MuiIcon name="AutoAwesome" size={16} />
         <span className="font-medium">IA</span>
-        <MuiIcon name="ChevronUp" size={16} />
+        <MuiIcon name="KeyboardArrowUp" size={16} />
       </button>
     </div>
   );

@@ -69,7 +69,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
       <div className="flex items-center gap-3 mb-4">
         {subCategory.icon && (
           <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
-            <span className="text-lg text-white">{subCategory.icon}</span>
+            <MuiIcon name={subCategory.icon} size={20} className="text-white" />
           </div>
         )}
         
@@ -94,7 +94,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all border border-[#E57373]/30 hover:border-[#E57373]"
             title="Supprimer la sous-catégorie"
           >
-            <MuiIcon name="Trash2" size={16} />
+            <MuiIcon name="Delete" size={16} />
             <span>Supprimer</span>
           </button>
         )}

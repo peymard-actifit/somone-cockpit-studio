@@ -220,7 +220,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
             className="absolute top-1 left-1 p-1 bg-white/20 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/30"
             title="Supprimer le sous-élément"
           >
-            <MuiIcon name="Trash2" size={12} />
+            <MuiIcon name="Delete" size={12} />
           </button>
         )}
       </button>

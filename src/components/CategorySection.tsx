@@ -69,7 +69,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
       <div className="flex items-center gap-3 mb-4">
         {category.icon && (
           <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
-            <span className="text-xl text-white">{category.icon}</span>
+            <MuiIcon name={category.icon} size={24} className="text-white" />
           </div>
         )}
         
@@ -94,7 +94,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all border border-[#E57373]/30 hover:border-[#E57373]"
             title="Supprimer la catégorie"
           >
-            <MuiIcon name="Trash2" size={16} />
+            <MuiIcon name="Delete" size={16} />
             <span>Supprimer</span>
           </button>
         )}

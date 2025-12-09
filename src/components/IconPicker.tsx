@@ -10,14 +10,39 @@ interface IconProps {
 }
 
 export function MuiIcon({ name, size = 24, className = '' }: IconProps) {
+  if (!name) {
+    // Icône par défaut si pas de nom
+    const defaultPath = ICONS['Help'] || 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z';
+    return (
+      <svg 
+        viewBox="0 0 24 24" 
+        width={size} 
+        height={size} 
+        fill="currentColor"
+        className={className}
+      >
+        <path d={defaultPath} />
+      </svg>
+    );
+  }
+  
   const path = ICONS[name];
   
   if (!path) {
+    // Si l'icône n'existe pas, essayer de trouver une variante ou utiliser Help
+    const fallbackName = name.endsWith('Icon') ? name.replace('Icon', '') : name + 'Icon';
+    const fallbackPath = ICONS[fallbackName] || ICONS['Help'] || 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z';
     return (
-      <div 
-        className={`rounded-full bg-slate-400 ${className}`} 
-        style={{ width: size * 0.6, height: size * 0.6 }} 
-      />
+      <svg 
+        viewBox="0 0 24 24" 
+        width={size} 
+        height={size} 
+        fill="currentColor"
+        className={className}
+        opacity="0.5"
+      >
+        <path d={fallbackPath} />
+      </svg>
     );
   }
   
@@ -127,7 +152,7 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
           {!showDirectInput && (
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                <MuiIcon name="SearchIcon" size={20} />
+                <MuiIcon name="Search" size={20} />
               </div>
               <input
                 type="text"
@@ -144,7 +169,7 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
           {showDirectInput && (
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                <MuiIcon name="EditIcon" size={20} />
+                <MuiIcon name="Edit" size={20} />
               </div>
               <div className="flex gap-2">
                 <input
@@ -206,7 +231,7 @@ export default function IconPicker({ value, onChange, onClose }: IconPickerProps
               className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center gap-1.5"
               title={showDirectInput ? "Retour à la recherche" : "Saisir directement le nom de l'icône"}
             >
-              <MuiIcon name={showDirectInput ? "SearchIcon" : "EditIcon"} size={14} />
+              <MuiIcon name={showDirectInput ? "Search" : "Edit"} size={14} />
               {showDirectInput ? 'Retour à la recherche' : 'Saisir par nom'}
             </button>
             

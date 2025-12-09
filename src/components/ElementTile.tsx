@@ -282,7 +282,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
           className="absolute top-2 right-2 p-1 bg-[#E57373] text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 shadow-sm"
           title="Supprimer l'élément"
         >
-          <MuiIcon name="Trash2" size={12} />
+          <MuiIcon name="Delete" size={12} />
         </button>
       )}
     </button>

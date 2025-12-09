@@ -169,7 +169,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
           className="fixed bottom-4 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-lg transition-all"
           title="Configurer l'image de fond"
         >
-          <MuiIcon name="ImageIcon" size={20} />
+          <MuiIcon name="Image" size={20} />
           <span className="text-sm font-medium">Fond</span>
         </button>
       )}
@@ -183,7 +183,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
           onClick={handleBack}
           className="flex items-center gap-2 text-[#1E3A5F] hover:text-[#2C4A6E] transition-colors mb-6 group bg-white px-4 py-2 rounded-full border border-[#E2E8F0] shadow-sm"
         >
-          <MuiIcon name="ArrowLeftIcon" size={20} />
+          <MuiIcon name="ArrowLeft" size={20} />
           <span className="font-medium">Retour{domain ? ` à ${domain.name}` : ''}</span>
         </button>
         
@@ -234,7 +234,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                   <div className="flex items-center gap-3">
                     {subCategory.icon && (
                       <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-lg text-white">{subCategory.icon}</span>
+                        <MuiIcon name={subCategory.icon} size={20} className="text-white" />
                       </div>
                     )}
                     {!subCategory.icon && (
@@ -259,7 +259,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                         className="p-1.5 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                         title="Supprimer"
                       >
-                        <MuiIcon name="Trash2" size={16} />
+                        <MuiIcon name="Delete" size={16} />
                       </button>
                     )}
                   </div>

@@ -98,7 +98,7 @@ const TranslationPreviewModal = ({
             disabled={isLoading || editedChanges.length === 0}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            {isLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+            {isLoading && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
             Appliquer la traduction
           </button>
         </div>
@@ -190,7 +190,7 @@ const Modal = ({
               disabled={isLoading || isSavingOriginals || isRestoring}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              {isLoading && <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>}
+              {isLoading && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
               {confirmText || 'Confirmer'}
             </button>
           )}

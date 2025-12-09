@@ -764,7 +764,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       {/* Header - Style PDF SOMONE mode clair */}
       <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
-          <MuiIcon name="ImageIcon" size={20} className="text-[#1E3A5F]" />
+          <MuiIcon name="Image" size={20} className="text-[#1E3A5F]" />
           {domain.name}
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
@@ -781,7 +781,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           <MuiIcon name="Minus" size={20} />
         </button>
         <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="RÃ©initialiser">
-          <MuiIcon name="Maximize2" size={20} />
+          <MuiIcon name="Maximize" size={20} />
         </button>
       </div>
       
@@ -1004,7 +1004,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         {!domain.backgroundImage && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
-              <div className="mx-auto mb-4"><MuiIcon name="ImageIcon" size={64} className="text-[#CBD5E1]" /></div>
+              <div className="mx-auto mb-4"><MuiIcon name="Image" size={64} className="text-[#CBD5E1]" /></div>
               <p className="text-[#64748B]">Aucune image de fond configurée</p>
                 <p className="text-sm text-[#94A3B8] mt-2 mb-4">
                   Ajoutez une image depuis un fichier ou une URL
@@ -1264,7 +1264,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                       }}
                       title="Cloner"
                     >
-                      <MuiIcon name="CopyIcon" size={6} className="text-[#1E3A5F]" />
+                      <MuiIcon name="ContentCopy" size={6} className="text-[#1E3A5F]" />
                     </button>
                   </div>
                 )}
@@ -1303,7 +1303,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             onClick={() => setShowConfigModal(true)}
             className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
           >
-            <MuiIcon name="SettingsIcon" size={20} />
+            <MuiIcon name="Settings" size={20} />
             Configurer
           </button>
           <button 
@@ -1578,7 +1578,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                       : 'border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]'
                   }`}
                 >
-                  <MuiIcon name="FolderPlus" size={16} />
+                  <MuiIcon name="CreateNewFolder" size={16} />
                   Nouvelle
                 </button>
               </div>

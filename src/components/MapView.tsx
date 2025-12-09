@@ -718,7 +718,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       {/* Header */}
       <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
-          <MuiIcon name="MapPinIcon" size={20} className="text-[#1E3A5F]" />
+          <MuiIcon name="Place" size={20} className="text-[#1E3A5F]" />
           {domain.name}
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
@@ -726,7 +726,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         </p>
         {!_readOnly && !hasMapBounds && mapImageUrl && (
           <p className="text-xs text-[#FFB74D] mt-1 flex items-center gap-1">
-            <MuiIcon name="AlertTriangleIcon" size={12} />
+            <MuiIcon name="Warning" size={12} />
             Configurez les coordonnées GPS
           </p>
         )}
@@ -741,7 +741,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           <MuiIcon name="Minus" size={20} />
         </button>
         <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="RÃ©initialiser">
-          <MuiIcon name="Maximize2" size={20} />
+          <MuiIcon name="Maximize" size={20} />
         </button>
       </div>
       
@@ -1265,7 +1265,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                       }}
                       title="Cloner"
                     >
-                      <MuiIcon name="CopyIcon" size={6} className="text-[#1E3A5F]" />
+                      <MuiIcon name="ContentCopy" size={6} className="text-[#1E3A5F]" />
                     </button>
                   </div>
                 )}
@@ -1302,7 +1302,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             onClick={() => setShowConfigModal(true)}
             className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
           >
-            <MuiIcon name="SettingsIcon" size={20} />
+            <MuiIcon name="Settings" size={20} />
             Configurer
           </button>
           <button
@@ -1384,12 +1384,12 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 >
                   {isAnalyzing ? (
                     <>
-                      <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
+                      <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>
                       <span>Analyse...</span>
                     </>
                   ) : (
                     <>
-                      <MuiIcon name="Sparkles" size={16} />
+                      <MuiIcon name="AutoAwesome" size={16} />
                       <span>DÃ©tecter GPS</span>
                     </>
                   )}
@@ -1429,7 +1429,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     </div>
                   ) : (
                     <div className="flex items-start gap-2">
-                      <MuiIcon name="AlertTriangleIcon" size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                      <MuiIcon name="Warning" size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="font-medium">DÃ©tection impossible</p>
                         <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
@@ -1644,9 +1644,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                       title="Convertir l'adresse en coordonnées GPS"
                     >
                       {isGeocodingAddress ? (
-                        <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
+                        <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>
                       ) : (
-                        <MuiIcon name="Sparkles" size={16} />
+                        <MuiIcon name="AutoAwesome" size={16} />
                       )}
                     </button>
                   </div>
@@ -1728,7 +1728,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     <MuiIcon name={pointForm.icon} size={18} className="text-white" />
                   </div>
                   <span className="flex-1 text-left">{pointForm.icon}</span>
-                  <MuiIcon name="ChevronDown" size={16} className="text-[#94A3B8]" />
+                  <MuiIcon name="KeyboardArrowDown" size={16} className="text-[#94A3B8]" />
                 </button>
                 
                 {showIconPicker && (

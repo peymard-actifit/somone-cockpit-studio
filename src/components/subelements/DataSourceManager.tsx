@@ -242,7 +242,7 @@ export default function DataSourceManager({ subElement, sources, onUpdate }: Dat
                       className="p-1 text-[#64748B] hover:text-red-600"
                       title="Supprimer"
                     >
-                      <MuiIcon name="Trash2" size={14} />
+                      <MuiIcon name="Delete" size={14} />
                     </button>
                   </div>
                 </div>

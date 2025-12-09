@@ -54,7 +54,7 @@ function SortableCategoryItem({
           className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#E2E8F0] rounded transition-colors"
           title="Glisser pour réorganiser"
         >
-          <MuiIcon name="GripVertical" size={16} className="text-[#94A3B8]" />
+          <MuiIcon name="DragIndicator" size={16} className="text-[#94A3B8]" />
         </div>
         <input
           type="text"
@@ -71,7 +71,7 @@ function SortableCategoryItem({
           {category.icon ? (
             <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
           ) : (
-            <MuiIcon name="ImageIcon" size={18} className="text-[#94A3B8]" />
+            <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
           )}
         </button>
       </div>
@@ -131,7 +131,7 @@ function SortableSubCategoryItem({
           className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#E2E8F0] rounded transition-colors"
           title="Glisser pour réorganiser"
         >
-          <MuiIcon name="GripVertical" size={16} className="text-[#94A3B8]" />
+          <MuiIcon name="DragIndicator" size={16} className="text-[#94A3B8]" />
         </div>
         <input
           type="text"
@@ -148,7 +148,7 @@ function SortableSubCategoryItem({
           {subCategory.icon ? (
             <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
           ) : (
-            <MuiIcon name="ImageIcon" size={18} className="text-[#94A3B8]" />
+            <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
           )}
         </button>
       </div>
@@ -286,7 +286,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             }}
             className="flex items-center gap-2 text-[#64748B] hover:text-[#1E3A5F] mb-2"
           >
-            <div className="rotate-180"><MuiIcon name="ChevronRightIcon" size={16} /></div>
+            <div className="rotate-180"><MuiIcon name="ChevronRight" size={16} /></div>
             Retour
           </button>
           <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition sous-élément</h3>
@@ -306,7 +306,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="Supprimer ce sous-élément"
             >
-              <MuiIcon name="Trash2" size={18} />
+              <MuiIcon name="Delete" size={18} />
             </button>
           </div>
         </div>
@@ -314,7 +314,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Propriétés du sous-élément */}
         <Section 
           title="Propriétés" 
-          iconName="SettingsIcon" 
+          iconName="Settings" 
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -557,7 +557,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="Supprimer cet élément"
             >
-              <MuiIcon name="Trash2" size={18} />
+              <MuiIcon name="Delete" size={18} />
             </button>
           </div>
         </div>
@@ -577,7 +577,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Propriétés */}
         <Section 
           title="Propriétés" 
-          iconName="SettingsIcon" 
+          iconName="Settings" 
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -781,9 +781,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   />
                   <span className="text-sm text-[#1E3A5F] truncate flex-1">{se.name}</span>
                   {se.alert && (
-                    <MuiIcon name="AlertTriangleIcon" size={16} className="text-[#FFB74D] flex-shrink-0" />
+                    <MuiIcon name="Warning" size={16} className="text-[#FFB74D] flex-shrink-0" />
                   )}
-                  <MuiIcon name="ChevronRightIcon" size={16} className="text-[#94A3B8] flex-shrink-0" />
+                  <MuiIcon name="ChevronRight" size={16} className="text-[#94A3B8] flex-shrink-0" />
                 </button>
               ))}
             </div>
@@ -1017,7 +1017,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     onClick={() => cloneMapElement(mapElement.id)}
                     className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2 text-sm"
                   >
-                    <MuiIcon name="CopyIcon" size={16} />
+                    <MuiIcon name="ContentCopy" size={16} />
                     <span>Cloner le point</span>
                   </button>
                 </div>
@@ -1114,7 +1114,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Supprimer ce domaine"
               >
-                <MuiIcon name="Trash2" size={18} />
+                <MuiIcon name="Delete" size={18} />
               </button>
             )}
           </div>
@@ -1123,7 +1123,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Propriétés du domaine */}
         <Section 
           title="Propriétés" 
-          iconName="SettingsIcon" 
+          iconName="Settings" 
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -1392,9 +1392,9 @@ function Section({ title, iconName, isOpen, onToggle, children }: SectionProps) 
         <MuiIcon name={iconName} size={16} className="text-[#94A3B8]" />
         <span className="flex-1 text-sm font-medium text-[#1E3A5F]">{title}</span>
         {isOpen ? (
-          <MuiIcon name="ChevronDown" size={16} className="text-[#94A3B8]" />
+          <MuiIcon name="KeyboardArrowDown" size={16} className="text-[#94A3B8]" />
         ) : (
-          <MuiIcon name="ChevronRightIcon" size={16} className="text-[#94A3B8]" />
+          <MuiIcon name="ChevronRight" size={16} className="text-[#94A3B8]" />
         )}
       </button>
       

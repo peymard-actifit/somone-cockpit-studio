@@ -43,7 +43,7 @@ export default function AlertPopup({ alert, subElement, breadcrumb, onClose }: A
           style={{ backgroundColor: colors.hex }}
         >
           <div className="flex items-center gap-4">
-            <MuiIcon name="AlertTriangleIcon" size={32} className="text-white" />
+            <MuiIcon name="Warning" size={32} className="text-white" />
             <div>
               <h3 className="text-xl font-bold text-white">
                 {STATUS_LABELS[subElement.status]}

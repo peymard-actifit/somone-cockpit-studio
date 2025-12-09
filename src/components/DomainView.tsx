@@ -166,7 +166,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
           className="fixed bottom-4 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-lg transition-all"
           title="Configurer l'image de fond"
         >
-          <MuiIcon name="ImageIcon" size={20} />
+          <MuiIcon name="Image" size={20} />
           <span className="text-sm font-medium">Fond</span>
         </button>
       )}
@@ -195,7 +195,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 <div className="flex items-center gap-3">
                   {category.icon && (
                     <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-xl text-white">{category.icon}</span>
+                      <MuiIcon name={category.icon} size={24} className="text-white" />
                     </div>
                   )}
                   {!category.icon && (
@@ -220,7 +220,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       className="p-1.5 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                       title="Supprimer"
                     >
-                      <MuiIcon name="Trash2" size={16} />
+                      <MuiIcon name="Delete" size={16} />
                     </button>
                   )}
                 </div>

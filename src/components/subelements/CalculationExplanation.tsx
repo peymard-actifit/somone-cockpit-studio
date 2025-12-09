@@ -108,7 +108,7 @@ export default function CalculationExplanation({ calculation, sources }: Calcula
     return (
       <div className="p-4 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] text-center">
         <div className="animate-spin inline-block">
-          <MuiIcon name="Loader2" size={24} className="text-[#64748B]" />
+          <MuiIcon name="Refresh" size={24} className="text-[#64748B]" />
         </div>
         <p className="text-sm text-[#64748B] mt-2">Génération de l'explication...</p>
       </div>

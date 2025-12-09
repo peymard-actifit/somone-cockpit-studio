@@ -53,7 +53,7 @@ function SortableDomainTab({ domain, isActive, onSelect, onDelete, domainsCount 
         onClick={(e) => e.stopPropagation()}
         title="Glisser pour réorganiser"
       >
-        <MuiIcon name="GripVertical" size={14} className={isActive ? 'text-[#1E3A5F]/50' : 'text-white/50'} />
+        <MuiIcon name="DragIndicator" size={14} className={isActive ? 'text-[#1E3A5F]/50' : 'text-white/50'} />
       </div>
       
       <span>{domain.name}</span>
@@ -81,7 +81,7 @@ function SortableDomainTab({ domain, isActive, onSelect, onDelete, domainsCount 
           }`}
           title="Supprimer ce domaine"
         >
-          <MuiIcon name="Trash2" size={14} />
+          <MuiIcon name="Delete" size={14} />
         </button>
       )}
     </button>
