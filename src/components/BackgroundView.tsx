@@ -750,7 +750,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           {domain.name}
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
-          {positionedElements.length} Ã©lÃ©ment(s) positionnÃ©s
+          {positionedElements.length} élément(s) positionné(s)
         </p>
       </div>
       
