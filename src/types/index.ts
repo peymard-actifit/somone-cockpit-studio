@@ -62,6 +62,7 @@ export interface Domain {
   templateType: TemplateType;
   templateName?: string;
   backgroundImage?: string;
+  backgroundImageOpacity?: number;  // Opacité de l'image de fond (0-100, défaut: 100)
   backgroundMode?: BackgroundMode;  // 'behind' = en fond, 'overlay' = au-dessus (sans gêner les clics)
   backgroundDarkness?: number;  // Opacité du voile assombrissant (0-100, défaut: 60)
   mapBounds?: MapBounds;  // Coordonnées GPS des coins de la carte
