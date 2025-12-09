@@ -89,6 +89,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [imageUrl, setImageUrl] = useState(domain.backgroundImage || '');
   const [enableClustering, setEnableClustering] = useState(domain.enableClustering !== false);
+  const [imageOpacity, setImageOpacity] = useState(domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100);
   
   // Modal d'ajout d'Ã©lÃ©ment
   const [showAddModal, setShowAddModal] = useState(false);
@@ -198,13 +199,23 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       newImageUrlPreview: newImageUrl.substring(0, 50)
     });
     setImageUrl(newImageUrl);
+    setImageOpacity(domain?.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100);
     setEnableClustering(domain?.enableClustering !== false);
-  }, [domain?.backgroundImage, domain?.enableClustering]);
+  }, [domain?.backgroundImage, domain?.backgroundImageOpacity, domain?.enableClustering]);
   
-  // GÃ©rer l'upload de fichier
+  // Gérer l'upload de fichier avec limite de 30MB
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Vérifier la taille du fichier (30MB max)
+      const maxSizeMB = 30;
+      const maxSizeBytes = maxSizeMB * 1024 * 1024;
+      if (file.size > maxSizeBytes) {
+        alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
+        e.target.value = ''; // Réinitialiser l'input
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
@@ -223,12 +234,19 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       return;
     }
     
-    // VÃ©rifier la taille (avertir si > 3MB)
+    // Vérifier la taille (limite 30MB)
     const sizeMB = imageUrl.length / 1024 / 1024;
+    const maxSizeMB = 30;
     
-    console.log(`[BackgroundView] ðŸ’¾ Sauvegarde image: ${sizeMB.toFixed(2)} MB (${imageUrl.length} chars)`);
+    if (sizeMB > maxSizeMB) {
+      alert(`Erreur: L'image est trop volumineuse (${sizeMB.toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
+      return;
+    }
+    
+    console.log(`[BackgroundView] 💾 Sauvegarde image: ${sizeMB.toFixed(2)} MB (${imageUrl.length} chars)`);
     updateDomain(domain.id, { 
       backgroundImage: imageUrl,
+      backgroundImageOpacity: imageOpacity,
       enableClustering: enableClustering,
     });
     setShowConfigModal(false);
@@ -825,12 +843,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         className={`w-full ${_readOnly ? 'h-full' : 'flex-1'} overflow-hidden ${
           isDrawing ? 'cursor-crosshair' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
-        style={{ 
-          minHeight: _readOnly ? 'calc(100vh - 200px)' : '400px', 
-          height: _readOnly ? '100%' : undefined,
-          position: _readOnly ? 'relative' : 'relative',
-          display: _readOnly ? 'block' : undefined
-        }}
+          style={{ 
+            position: 'relative',
+            height: _readOnly ? '100%' : undefined,
+            minHeight: _readOnly ? '100%' : '400px'
+          }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -840,20 +857,14 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       >
         <div
           ref={imageContainerRef}
-          className={`w-full ${_readOnly ? 'absolute inset-0' : 'relative h-full'}`}
+          className="w-full h-full"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center',
             transition: isDragging || isDrawing || draggingElementId ? 'none' : 'transform 0.1s ease-out',
-            height: _readOnly ? '100%' : '100%',
+            position: 'relative',
             width: '100%',
-            minHeight: _readOnly ? '100%' : undefined,
-            minWidth: '100%',
-            position: _readOnly ? 'absolute' : 'relative',
-            top: _readOnly ? 0 : undefined,
-            left: _readOnly ? 0 : undefined,
-            right: _readOnly ? 0 : undefined,
-            bottom: _readOnly ? 0 : undefined
+            height: '100%'
           }}
         >
           {/* Image de fond */}
@@ -870,14 +881,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                right: 0,
-                bottom: 0,
                 width: '100%',
                 height: '100%',
                 objectFit: 'contain',
                 zIndex: 0,
-                opacity: 1,
-                display: 'block'
+                opacity: imageOpacity / 100
               }}
               crossOrigin="anonymous"
               onLoad={(e) => {
@@ -1327,7 +1335,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 >
                   <MuiIcon name="Upload" size={32} className="mb-2" />
                   <span className="text-sm font-medium">Cliquez pour choisir un fichier</span>
-                  <span className="text-xs mt-1">PNG, JPG, GIF jusqu'Ã  10MB</span>
+                  <span className="text-xs mt-1">PNG, JPG, GIF jusqu'à 30MB</span>
                 </label>
               </div>
             </div>
@@ -1379,12 +1387,34 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 Options d'affichage
               </h4>
               
+              {/* Opacité de l'image */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                  Opacité de l'image ({imageOpacity}%)
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={imageOpacity}
+                  onChange={(e) => setImageOpacity(Number(e.target.value))}
+                  className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${imageOpacity}%, #E2E8F0 ${imageOpacity}%, #E2E8F0 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+              
               {/* Toggle regroupement */}
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-sm font-medium text-[#1E3A5F]">Regroupement des Ã©lÃ©ments</label>
+                  <label className="block text-sm font-medium text-[#1E3A5F]">Regroupement des éléments</label>
                   <p className="text-xs text-[#64748B] mt-1">
-                    Regrouper les Ã©lÃ©ments proches en clusters pour amÃ©liorer la lisibilitÃ©
+                    Regrouper les éléments proches en clusters pour améliorer la lisibilité
                   </p>
                 </div>
                 <button
@@ -1409,6 +1439,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               <button
                 onClick={() => {
                   setImageUrl(domain.backgroundImage || '');
+                  setImageOpacity(domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100);
                   setEnableClustering(domain.enableClustering !== false);
                   setShowConfigModal(false);
                 }}
