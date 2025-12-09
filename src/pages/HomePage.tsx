@@ -250,7 +250,7 @@ export default function HomePage() {
             <MuiIcon name="Dashboard" size={32} className="text-blue-400" />
             <div>
               <h1 className="text-xl font-bold text-white">SOMONE Cockpit Studio</h1>
-              <p className="text-xs text-slate-500">Studio de création de maquettes · v8.6.0</p>
+              <p className="text-xs text-white/80">Studio de création de maquettes · v8.6.0</p>
             </div>
           </div>
           
@@ -1024,7 +1024,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-cockpit-nav-bg/50 border-t border-slate-700/50 py-4 mt-12">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-white/80">
             SOMONE Cockpit Studio v8.6.0
           </p>
         </div>
