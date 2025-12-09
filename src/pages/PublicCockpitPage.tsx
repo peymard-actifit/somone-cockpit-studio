@@ -5,6 +5,7 @@ import { MuiIcon } from '../components/IconPicker';
 import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
 import PublicAIChat from '../components/PublicAIChat';
+import { VERSION_DISPLAY } from '../config/version';
 
 export default function PublicCockpitPage() {
   const { publicId } = useParams();
@@ -92,7 +93,7 @@ export default function PublicCockpitPage() {
       <div className="min-h-screen bg-cockpit-bg-dark flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin mb-4">
-            <MuiIcon name="Loader2" size={48} className="text-white" />
+            <MuiIcon name="Refresh" size={48} className="text-white" />
           </div>
           <p className="text-slate-400">Chargement du cockpit...</p>
         </div>
@@ -104,7 +105,7 @@ export default function PublicCockpitPage() {
     return (
       <div className="min-h-screen bg-cockpit-bg-dark flex items-center justify-center">
         <div className="text-center bg-cockpit-bg-card p-8 rounded-xl shadow-lg border border-slate-700/50 max-w-md">
-          <MuiIcon name="AlertTriangle" size={48} className="text-red-400 mx-auto mb-4" />
+          <MuiIcon name="Warning" size={48} className="text-red-400 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">Cockpit introuvable</h1>
           <p className="text-slate-400">{error}</p>
         </div>
