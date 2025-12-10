@@ -159,7 +159,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
       onDrop={handleDrop}
       className={`
         group relative
-        w-[200px] h-[140px]
+        w-[160px] h-[112px]
         border rounded-xl
         shadow-sm hover:shadow-md
         transition-all duration-200

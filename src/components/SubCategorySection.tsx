@@ -149,7 +149,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
                 rounded-lg transition-colors bg-[#F5F7FA]/50
                 ${subCategory.orientation === 'vertical'
                   ? 'py-4 w-full'
-                  : 'px-6 py-4 min-w-[140px] min-h-[70px]'
+                  : 'px-5 py-3 min-w-[112px] min-h-[56px]'
                 }
               `}
             >
@@ -159,7 +159,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
           ) : (
             <div className={`
               bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg p-3
-              ${subCategory.orientation === 'vertical' ? 'w-full' : 'min-w-[180px]'}
+              ${subCategory.orientation === 'vertical' ? 'w-full' : 'min-w-[144px]'}
             `}>
               <input
                 type="text"
