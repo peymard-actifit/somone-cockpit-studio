@@ -26,9 +26,24 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   const isOkStatus = colors.hex === STATUS_COLORS.ok.hex;
   const buttonRef = useRef<HTMLButtonElement>(null);
   
-  // Préférence pour l'affichage des tuiles vertes (ok)
-  const greenTilesAsColored = localStorage.getItem('greenTilesAsColored') === 'true';
+  // Préférence pour l'affichage des tuiles vertes (ok) - avec état React pour réactivité
+  const [greenTilesAsColored, setGreenTilesAsColored] = useState(() => {
+    return localStorage.getItem('greenTilesAsColored') === 'true';
+  });
   const shouldUseWhiteBackground = isOkStatus && !greenTilesAsColored;
+  
+  // Écouter les changements de préférence
+  useEffect(() => {
+    const handlePreferenceChange = () => {
+      setGreenTilesAsColored(localStorage.getItem('greenTilesAsColored') === 'true');
+    };
+    
+    window.addEventListener('greenTilesPreferenceChanged', handlePreferenceChange);
+    
+    return () => {
+      window.removeEventListener('greenTilesPreferenceChanged', handlePreferenceChange);
+    };
+  }, []);
   
   // Convertir la couleur hex en rgba pour avoir 20% d'opacité (80% de transparence - plus clair)
   const hexToRgba = (hex: string, alpha: number) => {
