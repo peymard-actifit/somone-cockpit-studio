@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
@@ -182,14 +182,17 @@ export default function HomePage() {
   );
   
   // Trier les cockpits par ordre (si défini) ou par date de mise à jour
-  const sortedCockpits = [...cockpits].sort((a, b) => {
-    if (a.order !== undefined && b.order !== undefined) {
-      return a.order - b.order;
-    }
-    if (a.order !== undefined) return -1;
-    if (b.order !== undefined) return 1;
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
+  // Utiliser useMemo pour éviter les recalculs qui réinitialisent le drag & drop
+  const sortedCockpits = useMemo(() => {
+    return [...cockpits].sort((a, b) => {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      if (a.order !== undefined) return -1;
+      if (b.order !== undefined) return 1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [cockpits]);
   
   // Handler pour la fin du drag
   const handleDragEnd = async (event: DragEndEvent) => {
