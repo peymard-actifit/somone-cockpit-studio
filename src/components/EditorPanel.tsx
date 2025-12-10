@@ -1669,8 +1669,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   const newValue = !greenTilesAsColored;
                   setGreenTilesAsColored(newValue);
                   localStorage.setItem('greenTilesAsColored', String(newValue));
-                  // Forcer le re-render des tuiles
-                  window.dispatchEvent(new Event('storage'));
+                  // Forcer le re-render des tuiles dans la même fenêtre
+                  window.dispatchEvent(new Event('greenTilesPreferenceChanged'));
                 }}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
                   greenTilesAsColored ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
