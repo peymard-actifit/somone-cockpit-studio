@@ -941,6 +941,7 @@ INSTRUCTIONS:
         publicId: c.data?.publicId,
         isPublished: c.data?.isPublished || false,
         publishedAt: c.data?.publishedAt,
+        order: c.data?.order, // Ordre pour le drag & drop
       }));
       
       console.log(`[GET /cockpits] Returning ${result.length} cockpits`);

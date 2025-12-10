@@ -69,33 +69,33 @@ function SortableCockpitCard({
       {/* Preview Area */}
       <div 
         onClick={() => navigate(`/studio/${cockpit.id}`)}
-        className="h-40 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center cursor-pointer relative overflow-hidden"
+        className="h-24 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center cursor-pointer relative overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-t from-cockpit-bg-card/80 to-transparent" />
-        <MuiIcon name="Dashboard" size={48} className="text-slate-700 group-hover:text-slate-600 transition-colors" />
+        <MuiIcon name="Dashboard" size={32} className="text-slate-700 group-hover:text-slate-600 transition-colors" />
         
         {/* Hover overlay */}
         <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
-          <span className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium">
+          <span className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium">
             Ouvrir
-            <MuiIcon name="ChevronRight" size={16} />
+            <MuiIcon name="ChevronRight" size={14} />
           </span>
         </div>
       </div>
       
       {/* Info */}
-      <div className="p-5">
-        <h3 className="text-lg font-semibold text-[#1E3A5F] mb-2 truncate">
+      <div className="p-3">
+        <h3 className="text-base font-semibold text-[#1E3A5F] mb-1 truncate">
           {cockpit.name || 'Sans nom'}
         </h3>
-        <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
-          <MuiIcon name="Clock" size={16} />
+        <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
+          <MuiIcon name="Clock" size={12} />
           <span>Modifié le {formatDate(cockpit.updatedAt)}</span>
         </div>
         
         {/* URL publique pour les cockpits publiés */}
         {cockpit.isPublished && cockpit.publicId && (
-          <div className="flex items-center gap-2 mb-3 px-2 py-1.5 bg-slate-100 border border-slate-300 rounded-lg">
+          <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-slate-100 border border-slate-300 rounded-lg">
             <input
               type="text"
               readOnly
@@ -109,26 +109,26 @@ function SortableCockpitCard({
                 await navigator.clipboard.writeText(url);
                 // Optionnel: afficher un toast de confirmation
               }}
-              className="p-1 hover:bg-slate-200 rounded transition-colors"
+              className="p-0.5 hover:bg-slate-200 rounded transition-colors"
               title="Copier l'URL"
             >
-              <MuiIcon name="ContentCopy" size={14} className="text-slate-600" />
+              <MuiIcon name="ContentCopy" size={12} className="text-slate-600" />
             </button>
           </div>
         )}
         
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {cockpit.isPublished ? (
             <>
               <button
                 onClick={async () => {
                   await handleUnpublish(cockpit.id);
                 }}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400"
                 disabled={isLoading}
               >
-                <MuiIcon name="Globe" size={16} />
+                <MuiIcon name="Globe" size={14} />
                 Dépublier
               </button>
               {cockpit.publicId && (
@@ -136,10 +136,10 @@ function SortableCockpitCard({
                   onClick={() => {
                     window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
                   }}
-                  className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
                   title="Ouvrir dans le navigateur"
                 >
-                  <MuiIcon name="ExternalLink" size={16} />
+                  <MuiIcon name="ExternalLink" size={14} />
                 </button>
               )}
             </>
@@ -148,14 +148,14 @@ function SortableCockpitCard({
               onClick={async () => {
                 await handlePublish(cockpit.id);
               }}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
               disabled={isLoading}
             >
               {isLoading ? (
-                <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
+                <div className="animate-spin"><MuiIcon name="Loader2" size={14} /></div>
               ) : (
                 <>
-                  <MuiIcon name="Globe" size={16} />
+                  <MuiIcon name="Globe" size={14} />
                   Publier
                 </>
               )}
@@ -166,24 +166,24 @@ function SortableCockpitCard({
               setNewName(cockpit.name + ' - Copie');
               setShowDuplicateModal(cockpit.id);
             }}
-            className="p-2 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded-lg transition-colors"
+            className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded-lg transition-colors"
             title="Dupliquer"
           >
-            <MuiIcon name="ContentCopy" size={16} />
+            <MuiIcon name="ContentCopy" size={14} />
           </button>
           <button
             onClick={() => handleExportClick(cockpit.id)}
-            className="p-2 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+            className="p-1.5 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
             title="Exporter"
           >
-            <MuiIcon name="Download" size={16} />
+            <MuiIcon name="Download" size={14} />
           </button>
           <button
             onClick={() => setShowDeleteModal(cockpit.id)}
-            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
             title="Supprimer"
           >
-            <MuiIcon name="Delete" size={16} />
+            <MuiIcon name="Delete" size={14} />
           </button>
         </div>
       </div>
