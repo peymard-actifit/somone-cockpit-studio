@@ -1596,10 +1596,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       if (!response.ok) {
         throw new Error('Erreur lors de la réorganisation');
       }
+      
+      // Recharger les cockpits depuis le serveur pour avoir l'ordre à jour
+      await get().fetchCockpits();
     } catch (error) {
       console.error('Erreur lors de la réorganisation des maquettes:', error);
-      // Recharger les cockpits en cas d'erreur
-      get().fetchCockpits();
+      // Recharger les cockpits en cas d'erreur pour restaurer l'état
+      await get().fetchCockpits();
     }
   },
 

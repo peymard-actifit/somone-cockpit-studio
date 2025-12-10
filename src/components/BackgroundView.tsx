@@ -201,7 +201,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setImageUrl(newImageUrl);
     setImageOpacity(domain?.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100);
     setEnableClustering(domain?.enableClustering !== false);
-  }, [domain?.backgroundImage, domain?.backgroundImageOpacity, domain?.enableClustering]);
+  }, [domain?.backgroundImage, domain?.backgroundImageOpacity, domain?.enableClustering, _readOnly]);
   
   // Gérer l'upload de fichier avec limite de 30MB
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
