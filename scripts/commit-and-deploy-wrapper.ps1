@@ -21,3 +21,4 @@ $scriptPath = Join-Path $PSScriptRoot "commit-and-deploy.ps1"
 & $scriptPath @args
 
 
+
