@@ -1,9 +1,9 @@
-import type { Domain, Element, BackgroundMode } from '../types';
+import type { Domain, Element } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import SubCategorySection from './SubCategorySection';
 import SubElementTile from './SubElementTile';
 import { MuiIcon } from './IconPicker';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 
 interface ElementViewProps {
@@ -15,7 +15,7 @@ interface ElementViewProps {
 }
 
 export default function ElementView({ element, domain, readOnly = false, onBack, onSubElementClick }: ElementViewProps) {
-  const { setCurrentElement, addSubCategory, addSubElement, deleteSubCategory, updateElement, reorderSubElement, moveSubElement } = useCockpitStore();
+  const { setCurrentElement, addSubCategory, addSubElement, deleteSubCategory, reorderSubElement, moveSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState('');
@@ -24,48 +24,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   const [newSubElementName, setNewSubElementName] = useState('');
   const [draggingOverSubCategoryId, setDraggingOverSubCategoryId] = useState<string | null>(null);
   
-  // Modal de configuration de l'image de fond
-  const [showBgConfigModal, setShowBgConfigModal] = useState(false);
-  const [bgImageUrl, setBgImageUrl] = useState(element.backgroundImage || '');
-  const [bgMode, setBgMode] = useState<BackgroundMode>(element.backgroundMode || 'behind');
-  
-  // Mettre à jour quand l'élément change
-  useEffect(() => {
-    setBgImageUrl(element.backgroundImage || '');
-    setBgMode(element.backgroundMode || 'behind');
-  }, [element.backgroundImage, element.backgroundMode]);
-  
-  // Gérer l'upload de fichier
-  const handleBgFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        setBgImageUrl(base64);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
-  // Sauvegarder la configuration
-  const handleSaveBgConfig = () => {
-    updateElement(element.id, { 
-      backgroundImage: bgImageUrl || undefined,
-      backgroundMode: bgMode 
-    });
-    setShowBgConfigModal(false);
-  };
-  
-  // Supprimer l'image de fond
-  const handleRemoveBgImage = () => {
-    setBgImageUrl('');
-    updateElement(element.id, { 
-      backgroundImage: undefined,
-      backgroundMode: undefined 
-    });
-    setShowBgConfigModal(false);
-  };
+  // Modal de configuration supprimée - l'édition se fait maintenant via EditorPanel
   
   const handleBack = () => {
     if (onBack) {
@@ -160,18 +119,6 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
             />
           </div>
         </div>
-      )}
-      
-      {/* Bouton configuration image de fond (masqué en mode lecture seule) */}
-      {!readOnly && (
-        <button
-          onClick={() => setShowBgConfigModal(true)}
-          className="fixed bottom-4 right-4 z-30 flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-lg transition-all"
-          title="Configurer l'image de fond"
-        >
-          <MuiIcon name="Image" size={20} />
-          <span className="text-sm font-medium">Fond</span>
-        </button>
       )}
       
       {/* Contenu principal */}
@@ -451,125 +398,6 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
       </div>
       </div>
       
-      {/* Modal Configuration Image de Fond */}
-      {showBgConfigModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowBgConfigModal(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
-              <h3 className="text-lg font-semibold text-[#1E3A5F]">Image de fond</h3>
-              <button onClick={() => setShowBgConfigModal(false)} className="p-1 text-[#94A3B8] hover:text-[#1E3A5F]">
-                <MuiIcon name="X" size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              {/* Upload de fichier */}
-              <div>
-                <p className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</p>
-                <label 
-                  htmlFor="element-bg-upload"
-                  className="block p-6 border-2 border-dashed border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors cursor-pointer"
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBgFileUpload}
-                    className="hidden"
-                    id="element-bg-upload"
-                  />
-                  <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
-                    <MuiIcon name="Upload" size={40} className="mb-3" />
-                    <span className="text-sm font-medium">Cliquez pour choisir un fichier</span>
-                    <span className="text-xs mt-1 text-[#94A3B8]">PNG, JPG, GIF</span>
-                  </div>
-                </label>
-              </div>
-              
-              {/* Mode d'affichage */}
-              {bgImageUrl && (
-                <div>
-                  <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Mode d'affichage</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setBgMode('behind')}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        bgMode === 'behind'
-                          ? 'border-[#1E3A5F] bg-[#1E3A5F]/5'
-                          : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <MuiIcon name="Layers" size={20} className="text-[#1E3A5F]" />
-                        <span className="font-medium text-[#1E3A5F]">En fond</span>
-                      </div>
-                      <p className="text-xs text-[#64748B]">Image derrière le contenu avec un voile semi-transparent</p>
-                    </button>
-                    <button
-                      onClick={() => setBgMode('overlay')}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        bgMode === 'overlay'
-                          ? 'border-[#1E3A5F] bg-[#1E3A5F]/5'
-                          : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <MuiIcon name="Square" size={20} className="text-[#1E3A5F]" />
-                        <span className="font-medium text-[#1E3A5F]">En overlay</span>
-                      </div>
-                      <p className="text-xs text-[#64748B]">Image par-dessus, transparente, sans gêner les clics</p>
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Aperçu */}
-              {bgImageUrl && (
-                <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                  <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
-                  <img 
-                    src={bgImageUrl} 
-                    alt="Aperçu" 
-                    className="max-h-32 rounded border border-[#E2E8F0] mx-auto"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-              
-              {/* Boutons */}
-              <div className="flex justify-between gap-3 pt-4 border-t border-[#E2E8F0]">
-                {element.backgroundImage && (
-                  <button
-                    onClick={handleRemoveBgImage}
-                    className="px-4 py-2 text-[#E57373] hover:text-red-600 flex items-center gap-2"
-                  >
-                    <MuiIcon name="Trash2" size={16} />
-                    Supprimer
-                  </button>
-                )}
-                <div className="flex gap-3 ml-auto">
-                  <button
-                    onClick={() => {
-                      setBgImageUrl(element.backgroundImage || '');
-                      setBgMode(element.backgroundMode || 'behind');
-                      setShowBgConfigModal(false);
-                    }}
-                    className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F]"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    onClick={handleSaveBgConfig}
-                    className="px-6 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
-                  >
-                    Enregistrer
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
