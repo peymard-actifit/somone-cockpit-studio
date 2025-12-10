@@ -324,8 +324,8 @@ export default function HomePage() {
     try {
       const importedCockpit = await importCockpit(file);
       if (importedCockpit) {
-        // Recharger la liste seulement (ne pas naviguer vers l'édition)
-        await fetchCockpits();
+        // Ne pas recharger - importCockpit met déjà à jour le store localement
+        // Cela préserve l'ordre des cockpits après un drag & drop
       }
     } catch (error) {
       console.error('Erreur import:', error);
@@ -341,8 +341,8 @@ export default function HomePage() {
     if (!newName.trim()) return;
     const cockpit = await createCockpit(newName.trim());
     if (cockpit) {
-      // Recharger la liste seulement (ne pas naviguer vers l'édition)
-      await fetchCockpits();
+      // Ne pas recharger - createCockpit met déjà à jour le store localement
+      // Cela préserve l'ordre des cockpits après un drag & drop
     }
     setShowNewModal(false);
     setNewName('');

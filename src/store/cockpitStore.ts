@@ -1436,10 +1436,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       
       const newCockpit = await response.json();
       
-      // Recharger la liste des cockpits
-      await get().fetchCockpits();
+      // Ajouter le nouveau cockpit à la liste sans recharger (préserve l'ordre)
+      set((state) => ({
+        cockpits: [...state.cockpits, newCockpit],
+        isLoading: false
+      }));
       
-      set({ isLoading: false });
       return newCockpit;
     } catch (error: any) {
       const errorMessage = error.message || 'Erreur lors de l\'import de la maquette';
@@ -1576,8 +1578,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           }
         });
         
-        // Ajouter les cockpits qui ne sont pas dans la liste (au cas où)
-        const remainingCockpits = state.cockpits.filter(c => !cockpitIds.includes(c.id));
+        // Ajouter les cockpits qui ne sont pas dans la liste (au cas où) avec leur ordre existant
+        const remainingCockpits = state.cockpits
+          .filter(c => !cockpitIds.includes(c.id))
+          .map(c => ({ ...c, order: c.order ?? 9999 })); // Garder l'ordre existant ou mettre à la fin
         const allCockpits = [...reorderedCockpits, ...remainingCockpits];
         
         return { cockpits: allCockpits };

@@ -177,7 +177,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     
     if (domain?.backgroundImage && typeof domain.backgroundImage === 'string') {
       const trimmed = domain.backgroundImage.trim();
-      if (isValidBase64Image(trimmed)) {
+      // En mode readOnly, on accepte l'image même si elle ne passe pas la validation stricte
+      if (_readOnly || isValidBase64Image(trimmed)) {
         newImageUrl = trimmed;
       } else {
         console.warn(`[BackgroundView] âš ï¸ Image invalide pour "${domain?.name}":`, {
