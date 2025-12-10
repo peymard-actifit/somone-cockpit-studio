@@ -404,3 +404,5 @@ async function generateIconsFile() {
 // Exécuter le script
 generateIconsFile().catch(console.error);
 
+
+

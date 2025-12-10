@@ -116,3 +116,5 @@ console.log(`   - Extraites: ${extracted}`);
 console.log(`   - Échecs: ${failed}`);
 console.log(`\n💾 Fichier sauvegardé: ${iconsFilePath}`);
 
+
+

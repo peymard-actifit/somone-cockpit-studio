@@ -58,3 +58,5 @@ content = fixedLines.join('\n');
 fs.writeFileSync(iconsFilePath, content, 'utf-8');
 console.log('✅ Fichier icons.ts corrigé');
 
+
+
