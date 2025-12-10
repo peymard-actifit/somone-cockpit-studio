@@ -20,3 +20,4 @@ if ($PSVersionTable.PSVersion.Major -ge 6) {
 $scriptPath = Join-Path $PSScriptRoot "commit-and-deploy.ps1"
 & $scriptPath @args
 
+
