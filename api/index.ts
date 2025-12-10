@@ -1290,6 +1290,37 @@ INSTRUCTIONS:
       });
     }
 
+    // Reorder cockpits
+    if (path === '/cockpits/reorder' && method === 'POST') {
+      const { cockpitIds } = req.body;
+      
+      if (!Array.isArray(cockpitIds)) {
+        return res.status(400).json({ error: 'cockpitIds doit être un tableau' });
+      }
+      
+      const db = await getDb();
+      
+      // Mettre à jour l'ordre de chaque cockpit
+      cockpitIds.forEach((cockpitId: string, index: number) => {
+        const cockpit = db.cockpits.find(c => c.id === cockpitId);
+        if (cockpit) {
+          // Vérifier les permissions
+          if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+            return; // Ignorer les cockpits non autorisés
+          }
+          
+          if (!cockpit.data) {
+            cockpit.data = {};
+          }
+          cockpit.data.order = index;
+          cockpit.updatedAt = new Date().toISOString();
+        }
+      });
+      
+      await saveDb(db);
+      return res.json({ success: true });
+    }
+
     // Publish cockpit
     const publishMatch = path.match(/^\/cockpits\/([^/]+)\/publish$/);
     if (publishMatch && method === 'POST') {
