@@ -543,7 +543,7 @@ export default function HomePage() {
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-1">Mes maquettes</h2>
+            <h2 className="text-2xl font-bold text-[#1E3A5F] mb-1">Mes maquettes</h2>
             <p className="text-slate-400">
               {cockpits.length} maquette{cockpits.length !== 1 ? 's' : ''} disponible{cockpits.length !== 1 ? 's' : ''}
             </p>
