@@ -620,34 +620,6 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onClose={() => setShowIconPicker(null)}
               />
             )}
-            {showIconPicker === 'category' && iconPickerContext && (
-              <IconPicker
-                value={domain?.categories.find(c => c.id === iconPickerContext.id)?.icon}
-                onChange={(iconName) => {
-                  if (iconPickerContext.type === 'category') {
-                    updateCategory(iconPickerContext.id, { icon: iconName });
-                  }
-                }}
-                onClose={() => {
-                  setShowIconPicker(null);
-                  setIconPickerContext(null);
-                }}
-              />
-            )}
-            {showIconPicker === 'subCategory' && iconPickerContext && element && (
-              <IconPicker
-                value={element.subCategories.find(sc => sc.id === iconPickerContext.id)?.icon}
-                onChange={(iconName) => {
-                  if (iconPickerContext.type === 'subCategory') {
-                    updateSubCategory(iconPickerContext.id, { icon: iconName });
-                  }
-                }}
-                onClose={() => {
-                  setShowIconPicker(null);
-                  setIconPickerContext(null);
-                }}
-              />
-            )}
           </div>
         </Section>
         
@@ -864,7 +836,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               {element.subCategories.map((subCategory) => (
                 <div key={subCategory.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setIconPickerContext({ type: 'subCategory', id: subCategory.id });
                       setShowIconPicker('subCategory');
                     }}
@@ -1679,7 +1652,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               {domain.categories.map((category) => (
                 <div key={category.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setIconPickerContext({ type: 'category', id: category.id });
                       setShowIconPicker('category');
                     }}
@@ -1704,6 +1678,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </div>
               ))}
             </div>
+            {/* Sélecteur d'icônes pour les catégories */}
+            {showIconPicker === 'category' && iconPickerContext && (
+              <IconPicker
+                value={domain?.categories.find(c => c.id === iconPickerContext.id)?.icon}
+                onChange={(iconName) => {
+                  if (iconPickerContext.type === 'category') {
+                    updateCategory(iconPickerContext.id, { icon: iconName });
+                  }
+                }}
+                onClose={() => {
+                  setShowIconPicker(null);
+                  setIconPickerContext(null);
+                }}
+              />
+            )}
           </Section>
         )}
         
