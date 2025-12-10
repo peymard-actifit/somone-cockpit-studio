@@ -231,7 +231,8 @@ export default function HomePage() {
   useEffect(() => {
     fetchCockpits();
     fetchSystemPrompt();
-  }, [fetchCockpits]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Ne pas inclure fetchCockpits dans les dépendances pour éviter les rechargements inutiles
   
   const fetchSystemPrompt = async () => {
     try {
