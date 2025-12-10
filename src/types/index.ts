@@ -36,6 +36,7 @@ export interface Cockpit {
   publicId?: string;      // ID public unique pour l'URL
   isPublished?: boolean;  // Si le cockpit est publié
   publishedAt?: string;   // Date de publication
+  order?: number;         // Ordre d'affichage pour le drag & drop
 }
 
 // Coordonnées GPS

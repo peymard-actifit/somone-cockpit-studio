@@ -4,11 +4,207 @@ import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY } from '../config/version';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { Cockpit } from '../types';
+
+// Composant pour une carte de maquette sortable
+function SortableCockpitCard({ 
+  cockpit, 
+  navigate, 
+  setShowPublishModal, 
+  setPublishedUrl, 
+  getPublicBaseUrl, 
+  handlePublish, 
+  isLoading, 
+  setNewName, 
+  setShowDuplicateModal, 
+  handleExportClick, 
+  setShowDeleteModal, 
+  formatDate 
+}: {
+  cockpit: Cockpit;
+  navigate: (path: string) => void;
+  setShowPublishModal: (id: string) => void;
+  setPublishedUrl: (url: string | null) => void;
+  getPublicBaseUrl: () => string;
+  handlePublish: (id: string) => Promise<{ publicId: string } | null>;
+  isLoading: boolean;
+  setNewName: (name: string) => void;
+  setShowDuplicateModal: (id: string) => void;
+  handleExportClick: (id: string) => void;
+  setShowDeleteModal: (id: string) => void;
+  formatDate: (dateString: string) => string;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: cockpit.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group bg-cockpit-bg-card/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10"
+    >
+      {/* Handle de drag */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 right-2 z-10 p-2 bg-slate-800/80 hover:bg-slate-700/80 rounded-lg cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Glisser pour réorganiser"
+      >
+        <MuiIcon name="DragIndicator" size={16} className="text-slate-400" />
+      </div>
+      
+      {/* Preview Area */}
+      <div 
+        onClick={() => navigate(`/studio/${cockpit.id}`)}
+        className="h-40 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center cursor-pointer relative overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-cockpit-bg-card/80 to-transparent" />
+        <MuiIcon name="Dashboard" size={48} className="text-slate-700 group-hover:text-slate-600 transition-colors" />
+        
+        {/* Hover overlay */}
+        <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium">
+            Ouvrir
+            <MuiIcon name="ChevronRight" size={16} />
+          </span>
+        </div>
+      </div>
+      
+      {/* Info */}
+      <div className="p-5">
+        <h3 className="text-lg font-semibold text-[#1E3A5F] mb-2 truncate">
+          {cockpit.name || 'Sans nom'}
+        </h3>
+        <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
+          <MuiIcon name="Clock" size={16} />
+          <span>Modifié le {formatDate(cockpit.updatedAt)}</span>
+        </div>
+        
+        {/* Badge publié */}
+        {cockpit.isPublished && (
+          <div className="flex items-center gap-2 mb-3 px-2 py-1 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <MuiIcon name="Globe" size={14} className="text-green-400" />
+            <span className="text-xs text-green-400">Publié</span>
+          </div>
+        )}
+        
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              if (cockpit.isPublished) {
+                setShowPublishModal(cockpit.id);
+                if (cockpit.publicId) {
+                  setPublishedUrl(`${getPublicBaseUrl()}/public/${cockpit.publicId}`);
+                } else {
+                  setPublishedUrl(null);
+                }
+              } else {
+                const result = await handlePublish(cockpit.id);
+                if (result) {
+                  setShowPublishModal(cockpit.id);
+                  setPublishedUrl(`${getPublicBaseUrl()}/public/${result.publicId}`);
+                }
+              }
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+              cockpit.isPublished
+                ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
+                : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400'
+            }`}
+            disabled={isLoading && !cockpit.isPublished}
+          >
+            {isLoading && !cockpit.isPublished ? (
+              <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
+            ) : (
+              <>
+                <MuiIcon name="Globe" size={16} />
+                {cockpit.isPublished ? 'Gérer' : 'Publier'}
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setNewName(cockpit.name + ' - Copie');
+              setShowDuplicateModal(cockpit.id);
+            }}
+            className="p-2 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded-lg transition-colors"
+            title="Dupliquer"
+          >
+            <MuiIcon name="ContentCopy" size={16} />
+          </button>
+          <button
+            onClick={() => handleExportClick(cockpit.id)}
+            className="p-2 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+            title="Exporter"
+          >
+            <MuiIcon name="Download" size={16} />
+          </button>
+          <button
+            onClick={() => setShowDeleteModal(cockpit.id)}
+            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+            title="Supprimer"
+          >
+            <MuiIcon name="Delete" size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, changePassword, toggleAdmin, isLoading: authLoading, error: authError, clearError } = useAuthStore();
-  const { cockpits, fetchCockpits, createCockpit, duplicateCockpit, deleteCockpit, publishCockpit, unpublishCockpit, exportCockpit, importCockpit, isLoading } = useCockpitStore();
+  const { cockpits, fetchCockpits, createCockpit, duplicateCockpit, deleteCockpit, publishCockpit, unpublishCockpit, exportCockpit, importCockpit, reorderCockpits, isLoading } = useCockpitStore();
+  
+  // Capteurs pour le drag & drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+  
+  // Trier les cockpits par ordre (si défini) ou par date de mise à jour
+  const sortedCockpits = [...cockpits].sort((a, b) => {
+    if (a.order !== undefined && b.order !== undefined) {
+      return a.order - b.order;
+    }
+    if (a.order !== undefined) return -1;
+    if (b.order !== undefined) return 1;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+  
+  // Handler pour la fin du drag
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = sortedCockpits.findIndex(c => c.id === active.id);
+      const newIndex = sortedCockpits.findIndex(c => c.id === over.id);
+      
+      const newOrder = arrayMove(sortedCockpits, oldIndex, newIndex);
+      const cockpitIds = newOrder.map(c => c.id);
+      
+      await reorderCockpits(cockpitIds);
+    }
+  };
   
   const [showNewModal, setShowNewModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState<string | null>(null);
@@ -396,115 +592,37 @@ export default function HomePage() {
           </div>
         )}
         
-        {/* Cockpits Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cockpits.map((cockpit) => (
-            <div
-              key={cockpit.id}
-              className="group bg-cockpit-bg-card/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10"
-            >
-              {/* Preview Area */}
-              <div 
-                onClick={() => navigate(`/studio/${cockpit.id}`)}
-                className="h-40 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center cursor-pointer relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-cockpit-bg-card/80 to-transparent" />
-                <MuiIcon name="Dashboard" size={48} className="text-slate-700 group-hover:text-slate-600 transition-colors" />
-                
-                {/* Hover overlay */}
-                <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium">
-                    Ouvrir
-                    <MuiIcon name="ChevronRight" size={16} />
-                  </span>
-                </div>
-              </div>
-              
-              {/* Info */}
-              <div className="p-5">
-                <h3 className="text-lg font-semibold text-[#1E3A5F] mb-2 truncate">
-                  {cockpit.name || 'Sans nom'}
-                </h3>
-                <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
-                  <MuiIcon name="Clock" size={16} />
-                  <span>Modifié le {formatDate(cockpit.updatedAt)}</span>
-                </div>
-                
-                {/* Badge publié */}
-                {cockpit.isPublished && (
-                  <div className="flex items-center gap-2 mb-3 px-2 py-1 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <MuiIcon name="Globe" size={14} className="text-green-400" />
-                    <span className="text-xs text-green-400">Publié</span>
-                  </div>
-                )}
-                
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={async () => {
-                      if (cockpit.isPublished) {
-                        // Si déjà publié, ouvrir la modal de gestion
-                        setShowPublishModal(cockpit.id);
-                        if (cockpit.publicId) {
-                          setPublishedUrl(`${getPublicBaseUrl()}/public/${cockpit.publicId}`);
-                        } else {
-                          setPublishedUrl(null);
-                        }
-                      } else {
-                        // Si pas encore publié, publier directement
-                        const result = await handlePublish(cockpit.id);
-                        if (result) {
-                          // Après publication, ouvrir la modal pour montrer l'URL
-                          setShowPublishModal(cockpit.id);
-                          setPublishedUrl(`${getPublicBaseUrl()}/public/${result.publicId}`);
-                        }
-                      }
-                    }}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
-                      cockpit.isPublished
-                        ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
-                        : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400'
-                    }`}
-                    disabled={isLoading && !cockpit.isPublished}
-                  >
-                    {isLoading && !cockpit.isPublished ? (
-                      <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
-                    ) : (
-                      <>
-                        <MuiIcon name="Globe" size={16} />
-                        {cockpit.isPublished ? 'Gérer' : 'Publier'}
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setNewName(cockpit.name + ' - Copie');
-                      setShowDuplicateModal(cockpit.id);
-                    }}
-                    className="p-2 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded-lg transition-colors"
-                    title="Dupliquer"
-                  >
-                    <MuiIcon name="ContentCopy" size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleExportClick(cockpit.id)}
-                    className="p-2 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
-                    title="Exporter"
-                  >
-                    <MuiIcon name="Download" size={16} />
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteModal(cockpit.id)}
-                    className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    title="Supprimer"
-                  >
-                    <MuiIcon name="Delete" size={16} />
-                  </button>
-                </div>
-              </div>
+        {/* Cockpits Grid avec Drag & Drop */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sortedCockpits.map(c => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sortedCockpits.map((cockpit) => (
+                <SortableCockpitCard
+                  key={cockpit.id}
+                  cockpit={cockpit}
+                  navigate={navigate}
+                  setShowPublishModal={setShowPublishModal}
+                  setPublishedUrl={setPublishedUrl}
+                  getPublicBaseUrl={getPublicBaseUrl}
+                  handlePublish={handlePublish}
+                  isLoading={isLoading}
+                  setNewName={setNewName}
+                  setShowDuplicateModal={setShowDuplicateModal}
+                  handleExportClick={handleExportClick}
+                  setShowDeleteModal={setShowDeleteModal}
+                  formatDate={formatDate}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       </main>
       
       {/* Modal: Nouvelle maquette */}

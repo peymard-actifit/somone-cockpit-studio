@@ -1,0 +1,537 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-07T15:51:57.157Z",
+  "cockpit": {
+    "name": "CIE Fraude",
+    "domains": [
+      {
+        "id": "0d49f61c-ee52-43fe-a9ad-23da08cbe1e5",
+        "cockpitId": "b050-8ff6-b43f",
+        "name": "Ciblage",
+        "order": 0,
+        "templateType": "standard",
+        "categories": []
+      },
+      {
+        "id": "68c7a8ae-3c00-49e2-8291-d6800262fcce",
+        "cockpitId": "b050-8ff6-b43f",
+        "name": "Performance",
+        "order": 1,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "2db676f3-823c-4dce-a3f2-e01c0999c340",
+            "domainId": "68c7a8ae-3c00-49e2-8291-d6800262fcce",
+            "name": "Sous-Direction 01",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "4230730b-cdf0-4a21-93df-e4b8677642df",
+                "categoryId": "2db676f3-823c-4dce-a3f2-e01c0999c340",
+                "name": "Service 01",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "9f1ee7ef-f8f0-4e1d-aed0-c2bde0f010d2",
+                    "elementId": "4230730b-cdf0-4a21-93df-e4b8677642df",
+                    "name": "Cellule 01",
+                    "orientation": "vertical",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "850b4bf1-3f95-4d8c-a22b-a25f33af6fd9",
+                        "subCategoryId": "9f1ee7ef-f8f0-4e1d-aed0-c2bde0f010d2",
+                        "name": "Contrôleur 01",
+                        "status": "mineur",
+                        "order": 0
+                      },
+                      {
+                        "id": "deab6890-cc63-4e6d-9b1d-649ff26ec611",
+                        "subCategoryId": "9f1ee7ef-f8f0-4e1d-aed0-c2bde0f010d2",
+                        "name": "Contrôleur 02",
+                        "status": "ok",
+                        "order": 1,
+                        "value": "25"
+                      },
+                      {
+                        "id": "312791da-eff1-434b-9e9f-83dfeeeb0a5f",
+                        "subCategoryId": "9f1ee7ef-f8f0-4e1d-aed0-c2bde0f010d2",
+                        "name": "Contrôleur 03",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "81d35ba9-83d0-4e4f-ad2b-03e24aaf451e",
+                    "elementId": "4230730b-cdf0-4a21-93df-e4b8677642df",
+                    "name": "Cellule 02",
+                    "orientation": "vertical",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "7ccaba9d-a455-4207-9257-6d623bf755fe",
+                        "subCategoryId": "81d35ba9-83d0-4e4f-ad2b-03e24aaf451e",
+                        "name": "Contrôleur 04",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "21808fb7-5e7e-470f-bbed-8fdecd653e4d",
+                        "subCategoryId": "81d35ba9-83d0-4e4f-ad2b-03e24aaf451e",
+                        "name": "Contrôleur 05",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "0a3f7a86-3c66-4b86-86fa-6a095a5570d2",
+                        "subCategoryId": "81d35ba9-83d0-4e4f-ad2b-03e24aaf451e",
+                        "name": "Contrôleur 06",
+                        "status": "fatal",
+                        "order": 2,
+                        "value": "0"
+                      },
+                      {
+                        "id": "38ad85f3-bcab-4cad-a33d-05b3e79cce4a",
+                        "subCategoryId": "81d35ba9-83d0-4e4f-ad2b-03e24aaf451e",
+                        "name": "Contrôleur 07",
+                        "status": "critique",
+                        "order": 3,
+                        "value": "2"
+                      },
+                      {
+                        "id": "2622fdcb-5ae1-4865-a5ba-e890f8d23601",
+                        "subCategoryId": "81d35ba9-83d0-4e4f-ad2b-03e24aaf451e",
+                        "name": "Contrôleur 08",
+                        "status": "ok",
+                        "order": 4
+                      },
+                      {
+                        "id": "9ac1af0a-1bb9-4023-94db-17743e957d33",
+                        "subCategoryId": "81d35ba9-83d0-4e4f-ad2b-03e24aaf451e",
+                        "name": "Contrôleur 09",
+                        "status": "ok",
+                        "order": 5
+                      }
+                    ]
+                  },
+                  {
+                    "id": "b39c038e-9bac-4a6f-84fe-50b77d3fcd92",
+                    "elementId": "4230730b-cdf0-4a21-93df-e4b8677642df",
+                    "name": "Cellule 03",
+                    "orientation": "vertical",
+                    "order": 2,
+                    "subElements": [
+                      {
+                        "id": "7295d471-9023-490a-a25f-d82992503ddd",
+                        "subCategoryId": "b39c038e-9bac-4a6f-84fe-50b77d3fcd92",
+                        "name": "Contrôleur 10",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "b3de266b-064b-4098-8d63-8e32e635b370",
+                        "subCategoryId": "b39c038e-9bac-4a6f-84fe-50b77d3fcd92",
+                        "name": "Contrôleur 11",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "660add04-80a5-404f-a8cf-3b12b4b73662",
+                        "subCategoryId": "b39c038e-9bac-4a6f-84fe-50b77d3fcd92",
+                        "name": "Contrôleur 12",
+                        "status": "mineur",
+                        "order": 2
+                      },
+                      {
+                        "id": "3aff6d5c-776d-4f4b-9e9d-c0b84de5f7aa",
+                        "subCategoryId": "b39c038e-9bac-4a6f-84fe-50b77d3fcd92",
+                        "name": "Contrôleur 13",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  },
+                  {
+                    "id": "2e0ced38-24c7-4c36-b7c2-f975edf4205f",
+                    "elementId": "4230730b-cdf0-4a21-93df-e4b8677642df",
+                    "name": "Cellule 04",
+                    "orientation": "vertical",
+                    "order": 3,
+                    "subElements": [
+                      {
+                        "id": "d26a0d76-9d31-4309-9671-6784269703ba",
+                        "subCategoryId": "2e0ced38-24c7-4c36-b7c2-f975edf4205f",
+                        "name": "Contrôleur 14",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "dca2ce62-da2b-440e-8465-a3e60a7ee279",
+                        "subCategoryId": "2e0ced38-24c7-4c36-b7c2-f975edf4205f",
+                        "name": "Contrôleur 15",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "ee32648a-7ab9-47ff-bd4c-2a62e779eb17",
+                    "elementId": "4230730b-cdf0-4a21-93df-e4b8677642df",
+                    "name": "Cellule 05",
+                    "orientation": "vertical",
+                    "order": 4,
+                    "subElements": [
+                      {
+                        "id": "7843eb4d-bed3-4d8c-b98d-6948d3440c24",
+                        "subCategoryId": "ee32648a-7ab9-47ff-bd4c-2a62e779eb17",
+                        "name": "Contrôleur 16",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "e062e51e-7dd6-49b2-a4a0-085e383227f1",
+                        "subCategoryId": "ee32648a-7ab9-47ff-bd4c-2a62e779eb17",
+                        "name": "Contrôleur 17",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "31f87067-f40b-4c1e-9f77-6f7b661b7ab7",
+                        "subCategoryId": "ee32648a-7ab9-47ff-bd4c-2a62e779eb17",
+                        "name": "Contrôleur 18",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "2bb185ad-c813-4a7e-8b63-80e306042bc4",
+                        "subCategoryId": "ee32648a-7ab9-47ff-bd4c-2a62e779eb17",
+                        "name": "Contrôleur 19",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  },
+                  {
+                    "id": "a98b9a79-a7ed-495d-88a2-04b737189e50",
+                    "elementId": "4230730b-cdf0-4a21-93df-e4b8677642df",
+                    "name": "Cellule 06",
+                    "orientation": "vertical",
+                    "order": 5,
+                    "subElements": []
+                  }
+                ]
+              },
+              {
+                "id": "5b3f852d-e158-4a32-804f-ee576652709d",
+                "categoryId": "2db676f3-823c-4dce-a3f2-e01c0999c340",
+                "name": "Service 02",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "70a9c421-3bc7-4bbd-971e-40f75758971d",
+                "categoryId": "2db676f3-823c-4dce-a3f2-e01c0999c340",
+                "name": "Service 03",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "8e5833c7-2616-46f6-b42d-51e6a3aab8f7",
+            "domainId": "68c7a8ae-3c00-49e2-8291-d6800262fcce",
+            "name": "Sous-Direction 02",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "ecf4f155-115c-4edd-ab5d-7547a18f6239",
+                "categoryId": "8e5833c7-2616-46f6-b42d-51e6a3aab8f7",
+                "name": "Service 10",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "956f2ee7-3b4e-426b-8b3a-267d3bf8c87a",
+                "categoryId": "8e5833c7-2616-46f6-b42d-51e6a3aab8f7",
+                "name": "Service 11",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "bd3bad9b-5ff5-4103-86fa-795e686fb9ca",
+            "domainId": "68c7a8ae-3c00-49e2-8291-d6800262fcce",
+            "name": "Sous-Direction 03",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "2a8cb037-0a6d-4d40-9eff-b75c3caa90fb",
+                "categoryId": "bd3bad9b-5ff5-4103-86fa-795e686fb9ca",
+                "name": "Service 21",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "859bd413-ea44-4648-9dff-12a8a318c378",
+                "categoryId": "bd3bad9b-5ff5-4103-86fa-795e686fb9ca",
+                "name": "Service 22",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "53f1158f-0314-4ea9-ad9a-fbcbdb250945",
+                "categoryId": "bd3bad9b-5ff5-4103-86fa-795e686fb9ca",
+                "name": "Service 23",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "8e7c5f8e-522f-4358-8ec1-613a7fc054d2",
+            "domainId": "68c7a8ae-3c00-49e2-8291-d6800262fcce",
+            "name": "Sous-Direction gestion des Opérations",
+            "orientation": "horizontal",
+            "order": 3,
+            "elements": [
+              {
+                "id": "8c5fa4dd-6284-4646-8969-f2b62d7fb247",
+                "categoryId": "8e7c5f8e-522f-4358-8ec1-613a7fc054d2",
+                "name": "Direction des processus",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "a31c19f3-c74e-4cb7-8d93-489fe324c48c",
+                "categoryId": "8e7c5f8e-522f-4358-8ec1-613a7fc054d2",
+                "name": "Service Inspectoral",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "2b6c311a-34f5-4d7f-8944-122978d38c01",
+            "domainId": "68c7a8ae-3c00-49e2-8291-d6800262fcce",
+            "name": "Recouvrement",
+            "orientation": "horizontal",
+            "order": 4,
+            "elements": []
+          }
+        ]
+      },
+      {
+        "id": "7f3381dc-070f-4457-9014-ac3b7b4e4ee3",
+        "cockpitId": "b050-8ff6-b43f",
+        "name": "Plateforme",
+        "order": 2,
+        "templateType": "standard",
+        "categories": []
+      },
+      {
+        "id": "cb7e8d8b-7962-4c70-b435-31edd1f3109a",
+        "cockpitId": "b050-8ff6-b43f",
+        "name": "Réclamations",
+        "order": 3,
+        "templateType": "standard",
+        "categories": []
+      },
+      {
+        "id": "32a156fc-9cd2-42d3-aeb1-2d0c9000e372",
+        "cockpitId": "b050-8ff6-b43f",
+        "name": "Management",
+        "order": 4,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "dfe3babe-65f0-4a02-9410-f8d4d86c8ebc",
+            "domainId": "32a156fc-9cd2-42d3-aeb1-2d0c9000e372",
+            "name": "Plan directeur",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "60f98cb3-e0af-4a6d-9323-57d8eff67b47",
+                "categoryId": "dfe3babe-65f0-4a02-9410-f8d4d86c8ebc",
+                "name": "Sujet 01",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "a02687fa-4e38-48b9-9d7c-d8a0e66dcd20",
+                "categoryId": "dfe3babe-65f0-4a02-9410-f8d4d86c8ebc",
+                "name": "Sujet 02",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "6854b3e8-2daa-4470-8921-4d823360b5a5",
+                "categoryId": "dfe3babe-65f0-4a02-9410-f8d4d86c8ebc",
+                "name": "Usage de l'IA",
+                "status": "herite",
+                "order": 2,
+                "subCategories": [
+                  {
+                    "id": "c06c0e6b-3c60-46bf-b094-9408eaecd8e8",
+                    "elementId": "6854b3e8-2daa-4470-8921-4d823360b5a5",
+                    "name": "Action opérationelle",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "cc552b48-fd2d-4567-855b-18aecf5b1a8e",
+                        "subCategoryId": "c06c0e6b-3c60-46bf-b094-9408eaecd8e8",
+                        "name": "Action 01",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "56847e2a-36cb-47b3-a2f9-6dbbd109ef08",
+                        "subCategoryId": "c06c0e6b-3c60-46bf-b094-9408eaecd8e8",
+                        "name": "Action 02",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "671b7d28-8127-4817-babe-8208a3b82786",
+                        "subCategoryId": "c06c0e6b-3c60-46bf-b094-9408eaecd8e8",
+                        "name": "Action 03",
+                        "status": "mineur",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "6f43f94c-8a8e-4467-8e2d-9640b612e54e",
+                    "elementId": "6854b3e8-2daa-4470-8921-4d823360b5a5",
+                    "name": "Action Process",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "048c894c-b09d-4af8-881d-e62f02d15bd7",
+                        "subCategoryId": "6f43f94c-8a8e-4467-8e2d-9640b612e54e",
+                        "name": "Action 10",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "9f91ccf2-b4da-4251-904f-c3365e12a084",
+                        "subCategoryId": "6f43f94c-8a8e-4467-8e2d-9640b612e54e",
+                        "name": "Action 11",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "c3231161-8f0f-4fb1-9e8b-80d598d32b09",
+                    "elementId": "6854b3e8-2daa-4470-8921-4d823360b5a5",
+                    "name": "Action Litiges",
+                    "orientation": "horizontal",
+                    "order": 2,
+                    "subElements": [
+                      {
+                        "id": "7ce4db75-ca8f-4f49-a401-dfda702cab42",
+                        "subCategoryId": "c3231161-8f0f-4fb1-9e8b-80d598d32b09",
+                        "name": "Action 20",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "a4ec272c-8c87-4363-b8cb-dbb2893cd62c",
+                        "subCategoryId": "c3231161-8f0f-4fb1-9e8b-80d598d32b09",
+                        "name": "Action 21",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "940e02c4-3b7f-43b4-bd3c-ed0b168c6891",
+                        "subCategoryId": "c3231161-8f0f-4fb1-9e8b-80d598d32b09",
+                        "name": "Action 22",
+                        "status": "information",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "521f9278-528a-4d06-9ba0-7717ff520d71",
+                    "elementId": "6854b3e8-2daa-4470-8921-4d823360b5a5",
+                    "name": "Action Pilotage",
+                    "orientation": "horizontal",
+                    "order": 3,
+                    "subElements": [
+                      {
+                        "id": "764e9b31-a336-44de-9d8b-e3764b422184",
+                        "subCategoryId": "521f9278-528a-4d06-9ba0-7717ff520d71",
+                        "name": "Action 01",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "e9b89fde-0a30-407d-b4dc-4483fde20e33",
+                        "subCategoryId": "521f9278-528a-4d06-9ba0-7717ff520d71",
+                        "name": "Action 02",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "428e6017-9185-400f-aeca-b1edc8ffbf25",
+                        "subCategoryId": "521f9278-528a-4d06-9ba0-7717ff520d71",
+                        "name": "Action 03",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "92248de6-c882-432a-b704-07f0482b9cee",
+                        "subCategoryId": "521f9278-528a-4d06-9ba0-7717ff520d71",
+                        "name": "Action 04",
+                        "status": "ok",
+                        "order": 3
+                      },
+                      {
+                        "id": "bfe949c4-6ee9-42a2-904c-4117c5e6df8a",
+                        "subCategoryId": "521f9278-528a-4d06-9ba0-7717ff520d71",
+                        "name": "Action 05",
+                        "status": "ok",
+                        "order": 4
+                      }
+                    ]
+                  },
+                  {
+                    "id": "1213f54c-76ca-42bd-bf7e-35505c2c0a7a",
+                    "elementId": "6854b3e8-2daa-4470-8921-4d823360b5a5",
+                    "name": "Actions Reporting",
+                    "orientation": "horizontal",
+                    "order": 4,
+                    "subElements": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "zones": [],
+    "logo": null,
+    "scrollingBanner": null
+  }
+}

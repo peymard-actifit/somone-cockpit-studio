@@ -869,7 +869,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         >
           {/* Image de fond */}
           {/* CRITIQUE: VÃ©rifier explicitement que l'image est valide avant de l'afficher */}
-          {imageUrl && imageUrl.trim().length > 0 && imageUrl.startsWith('data:image/') && isValidBase64Image(imageUrl) ? (
+          {/* En mode readOnly, on assouplit la validation pour permettre l'affichage */}
+          {imageUrl && imageUrl.trim().length > 0 && (
+            imageUrl.startsWith('data:image/') || _readOnly
+          ) && (_readOnly || isValidBase64Image(imageUrl)) ? (
             <img 
               key={`bg-image-${domain.id}-${imageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               ref={imageRef}
@@ -1007,16 +1010,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               <div className="mx-auto mb-4"><MuiIcon name="Image" size={64} className="text-[#CBD5E1]" /></div>
               <p className="text-[#64748B]">Aucune image de fond configurée</p>
                 <p className="text-sm text-[#94A3B8] mt-2 mb-4">
-                  Ajoutez une image depuis un fichier ou une URL
+                  Ajoutez une image depuis un fichier ou une URL depuis le menu d'édition
                 </p>
-                {!_readOnly && (
-                  <button
-                    onClick={() => setShowConfigModal(true)}
-                    className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
-                  >
-                    Configurer l'image
-                  </button>
-                )}
               </div>
           </div>
         )}
@@ -1276,15 +1271,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           </div>
         </div>
       
-      {/* Barre d'instructions */}
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-[#E2E8F0]">
-        <p className="text-xs text-[#64748B] flex items-center gap-4">
-          <span>ðŸ–±ï¸ Glisser = dÃ©placer</span>
-          <span>ðŸ”„ Molette = zoom</span>
-          <span>ðŸ‘† Double-clic = zoom</span>
-        </p>
-      </div>
-      
       {/* LÃ©gende */}
       <div className="absolute bottom-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <div className="flex items-center gap-6">
@@ -1299,13 +1285,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       {/* Boutons d'action - masqués en mode readOnly */}
       {!_readOnly && (
         <div className="absolute bottom-4 right-4 z-20 flex gap-2">
-          <button 
-            onClick={() => setShowConfigModal(true)}
-            className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
-          >
-            <MuiIcon name="Settings" size={20} />
-            Configurer
-          </button>
           <button 
             onClick={startDrawingMode}
             disabled={!domain.backgroundImage}

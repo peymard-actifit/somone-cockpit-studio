@@ -820,7 +820,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         >
           {/* Image de fond */}
           {/* CRITIQUE: VÃ©rifier que l'image est valide avant de l'afficher */}
-          {mapImageUrl && mapImageUrl.trim().length > 0 && mapImageUrl.startsWith('data:image/') && isValidBase64Image(mapImageUrl) ? (
+          {/* En mode readOnly, on assouplit la validation pour permettre l'affichage */}
+          {mapImageUrl && mapImageUrl.trim().length > 0 && (
+            mapImageUrl.startsWith('data:image/') || _readOnly
+          ) && (_readOnly || isValidBase64Image(mapImageUrl)) ? (
             <img 
               key={`map-image-${domain.id}-${mapImageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               src={mapImageUrl}
@@ -978,13 +981,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
               <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
                 <MuiIcon name="MapPinIcon" size={48} className="text-[#94A3B8] mx-auto mb-4" />
                 <p className="text-[#64748B] font-medium mb-2">Aucune carte configurée</p>
-                <p className="text-sm text-[#94A3B8] mb-4">Configurez l'image et les coordonnÃ©es GPS</p>
-                <button
-                  onClick={() => setShowConfigModal(true)}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E]"
-                >
-                  Configurer la carte
-                </button>
+                <p className="text-sm text-[#94A3B8]">Configurez l'image et les coordonnées GPS depuis le menu d'édition</p>
               </div>
             </div>
           )}
@@ -1275,15 +1272,6 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         </div>
       </div>
       
-      {/* Barre d'instructions */}
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-[#E2E8F0]">
-        <p className="text-xs text-[#64748B] flex items-center gap-4">
-          <span>ðŸ–±ï¸ Glisser = dÃ©placer</span>
-          <span>ðŸ”„ Molette = zoom</span>
-          <span>ðŸ‘† Double-clic = zoom</span>
-        </p>
-      </div>
-      
       {/* LÃ©gende */}
       <div className="absolute bottom-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <div className="flex items-center gap-6">
@@ -1295,16 +1283,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         </div>
       </div>
       
-      {/* Boutons d'action (masquÃ©s en mode lecture seule) */}
+      {/* Boutons d'action (masqués en mode lecture seule) */}
       {!_readOnly && (
         <div className="absolute bottom-4 right-4 z-20 flex gap-2">
-          <button
-            onClick={() => setShowConfigModal(true)}
-            className="flex items-center gap-2 px-4 py-3 bg-white border border-[#E2E8F0] text-[#1E3A5F] rounded-xl hover:bg-[#F5F7FA] shadow-md"
-          >
-            <MuiIcon name="Settings" size={20} />
-            Configurer
-          </button>
           <button
             onClick={() => setShowAddPointModal(true)}
             disabled={!hasMapBounds}

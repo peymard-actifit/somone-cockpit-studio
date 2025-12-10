@@ -472,6 +472,36 @@ app.post('/api/cockpits/:id/publish', authMiddleware, (req: AuthRequest, res) =>
 });
 
 // Dépublier un cockpit
+app.post('/api/cockpits/reorder', authMiddleware, (req: AuthRequest, res) => {
+  const { cockpitIds } = req.body;
+  
+  if (!Array.isArray(cockpitIds)) {
+    return res.status(400).json({ error: 'cockpitIds doit être un tableau' });
+  }
+  
+  const db = loadDb();
+  
+  // Mettre à jour l'ordre de chaque cockpit
+  cockpitIds.forEach((cockpitId: string, index: number) => {
+    const cockpit = db.cockpits.find(c => c.id === cockpitId);
+    if (cockpit) {
+      // Vérifier les permissions
+      if (!req.user!.isAdmin && cockpit.userId !== req.user!.id) {
+        return; // Ignorer les cockpits non autorisés
+      }
+      
+      if (!cockpit.data) {
+        cockpit.data = {};
+      }
+      cockpit.data.order = index;
+      cockpit.updatedAt = new Date().toISOString();
+    }
+  });
+  
+  saveDb(db);
+  res.json({ success: true });
+});
+
 app.post('/api/cockpits/:id/unpublish', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);

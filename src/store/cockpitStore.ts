@@ -22,6 +22,7 @@ interface CockpitState {
   createCockpit: (name: string) => Promise<Cockpit | null>;
   duplicateCockpit: (id: string, newName: string) => Promise<Cockpit | null>;
   deleteCockpit: (id: string) => Promise<boolean>;
+  reorderCockpits: (cockpitIds: string[]) => Promise<void>;
   
   // Navigation
   setCurrentDomain: (domainId: string | null) => void;
@@ -1556,6 +1557,49 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     } catch (error) {
       set({ error: 'Erreur lors de la dépublication', isLoading: false });
       return false;
+    }
+  },
+
+  reorderCockpits: async (cockpitIds: string[]) => {
+    const token = useAuthStore.getState().token;
+    
+    try {
+      // Mettre à jour l'ordre localement
+      set((state) => {
+        const cockpitMap = new Map(state.cockpits.map(c => [c.id, c]));
+        const reorderedCockpits: Cockpit[] = [];
+        
+        cockpitIds.forEach((id, index) => {
+          const cockpit = cockpitMap.get(id);
+          if (cockpit) {
+            reorderedCockpits.push({ ...cockpit, order: index });
+          }
+        });
+        
+        // Ajouter les cockpits qui ne sont pas dans la liste (au cas où)
+        const remainingCockpits = state.cockpits.filter(c => !cockpitIds.includes(c.id));
+        const allCockpits = [...reorderedCockpits, ...remainingCockpits];
+        
+        return { cockpits: allCockpits };
+      });
+      
+      // Sauvegarder sur le serveur
+      const response = await fetch(`${API_URL}/cockpits/reorder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ cockpitIds }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la réorganisation');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la réorganisation des maquettes:', error);
+      // Recharger les cockpits en cas d'erreur
+      get().fetchCockpits();
     }
   },
 
