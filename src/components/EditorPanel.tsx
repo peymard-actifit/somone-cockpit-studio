@@ -42,7 +42,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [activeSection, setActiveSection] = useState<string | null>('properties');
   const [newZoneName, setNewZoneName] = useState('');
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
-  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | null>(null);
+  const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory'; id: string } | null>(null);
   
   // Préférence pour l'affichage des tuiles vertes (ok)
   const [greenTilesAsColored, setGreenTilesAsColored] = useState(() => {
@@ -619,6 +620,34 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onClose={() => setShowIconPicker(null)}
               />
             )}
+            {showIconPicker === 'category' && iconPickerContext && (
+              <IconPicker
+                value={domain?.categories.find(c => c.id === iconPickerContext.id)?.icon}
+                onChange={(iconName) => {
+                  if (iconPickerContext.type === 'category') {
+                    updateCategory(iconPickerContext.id, { icon: iconName });
+                  }
+                }}
+                onClose={() => {
+                  setShowIconPicker(null);
+                  setIconPickerContext(null);
+                }}
+              />
+            )}
+            {showIconPicker === 'subCategory' && iconPickerContext && element && (
+              <IconPicker
+                value={element.subCategories.find(sc => sc.id === iconPickerContext.id)?.icon}
+                onChange={(iconName) => {
+                  if (iconPickerContext.type === 'subCategory') {
+                    updateSubCategory(iconPickerContext.id, { icon: iconName });
+                  }
+                }}
+                onClose={() => {
+                  setShowIconPicker(null);
+                  setIconPickerContext(null);
+                }}
+              />
+            )}
           </div>
         </Section>
         
@@ -834,6 +863,20 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             <div className="space-y-2">
               {element.subCategories.map((subCategory) => (
                 <div key={subCategory.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <button
+                    onClick={() => {
+                      setIconPickerContext({ type: 'subCategory', id: subCategory.id });
+                      setShowIconPicker('subCategory');
+                    }}
+                    className="flex items-center justify-center w-8 h-8 bg-white border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
+                    title="Choisir une icône"
+                  >
+                    {subCategory.icon ? (
+                      <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
+                    ) : (
+                      <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
+                    )}
+                  </button>
                   <input
                     type="text"
                     value={subCategory.name}
@@ -1635,6 +1678,20 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             <div className="space-y-2">
               {domain.categories.map((category) => (
                 <div key={category.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <button
+                    onClick={() => {
+                      setIconPickerContext({ type: 'category', id: category.id });
+                      setShowIconPicker('category');
+                    }}
+                    className="flex items-center justify-center w-8 h-8 bg-white border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
+                    title="Choisir une icône"
+                  >
+                    {category.icon ? (
+                      <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
+                    ) : (
+                      <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
+                    )}
+                  </button>
                   <input
                     type="text"
                     value={category.name}
