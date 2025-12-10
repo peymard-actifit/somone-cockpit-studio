@@ -2,7 +2,7 @@ import type { SubCategory, Element as ElementType, Domain } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import SubElementTile from './SubElementTile';
 import { MuiIcon } from './IconPicker';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 
 interface SubCategorySectionProps {
@@ -63,10 +63,28 @@ export default function SubCategorySection({ subCategory, element, domain, readO
     c.elements.some(e => e.id === element.id)
   );
   
+  // Préférence pour la position des sous-catégories horizontales
+  const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
+    return localStorage.getItem('horizontalCategoriesInline') === 'true';
+  });
+  
+  useEffect(() => {
+    const handlePreferenceChange = () => {
+      setHorizontalCategoriesInline(localStorage.getItem('horizontalCategoriesInline') === 'true');
+    };
+    window.addEventListener('horizontalCategoriesPreferenceChanged', handlePreferenceChange);
+    return () => {
+      window.removeEventListener('horizontalCategoriesPreferenceChanged', handlePreferenceChange);
+    };
+  }, []);
+  
+  const isHorizontal = subCategory.orientation === 'horizontal';
+  const useInlineLayout = isHorizontal && horizontalCategoriesInline;
+  
   return (
-    <div className="group mb-8">
+    <div className={`group mb-8 ${useInlineLayout ? 'flex items-start gap-4' : ''}`}>
       {/* En-tête de sous-catégorie - Style PDF SOMONE mode clair */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}>
         {subCategory.icon && (
           <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
             <MuiIcon name={subCategory.icon} size={20} className="text-white" />
@@ -77,10 +95,10 @@ export default function SubCategorySection({ subCategory, element, domain, readO
           {subCategory.name}
         </h3>
         
-        <div className="flex-1" />
+        {!useInlineLayout && <div className="flex-1" />}
         
         {/* Bouton supprimer sous-catégorie */}
-        {!readOnly && (
+        {!readOnly && !useInlineLayout && (
           <button
             onClick={async () => {
               const confirmed = await confirm({
@@ -103,6 +121,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
       {/* Grille de sous-éléments */}
       <div 
         className={`
+          flex-1
           ${subCategory.orientation === 'vertical' 
             ? 'flex flex-col gap-3' 
             : 'flex flex-row flex-wrap gap-3'
@@ -149,7 +168,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
                 rounded-lg transition-colors bg-[#F5F7FA]/50
                 ${subCategory.orientation === 'vertical'
                   ? 'py-4 w-full'
-                  : 'px-5 py-3 min-w-[112px] min-h-[56px]'
+                  : 'px-6 py-4 min-w-[140px] min-h-[70px]'
                 }
               `}
             >
@@ -159,7 +178,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
           ) : (
             <div className={`
               bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg p-3
-              ${subCategory.orientation === 'vertical' ? 'w-full' : 'min-w-[144px]'}
+              ${subCategory.orientation === 'vertical' ? 'w-full' : 'min-w-[180px]'}
             `}>
               <input
                 type="text"

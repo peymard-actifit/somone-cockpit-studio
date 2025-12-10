@@ -50,6 +50,12 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     return saved === 'true';
   });
   
+  // Préférence pour la position des catégories/sous-catégories horizontales
+  const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
+    const saved = localStorage.getItem('horizontalCategoriesInline');
+    return saved === 'true';
+  });
+  
   // États pour la configuration de l'image de fond (MapView et BackgroundView)
   const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -1681,6 +1687,40 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
                     greenTilesAsColored ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-[#1E3A5F] mb-1">
+                  Catégories horizontales
+                </label>
+                <p className="text-xs text-[#64748B]">
+                  {horizontalCategoriesInline 
+                    ? 'En-tête à gauche, tuiles à droite (en ligne)'
+                    : 'En-tête au-dessus des tuiles (par défaut)'
+                  }
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = !horizontalCategoriesInline;
+                  setHorizontalCategoriesInline(newValue);
+                  localStorage.setItem('horizontalCategoriesInline', String(newValue));
+                  // Forcer le re-render des catégories
+                  window.dispatchEvent(new Event('horizontalCategoriesPreferenceChanged'));
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+                  horizontalCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                }`}
+                role="switch"
+                aria-checked={horizontalCategoriesInline}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
+                    horizontalCategoriesInline ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>

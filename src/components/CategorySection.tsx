@@ -2,7 +2,7 @@ import type { Category } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import ElementTile from './ElementTile';
 import { MuiIcon } from './IconPicker';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 
 interface CategorySectionProps {
@@ -63,10 +63,28 @@ export default function CategorySection({ category, onElementClick, readOnly = f
     }
   };
   
+  // Préférence pour la position des catégories horizontales
+  const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
+    return localStorage.getItem('horizontalCategoriesInline') === 'true';
+  });
+  
+  useEffect(() => {
+    const handlePreferenceChange = () => {
+      setHorizontalCategoriesInline(localStorage.getItem('horizontalCategoriesInline') === 'true');
+    };
+    window.addEventListener('horizontalCategoriesPreferenceChanged', handlePreferenceChange);
+    return () => {
+      window.removeEventListener('horizontalCategoriesPreferenceChanged', handlePreferenceChange);
+    };
+  }, []);
+  
+  const isHorizontal = category.orientation === 'horizontal';
+  const useInlineLayout = isHorizontal && horizontalCategoriesInline;
+  
   return (
-    <div className="group mb-8">
+    <div className={`group mb-8 ${useInlineLayout ? 'flex items-start gap-4' : ''}`}>
       {/* En-tête de catégorie - Style PDF SOMONE mode clair */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}>
         {category.icon && (
           <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
             <MuiIcon name={category.icon} size={24} className="text-white" />
@@ -77,10 +95,10 @@ export default function CategorySection({ category, onElementClick, readOnly = f
           {category.name}
         </h3>
         
-        <div className="flex-1" />
+        {!useInlineLayout && <div className="flex-1" />}
         
         {/* Bouton supprimer catégorie */}
-        {!readOnly && (
+        {!readOnly && !useInlineLayout && (
           <button
             onClick={async () => {
               const confirmed = await confirm({
@@ -102,13 +120,30 @@ export default function CategorySection({ category, onElementClick, readOnly = f
       
       {/* Conteneur blanc pour les éléments - Style PDF SOMONE */}
       <div 
-        className={`bg-white rounded-xl border p-6 shadow-sm transition-all ${
+        className={`bg-white rounded-xl border p-6 shadow-sm transition-all flex-1 ${
           isDraggingOver ? 'border-[#1E3A5F] border-2 bg-[#F5F7FA]' : 'border-[#E2E8F0]'
-        }`}
+        } ${useInlineLayout ? 'relative' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
+        {useInlineLayout && !readOnly && (
+          <button
+            onClick={async () => {
+              const confirmed = await confirm({
+                title: 'Supprimer la catégorie',
+                message: `Voulez-vous supprimer la catégorie "${category.name}" et tous ses éléments ?`,
+              });
+              if (confirmed) {
+                deleteCategory(category.id);
+              }
+            }}
+            className="absolute top-2 right-2 p-1.5 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+            title="Supprimer la catégorie"
+          >
+            <MuiIcon name="Delete" size={16} />
+          </button>
+        )}
         <div className="flex flex-row flex-wrap gap-4">
           {category.elements.map((element, index) => (
             <ElementTile 

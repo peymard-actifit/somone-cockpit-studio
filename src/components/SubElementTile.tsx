@@ -165,7 +165,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         onMouseMove={handleMouseMove}
         className={`
           group relative overflow-hidden
-          min-w-[120px] px-3 py-2.5
+          min-w-[150px] px-4 py-3
           rounded-lg
           shadow-sm hover:shadow-md
           transition-all duration-200
