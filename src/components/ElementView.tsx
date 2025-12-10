@@ -101,6 +101,9 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
               src={element.backgroundImage}
               alt=""
               className="w-full h-full object-contain"
+              style={{ 
+                opacity: element.backgroundImageOpacity !== undefined ? element.backgroundImageOpacity / 100 : 1 
+              }}
             />
             {/* Voile semi-transparent pour la lisibilité */}
             <div className="absolute inset-0 bg-[#F5F7FA]/80" />
@@ -115,7 +118,10 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
             <img 
               src={element.backgroundImage}
               alt=""
-              className="w-full h-full object-contain opacity-20"
+              className="w-full h-full object-contain"
+              style={{ 
+                opacity: element.backgroundImageOpacity !== undefined ? element.backgroundImageOpacity / 100 : 0.2 
+              }}
             />
           </div>
         </div>
