@@ -7,7 +7,10 @@ Write-Host "Deploiement automatique SOMONE Cockpit Studio" -ForegroundColor Cyan
 Write-Host ""
 
 # Token Vercel
-$VERCEL_TOKEN = "wkGtxH23SiUdqfIVIRMT7fSI"
+$VERCEL_TOKEN = $env:VERCEL_TOKEN
+if (-not $VERCEL_TOKEN) {
+    $VERCEL_TOKEN = "GLe0CsmnKQKOs1PV7o2eHsH7"
+}
 
 # 1. Build avec retry automatique en cas d'erreurs TypeScript
 Write-Host "Etape 1/4 : Compilation du projet..." -ForegroundColor Yellow

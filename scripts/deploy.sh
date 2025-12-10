@@ -8,7 +8,7 @@ echo "🚀 Déploiement automatique SOMONE Cockpit Studio"
 echo ""
 
 # Token Vercel
-VERCEL_TOKEN="wkGtxH23SiUdqfIVIRMT7fSI"
+VERCEL_TOKEN="${VERCEL_TOKEN:-GLe0CsmnKQKOs1PV7o2eHsH7}"
 
 # 1. Build avec retry automatique en cas d'erreurs TypeScript
 echo "📦 Étape 1/4 : Compilation du projet..."
