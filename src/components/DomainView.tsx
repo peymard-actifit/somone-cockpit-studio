@@ -29,7 +29,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   // Vue carte dynamique
   if (domain.templateType === 'map') {
     return (
-      <div className="h-full">
+      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
         <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />
       </div>
     );
@@ -38,7 +38,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   // Vue avec image de fond
   if (domain.templateType === 'background') {
     return (
-      <div className="h-full">
+      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
         <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />
       </div>
     );
