@@ -13,8 +13,7 @@ import type { Cockpit } from '../types';
 function SortableCockpitCard({ 
   cockpit, 
   navigate, 
-  setShowPublishModal, 
-  setPublishedUrl, 
+  handleUnpublish, 
   getPublicBaseUrl, 
   handlePublish, 
   isLoading, 
@@ -26,8 +25,7 @@ function SortableCockpitCard({
 }: {
   cockpit: Cockpit;
   navigate: (path: string) => void;
-  setShowPublishModal: (id: string) => void;
-  setPublishedUrl: (url: string | null) => void;
+  handleUnpublish: (id: string) => Promise<void>;
   getPublicBaseUrl: () => string;
   handlePublish: (id: string) => Promise<{ publicId: string } | null>;
   isLoading: boolean;
@@ -95,49 +93,74 @@ function SortableCockpitCard({
           <span>Modifié le {formatDate(cockpit.updatedAt)}</span>
         </div>
         
-        {/* Badge publié */}
-        {cockpit.isPublished && (
-          <div className="flex items-center gap-2 mb-3 px-2 py-1 bg-green-500/10 border border-green-500/30 rounded-lg">
-            <MuiIcon name="Globe" size={14} className="text-green-400" />
-            <span className="text-xs text-green-400">Publié</span>
+        {/* URL publique pour les cockpits publiés */}
+        {cockpit.isPublished && cockpit.publicId && (
+          <div className="flex items-center gap-2 mb-3 px-2 py-1.5 bg-slate-100 border border-slate-300 rounded-lg">
+            <input
+              type="text"
+              readOnly
+              value={`${getPublicBaseUrl()}/public/${cockpit.publicId}`}
+              className="flex-1 text-xs text-slate-700 bg-transparent border-none outline-none truncate"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+            />
+            <button
+              onClick={async () => {
+                const url = `${getPublicBaseUrl()}/public/${cockpit.publicId}`;
+                await navigator.clipboard.writeText(url);
+                // Optionnel: afficher un toast de confirmation
+              }}
+              className="p-1 hover:bg-slate-200 rounded transition-colors"
+              title="Copier l'URL"
+            >
+              <MuiIcon name="ContentCopy" size={14} className="text-slate-600" />
+            </button>
           </div>
         )}
         
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={async () => {
-              if (cockpit.isPublished) {
-                setShowPublishModal(cockpit.id);
-                if (cockpit.publicId) {
-                  setPublishedUrl(`${getPublicBaseUrl()}/public/${cockpit.publicId}`);
-                } else {
-                  setPublishedUrl(null);
-                }
-              } else {
-                const result = await handlePublish(cockpit.id);
-                if (result) {
-                  setShowPublishModal(cockpit.id);
-                  setPublishedUrl(`${getPublicBaseUrl()}/public/${result.publicId}`);
-                }
-              }
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
-              cockpit.isPublished
-                ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
-                : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400'
-            }`}
-            disabled={isLoading && !cockpit.isPublished}
-          >
-            {isLoading && !cockpit.isPublished ? (
-              <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
-            ) : (
-              <>
+          {cockpit.isPublished ? (
+            <>
+              <button
+                onClick={async () => {
+                  await handleUnpublish(cockpit.id);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                disabled={isLoading}
+              >
                 <MuiIcon name="Globe" size={16} />
-                {cockpit.isPublished ? 'Gérer' : 'Publier'}
-              </>
-            )}
-          </button>
+                Dépublier
+              </button>
+              {cockpit.publicId && (
+                <button
+                  onClick={() => {
+                    window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
+                  }}
+                  className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                  title="Ouvrir dans le navigateur"
+                >
+                  <MuiIcon name="ExternalLink" size={16} />
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              onClick={async () => {
+                await handlePublish(cockpit.id);
+              }}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="animate-spin"><MuiIcon name="Loader2" size={16} /></div>
+              ) : (
+                <>
+                  <MuiIcon name="Globe" size={16} />
+                  Publier
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={() => {
               setNewName(cockpit.name + ' - Copie');
@@ -212,8 +235,6 @@ export default function HomePage() {
   const [showNewModal, setShowNewModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
-  const [showPublishModal, setShowPublishModal] = useState<string | null>(null);
-  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [newName, setNewName] = useState('');
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -383,12 +404,6 @@ export default function HomePage() {
   
   const handleUnpublish = async (id: string) => {
     await unpublishCockpit(id);
-    setShowPublishModal(null);
-    setPublishedUrl(null);
-  };
-  
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
   };
   
   const formatDate = (dateString: string) => {
@@ -612,10 +627,9 @@ export default function HomePage() {
                   key={cockpit.id}
                   cockpit={cockpit}
                   navigate={navigate}
-                  setShowPublishModal={setShowPublishModal}
-                  setPublishedUrl={setPublishedUrl}
-                  getPublicBaseUrl={getPublicBaseUrl}
-                  handlePublish={handlePublish}
+              handleUnpublish={handleUnpublish}
+              getPublicBaseUrl={getPublicBaseUrl}
+              handlePublish={handlePublish}
                   isLoading={isLoading}
                   setNewName={setNewName}
                   setShowDuplicateModal={setShowDuplicateModal}
@@ -685,113 +699,6 @@ export default function HomePage() {
         </Modal>
       )}
       
-      {/* Modal: Publier */}
-      {showPublishModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
-            <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <MuiIcon name="Globe" size={20} className="text-blue-400" />
-                Publication
-              </h3>
-              <button
-                onClick={() => { setShowPublishModal(null); setPublishedUrl(null); }}
-                className="p-1 text-slate-500 hover:text-white transition-colors"
-              >
-                <MuiIcon name="X" size={20} />
-              </button>
-            </div>
-            
-            <div className="p-5 space-y-4">
-              {(() => {
-                const cockpit = cockpits.find(c => c.id === showPublishModal);
-                const isPublished = cockpit?.isPublished;
-                
-                if (isPublished && publishedUrl) {
-                  return (
-                    <>
-                      <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/30 rounded-xl">
-                        <MuiIcon name="CheckCircle" size={20} className="text-green-400" />
-                        <span className="text-green-400 font-medium">Cette maquette est publiée</span>
-                      </div>
-                      
-                      <div>
-                        <p className="text-sm text-slate-400 mb-2">URL publique :</p>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={publishedUrl}
-                            readOnly
-                            className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-600/50 rounded-lg text-white text-sm"
-                          />
-                          <button
-                            onClick={() => copyToClipboard(publishedUrl)}
-                            className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
-                            title="Copier"
-                          >
-                            <MuiIcon name="ContentCopy" size={18} />
-                          </button>
-                          <a
-                            href={publishedUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                            title="Ouvrir"
-                          >
-                            <MuiIcon name="ExternalLink" size={18} />
-                          </a>
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-slate-500">
-                        Cette URL permet à n'importe qui d'accéder à votre maquette en mode lecture seule.
-                      </p>
-                      
-                      <button
-                        onClick={() => handleUnpublish(showPublishModal)}
-                        disabled={isLoading}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl transition-colors"
-                      >
-                        <MuiIcon name="VisibilityOff" size={16} />
-                        Dépublier
-                      </button>
-                    </>
-                  );
-                }
-                
-                return (
-                  <>
-                    <p className="text-slate-300">
-                      Publier cette maquette la rendra accessible via une URL publique. 
-                      N'importe qui disposant du lien pourra consulter le cockpit en mode lecture seule.
-                    </p>
-                    
-                    <div className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                      <MuiIcon name="Info" size={20} className="text-blue-400" />
-                      <p className="text-sm text-blue-300">
-                        Le cockpit publié ne sera pas modifiable par les visiteurs.
-                      </p>
-                    </div>
-                    
-                    <button
-                      onClick={() => handlePublish(showPublishModal)}
-                      disabled={isLoading}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
-                    >
-                      {isLoading ? (
-                        <div className="animate-spin"><MuiIcon name="Refresh" size={18} /></div>
-                      ) : (
-                        <MuiIcon name="Globe" size={18} />
-                      )}
-                      Publier maintenant
-                    </button>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal: Exporter */}
       {showExportModal && (
