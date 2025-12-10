@@ -103,6 +103,7 @@ export interface Element {
   height?: number;     // Hauteur en % de l'image
   // Image de fond pour la vue Ã©lÃ©ment
   backgroundImage?: string;
+  backgroundImageOpacity?: number;  // Opacité de l'image de fond (0-100, défaut: 100)
   backgroundMode?: BackgroundMode;
 }
 

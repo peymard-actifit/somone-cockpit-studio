@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
-import type { Domain, Element, SubElement, TileStatus, TemplateType, Alert, Category, SubCategory } from '../types';
+import type { Domain, Element, SubElement, TileStatus, TemplateType, Alert, MapBounds } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
+import { useAuthStore } from '../store/authStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import IconPicker, { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
 import ElementTile from './ElementTile';
 import SourcesAndCalculationsPanel from './subelements/SourcesAndCalculationsPanel';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 interface EditorPanelProps {
   domain: Domain | undefined;
@@ -17,168 +15,12 @@ interface EditorPanelProps {
   selectedSubElementId?: string | null; // ID du sous-élément à sélectionner depuis l'extérieur
 }
 
-// Composant pour une catégorie sortable
-function SortableCategoryItem({ 
-  category, 
-  onUpdateName, 
-  onUpdateIcon, 
-  onShowIconPicker, 
-  showIconPicker,
-  IconPickerComponent 
-}: {
-  category: Category;
-  onUpdateName: (name: string) => void;
-  onUpdateIcon: (icon: string) => void;
-  onShowIconPicker: (categoryId: string | null) => void;
-  showIconPicker: string | null;
-  IconPickerComponent: React.ComponentType<any>;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
-  
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div 
-      ref={setNodeRef} 
-      style={style}
-      className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]"
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#E2E8F0] rounded transition-colors"
-          title="Glisser pour réorganiser"
-        >
-          <MuiIcon name="DragIndicator" size={16} className="text-[#94A3B8]" />
-        </div>
-        <input
-          type="text"
-          value={category.name}
-          onChange={(e) => onUpdateName(e.target.value)}
-          className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-          placeholder="Nom de la catégorie"
-        />
-        <button
-          onClick={() => onShowIconPicker(category.id)}
-          className="p-2 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors"
-          title="Choisir une icône"
-        >
-          {category.icon ? (
-            <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
-          ) : (
-            <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
-          )}
-        </button>
-      </div>
-      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
-        <span>{category.elements.length} élément{category.elements.length > 1 ? 's' : ''}</span>
-        <span className="capitalize">{category.orientation}</span>
-      </div>
-      {showIconPicker === category.id && (
-        <div className="mt-2">
-          <IconPickerComponent
-            value={category.icon}
-            onChange={(iconName: string) => {
-              onUpdateIcon(iconName);
-            }}
-            onClose={() => onShowIconPicker(null)}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Composant pour une sous-catégorie sortable
-function SortableSubCategoryItem({ 
-  subCategory, 
-  onUpdateName, 
-  onUpdateIcon, 
-  onShowIconPicker, 
-  showIconPicker,
-  IconPickerComponent 
-}: {
-  subCategory: SubCategory;
-  onUpdateName: (name: string) => void;
-  onUpdateIcon: (icon: string) => void;
-  onShowIconPicker: (subCategoryId: string | null) => void;
-  showIconPicker: string | null;
-  IconPickerComponent: React.ComponentType<any>;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subCategory.id });
-  
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div 
-      ref={setNodeRef} 
-      style={style}
-      className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]"
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#E2E8F0] rounded transition-colors"
-          title="Glisser pour réorganiser"
-        >
-          <MuiIcon name="DragIndicator" size={16} className="text-[#94A3B8]" />
-        </div>
-        <input
-          type="text"
-          value={subCategory.name}
-          onChange={(e) => onUpdateName(e.target.value)}
-          className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-          placeholder="Nom de la sous-catégorie"
-        />
-        <button
-          onClick={() => onShowIconPicker(`subcat-${subCategory.id}`)}
-          className="p-2 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors"
-          title="Choisir une icône"
-        >
-          {subCategory.icon ? (
-            <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
-          ) : (
-            <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
-          )}
-        </button>
-      </div>
-      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
-        <span>{subCategory.subElements.length} sous-élément{subCategory.subElements.length > 1 ? 's' : ''}</span>
-        <span className="capitalize">{subCategory.orientation}</span>
-      </div>
-      {showIconPicker === `subcat-${subCategory.id}` && (
-        <div className="mt-2">
-          <IconPickerComponent
-            value={subCategory.icon}
-            onChange={(iconName: string) => {
-              onUpdateIcon(iconName);
-            }}
-            onClose={() => onShowIconPicker(null)}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function EditorPanel({ domain, element, selectedSubElementId }: EditorPanelProps) {
   const { 
     updateDomain,
     deleteDomain,
     updateCategory,
     updateSubCategory,
-    reorderCategory,
-    reorderSubCategory,
     updateElement,
     deleteElement,
     updateSubElement,
@@ -191,14 +33,131 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     setCurrentElement,
     updateMapElement,
     deleteMapElement,
-    cloneMapElement
+    cloneMapElement,
+    updateMapBounds
   } = useCockpitStore();
+  const { token } = useAuthStore();
   const confirm = useConfirm();
   
   const [activeSection, setActiveSection] = useState<string | null>('properties');
   const [newZoneName, setNewZoneName] = useState('');
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
-  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | string | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | null>(null);
+  
+  // États pour la configuration de l'image de fond (MapView et BackgroundView)
+  const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<{
+    detected: boolean;
+    region?: string;
+    confidence?: string;
+    description?: string;
+  } | null>(null);
+  const [gpsForm, setGpsForm] = useState({
+    topLeftLat: domain?.mapBounds?.topLeft.lat?.toString() || '',
+    topLeftLng: domain?.mapBounds?.topLeft.lng?.toString() || '',
+    bottomRightLat: domain?.mapBounds?.bottomRight.lat?.toString() || '',
+    bottomRightLng: domain?.mapBounds?.bottomRight.lng?.toString() || '',
+  });
+  
+  // Mettre à jour les états quand le domaine change
+  useEffect(() => {
+    if (domain) {
+      setImageUrl(domain.backgroundImage || '');
+      setGpsForm({
+        topLeftLat: domain.mapBounds?.topLeft.lat?.toString() || '',
+        topLeftLng: domain.mapBounds?.topLeft.lng?.toString() || '',
+        bottomRightLat: domain.mapBounds?.bottomRight.lat?.toString() || '',
+        bottomRightLng: domain.mapBounds?.bottomRight.lng?.toString() || '',
+      });
+    }
+  }, [domain?.id, domain?.backgroundImage, domain?.mapBounds]);
+  
+  // Fonction de validation d'image base64
+  
+  // Analyser l'image avec l'IA pour détecter les coordonnées GPS (MapView uniquement)
+  const analyzeMapImage = async () => {
+    if (!domain || !imageUrl) return;
+    
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    
+    try {
+      const isBase64 = imageUrl.startsWith('data:');
+      
+      const response = await fetch('/api/ai/analyze-map', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(
+          isBase64 
+            ? { imageBase64: imageUrl }
+            : { imageUrl: imageUrl }
+        ),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de l\'analyse');
+      }
+      
+      if (result.detected && result.topLeft && result.bottomRight) {
+        setGpsForm({
+          topLeftLat: result.topLeft.lat.toString(),
+          topLeftLng: result.topLeft.lng.toString(),
+          bottomRightLat: result.bottomRight.lat.toString(),
+          bottomRightLng: result.bottomRight.lng.toString(),
+        });
+        
+        const bounds: MapBounds = {
+          topLeft: { lat: result.topLeft.lat, lng: result.topLeft.lng },
+          bottomRight: { lat: result.bottomRight.lat, lng: result.bottomRight.lng },
+        };
+        updateMapBounds(domain.id, bounds);
+        
+        setAnalysisResult({
+          detected: true,
+          region: result.region,
+          confidence: result.confidence,
+          description: `${result.description} — Coordonnées enregistrées automatiquement.`,
+        });
+      } else {
+        setAnalysisResult({
+          detected: false,
+          description: result.reason || 'Zone géographique non reconnue',
+        });
+      }
+    } catch (error: any) {
+      console.error('Erreur analyse carte:', error);
+      setAnalysisResult({
+        detected: false,
+        description: error.message || 'Erreur lors de l\'analyse de l\'image',
+      });
+    }
+    
+    setIsAnalyzing(false);
+  };
+  
+  // Sauvegarder les coordonnées GPS
+  const saveGpsBounds = () => {
+    if (!domain) return;
+    
+    const lat1 = parseFloat(gpsForm.topLeftLat);
+    const lng1 = parseFloat(gpsForm.topLeftLng);
+    const lat2 = parseFloat(gpsForm.bottomRightLat);
+    const lng2 = parseFloat(gpsForm.bottomRightLng);
+    
+    if (!isNaN(lat1) && !isNaN(lng1) && !isNaN(lat2) && !isNaN(lng2)) {
+      const bounds: MapBounds = {
+        topLeft: { lat: lat1, lng: lng1 },
+        bottomRight: { lat: lat2, lng: lng2 },
+      };
+      updateMapBounds(domain.id, bounds);
+    }
+  };
   
   const toggleSection = (section: string) => {
     setActiveSection(activeSection === section ? null : section);
@@ -206,46 +165,6 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
   // Trouver tous les sous-éléments de l'élément courant
   const allSubElements: SubElement[] = element?.subCategories?.flatMap(sc => sc.subElements) || [];
-
-  // Capteurs pour le drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  // Handler pour le drag & drop des catégories
-  const handleCategoryDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id && domain) {
-      const sortedCategories = [...domain.categories].sort((a, b) => a.order - b.order);
-      const oldIndex = sortedCategories.findIndex(c => c.id === active.id);
-      const newIndex = sortedCategories.findIndex(c => c.id === over.id);
-      
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newOrder = arrayMove(sortedCategories, oldIndex, newIndex);
-        reorderCategory(domain.id, newOrder.map(c => c.id));
-      }
-    }
-  };
-
-  // Handler pour le drag & drop des sous-catégories
-  const handleSubCategoryDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id && element) {
-      const sortedSubCategories = [...element.subCategories].sort((a, b) => a.order - b.order);
-      const oldIndex = sortedSubCategories.findIndex(sc => sc.id === active.id);
-      const newIndex = sortedSubCategories.findIndex(sc => sc.id === over.id);
-      
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newOrder = arrayMove(sortedSubCategories, oldIndex, newIndex);
-        reorderSubCategory(element.id, newOrder.map(sc => sc.id));
-      }
-    }
-  };
   
   // Ouvrir automatiquement la section "Statut (couleur)" quand on sélectionne un sous-élément
   useEffect(() => {
@@ -286,7 +205,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             }}
             className="flex items-center gap-2 text-[#64748B] hover:text-[#1E3A5F] mb-2"
           >
-            <div className="rotate-180"><MuiIcon name="ChevronRight" size={16} /></div>
+            <div className="rotate-180"><MuiIcon name="ChevronRightIcon" size={16} /></div>
             Retour
           </button>
           <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition sous-élément</h3>
@@ -306,7 +225,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="Supprimer ce sous-élément"
             >
-              <MuiIcon name="Delete" size={18} />
+              <MuiIcon name="Trash2" size={18} />
             </button>
           </div>
         </div>
@@ -314,7 +233,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Propriétés du sous-élément */}
         <Section 
           title="Propriétés" 
-          iconName="Settings" 
+          iconName="SettingsIcon" 
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -398,7 +317,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {['fatal', 'critique', 'mineur'].includes(selectedSubElement.status) && (
           <Section 
             title="Alerte" 
-            iconName="Warning" 
+            iconName="AlertTriangleIcon" 
             isOpen={activeSection === 'alert'}
             onToggle={() => toggleSection('alert')}
           >
@@ -557,7 +476,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="Supprimer cet élément"
             >
-              <MuiIcon name="Delete" size={18} />
+              <MuiIcon name="Trash2" size={18} />
             </button>
           </div>
         </div>
@@ -577,7 +496,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Propriétés */}
         <Section 
           title="Propriétés" 
-          iconName="Settings" 
+          iconName="SettingsIcon" 
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -628,7 +547,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   </div>
                 ) : (
                   <div className="w-8 h-8 bg-[#E2E8F0] rounded-lg flex items-center justify-center">
-                    <MuiIcon name="Image" size={16} className="text-[#94A3B8]" />
+                    <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
                   </div>
                 )}
                 <span className="text-sm">{element.icon || 'Choisir une icône...'}</span>
@@ -645,7 +564,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   {element.icon2 ? (
                     <MuiIcon name={element.icon2} size={18} className="text-[#1E3A5F]" />
                   ) : (
-                    <MuiIcon name="Image" size={16} className="text-[#94A3B8]" />
+                    <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
                   )}
                   <span className="text-xs truncate">{element.icon2 || 'Choisir...'}</span>
                 </button>
@@ -659,7 +578,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   {element.icon3 ? (
                     <MuiIcon name={element.icon3} size={18} className="text-[#1E3A5F]" />
                   ) : (
-                    <MuiIcon name="Image" size={16} className="text-[#94A3B8]" />
+                    <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
                   )}
                   <span className="text-xs truncate">{element.icon3 || 'Choisir...'}</span>
                 </button>
@@ -687,6 +606,179 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onChange={(iconName) => updateElement(element.id, { icon3: iconName })}
                 onClose={() => setShowIconPicker(null)}
               />
+            )}
+          </div>
+        </Section>
+        
+        {/* Image de fond pour l'élément */}
+        <Section 
+          title="Image de fond" 
+          iconName="Image" 
+          isOpen={activeSection === 'element-background'}
+          onToggle={() => toggleSection('element-background')}
+        >
+          <div className="space-y-4">
+            {/* Zone de sélection de fichier */}
+            <div>
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</label>
+              <label 
+                htmlFor={`element-bg-upload-${element.id}`}
+                className="block p-4 border-2 border-dashed border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors cursor-pointer"
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  id={`element-bg-upload-${element.id}`}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const maxSizeMB = 30;
+                      const maxSizeBytes = maxSizeMB * 1024 * 1024;
+                      if (file.size > maxSizeBytes) {
+                        alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
+                        e.target.value = '';
+                        return;
+                      }
+                      
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const base64 = event.target?.result as string;
+                        updateElement(element.id, { backgroundImage: base64 });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
+                  <MuiIcon name="Upload" size={24} className="mb-2" />
+                  <span className="text-xs font-medium">Cliquez pour choisir un fichier</span>
+                  <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF jusqu'à 30MB</span>
+                </div>
+              </label>
+            </div>
+            
+            {/* Séparateur */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-[#E2E8F0]" />
+              <span className="text-xs text-[#94A3B8]">ou</span>
+              <div className="flex-1 h-px bg-[#E2E8F0]" />
+            </div>
+            
+            {/* URL alternative */}
+            <div>
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">URL de l'image</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={element.backgroundImage && !element.backgroundImage.startsWith('data:') ? element.backgroundImage : ''}
+                  onChange={(e) => {
+                    const url = e.target.value;
+                    if (url.trim()) {
+                      updateElement(element.id, { backgroundImage: url.trim() });
+                    }
+                  }}
+                  placeholder="https://exemple.com/image.png"
+                  className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                />
+              </div>
+              {element.backgroundImage && !element.backgroundImage.startsWith('data:') && (
+                <button
+                  onClick={() => {
+                    if (element.backgroundImage) {
+                      updateElement(element.id, { backgroundImage: element.backgroundImage });
+                    }
+                  }}
+                  className="mt-2 w-full px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] text-sm"
+                >
+                  Enregistrer l'URL
+                </button>
+              )}
+            </div>
+            
+            {/* Aperçu et options */}
+            {element.backgroundImage && (
+              <div className="space-y-3">
+                <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
+                  <img 
+                    src={element.backgroundImage} 
+                    alt="Aperçu" 
+                    className="max-h-32 rounded border border-[#E2E8F0] mx-auto w-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  {element.backgroundImage.startsWith('data:') && (
+                    <p className="text-xs text-green-600 mt-2 flex items-center justify-center gap-1">
+                      <MuiIcon name="CheckCircle" size={12} />
+                      Fichier chargé
+                    </p>
+                  )}
+                </div>
+                
+                {/* Opacité de l'image */}
+                <div>
+                  <label className="block text-sm text-[#64748B] mb-2">
+                    Opacité de l'image ({element.backgroundImageOpacity !== undefined ? element.backgroundImageOpacity : 100}%)
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={element.backgroundImageOpacity !== undefined ? element.backgroundImageOpacity : 100}
+                    onChange={(e) => updateElement(element.id, { backgroundImageOpacity: Number(e.target.value) })}
+                    className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${element.backgroundImageOpacity !== undefined ? element.backgroundImageOpacity : 100}%, #E2E8F0 ${element.backgroundImageOpacity !== undefined ? element.backgroundImageOpacity : 100}%, #E2E8F0 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                    <span>0%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+                
+                {/* Mode d'affichage */}
+                <div>
+                  <p className="text-xs text-[#64748B] mb-2">Position de l'image</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => updateElement(element.id, { backgroundMode: 'behind' })}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        (!element.backgroundMode || element.backgroundMode === 'behind')
+                          ? 'bg-[#1E3A5F] text-white'
+                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                      }`}
+                    >
+                      En dessous
+                    </button>
+                    <button
+                      onClick={() => updateElement(element.id, { backgroundMode: 'overlay' })}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        element.backgroundMode === 'overlay'
+                          ? 'bg-[#1E3A5F] text-white'
+                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                      }`}
+                    >
+                      Au dessus
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-[#94A3B8] mt-1">
+                    {(!element.backgroundMode || element.backgroundMode === 'behind') 
+                      ? 'L\'image sera derrière les sous-catégories' 
+                      : 'L\'image sera par-dessus (transparente, sans gêner les clics)'}
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => updateElement(element.id, { backgroundImage: undefined, backgroundMode: undefined, backgroundImageOpacity: undefined })}
+                  className="w-full px-3 py-1.5 text-xs text-[#E57373] hover:bg-red-50 rounded-lg border border-[#E57373]/30 transition-colors flex items-center justify-center gap-1"
+                >
+                  <MuiIcon name="Delete" size={12} />
+                  Supprimer l'image
+                </button>
+              </div>
             )}
           </div>
         </Section>
@@ -727,33 +819,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             isOpen={activeSection === 'subcategories'}
             onToggle={() => toggleSection('subcategories')}
           >
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleSubCategoryDragEnd}
-            >
-              <SortableContext
-                items={[...element.subCategories].sort((a, b) => a.order - b.order).map(sc => sc.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-3">
-                  {[...element.subCategories].sort((a, b) => a.order - b.order).map((subCategory) => (
-                    <SortableSubCategoryItem
-                      key={subCategory.id}
-                      subCategory={subCategory}
-                      onUpdateName={(name) => updateSubCategory(subCategory.id, { name })}
-                      onUpdateIcon={(icon) => {
-                        updateSubCategory(subCategory.id, { icon });
-                        setShowIconPicker(null);
-                      }}
-                      onShowIconPicker={(subCategoryId) => setShowIconPicker(subCategoryId)}
-                      showIconPicker={showIconPicker}
-                      IconPickerComponent={IconPicker}
-                    />
-                  ))}
+            <div className="space-y-2">
+              {element.subCategories.map((subCategory) => (
+                <div key={subCategory.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <input
+                    type="text"
+                    value={subCategory.name}
+                    onChange={(e) => updateSubCategory(subCategory.id, { name: e.target.value })}
+                    className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                  />
+                  <span className="text-xs text-[#94A3B8]">
+                    {subCategory.subElements.length} sous-élément{subCategory.subElements.length > 1 ? 's' : ''}
+                  </span>
                 </div>
-              </SortableContext>
-            </DndContext>
+              ))}
+            </div>
           </Section>
         )}
         
@@ -781,9 +861,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   />
                   <span className="text-sm text-[#1E3A5F] truncate flex-1">{se.name}</span>
                   {se.alert && (
-                    <MuiIcon name="Warning" size={16} className="text-[#FFB74D] flex-shrink-0" />
+                    <MuiIcon name="AlertTriangleIcon" size={16} className="text-[#FFB74D] flex-shrink-0" />
                   )}
-                  <MuiIcon name="ChevronRight" size={16} className="text-[#94A3B8] flex-shrink-0" />
+                  <MuiIcon name="ChevronRightIcon" size={16} className="text-[#94A3B8] flex-shrink-0" />
                 </button>
               ))}
             </div>
@@ -897,7 +977,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           return mapElement ? (
             <Section 
               title="Point de carte (GPS)" 
-              iconName="Place" 
+              iconName="MapPinIcon" 
               isOpen={activeSection === 'gps'}
               onToggle={() => toggleSection('gps')}
             >
@@ -1010,14 +1090,14 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     }}
                     className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm"
                   >
-                    <MuiIcon name="Delete" size={16} />
+                    <MuiIcon name="Trash2" size={16} />
                     <span>Supprimer le point</span>
                   </button>
                   <button
                     onClick={() => cloneMapElement(mapElement.id)}
                     className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] flex items-center gap-2 text-sm"
                   >
-                    <MuiIcon name="ContentCopy" size={16} />
+                    <MuiIcon name="CopyIcon" size={16} />
                     <span>Cloner le point</span>
                   </button>
                 </div>
@@ -1077,7 +1157,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         onClick={() => deleteZone(zone.id)}
                         className="p-1 text-[#94A3B8] hover:text-[#E57373]"
                       >
-                        <MuiIcon name="Delete" size={12} />
+                        <MuiIcon name="Trash2" size={12} />
                       </button>
                     </div>
                   ))}
@@ -1114,7 +1194,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Supprimer ce domaine"
               >
-                <MuiIcon name="Delete" size={18} />
+                <MuiIcon name="Trash2" size={18} />
               </button>
             )}
           </div>
@@ -1123,7 +1203,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Propriétés du domaine */}
         <Section 
           title="Propriétés" 
-          iconName="Settings" 
+          iconName="SettingsIcon" 
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -1189,41 +1269,238 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Image de fond */}
         <Section 
           title="Image de fond" 
-            iconName="Image"
+          iconName="Image" 
           isOpen={activeSection === 'background'}
           onToggle={() => toggleSection('background')}
         >
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Zone de sélection de fichier */}
-            <label 
-              htmlFor={`bg-upload-${domain.id}`}
-              className="block p-4 border-2 border-dashed border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors cursor-pointer"
-            >
-              <input
-                type="file"
-                accept="image/*"
-                id={`bg-upload-${domain.id}`}
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      const base64 = event.target?.result as string;
-                      updateDomain(domain.id, { backgroundImage: base64 });
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-              />
-              <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
-                <MuiIcon name="Upload" size={24} className="mb-2" />
-                <span className="text-xs font-medium">Cliquez pour choisir</span>
-                <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF</span>
-              </div>
-            </label>
+            <div>
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</label>
+              <label 
+                htmlFor={`bg-upload-${domain.id}`}
+                className="block p-4 border-2 border-dashed border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors cursor-pointer"
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  id={`bg-upload-${domain.id}`}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const maxSizeMB = 30;
+                      const maxSizeBytes = maxSizeMB * 1024 * 1024;
+                      if (file.size > maxSizeBytes) {
+                        alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
+                        e.target.value = '';
+                        return;
+                      }
+                      
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const base64 = event.target?.result as string;
+                        setImageUrl(base64);
+                        updateDomain(domain.id, { backgroundImage: base64 });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
+                  <MuiIcon name="Upload" size={24} className="mb-2" />
+                  <span className="text-xs font-medium">Cliquez pour choisir un fichier</span>
+                  <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF jusqu'à 30MB</span>
+                </div>
+              </label>
+            </div>
             
-            {/* Aperçu et options */}
+            {/* Séparateur */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-[#E2E8F0]" />
+              <span className="text-xs text-[#94A3B8]">ou</span>
+              <div className="flex-1 h-px bg-[#E2E8F0]" />
+            </div>
+            
+            {/* URL alternative */}
+            <div>
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">URL de l'image</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={imageUrl.startsWith('data:') ? '' : imageUrl}
+                  onChange={(e) => {
+                    setImageUrl(e.target.value);
+                    setAnalysisResult(null);
+                  }}
+                  placeholder="https://exemple.com/image.png"
+                  className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                />
+                {domain.templateType === 'map' && (
+                  <button
+                    onClick={analyzeMapImage}
+                    disabled={!imageUrl || isAnalyzing}
+                    className="px-3 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap text-xs"
+                    title="Analyser l'image avec l'IA pour détecter les coordonnées GPS"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <div className="animate-spin"><MuiIcon name="Refresh" size={14} /></div>
+                        <span>Analyse...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MuiIcon name="AutoAwesome" size={14} />
+                        <span>Détecter GPS</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+              {domain.templateType !== 'map' && (
+                <button
+                  onClick={() => {
+                    if (imageUrl && imageUrl.trim()) {
+                      updateDomain(domain.id, { backgroundImage: imageUrl });
+                    }
+                  }}
+                  className="mt-2 w-full px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] text-sm"
+                >
+                  Enregistrer l'URL
+                </button>
+              )}
+            </div>
+            
+            {/* Aperçu */}
+            {imageUrl && (
+              <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
+                <img 
+                  src={imageUrl} 
+                  alt="Aperçu" 
+                  className="max-h-32 rounded border border-[#E2E8F0] mx-auto w-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                {imageUrl.startsWith('data:') && (
+                  <p className="text-xs text-green-600 mt-2 flex items-center justify-center gap-1">
+                    <MuiIcon name="CheckCircle" size={12} />
+                    Fichier chargé
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Résultat de l'analyse IA (MapView uniquement) */}
+            {domain.templateType === 'map' && analysisResult && (
+              <div className={`p-3 rounded-lg text-sm ${
+                analysisResult.detected 
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-amber-50 border border-amber-200 text-amber-800'
+              }`}>
+                {analysisResult.detected ? (
+                  <div className="flex items-start gap-2">
+                    <MuiIcon name="CheckCircle" size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Zone détectée : {analysisResult.region}</p>
+                      <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
+                      {analysisResult.confidence && (
+                        <p className="text-xs mt-1 opacity-60">Confiance : {analysisResult.confidence}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2">
+                    <MuiIcon name="Warning" size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Détection impossible</p>
+                      <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Coordonnées GPS (MapView uniquement) */}
+            {domain.templateType === 'map' && (
+              <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                <h4 className="font-medium text-[#1E3A5F] mb-2 text-sm flex items-center gap-2">
+                  <MuiIcon name="Place" size={14} />
+                  Coordonnées GPS des coins de l'image
+                </h4>
+                <p className="text-xs text-[#64748B] mb-3">
+                  Ces coordonnées correspondent aux pixels des coins de l'image (pas à la zone géographique).
+                </p>
+                
+                {/* Coin haut-gauche */}
+                <div className="mb-3">
+                  <label className="block text-xs text-[#64748B] mb-1">📍 Coin haut-gauche (Nord-Ouest)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#94A3B8] mb-1">Latitude</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={gpsForm.topLeftLat}
+                        onChange={(e) => setGpsForm({ ...gpsForm, topLeftLat: e.target.value })}
+                        placeholder="ex: 51.089"
+                        className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#94A3B8] mb-1">Longitude</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={gpsForm.topLeftLng}
+                        onChange={(e) => setGpsForm({ ...gpsForm, topLeftLng: e.target.value })}
+                        placeholder="ex: -5.142"
+                        className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Coin bas-droite */}
+                <div className="mb-3">
+                  <label className="block text-xs text-[#64748B] mb-1">📍 Coin bas-droite (Sud-Est)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#94A3B8] mb-1">Latitude</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={gpsForm.bottomRightLat}
+                        onChange={(e) => setGpsForm({ ...gpsForm, bottomRightLat: e.target.value })}
+                        placeholder="ex: 41.303"
+                        className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#94A3B8] mb-1">Longitude</label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={gpsForm.bottomRightLng}
+                        onChange={(e) => setGpsForm({ ...gpsForm, bottomRightLng: e.target.value })}
+                        placeholder="ex: 9.561"
+                        className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={saveGpsBounds}
+                  className="w-full px-3 py-1.5 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] text-xs"
+                >
+                  Enregistrer les coordonnées GPS
+                </button>
+              </div>
+            )}
+            
+            {/* Options d'affichage */}
             {domain.backgroundImage && (
               <div className="space-y-3">
                 <div className="relative">
@@ -1269,11 +1546,65 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   </p>
                 </div>
                 
+                {/* Opacité de l'image (BackgroundView uniquement) */}
+                {domain.templateType === 'background' && (
+                  <div>
+                    <label className="block text-sm text-[#64748B] mb-2">
+                      Opacité de l'image ({domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%)
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}
+                      onChange={(e) => updateDomain(domain.id, { backgroundImageOpacity: Number(e.target.value) })}
+                      className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%, #E2E8F0 ${domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%, #E2E8F0 100%)`
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                      <span>0%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Regroupement (clustering) */}
+                <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-sm font-medium text-[#1E3A5F]">
+                        {domain.templateType === 'map' ? 'Regroupement des points' : 'Regroupement des éléments'}
+                      </label>
+                      <p className="text-xs text-[#64748B] mt-1">
+                        {domain.templateType === 'map' 
+                          ? 'Regrouper les points proches en clusters pour améliorer la lisibilité'
+                          : 'Regrouper les éléments proches en clusters pour améliorer la lisibilité'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => updateDomain(domain.id, { enableClustering: !(domain.enableClustering !== false) })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        domain.enableClustering !== false ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                      }`}
+                      role="switch"
+                      aria-checked={domain.enableClustering !== false}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          domain.enableClustering !== false ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+                
                 <button
-                  onClick={() => updateDomain(domain.id, { backgroundImage: undefined, backgroundMode: undefined })}
+                  onClick={() => updateDomain(domain.id, { backgroundImage: undefined, backgroundMode: undefined, backgroundImageOpacity: undefined })}
                   className="w-full px-3 py-1.5 text-xs text-[#E57373] hover:bg-red-50 rounded-lg border border-[#E57373]/30 transition-colors flex items-center justify-center gap-1"
                 >
-                  <MuiIcon name="Trash2" size={12} />
+                  <MuiIcon name="Delete" size={12} />
                   Supprimer l'image
                 </button>
               </div>
@@ -1289,33 +1620,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             isOpen={activeSection === 'categories'}
             onToggle={() => toggleSection('categories')}
           >
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleCategoryDragEnd}
-            >
-              <SortableContext
-                items={[...domain.categories].sort((a, b) => a.order - b.order).map(c => c.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-3">
-                  {[...domain.categories].sort((a, b) => a.order - b.order).map((category) => (
-                    <SortableCategoryItem
-                      key={category.id}
-                      category={category}
-                      onUpdateName={(name) => updateCategory(category.id, { name })}
-                      onUpdateIcon={(icon) => {
-                        updateCategory(category.id, { icon });
-                        setShowIconPicker(null);
-                      }}
-                      onShowIconPicker={(categoryId) => setShowIconPicker(categoryId)}
-                      showIconPicker={showIconPicker}
-                      IconPickerComponent={IconPicker}
-                    />
-                  ))}
+            <div className="space-y-2">
+              {domain.categories.map((category) => (
+                <div key={category.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <input
+                    type="text"
+                    value={category.name}
+                    onChange={(e) => updateCategory(category.id, { name: e.target.value })}
+                    className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                  />
+                  <span className="text-xs text-[#94A3B8]">
+                    {category.elements.length} élément{category.elements.length > 1 ? 's' : ''}
+                  </span>
                 </div>
-              </SortableContext>
-            </DndContext>
+              ))}
+            </div>
           </Section>
         )}
         
@@ -1392,9 +1711,9 @@ function Section({ title, iconName, isOpen, onToggle, children }: SectionProps) 
         <MuiIcon name={iconName} size={16} className="text-[#94A3B8]" />
         <span className="flex-1 text-sm font-medium text-[#1E3A5F]">{title}</span>
         {isOpen ? (
-          <MuiIcon name="KeyboardArrowDown" size={16} className="text-[#94A3B8]" />
+          <MuiIcon name="ChevronDown" size={16} className="text-[#94A3B8]" />
         ) : (
-          <MuiIcon name="ChevronRight" size={16} className="text-[#94A3B8]" />
+          <MuiIcon name="ChevronRightIcon" size={16} className="text-[#94A3B8]" />
         )}
       </button>
       
