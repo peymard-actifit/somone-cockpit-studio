@@ -569,7 +569,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       return '';
     }
     const trimmed = domain.backgroundImage.trim();
-    if (!isValidBase64Image(trimmed)) {
+    // En mode readOnly, on accepte l'image même si elle ne passe pas la validation stricte
+    if (!(_readOnly || isValidBase64Image(trimmed))) {
       console.warn(`[MapView] âš ï¸ Domain "${domain.name}": backgroundImage invalide (length: ${trimmed.length}, startsWith: ${trimmed.substring(0, 20)}, valid: ${isValidBase64Image(trimmed)})`);
       return '';
     }
