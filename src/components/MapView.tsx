@@ -820,13 +820,15 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         >
           {/* Image de fond */}
           {/* CRITIQUE: VÃ©rifier que l'image est valide avant de l'afficher */}
-          {/* En mode readOnly, on assouplit la validation pour permettre l'affichage */}
-          {mapImageUrl && mapImageUrl.trim().length > 0 && (
-            mapImageUrl.startsWith('data:image/') || _readOnly
-          ) && (_readOnly || isValidBase64Image(mapImageUrl)) ? (
+          {/* En mode readOnly, on utilise directement domain.backgroundImage si mapImageUrl est vide */}
+          {(() => {
+            const imageToDisplay = mapImageUrl || (_readOnly && domain.backgroundImage ? domain.backgroundImage : '');
+            return imageToDisplay && imageToDisplay.trim().length > 0 && (
+              imageToDisplay.startsWith('data:image/') || imageToDisplay.startsWith('data:') || _readOnly
+            ) ? (
             <img 
-              key={`map-image-${domain.id}-${mapImageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
-              src={mapImageUrl}
+              key={`map-image-${domain.id}-${(imageToDisplay || '').substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
+              src={imageToDisplay}
               alt="Carte"
               className="absolute inset-0 w-full h-full object-contain"
               style={{ 
@@ -976,15 +978,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 // img.style.display = 'none';
               }}
             />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#EEF2F7]">
-              <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-[#E2E8F0]">
-                <MuiIcon name="MapPinIcon" size={48} className="text-[#94A3B8] mx-auto mb-4" />
-                <p className="text-[#64748B] font-medium mb-2">Aucune carte configurée</p>
-                <p className="text-sm text-[#94A3B8]">Configurez l'image et les coordonnées GPS depuis le menu d'édition</p>
-              </div>
-            </div>
-          )}
+            ) : null;
+          })()}
           
           {/* Clusters de points (quand on dÃ©zoome) - cliquables pour zoomer */}
           {clusters.map((cluster) => {

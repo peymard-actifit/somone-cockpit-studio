@@ -248,6 +248,8 @@ app.get('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
     publicId: c.data?.publicId,
     isPublished: c.data?.isPublished || false,
     publishedAt: c.data?.publishedAt,
+    // Ordre pour le drag & drop
+    order: c.data?.order,
   })));
 });
 

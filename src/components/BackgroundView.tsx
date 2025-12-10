@@ -869,14 +869,16 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         >
           {/* Image de fond */}
           {/* CRITIQUE: VÃ©rifier explicitement que l'image est valide avant de l'afficher */}
-          {/* En mode readOnly, on assouplit la validation pour permettre l'affichage */}
-          {imageUrl && imageUrl.trim().length > 0 && (
-            imageUrl.startsWith('data:image/') || _readOnly
-          ) && (_readOnly || isValidBase64Image(imageUrl)) ? (
+          {/* En mode readOnly, on utilise directement domain.backgroundImage si imageUrl est vide */}
+          {(() => {
+            const imageToDisplay = imageUrl || (_readOnly && domain.backgroundImage ? domain.backgroundImage : '');
+            return imageToDisplay && imageToDisplay.trim().length > 0 && (
+              imageToDisplay.startsWith('data:image/') || imageToDisplay.startsWith('data:') || _readOnly
+            ) ? (
             <img 
-              key={`bg-image-${domain.id}-${imageUrl.substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
+              key={`bg-image-${domain.id}-${(imageToDisplay || '').substring(0, 20)}-${_readOnly ? 'readonly' : 'edit'}`}
               ref={imageRef}
-              src={imageUrl}
+              src={imageToDisplay}
               alt="Fond"
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               draggable={false}
@@ -999,9 +1001,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 // img.style.display = 'none';
               }}
             />
-          ) : (
-            <div className="absolute inset-0 bg-[#EEF2F7]" />
-          )}
+            ) : null;
+          })()}
           
         {/* Placeholder si pas d'image */}
         {!domain.backgroundImage && (
