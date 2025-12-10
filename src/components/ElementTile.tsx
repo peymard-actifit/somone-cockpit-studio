@@ -26,6 +26,10 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   const isOkStatus = colors.hex === STATUS_COLORS.ok.hex;
   const buttonRef = useRef<HTMLButtonElement>(null);
   
+  // Préférence pour l'affichage des tuiles vertes (ok)
+  const greenTilesAsColored = localStorage.getItem('greenTilesAsColored') === 'true';
+  const shouldUseWhiteBackground = isOkStatus && !greenTilesAsColored;
+  
   // Convertir la couleur hex en rgba pour avoir 20% d'opacité (80% de transparence - plus clair)
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -37,12 +41,12 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   // Appliquer le style de fond quand le statut change
   useEffect(() => {
     if (!buttonRef.current || mini) return;
-    if (isOkStatus) {
+    if (shouldUseWhiteBackground) {
       buttonRef.current.style.backgroundColor = '#FFFFFF';
     } else {
       buttonRef.current.style.backgroundColor = hexToRgba(colors.hex, 0.2);
     }
-  }, [element.status, colors.hex, isOkStatus, mini]);
+  }, [element.status, colors.hex, shouldUseWhiteBackground, mini]);
   
   // Gestion du drag and drop
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
@@ -61,7 +65,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
     setIsDraggingOver(false);
     setIsDragging(false);
     // Réinitialiser le style de fond
-    if (isOkStatus) {
+    if (shouldUseWhiteBackground) {
       e.currentTarget.style.backgroundColor = '#FFFFFF';
     } else {
       e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.2);
@@ -159,7 +163,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
       onDrop={handleDrop}
       className={`
         group relative
-        w-[160px] h-[112px]
+        w-[200px] h-[140px]
         border rounded-xl
         shadow-sm hover:shadow-md
         transition-all duration-200
@@ -174,12 +178,12 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
         ${isDraggingOver ? 'border-[#1E3A5F] border-2 ring-2 ring-[#1E3A5F]/20' : 'border-[#E2E8F0] hover:border-[#CBD5E1]'}
       `}
       style={{
-        backgroundColor: isOkStatus ? '#FFFFFF' : hexToRgba(colors.hex, 0.2),
+        backgroundColor: shouldUseWhiteBackground ? '#FFFFFF' : hexToRgba(colors.hex, 0.2),
         transition: 'background-color 0.2s ease-out',
       } as React.CSSProperties & { backgroundColor?: string }}
       onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
         if (!isDragging) {
-          if (isOkStatus) {
+          if (shouldUseWhiteBackground) {
             e.currentTarget.style.backgroundColor = '#FAFBFC';
           } else {
             e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.3);
@@ -188,7 +192,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
       }}
       onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
         if (!isDragging) {
-          if (isOkStatus) {
+          if (shouldUseWhiteBackground) {
             e.currentTarget.style.backgroundColor = '#FFFFFF';
           } else {
             e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.2);
