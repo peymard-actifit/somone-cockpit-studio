@@ -277,10 +277,29 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
       )}
       
       {/* Catégories HORIZONTALES */}
-      <div className="space-y-10">
-        {horizontalCategories.map((category) => (
-          <CategorySection key={category.id} category={category} onElementClick={onElementClick} readOnly={readOnly} />
-        ))}
+      <div>
+        {horizontalCategories.map((category) => {
+          // Préférence d'espacement entre catégories
+          const categorySpacing = (() => {
+            const saved = localStorage.getItem('categorySpacing');
+            return saved ? parseInt(saved, 10) : 80;
+          })();
+          
+          // Convertir la valeur du slider (0-100) en classes Tailwind
+          const getMarginBottomClass = (value: number) => {
+            if (value < 20) return 'mb-2';
+            if (value < 40) return 'mb-4';
+            if (value < 60) return 'mb-6';
+            if (value < 80) return 'mb-8';
+            return 'mb-10';
+          };
+          
+          return (
+            <div key={category.id} className={getMarginBottomClass(categorySpacing)}>
+              <CategorySection category={category} onElementClick={onElementClick} readOnly={readOnly} />
+            </div>
+          );
+        })}
       </div>
       
       {/* Bouton ajouter catégorie */}

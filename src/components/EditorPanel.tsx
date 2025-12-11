@@ -77,6 +77,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = localStorage.getItem('subCategorySpacing');
     return saved ? parseInt(saved, 10) : 80;
   });
+  const [verticalSubCategoryWidth, setVerticalSubCategoryWidth] = useState(() => {
+    const saved = localStorage.getItem('verticalSubCategoryWidth');
+    return saved ? parseInt(saved, 10) : 200;
+  });
   
   // Synchroniser les valeurs depuis localStorage quand on ouvre les sections
   useEffect(() => {
@@ -84,10 +88,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       setHorizontalSpacing(parseInt(localStorage.getItem('horizontalSpacing') || '50', 10));
       setCategorySpacing(parseInt(localStorage.getItem('categorySpacing') || '80', 10));
       setSubCategorySpacing(parseInt(localStorage.getItem('subCategorySpacing') || '80', 10));
+      setVerticalSubCategoryWidth(parseInt(localStorage.getItem('verticalSubCategoryWidth') || '200', 10));
     };
     window.addEventListener('spacingPreferenceChanged', handleSpacingChange);
+    window.addEventListener('verticalSubCategoryWidthChanged', handleSpacingChange);
     return () => {
       window.removeEventListener('spacingPreferenceChanged', handleSpacingChange);
+      window.removeEventListener('verticalSubCategoryWidthChanged', handleSpacingChange);
     };
   }, []);
   
@@ -1051,6 +1058,32 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <div className="flex justify-between text-xs text-[#64748B] mt-1">
                 <span>Compact</span>
                 <span>Espacé</span>
+              </div>
+            </div>
+            
+            {/* Slider largeur sous-catégories verticales */}
+            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                Largeur des sous-catégories verticales (px)
+              </label>
+              <input
+                type="range"
+                min="100"
+                max="500"
+                step="10"
+                value={verticalSubCategoryWidth}
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value, 10);
+                  setVerticalSubCategoryWidth(newValue);
+                  localStorage.setItem('verticalSubCategoryWidth', String(newValue));
+                  window.dispatchEvent(new Event('verticalSubCategoryWidthChanged'));
+                }}
+                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+              />
+              <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                <span>100px</span>
+                <span className="font-medium">{verticalSubCategoryWidth}px</span>
+                <span>500px</span>
               </div>
             </div>
           </Section>

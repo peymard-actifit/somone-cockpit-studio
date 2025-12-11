@@ -3,7 +3,7 @@ import { useCockpitStore } from '../store/cockpitStore';
 import SubCategorySection from './SubCategorySection';
 import SubElementTile from './SubElementTile';
 import { MuiIcon } from './IconPicker';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 
 interface ElementViewProps {
@@ -23,6 +23,20 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   const [addingSubElementToSubCategory, setAddingSubElementToSubCategory] = useState<string | null>(null);
   const [newSubElementName, setNewSubElementName] = useState('');
   const [draggingOverSubCategoryId, setDraggingOverSubCategoryId] = useState<string | null>(null);
+  const [verticalSubCategoryWidth, setVerticalSubCategoryWidth] = useState(() => {
+    const saved = localStorage.getItem('verticalSubCategoryWidth');
+    return saved ? parseInt(saved, 10) : 200;
+  });
+  
+  useEffect(() => {
+    const handleWidthChange = () => {
+      setVerticalSubCategoryWidth(parseInt(localStorage.getItem('verticalSubCategoryWidth') || '200', 10));
+    };
+    window.addEventListener('verticalSubCategoryWidthChanged', handleWidthChange);
+    return () => {
+      window.removeEventListener('verticalSubCategoryWidthChanged', handleWidthChange);
+    };
+  }, []);
   
   // Modal de configuration supprimée - l'édition se fait maintenant via EditorPanel
   
@@ -182,7 +196,12 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
               {verticalSubCategories.map((subCategory) => (
                 <div 
                   key={subCategory.id} 
-                  className="flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 bg-white flex items-center justify-center"
+                  className="p-4 border-r border-[#E2E8F0] last:border-r-0 bg-white flex items-center justify-center"
+                  style={{ 
+                    minWidth: `${verticalSubCategoryWidth}px`,
+                    maxWidth: `${verticalSubCategoryWidth}px`,
+                    flex: `0 0 ${verticalSubCategoryWidth}px`
+                  }}
                 >
                   <div className="flex items-center gap-3 w-full">
                     {subCategory.icon && (
@@ -222,12 +241,25 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
             
             {/* Tuiles des sous-catégories verticales - en colonnes */}
             <div className="flex">
-              {verticalSubCategories.map((subCategory) => (
+              {verticalSubCategories.map((subCategory) => {
+                // Préférence de largeur pour les sous-catégories verticales
+                const verticalSubCategoryWidth = (() => {
+                  const saved = localStorage.getItem('verticalSubCategoryWidth');
+                  const width = saved ? parseInt(saved, 10) : 200; // Défaut 200px
+                  return width;
+                })();
+                
+                return (
                 <div 
                   key={subCategory.id} 
-                  className={`flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 transition-all rounded-lg ${
+                  className={`p-4 border-r border-[#E2E8F0] last:border-r-0 transition-all rounded-lg ${
                     draggingOverSubCategoryId === subCategory.id ? 'bg-[#F5F7FA] border-2 border-[#1E3A5F]' : ''
                   }`}
+                  style={{ 
+                    minWidth: `${verticalSubCategoryWidth}px`,
+                    maxWidth: `${verticalSubCategoryWidth}px`,
+                    flex: `0 0 ${verticalSubCategoryWidth}px`
+                  }}
                   onDragOver={(e) => handleDragOver(e, subCategory.id)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, subCategory.id)}
@@ -304,7 +336,8 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
