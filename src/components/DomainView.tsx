@@ -287,10 +287,16 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
           
           // Convertir la valeur du slider (0-100) en classes Tailwind
           const getMarginBottomClass = (value: number) => {
-            if (value < 20) return 'mb-2';
-            if (value < 40) return 'mb-4';
-            if (value < 60) return 'mb-6';
-            if (value < 80) return 'mb-8';
+            if (value < 5) return 'mb-0';
+            if (value < 10) return 'mb-1';
+            if (value < 15) return 'mb-2';
+            if (value < 25) return 'mb-3';
+            if (value < 35) return 'mb-4';
+            if (value < 45) return 'mb-5';
+            if (value < 55) return 'mb-6';
+            if (value < 65) return 'mb-7';
+            if (value < 75) return 'mb-8';
+            if (value < 85) return 'mb-9';
             return 'mb-10';
           };
           
