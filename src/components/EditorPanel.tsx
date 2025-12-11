@@ -1967,7 +1967,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           </Section>
         )}
         
-        {/* Préférences d'affichage */}
+        {/* Préférences d'affichage - Masquées pour les vues Map et Background */}
+        {domain && domain.templateType !== 'map' && domain.templateType !== 'background' && (
         <Section 
           title="Préférences d'affichage" 
           iconName="Settings" 
@@ -2096,6 +2097,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </div>
         </Section>
+        )}
         
         {/* Paramètres du cockpit */}
         <Section 
