@@ -23,20 +23,26 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   const [addingElementToCategory, setAddingElementToCategory] = useState<string | null>(null);
   const [newElementName, setNewElementName] = useState('');
   const [draggingOverCategoryId, setDraggingOverCategoryId] = useState<string | null>(null);
+  const domainStorageKey = `domain_${domain.id}`;
   const [categorySpacing, setCategorySpacing] = useState(() => {
-    const saved = localStorage.getItem(`categorySpacing_${domain.id}`);
+    const saved = localStorage.getItem(`categorySpacing_${domainStorageKey}`);
     return saved ? parseInt(saved, 10) : 80;
+  });
+  const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
+    const saved = localStorage.getItem(`horizontalSpacing_${domainStorageKey}`);
+    return saved ? parseInt(saved, 10) : 50;
   });
   
   useEffect(() => {
     const handleSpacingChange = () => {
-      setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${domain.id}`) || '80', 10));
+      setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${domainStorageKey}`) || '80', 10));
+      setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) || '50', 10));
     };
-    window.addEventListener(`spacingPreferenceChanged_${domain.id}`, handleSpacingChange);
+    window.addEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleSpacingChange);
     return () => {
-      window.removeEventListener(`spacingPreferenceChanged_${domain.id}`, handleSpacingChange);
+      window.removeEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleSpacingChange);
     };
-  }, [domain.id]);
+  }, [domainStorageKey]);
   
   // Modal de configuration supprimée - l'édition se fait maintenant via EditorPanel
   
@@ -310,7 +316,13 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
           
           return (
             <div key={category.id} className={getMarginBottomClass(categorySpacing)}>
-              <CategorySection category={category} onElementClick={onElementClick} readOnly={readOnly} domainId={domain.id} />
+              <CategorySection 
+                category={category} 
+                onElementClick={onElementClick} 
+                readOnly={readOnly} 
+                domainId={domain.id}
+                horizontalSpacing={horizontalSpacing}
+              />
             </div>
           );
         })}

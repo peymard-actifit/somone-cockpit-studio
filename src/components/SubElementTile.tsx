@@ -20,9 +20,11 @@ interface SubElementTileProps {
   totalElements?: number; // Nombre total de sous-éléments dans la sous-catégorie
   onReorder?: (draggedSubElementId: string, targetIndex: number) => void; // Callback pour réordonner
   onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition
+  isVertical?: boolean; // Si la sous-catégorie est verticale
+  columnWidth?: number; // Largeur de la colonne pour les sous-catégories verticales
 }
 
-export default function SubElementTile({ subElement, breadcrumb, readOnly = false, subCategoryId, index, totalElements, onReorder, onSubElementClick }: SubElementTileProps) {
+export default function SubElementTile({ subElement, breadcrumb, readOnly = false, subCategoryId, index, totalElements, onReorder, onSubElementClick, isVertical = false, columnWidth }: SubElementTileProps) {
   const [showAlert, setShowAlert] = useState(false);
   const { deleteSubElement } = useCockpitStore();
   const confirm = useConfirm();
@@ -165,7 +167,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         onMouseMove={handleMouseMove}
         className={`
           group relative overflow-hidden
-          min-w-[150px] px-4 py-3
+          ${isVertical ? 'w-full' : 'min-w-[150px]'} px-4 py-3
           rounded-lg
           shadow-sm hover:shadow-md
           transition-all duration-200
@@ -179,6 +181,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         `}
         style={{
           backgroundColor: colors.hex,
+          ...(isVertical && columnWidth ? { width: `${columnWidth}px`, maxWidth: `${columnWidth}px` } : {})
         }}
       >
         {/* Contenu */}

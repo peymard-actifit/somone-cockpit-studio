@@ -287,6 +287,8 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                           }
                         }}
                         onSubElementClick={onSubElementClick}
+                        isVertical={true}
+                        columnWidth={verticalSubCategoryWidth}
                       />
                     ))}
                     
@@ -346,17 +348,18 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
         
         {/* Sous-catégories HORIZONTALES : affichées de manière classique */}
         <div className="space-y-10">
-          {horizontalSubCategories.map((subCategory) => (
-            <SubCategorySection 
-              key={subCategory.id} 
-              subCategory={subCategory}
-              element={element}
-              domain={domain}
-              readOnly={readOnly}
-              onSubElementClick={onSubElementClick}
-              elementId={element.id}
-            />
-          ))}
+            {horizontalSubCategories.map((subCategory) => (
+              <SubCategorySection 
+                key={subCategory.id} 
+                subCategory={subCategory}
+                element={element}
+                domain={domain}
+                readOnly={readOnly}
+                onSubElementClick={onSubElementClick}
+                elementId={element.id}
+                verticalSubCategoryWidth={verticalSubCategoryWidth}
+              />
+            ))}
         </div>
         
         {/* Bouton ajouter sous-catégorie */}

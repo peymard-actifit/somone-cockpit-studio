@@ -12,9 +12,10 @@ interface SubCategorySectionProps {
   readOnly?: boolean;
   onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition d'un sous-élément
   elementId?: string; // ID de l'élément pour les préférences indépendantes
+  verticalSubCategoryWidth?: number; // Largeur pour les sous-catégories verticales
 }
 
-export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick, elementId }: SubCategorySectionProps) {
+export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick, elementId, verticalSubCategoryWidth }: SubCategorySectionProps) {
   const { addSubElement, deleteSubCategory, moveSubElement, reorderSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubElement, setIsAddingSubElement] = useState(false);
@@ -207,6 +208,8 @@ export default function SubCategorySection({ subCategory, element, domain, readO
                 reorderSubElement(draggedSubElementId, subCategory.id, targetIndex);
               }
             }}
+            isVertical={subCategory.orientation === 'vertical'}
+            columnWidth={subCategory.orientation === 'vertical' && verticalSubCategoryWidth ? verticalSubCategoryWidth : undefined}
           />
         ))}
         
