@@ -32,15 +32,22 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
     const saved = localStorage.getItem(`horizontalSpacing_${domainStorageKey}`);
     return saved ? parseInt(saved, 10) : 50;
   });
+  const [verticalCategoryWidth, setVerticalCategoryWidth] = useState(() => {
+    const saved = localStorage.getItem(`verticalCategoryWidth_${domainStorageKey}`);
+    return saved ? parseInt(saved, 10) : 200;
+  });
   
   useEffect(() => {
     const handleSpacingChange = () => {
       setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${domainStorageKey}`) || '80', 10));
       setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) || '50', 10));
+      setVerticalCategoryWidth(parseInt(localStorage.getItem(`verticalCategoryWidth_${domainStorageKey}`) || '200', 10));
     };
     window.addEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleSpacingChange);
+    window.addEventListener(`verticalCategoryWidthChanged_${domainStorageKey}`, handleSpacingChange);
     return () => {
       window.removeEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleSpacingChange);
+      window.removeEventListener(`verticalCategoryWidthChanged_${domainStorageKey}`, handleSpacingChange);
     };
   }, [domainStorageKey]);
   
@@ -218,9 +225,14 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               return (
                 <div 
                   key={category.id} 
-                  className={`flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 transition-all ${
+                  className={`p-4 border-r border-[#E2E8F0] last:border-r-0 transition-all ${
                     draggingOverCategoryId === category.id ? 'bg-[#F5F7FA] border-[#1E3A5F] border-2' : ''
                   }`}
+                  style={{ 
+                    minWidth: `${verticalCategoryWidth}px`,
+                    maxWidth: `${verticalCategoryWidth}px`,
+                    flex: `0 0 ${verticalCategoryWidth}px`
+                  }}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}

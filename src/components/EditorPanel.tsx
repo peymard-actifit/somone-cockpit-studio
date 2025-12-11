@@ -76,6 +76,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = domain ? localStorage.getItem(`categorySpacing_${domainStorageKey}`) : localStorage.getItem('categorySpacing');
     return saved ? parseInt(saved, 10) : 80;
   });
+  const [verticalCategoryWidth, setVerticalCategoryWidth] = useState(() => {
+    const saved = domain ? localStorage.getItem(`verticalCategoryWidth_${domainStorageKey}`) : localStorage.getItem('verticalCategoryWidth');
+    return saved ? parseInt(saved, 10) : 200;
+  });
   const [elementHorizontalSpacing, setElementHorizontalSpacing] = useState(() => {
     const saved = element ? localStorage.getItem(`horizontalSpacing_${elementStorageKey}`) : localStorage.getItem('horizontalSpacing');
     return saved ? parseInt(saved, 10) : 50;
@@ -103,6 +107,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       if (domain) {
         setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) || '50', 10));
         setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${domainStorageKey}`) || '80', 10));
+        setVerticalCategoryWidth(parseInt(localStorage.getItem(`verticalCategoryWidth_${domainStorageKey}`) || '200', 10));
       }
     };
     const handleDomainDisplayChange = () => {
@@ -122,6 +127,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     };
     if (domain) {
       window.addEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleDomainSpacingChange);
+      window.addEventListener(`verticalCategoryWidthChanged_${domainStorageKey}`, handleDomainSpacingChange);
       window.addEventListener(`greenTilesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
       window.addEventListener(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
     }
@@ -132,6 +138,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     return () => {
       if (domain) {
         window.removeEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleDomainSpacingChange);
+        window.removeEventListener(`verticalCategoryWidthChanged_${domainStorageKey}`, handleDomainSpacingChange);
         window.removeEventListener(`greenTilesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
         window.removeEventListener(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
       }
@@ -1984,136 +1991,175 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         )}
         
         {/* Préférences d'affichage - Masquées pour les vues Map et Background */}
-        {domain && domain.templateType !== 'map' && domain.templateType !== 'background' && (
-        <Section 
-          title="Préférences d'affichage" 
-          iconName="Settings" 
-          isOpen={activeSection === 'display-preferences'}
-          onToggle={() => toggleSection('display-preferences')}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-[#1E3A5F] mb-1">
-                  Tuiles vertes (statut OK)
-                </label>
-                <p className="text-xs text-[#64748B]">
-                  {greenTilesAsColored 
-                    ? 'Affichage avec couleur verte (comme les autres statuts)'
-                    : 'Affichage avec fond blanc (par défaut)'
-                  }
-                </p>
+        {domain && domain.templateType !== 'map' && domain.templateType !== 'background' && (() => {
+          const horizontalCategories = domain.categories.filter(c => c.orientation === 'horizontal');
+          const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
+          
+          return (
+            <Section 
+              title="Préférences d'affichage" 
+              iconName="Settings" 
+              isOpen={activeSection === 'display-preferences'}
+              onToggle={() => toggleSection('display-preferences')}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-[#1E3A5F] mb-1">
+                      Tuiles vertes (statut OK)
+                    </label>
+                    <p className="text-xs text-[#64748B]">
+                      {greenTilesAsColored 
+                        ? 'Affichage avec couleur verte (comme les autres statuts)'
+                        : 'Affichage avec fond blanc (par défaut)'
+                      }
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newValue = !greenTilesAsColored;
+                      setGreenTilesAsColored(newValue);
+                      const key = domain ? `greenTilesAsColored_${domainStorageKey}` : 'greenTilesAsColored';
+                      localStorage.setItem(key, String(newValue));
+                      // Forcer le re-render des tuiles dans la même fenêtre
+                      window.dispatchEvent(new Event(`greenTilesPreferenceChanged_${domainStorageKey}`));
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+                      greenTilesAsColored ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                    }`}
+                    role="switch"
+                    aria-checked={greenTilesAsColored}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
+                        greenTilesAsColored ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                
+                {/* Toggle et sliders pour catégories horizontales */}
+                {horizontalCategories.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-[#1E3A5F] mb-1">
+                          Catégories horizontales
+                        </label>
+                        <p className="text-xs text-[#64748B]">
+                          {horizontalCategoriesInline 
+                            ? 'En-tête à gauche, tuiles à droite (en ligne)'
+                            : 'En-tête au-dessus des tuiles (par défaut)'
+                          }
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newValue = !horizontalCategoriesInline;
+                          setHorizontalCategoriesInline(newValue);
+                          const key = domain ? `horizontalCategoriesInline_${domainStorageKey}` : 'horizontalCategoriesInline';
+                          localStorage.setItem(key, String(newValue));
+                          // Forcer le re-render des catégories
+                          window.dispatchEvent(new Event(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`));
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+                          horizontalCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                        }`}
+                        role="switch"
+                        aria-checked={horizontalCategoriesInline}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
+                            horizontalCategoriesInline ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    
+                    {/* Slider espacement horizontal */}
+                    <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                        Espacement entre éléments (vues horizontales)
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={horizontalSpacing}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value, 10);
+                          setHorizontalSpacing(newValue);
+                          const key = domain ? `horizontalSpacing_${domainStorageKey}` : 'horizontalSpacing';
+                          localStorage.setItem(key, String(newValue));
+                          window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
+                        }}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                        <span>Compact</span>
+                        <span>Espacé</span>
+                      </div>
+                    </div>
+                    
+                    {/* Slider espacement entre catégories horizontales */}
+                    <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                        Espacement entre catégories horizontales
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={categorySpacing}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value, 10);
+                          setCategorySpacing(newValue);
+                          const key = domain ? `categorySpacing_${domainStorageKey}` : 'categorySpacing';
+                          localStorage.setItem(key, String(newValue));
+                          window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
+                        }}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                        <span>Compact</span>
+                        <span>Espacé</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {/* Slider pour catégories verticales */}
+                {verticalCategories.length > 0 && (
+                  <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                    <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                      Largeur des catégories verticales (px)
+                    </label>
+                    <input
+                      type="range"
+                      min="100"
+                      max="500"
+                      step="10"
+                      value={verticalCategoryWidth}
+                      onChange={(e) => {
+                        const newValue = parseInt(e.target.value, 10);
+                        setVerticalCategoryWidth(newValue);
+                        const key = domain ? `verticalCategoryWidth_${domainStorageKey}` : 'verticalCategoryWidth';
+                        localStorage.setItem(key, String(newValue));
+                        window.dispatchEvent(new Event(`verticalCategoryWidthChanged_${domainStorageKey}`));
+                      }}
+                      className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                    />
+                    <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                      <span>100px</span>
+                      <span className="font-medium">{verticalCategoryWidth}px</span>
+                      <span>500px</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <button
-                onClick={() => {
-                  const newValue = !greenTilesAsColored;
-                  setGreenTilesAsColored(newValue);
-                  const key = domain ? `greenTilesAsColored_${domainStorageKey}` : 'greenTilesAsColored';
-                  localStorage.setItem(key, String(newValue));
-                  // Forcer le re-render des tuiles dans la même fenêtre
-                  window.dispatchEvent(new Event(`greenTilesPreferenceChanged_${domainStorageKey}`));
-                }}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-                  greenTilesAsColored ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                }`}
-                role="switch"
-                aria-checked={greenTilesAsColored}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                    greenTilesAsColored ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-[#1E3A5F] mb-1">
-                  Catégories horizontales
-                </label>
-                <p className="text-xs text-[#64748B]">
-                  {horizontalCategoriesInline 
-                    ? 'En-tête à gauche, tuiles à droite (en ligne)'
-                    : 'En-tête au-dessus des tuiles (par défaut)'
-                  }
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  const newValue = !horizontalCategoriesInline;
-                  setHorizontalCategoriesInline(newValue);
-                  const key = domain ? `horizontalCategoriesInline_${domainStorageKey}` : 'horizontalCategoriesInline';
-                  localStorage.setItem(key, String(newValue));
-                  // Forcer le re-render des catégories
-                  window.dispatchEvent(new Event(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`));
-                }}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-                  horizontalCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                }`}
-                role="switch"
-                aria-checked={horizontalCategoriesInline}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                    horizontalCategoriesInline ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-            
-            {/* Slider espacement horizontal */}
-            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                Espacement entre éléments (vues horizontales)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={horizontalSpacing}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value, 10);
-                  setHorizontalSpacing(newValue);
-                  const key = domain ? `horizontalSpacing_${domainStorageKey}` : 'horizontalSpacing';
-                  localStorage.setItem(key, String(newValue));
-                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
-                }}
-                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-              />
-              <div className="flex justify-between text-xs text-[#64748B] mt-1">
-                <span>Compact</span>
-                <span>Espacé</span>
-              </div>
-            </div>
-            
-            {/* Slider espacement entre catégories */}
-            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                Espacement entre catégories
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={categorySpacing}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value, 10);
-                  setCategorySpacing(newValue);
-                  const key = domain ? `categorySpacing_${domainStorageKey}` : 'categorySpacing';
-                  localStorage.setItem(key, String(newValue));
-                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
-                }}
-                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-              />
-              <div className="flex justify-between text-xs text-[#64748B] mt-1">
-                <span>Compact</span>
-                <span>Espacé</span>
-              </div>
-            </div>
-          </div>
-        </Section>
-        )}
+            </Section>
+          );
+        })()}
         
         {/* Paramètres du cockpit */}
         <Section 
