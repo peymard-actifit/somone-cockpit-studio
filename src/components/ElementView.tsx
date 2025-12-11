@@ -210,14 +210,14 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
               {verticalSubCategories.map((subCategory) => (
                 <div 
                   key={subCategory.id} 
-                  className="p-4 border-r border-[#E2E8F0] last:border-r-0 bg-white flex items-center justify-center"
+                  className="border-r border-[#E2E8F0] last:border-r-0 bg-white"
                   style={{ 
                     minWidth: `${verticalSubCategoryWidth}px`,
                     maxWidth: `${verticalSubCategoryWidth}px`,
                     flex: `0 0 ${verticalSubCategoryWidth}px`
                   }}
                 >
-                  <div className="flex items-center gap-3 w-full">
+                  <div className="p-4 flex items-center gap-3">
                     {subCategory.icon && (
                       <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
                         <MuiIcon name={subCategory.icon} size={20} className="text-white" />
@@ -259,7 +259,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                 return (
                 <div 
                   key={subCategory.id} 
-                  className={`p-4 border-r border-[#E2E8F0] last:border-r-0 transition-all rounded-lg ${
+                  className={`border-r border-[#E2E8F0] last:border-r-0 transition-all ${
                     draggingOverSubCategoryId === subCategory.id ? 'bg-[#F5F7FA] border-2 border-[#1E3A5F]' : ''
                   }`}
                   style={{ 
@@ -271,7 +271,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, subCategory.id)}
                 >
-                  <div className="flex flex-col gap-3">
+                  <div className="p-4 flex flex-col gap-3">
                     {subCategory.subElements.map((subElement, index) => (
                       <SubElementTile 
                         key={subElement.id} 
