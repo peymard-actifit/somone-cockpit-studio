@@ -65,33 +65,35 @@ export default function CategorySection({ category, onElementClick, readOnly = f
     }
   };
   
-  // Préférence pour la position des catégories horizontales
+  // Préférence pour la position des catégories horizontales (indépendante par domaine)
+  const storageKey = domainId ? `domain_${domainId}` : 'global';
   const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
-    return localStorage.getItem('horizontalCategoriesInline') === 'true';
+    const saved = localStorage.getItem(`horizontalCategoriesInline_${storageKey}`);
+    return saved === 'true';
   });
   
   useEffect(() => {
     const handlePreferenceChange = () => {
-      setHorizontalCategoriesInline(localStorage.getItem('horizontalCategoriesInline') === 'true');
+      setHorizontalCategoriesInline(localStorage.getItem(`horizontalCategoriesInline_${storageKey}`) === 'true');
     };
-    window.addEventListener('horizontalCategoriesPreferenceChanged', handlePreferenceChange);
+    window.addEventListener(`horizontalCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
     return () => {
-      window.removeEventListener('horizontalCategoriesPreferenceChanged', handlePreferenceChange);
+      window.removeEventListener(`horizontalCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
     };
-  }, []);
+  }, [storageKey]);
   
   const isHorizontal = category.orientation === 'horizontal';
   const useInlineLayout = isHorizontal && horizontalCategoriesInline;
   
   // Préférences d'espacement (indépendantes par domaine)
-  const storageKey = domainId ? `domain_${domainId}` : 'global';
+  const spacingStorageKey = domainId ? `domain_${domainId}` : 'global';
   const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
     if (propHorizontalSpacing !== undefined) return propHorizontalSpacing;
-    const saved = localStorage.getItem(`horizontalSpacing_${storageKey}`);
+    const saved = localStorage.getItem(`horizontalSpacing_${spacingStorageKey}`);
     return saved ? parseInt(saved, 10) : 50; // Défaut 50 (équivalent à gap-3)
   });
   const [categorySpacing, setCategorySpacing] = useState(() => {
-    const saved = localStorage.getItem(`categorySpacing_${storageKey}`);
+    const saved = localStorage.getItem(`categorySpacing_${spacingStorageKey}`);
     return saved ? parseInt(saved, 10) : 80; // Défaut 80 (équivalent à mb-8)
   });
   
@@ -99,15 +101,15 @@ export default function CategorySection({ category, onElementClick, readOnly = f
     const handleSpacingChange = () => {
       const newHorizontalSpacing = propHorizontalSpacing !== undefined 
         ? propHorizontalSpacing 
-        : parseInt(localStorage.getItem(`horizontalSpacing_${storageKey}`) || '50', 10);
+        : parseInt(localStorage.getItem(`horizontalSpacing_${spacingStorageKey}`) || '50', 10);
       setHorizontalSpacing(newHorizontalSpacing);
-      setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${storageKey}`) || '80', 10));
+      setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${spacingStorageKey}`) || '80', 10));
     };
-    window.addEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
+    window.addEventListener(`spacingPreferenceChanged_${spacingStorageKey}`, handleSpacingChange);
     return () => {
-      window.removeEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
+      window.removeEventListener(`spacingPreferenceChanged_${spacingStorageKey}`, handleSpacingChange);
     };
-  }, [storageKey, propHorizontalSpacing]);
+  }, [spacingStorageKey, propHorizontalSpacing]);
   
   // Mettre à jour horizontalSpacing si la prop change
   useEffect(() => {

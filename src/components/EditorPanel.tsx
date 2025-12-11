@@ -85,12 +85,28 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     return saved ? parseInt(saved, 10) : 200;
   });
   
-  // Synchroniser les valeurs depuis localStorage quand on ouvre les sections
+  // Synchroniser les valeurs depuis localStorage quand on ouvre les sections ou change de domaine/élément
   useEffect(() => {
+    // Mettre à jour les préférences d'affichage quand le domaine change
+    if (domain) {
+      const savedGreenTiles = localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`);
+      setGreenTilesAsColored(savedGreenTiles === 'true');
+      const savedHorizontalCategories = localStorage.getItem(`horizontalCategoriesInline_${domainStorageKey}`);
+      setHorizontalCategoriesInline(savedHorizontalCategories === 'true');
+    }
+    
     const handleDomainSpacingChange = () => {
       if (domain) {
         setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) || '50', 10));
         setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${domainStorageKey}`) || '80', 10));
+      }
+    };
+    const handleDomainDisplayChange = () => {
+      if (domain) {
+        const savedGreenTiles = localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`);
+        setGreenTilesAsColored(savedGreenTiles === 'true');
+        const savedHorizontalCategories = localStorage.getItem(`horizontalCategoriesInline_${domainStorageKey}`);
+        setHorizontalCategoriesInline(savedHorizontalCategories === 'true');
       }
     };
     const handleElementSpacingChange = () => {
@@ -101,6 +117,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     };
     if (domain) {
       window.addEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleDomainSpacingChange);
+      window.addEventListener(`greenTilesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
+      window.addEventListener(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
     }
     if (element) {
       window.addEventListener(`spacingPreferenceChanged_${elementStorageKey}`, handleElementSpacingChange);
@@ -109,6 +127,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     return () => {
       if (domain) {
         window.removeEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleDomainSpacingChange);
+        window.removeEventListener(`greenTilesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
+        window.removeEventListener(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
       }
       if (element) {
         window.removeEventListener(`spacingPreferenceChanged_${elementStorageKey}`, handleElementSpacingChange);
