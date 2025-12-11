@@ -185,7 +185,11 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         <div className="flex items-center gap-3">
           {/* Icône (si présente) */}
           <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-            <MuiIcon name="Store" size={18} className="text-white" />
+            {subElement.icon ? (
+              <MuiIcon name={subElement.icon} size={18} className="text-white" />
+            ) : (
+              <MuiIcon name="Store" size={18} className="text-white" />
+            )}
           </div>
           
           {/* Nom du sous-élément */}

@@ -4,6 +4,7 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import IconPicker, { MuiIcon } from './IconPicker';
+import SubElementTile from './SubElementTile';
 import { useConfirm } from '../contexts/ConfirmContext';
 import ElementTile from './ElementTile';
 import SourcesAndCalculationsPanel from './subelements/SourcesAndCalculationsPanel';
@@ -246,6 +247,23 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             >
               <MuiIcon name="Trash2" size={18} />
             </button>
+          </div>
+        </div>
+        
+        {/* Prévisualisation du sous-élément */}
+        <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+          <h4 className="text-sm font-medium text-[#64748B] mb-3">Aperçu</h4>
+          <div className="flex justify-center">
+            <SubElementTile 
+              subElement={selectedSubElement} 
+              breadcrumb={{
+                domain: domain?.name || '',
+                category: element?.name || '',
+                element: element?.name || '',
+                subCategory: element?.subCategories.find(sc => sc.subElements.some(se => se.id === selectedSubElement.id))?.name || ''
+              }}
+              readOnly={true}
+            />
           </div>
         </div>
         
