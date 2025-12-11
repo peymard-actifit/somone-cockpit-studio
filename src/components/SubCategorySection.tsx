@@ -17,7 +17,7 @@ interface SubCategorySectionProps {
   subCategorySpacing?: number; // Espacement entre sous-catégories passé depuis ElementView
 }
 
-export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick, elementId, verticalSubCategoryWidth, horizontalSpacing: propHorizontalSpacing, subCategorySpacing: propSubCategorySpacing }: SubCategorySectionProps) {
+export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick, elementId, verticalSubCategoryWidth, horizontalSpacing: propHorizontalSpacing }: SubCategorySectionProps) {
   const { addSubElement, deleteSubCategory, moveSubElement, reorderSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubElement, setIsAddingSubElement] = useState(false);
@@ -92,28 +92,21 @@ export default function SubCategorySection({ subCategory, element, domain, readO
     const saved = localStorage.getItem(`horizontalSpacing_${storageKey}`);
     return saved ? parseInt(saved, 10) : 50; // Défaut 50 (équivalent à gap-3)
   });
-  const [subCategorySpacing, setSubCategorySpacing] = useState(() => {
-    if (propSubCategorySpacing !== undefined) return propSubCategorySpacing;
-    const saved = localStorage.getItem(`subCategorySpacing_${storageKey}`);
-    return saved ? parseInt(saved, 10) : 80; // Défaut 80 (équivalent à mb-8)
-  });
+  // subCategorySpacing est maintenant géré par le conteneur parent (ElementView)
+  // On garde juste la prop pour compatibilité mais on ne l'utilise plus ici
   
   useEffect(() => {
     const handleSpacingChange = () => {
       const newHorizontalSpacing = propHorizontalSpacing !== undefined 
         ? propHorizontalSpacing 
         : parseInt(localStorage.getItem(`horizontalSpacing_${storageKey}`) || '50', 10);
-      const newSubCategorySpacing = propSubCategorySpacing !== undefined 
-        ? propSubCategorySpacing 
-        : parseInt(localStorage.getItem(`subCategorySpacing_${storageKey}`) || '80', 10);
       setHorizontalSpacing(newHorizontalSpacing);
-      setSubCategorySpacing(newSubCategorySpacing);
     };
     window.addEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
     return () => {
       window.removeEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
     };
-  }, [storageKey, propHorizontalSpacing, propSubCategorySpacing]);
+  }, [storageKey, propHorizontalSpacing]);
   
   // Mettre à jour les valeurs si les props changent
   useEffect(() => {
@@ -121,12 +114,6 @@ export default function SubCategorySection({ subCategory, element, domain, readO
       setHorizontalSpacing(propHorizontalSpacing);
     }
   }, [propHorizontalSpacing]);
-  
-  useEffect(() => {
-    if (propSubCategorySpacing !== undefined) {
-      setSubCategorySpacing(propSubCategorySpacing);
-    }
-  }, [propSubCategorySpacing]);
   
   // Convertir la valeur du slider (0-100) en classes Tailwind
   const getGapClass = (value: number) => {
@@ -145,22 +132,9 @@ export default function SubCategorySection({ subCategory, element, domain, readO
     return 'p-6';
   };
   
-  const getMarginBottomClass = (value: number) => {
-    if (value < 5) return 'mb-0';
-    if (value < 10) return 'mb-1';
-    if (value < 15) return 'mb-2';
-    if (value < 25) return 'mb-3';
-    if (value < 35) return 'mb-4';
-    if (value < 45) return 'mb-5';
-    if (value < 55) return 'mb-6';
-    if (value < 65) return 'mb-7';
-    if (value < 75) return 'mb-8';
-    if (value < 85) return 'mb-9';
-    return 'mb-10';
-  };
   
   return (
-    <div className={`group ${getMarginBottomClass(subCategorySpacing)} ${useInlineLayout ? `flex items-center ${getGapClass(horizontalSpacing)}` : ''}`}>
+    <div className={`group ${useInlineLayout ? `flex items-center ${getGapClass(horizontalSpacing)}` : ''}`}>
       {/* En-tête de sous-catégorie - Style PDF SOMONE mode clair */}
       <div className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}>
         {subCategory.icon && (

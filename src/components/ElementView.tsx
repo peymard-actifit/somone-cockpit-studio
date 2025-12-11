@@ -52,6 +52,21 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
     };
   }, [storageKey]);
   
+  // Convertir la valeur du slider (0-100) en classe Tailwind space-y-*
+  const getSpaceYClass = (value: number) => {
+    if (value < 5) return 'space-y-0';
+    if (value < 10) return 'space-y-1';
+    if (value < 15) return 'space-y-2';
+    if (value < 25) return 'space-y-3';
+    if (value < 35) return 'space-y-4';
+    if (value < 45) return 'space-y-5';
+    if (value < 55) return 'space-y-6';
+    if (value < 65) return 'space-y-7';
+    if (value < 75) return 'space-y-8';
+    if (value < 85) return 'space-y-9';
+    return 'space-y-10';
+  };
+  
   // Modal de configuration supprimée - l'édition se fait maintenant via EditorPanel
   
   const handleBack = () => {
@@ -352,7 +367,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
         )}
         
         {/* Sous-catégories HORIZONTALES : affichées de manière classique */}
-        <div className="space-y-10">
+        <div className={getSpaceYClass(subCategorySpacing)}>
           {horizontalSubCategories.map((subCategory) => (
             <SubCategorySection 
               key={subCategory.id} 
