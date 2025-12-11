@@ -167,7 +167,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         onMouseMove={handleMouseMove}
         className={`
           group relative overflow-hidden
-          ${isVertical ? 'w-full' : 'min-w-[150px]'} px-4 py-3
+          ${isVertical ? 'w-full' : 'min-w-[150px]'} ${isVertical ? '' : 'px-4'} py-3
           rounded-lg
           shadow-sm hover:shadow-md
           transition-all duration-200
@@ -181,7 +181,12 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         `}
         style={{
           backgroundColor: colors.hex,
-          ...(isVertical && columnWidth ? { width: `${columnWidth}px`, maxWidth: `${columnWidth}px` } : {})
+          ...(isVertical && columnWidth ? { 
+            width: `${columnWidth - 32}px`, 
+            maxWidth: `${columnWidth - 32}px`,
+            marginLeft: '16px',
+            marginRight: '16px'
+          } : {})
         }}
       >
         {/* Contenu */}
