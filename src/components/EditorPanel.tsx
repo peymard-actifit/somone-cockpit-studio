@@ -76,6 +76,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = domain ? localStorage.getItem(`categorySpacing_${domainStorageKey}`) : localStorage.getItem('categorySpacing');
     return saved ? parseInt(saved, 10) : 80;
   });
+  const [elementHorizontalSpacing, setElementHorizontalSpacing] = useState(() => {
+    const saved = element ? localStorage.getItem(`horizontalSpacing_${elementStorageKey}`) : localStorage.getItem('horizontalSpacing');
+    return saved ? parseInt(saved, 10) : 50;
+  });
   const [subCategorySpacing, setSubCategorySpacing] = useState(() => {
     const saved = element ? localStorage.getItem(`subCategorySpacing_${elementStorageKey}`) : localStorage.getItem('subCategorySpacing');
     return saved ? parseInt(saved, 10) : 80;
@@ -111,6 +115,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     };
     const handleElementSpacingChange = () => {
       if (element) {
+        setElementHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${elementStorageKey}`) || '50', 10));
         setSubCategorySpacing(parseInt(localStorage.getItem(`subCategorySpacing_${elementStorageKey}`) || '80', 10));
         setVerticalSubCategoryWidth(parseInt(localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) || '200', 10));
       }
@@ -1061,13 +1066,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 type="range"
                 min="0"
                 max="100"
-                value={horizontalSpacing}
+                value={elementHorizontalSpacing}
                 onChange={(e) => {
                   const newValue = parseInt(e.target.value, 10);
-                  setHorizontalSpacing(newValue);
-                  const key = domain ? `horizontalSpacing_${domainStorageKey}` : 'horizontalSpacing';
+                  setElementHorizontalSpacing(newValue);
+                  const key = element ? `horizontalSpacing_${elementStorageKey}` : 'horizontalSpacing';
                   localStorage.setItem(key, String(newValue));
-                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
+                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
                 }}
                 className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
               />
