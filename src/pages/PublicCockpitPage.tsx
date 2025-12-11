@@ -206,12 +206,12 @@ export default function PublicCockpitPage() {
       </header>
       
       {/* Contenu principal */}
-      <main className="flex-1 overflow-hidden flex flex-col" style={{ minHeight: 0, height: 0 }}>
+      <main className="flex-1 overflow-auto flex flex-col" style={{ minHeight: 0 }}>
         {currentElement && currentCategory ? (
           // Vue Element (sous-éléments)
-          <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
+          <div className="flex flex-col min-h-full">
             {/* Breadcrumb */}
-            <div className="bg-cockpit-bg-card border-b border-slate-700/50 px-6 py-3">
+            <div className="bg-cockpit-bg-card border-b border-slate-700/50 px-6 py-3 flex-shrink-0">
               <div className="flex items-center gap-2 text-sm">
                 <button 
                   onClick={handleBackToDomain}
@@ -225,7 +225,7 @@ export default function PublicCockpitPage() {
                 <span className="text-white font-medium">{currentElement.name}</span>
               </div>
             </div>
-            <div className="flex-1 overflow-auto" style={{ minHeight: 0 }}>
+            <div className="flex-1">
               <ElementView 
                 element={currentElement}
                 readOnly={true}
@@ -235,7 +235,7 @@ export default function PublicCockpitPage() {
           </div>
         ) : currentDomain ? (
           // Vue Domaine
-          <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
+          <div className="flex flex-col min-h-full">
             <DomainView 
               domain={currentDomain}
               onElementClick={handleElementClick}
