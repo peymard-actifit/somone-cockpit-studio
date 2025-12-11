@@ -42,7 +42,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [activeSection, setActiveSection] = useState<string | null>('properties');
   const [newZoneName, setNewZoneName] = useState('');
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
-  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | 'subElement' | null>(null);
   const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory'; id: string } | null>(null);
   
   // Préférence pour l'affichage des tuiles vertes (ok)
@@ -298,7 +298,39 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 />
               </div>
             </div>
+            
+            {/* Icône du sous-élément */}
+            <div>
+              <label className="block text-sm text-[#64748B] mb-2">Icône</label>
+              <button
+                onClick={() => setShowIconPicker('subElement')}
+                className="w-full flex items-center gap-3 px-3 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] hover:border-[#1E3A5F] transition-colors"
+              >
+                {selectedSubElement.icon ? (
+                  <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
+                    <MuiIcon name={selectedSubElement.icon} size={20} className="text-white" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 bg-[#E2E8F0] rounded-lg flex items-center justify-center">
+                    <MuiIcon name="ImageIcon" size={16} className="text-[#94A3B8]" />
+                  </div>
+                )}
+                <span className="text-sm">{selectedSubElement.icon || 'Choisir une icône...'}</span>
+              </button>
+            </div>
           </div>
+          
+          {/* Sélecteur d'icônes pour les sous-éléments */}
+          {showIconPicker === 'subElement' && selectedSubElement && (
+            <IconPicker
+              value={selectedSubElement.icon}
+              onChange={(iconName) => {
+                updateSubElement(selectedSubElement.id, { icon: iconName });
+                setSelectedSubElement({ ...selectedSubElement, icon: iconName });
+              }}
+              onClose={() => setShowIconPicker(null)}
+            />
+          )}
         </Section>
         
         {/* Statut / Couleur du sous-élément */}
