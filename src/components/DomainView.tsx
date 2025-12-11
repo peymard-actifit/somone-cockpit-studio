@@ -126,9 +126,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
             {verticalCategories.map((category) => (
               <div 
                 key={category.id} 
-                className="flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 bg-[#F5F7FA]"
+                className="flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 bg-[#F5F7FA] flex items-center justify-center"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full">
                   {category.icon && (
                     <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
                       <MuiIcon name={category.icon} size={24} className="text-white" />

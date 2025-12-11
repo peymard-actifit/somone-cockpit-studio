@@ -182,9 +182,9 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
               {verticalSubCategories.map((subCategory) => (
                 <div 
                   key={subCategory.id} 
-                  className="flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 bg-white"
+                  className="flex-1 p-4 border-r border-[#E2E8F0] last:border-r-0 bg-white flex items-center justify-center"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 w-full">
                     {subCategory.icon && (
                       <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
                         <MuiIcon name={subCategory.icon} size={20} className="text-white" />
