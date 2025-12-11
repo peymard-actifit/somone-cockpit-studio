@@ -82,7 +82,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
   const useInlineLayout = isHorizontal && horizontalCategoriesInline;
   
   return (
-    <div className={`group mb-8 ${useInlineLayout ? 'flex items-center gap-4' : ''}`}>
+    <div className={`group mb-8 ${useInlineLayout ? 'flex items-center gap-2' : ''}`}>
       {/* En-tête de catégorie - Style PDF SOMONE mode clair */}
       <div className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}>
         {category.icon && (
@@ -120,9 +120,9 @@ export default function CategorySection({ category, onElementClick, readOnly = f
       
       {/* Conteneur blanc pour les éléments - Style PDF SOMONE */}
       <div 
-        className={`bg-white rounded-xl border p-6 shadow-sm transition-all flex-1 ${
+        className={`bg-white rounded-xl border shadow-sm transition-all flex-1 ${
           isDraggingOver ? 'border-[#1E3A5F] border-2 bg-[#F5F7FA]' : 'border-[#E2E8F0]'
-        } ${useInlineLayout ? 'relative' : ''}`}
+        } ${useInlineLayout ? 'relative p-2' : 'p-6'}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -144,7 +144,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
             <MuiIcon name="Delete" size={16} />
           </button>
         )}
-        <div className="flex flex-row flex-wrap gap-4">
+        <div className={`flex flex-row flex-wrap ${useInlineLayout ? 'gap-2' : 'gap-4'}`}>
           {category.elements.map((element, index) => (
             <ElementTile 
               key={element.id} 

@@ -82,7 +82,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
   const useInlineLayout = isHorizontal && horizontalSubCategoriesInline;
   
   return (
-    <div className={`group mb-8 ${useInlineLayout ? 'flex items-center gap-4' : ''}`}>
+    <div className={`group mb-8 ${useInlineLayout ? 'flex items-center gap-2' : ''}`}>
       {/* En-tête de sous-catégorie - Style PDF SOMONE mode clair */}
       <div className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}>
         {subCategory.icon && (
@@ -124,9 +124,9 @@ export default function SubCategorySection({ subCategory, element, domain, readO
           flex-1
           ${subCategory.orientation === 'vertical' 
             ? 'flex flex-col gap-3' 
-            : 'flex flex-row flex-wrap gap-3'
+            : 'flex flex-row flex-wrap gap-2'
           }
-          transition-all rounded-lg p-2
+          transition-all rounded-lg p-1
           ${isDraggingOver ? 'bg-[#F5F7FA] border-2 border-[#1E3A5F]' : ''}
         `}
         onDragOver={handleDragOver}
