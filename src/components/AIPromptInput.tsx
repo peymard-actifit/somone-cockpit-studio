@@ -1152,6 +1152,63 @@ export default function AIPromptInput() {
           return '❌ Calcul non trouvé';
         }
         
+        case 'setDisplayPreference': {
+          // Contrôler les préférences d'affichage (sliders, toggles)
+          let domainId = action.params.domainId || currentDomainId;
+          if (!domainId && action.params.domainName) {
+            domainId = findDomainByName(action.params.domainName)?.id;
+          }
+          
+          const domainStorageKey = domainId ? `domain_${domainId}` : 'global';
+          const elementStorageKey = action.params.elementId ? `element_${action.params.elementId}` : 'global';
+          
+          // Préférences de domaine
+          if (action.params.horizontalSpacing !== undefined) {
+            const value = Math.max(0, Math.min(100, parseInt(String(action.params.horizontalSpacing), 10)));
+            localStorage.setItem(`horizontalSpacing_${domainStorageKey}`, String(value));
+            window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
+          }
+          
+          if (action.params.categorySpacing !== undefined) {
+            const value = Math.max(0, Math.min(100, parseInt(String(action.params.categorySpacing), 10)));
+            localStorage.setItem(`categorySpacing_${domainStorageKey}`, String(value));
+            window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
+          }
+          
+          if (action.params.greenTilesAsColored !== undefined) {
+            const value = Boolean(action.params.greenTilesAsColored);
+            localStorage.setItem(`greenTilesAsColored_${domainStorageKey}`, String(value));
+            window.dispatchEvent(new Event(`greenTilesPreferenceChanged_${domainStorageKey}`));
+          }
+          
+          if (action.params.horizontalCategoriesInline !== undefined) {
+            const value = Boolean(action.params.horizontalCategoriesInline);
+            localStorage.setItem(`horizontalCategoriesInline_${domainStorageKey}`, String(value));
+            window.dispatchEvent(new Event(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`));
+          }
+          
+          // Préférences d'élément
+          if (action.params.elementId && action.params.subCategorySpacing !== undefined) {
+            const value = Math.max(0, Math.min(100, parseInt(String(action.params.subCategorySpacing), 10)));
+            localStorage.setItem(`subCategorySpacing_${elementStorageKey}`, String(value));
+            window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
+          }
+          
+          if (action.params.elementId && action.params.verticalSubCategoryWidth !== undefined) {
+            const value = Math.max(100, Math.min(500, parseInt(String(action.params.verticalSubCategoryWidth), 10)));
+            localStorage.setItem(`verticalSubCategoryWidth_${elementStorageKey}`, String(value));
+            window.dispatchEvent(new Event(`verticalSubCategoryWidthChanged_${elementStorageKey}`));
+          }
+          
+          if (action.params.elementId && action.params.horizontalSubCategoriesInline !== undefined) {
+            const value = Boolean(action.params.horizontalSubCategoriesInline);
+            localStorage.setItem('horizontalSubCategoriesInline', String(value));
+            window.dispatchEvent(new Event('horizontalSubCategoriesPreferenceChanged'));
+          }
+          
+          return `✅ Préférences d'affichage mises à jour`;
+        }
+        
         case 'deleteCalculation': {
           let subElementId = action.params.subElementId;
           if (!subElementId && action.params.subElementName) {

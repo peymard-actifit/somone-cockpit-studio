@@ -833,6 +833,20 @@ NAVIGATION:
 - selectDomain: { name: "..." }
 - selectElement: { name: "..." }
 
+PRÉFÉRENCES D'AFFICHAGE (indépendantes par domaine/élément):
+- setDisplayPreference: { 
+    domainId?: "...", domainName?: "...", 
+    elementId?: "...", 
+    horizontalSpacing?: 0-100, 
+    categorySpacing?: 0-100, 
+    subCategorySpacing?: 0-100, 
+    verticalSubCategoryWidth?: 100-500, 
+    greenTilesAsColored?: true|false, 
+    horizontalCategoriesInline?: true|false, 
+    horizontalSubCategoriesInline?: true|false 
+  }
+  Note: Les préférences sont indépendantes par domaine. Utilise domainName pour cibler un domaine spécifique.
+
 EXEMPLES D'ACTIONS:
 
 Créer 3 éléments:
