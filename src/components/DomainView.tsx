@@ -230,7 +230,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                       <ElementTile 
                         key={element.id} 
                         element={element} 
-                        onElementClick={onElementClick} 
+                        onElementClick={onElementClick}
                         readOnly={readOnly}
                         categoryId={category.id}
                         index={index}
@@ -240,6 +240,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                             reorderElement(draggedElementId, category.id, targetIndex);
                           }
                         }}
+                        domainId={domain.id}
                       />
                     ))}
                   

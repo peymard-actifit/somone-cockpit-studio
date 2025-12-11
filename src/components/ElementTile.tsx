@@ -14,9 +14,10 @@ interface ElementTileProps {
   index?: number; // Index dans la catégorie pour le réordonnancement
   totalElements?: number; // Nombre total d'éléments dans la catégorie
   onReorder?: (draggedElementId: string, targetIndex: number) => void; // Callback pour réordonner
+  domainId?: string; // ID du domaine pour les préférences indépendantes
 }
 
-export default function ElementTile({ element, mini = false, onElementClick, readOnly = false, categoryId, index, totalElements, onReorder }: ElementTileProps) {
+export default function ElementTile({ element, mini = false, onElementClick, readOnly = false, categoryId, index, totalElements, onReorder, domainId }: ElementTileProps) {
   const { setCurrentElement, deleteElement } = useCockpitStore();
   const confirm = useConfirm();
   // Utiliser la couleur effective (gère le cas hérité)
@@ -26,24 +27,26 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   const isOkStatus = colors.hex === STATUS_COLORS.ok.hex;
   const buttonRef = useRef<HTMLButtonElement>(null);
   
-  // Préférence pour l'affichage des tuiles vertes (ok) - avec état React pour réactivité
+  // Préférence pour l'affichage des tuiles vertes (ok) - avec état React pour réactivité (indépendante par domaine)
+  const storageKey = domainId ? `domain_${domainId}` : 'global';
   const [greenTilesAsColored, setGreenTilesAsColored] = useState(() => {
-    return localStorage.getItem('greenTilesAsColored') === 'true';
+    const saved = localStorage.getItem(`greenTilesAsColored_${storageKey}`);
+    return saved === 'true';
   });
   const shouldUseWhiteBackground = isOkStatus && !greenTilesAsColored;
   
   // Écouter les changements de préférence
   useEffect(() => {
     const handlePreferenceChange = () => {
-      setGreenTilesAsColored(localStorage.getItem('greenTilesAsColored') === 'true');
+      setGreenTilesAsColored(localStorage.getItem(`greenTilesAsColored_${storageKey}`) === 'true');
     };
     
-    window.addEventListener('greenTilesPreferenceChanged', handlePreferenceChange);
+    window.addEventListener(`greenTilesPreferenceChanged_${storageKey}`, handlePreferenceChange);
     
     return () => {
-      window.removeEventListener('greenTilesPreferenceChanged', handlePreferenceChange);
+      window.removeEventListener(`greenTilesPreferenceChanged_${storageKey}`, handlePreferenceChange);
     };
-  }, []);
+  }, [storageKey]);
   
   // Convertir la couleur hex en rgba pour avoir 20% d'opacité (80% de transparence - plus clair)
   const hexToRgba = (hex: string, alpha: number) => {

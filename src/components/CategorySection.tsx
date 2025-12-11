@@ -212,20 +212,21 @@ export default function CategorySection({ category, onElementClick, readOnly = f
         )}
         <div className={`flex flex-row flex-wrap ${useInlineLayout ? getGapClass(horizontalSpacing) : 'gap-4'}`}>
           {category.elements.map((element, index) => (
-            <ElementTile 
-              key={element.id} 
-              element={element} 
-              onElementClick={onElementClick} 
-              readOnly={readOnly}
-              categoryId={category.id}
-              index={index}
-              totalElements={category.elements.length}
-              onReorder={(draggedElementId, targetIndex) => {
-                if (!readOnly) {
-                  reorderElement(draggedElementId, category.id, targetIndex);
-                }
-              }}
-            />
+                    <ElementTile
+                      key={element.id}
+                      element={element}
+                      onElementClick={onElementClick}
+                      readOnly={readOnly}
+                      categoryId={category.id}
+                      index={index}
+                      totalElements={category.elements.length}
+                      onReorder={(draggedElementId, targetIndex) => {
+                        if (!readOnly) {
+                          reorderElement(draggedElementId, category.id, targetIndex);
+                        }
+                      }}
+                      domainId={domainId}
+                    />
           ))}
           
           {/* Bouton ajouter élément */}

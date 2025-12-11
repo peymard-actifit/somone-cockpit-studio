@@ -47,14 +47,18 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory'; id: string } | null>(null);
   
   // Préférence pour l'affichage des tuiles vertes (ok)
+  // Préférences d'affichage et d'espacement (indépendantes par domaine/élément)
+  const domainStorageKey = domain ? `domain_${domain.id}` : 'global';
+  const elementStorageKey = element ? `element_${element.id}` : 'global';
+  
   const [greenTilesAsColored, setGreenTilesAsColored] = useState(() => {
-    const saved = localStorage.getItem('greenTilesAsColored');
+    const saved = domain ? localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`) : localStorage.getItem('greenTilesAsColored');
     return saved === 'true';
   });
   
   // Préférence pour la position des catégories/sous-catégories horizontales
   const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
-    const saved = localStorage.getItem('horizontalCategoriesInline');
+    const saved = domain ? localStorage.getItem(`horizontalCategoriesInline_${domainStorageKey}`) : localStorage.getItem('horizontalCategoriesInline');
     return saved === 'true';
   });
 
@@ -63,10 +67,6 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = localStorage.getItem('horizontalSubCategoriesInline');
     return saved === 'true';
   });
-
-  // Préférences d'espacement (indépendantes par domaine/élément)
-  const domainStorageKey = domain ? `domain_${domain.id}` : 'global';
-  const elementStorageKey = element ? `element_${element.id}` : 'global';
   
   const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
     const saved = domain ? localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) : localStorage.getItem('horizontalSpacing');
@@ -1966,9 +1966,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onClick={() => {
                   const newValue = !greenTilesAsColored;
                   setGreenTilesAsColored(newValue);
-                  localStorage.setItem('greenTilesAsColored', String(newValue));
+                  const key = domain ? `greenTilesAsColored_${domainStorageKey}` : 'greenTilesAsColored';
+                  localStorage.setItem(key, String(newValue));
                   // Forcer le re-render des tuiles dans la même fenêtre
-                  window.dispatchEvent(new Event('greenTilesPreferenceChanged'));
+                  window.dispatchEvent(new Event(`greenTilesPreferenceChanged_${domainStorageKey}`));
                 }}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
                   greenTilesAsColored ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
@@ -2000,9 +2001,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onClick={() => {
                   const newValue = !horizontalCategoriesInline;
                   setHorizontalCategoriesInline(newValue);
-                  localStorage.setItem('horizontalCategoriesInline', String(newValue));
+                  const key = domain ? `horizontalCategoriesInline_${domainStorageKey}` : 'horizontalCategoriesInline';
+                  localStorage.setItem(key, String(newValue));
                   // Forcer le re-render des catégories
-                  window.dispatchEvent(new Event('horizontalCategoriesPreferenceChanged'));
+                  window.dispatchEvent(new Event(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`));
                 }}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
                   horizontalCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'

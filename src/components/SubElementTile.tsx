@@ -184,13 +184,13 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
           ...(isVertical && columnWidth ? { 
             width: `${columnWidth - 32}px`, 
             maxWidth: `${columnWidth - 32}px`,
-            marginLeft: '16px',
-            marginRight: '16px'
+            marginLeft: 'auto',
+            marginRight: 'auto'
           } : {})
         }}
       >
         {/* Contenu */}
-        <div className="flex items-center gap-3">
+        <div className={`flex items-center gap-3 ${isVertical ? 'px-2' : ''}`}>
           {/* Icône (si présente) */}
           <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
             {subElement.icon ? (
@@ -208,7 +208,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         
         {/* Valeur et unité (si présent) */}
         {subElement.value && (
-          <div className="flex items-baseline gap-1 mt-2 pt-2 border-t border-white/20">
+          <div className={`flex items-baseline gap-1 mt-2 pt-2 border-t border-white/20 ${isVertical ? 'px-2' : ''}`}>
             <span className="text-lg font-bold text-white">
               {subElement.value}
             </span>
