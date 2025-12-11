@@ -212,7 +212,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
             <MuiIcon name="Delete" size={16} />
           </button>
         )}
-        <div className={`flex flex-row flex-wrap ${useInlineLayout ? getGapClass(horizontalSpacing) : 'gap-4'}`}>
+        <div className={`flex flex-row flex-wrap ${getGapClass(horizontalSpacing)}`}>
           {category.elements.map((element, index) => (
                     <ElementTile
                       key={element.id}
