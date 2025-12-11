@@ -256,13 +256,6 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
             {/* Tuiles des sous-catégories verticales - en colonnes */}
             <div className="flex">
               {verticalSubCategories.map((subCategory) => {
-                // Préférence de largeur pour les sous-catégories verticales
-                const verticalSubCategoryWidth = (() => {
-                  const saved = localStorage.getItem('verticalSubCategoryWidth');
-                  const width = saved ? parseInt(saved, 10) : 200; // Défaut 200px
-                  return width;
-                })();
-                
                 return (
                 <div 
                   key={subCategory.id} 
