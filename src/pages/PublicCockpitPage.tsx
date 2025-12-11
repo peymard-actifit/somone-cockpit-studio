@@ -151,13 +151,11 @@ export default function PublicCockpitPage() {
               {cockpit.logo && (
                 <img src={cockpit.logo} alt="Logo" className="h-10 w-auto" />
               )}
-              <div className="flex items-center gap-3">
-                <div>
-                  <h1 className="text-xl font-bold text-white">{cockpit.name}</h1>
-                  <p className="text-xs text-slate-500">Mode consultation</p>
-                </div>
-                {/* Version - calée à gauche, même ligne que "Mode consultation" */}
-                <span className="text-xs text-slate-500">v{VERSION_DISPLAY}</span>
+              <div>
+                <h1 className="text-xl font-bold text-white">{cockpit.name}</h1>
+                <p className="text-xs text-slate-500">
+                  Mode consultation {VERSION_DISPLAY}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">

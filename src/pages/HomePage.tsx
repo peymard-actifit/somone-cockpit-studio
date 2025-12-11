@@ -139,7 +139,7 @@ function SortableCockpitCard({
                   className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
                   title="Ouvrir dans le navigateur"
                 >
-                  <MuiIcon name="ExternalLink" size={14} />
+                  <MuiIcon name="OpenInBrowser" size={14} />
                 </button>
               )}
             </>
