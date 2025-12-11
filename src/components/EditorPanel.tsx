@@ -88,6 +88,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = element ? localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) : localStorage.getItem('verticalSubCategoryWidth');
     return saved ? parseInt(saved, 10) : 200;
   });
+  const [verticalSubCategorySpacing, setVerticalSubCategorySpacing] = useState(() => {
+    const saved = element ? localStorage.getItem(`verticalSubCategorySpacing_${elementStorageKey}`) : localStorage.getItem('verticalSubCategorySpacing');
+    return saved ? parseInt(saved, 10) : 80;
+  });
   
   // Synchroniser les valeurs depuis localStorage quand on ouvre les sections ou change de domaine/élément
   useEffect(() => {
@@ -118,6 +122,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         setElementHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${elementStorageKey}`) || '50', 10));
         setSubCategorySpacing(parseInt(localStorage.getItem(`subCategorySpacing_${elementStorageKey}`) || '80', 10));
         setVerticalSubCategoryWidth(parseInt(localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) || '200', 10));
+        setVerticalSubCategorySpacing(parseInt(localStorage.getItem(`verticalSubCategorySpacing_${elementStorageKey}`) || '80', 10));
       }
     };
     if (domain) {
@@ -1015,126 +1020,166 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         )}
         
         {/* Préférences d'affichage pour les sous-catégories */}
-        {element.subCategories && element.subCategories.length > 0 && (
-          <Section 
-            title="Préférences d'affichage" 
-            iconName="Settings" 
-            isOpen={activeSection === 'element-display-preferences'}
-            onToggle={() => toggleSection('element-display-preferences')}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-[#1E3A5F] mb-1">
-                    Sous-catégories horizontales
-                  </label>
-                  <p className="text-xs text-[#64748B]">
-                    {horizontalSubCategoriesInline 
-                      ? 'Affichage en ligne (à gauche des sous-éléments)'
-                      : 'Affichage au-dessus des sous-éléments (par défaut)'
-                    }
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    const newValue = !horizontalSubCategoriesInline;
-                    setHorizontalSubCategoriesInline(newValue);
-                    localStorage.setItem('horizontalSubCategoriesInline', String(newValue));
-                    window.dispatchEvent(new Event('horizontalSubCategoriesPreferenceChanged'));
-                  }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-                    horizontalSubCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                  }`}
-                  role="switch"
-                  aria-checked={horizontalSubCategoriesInline}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                      horizontalSubCategoriesInline ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
+        {element.subCategories && element.subCategories.length > 0 && (() => {
+          const horizontalSubCategories = element.subCategories.filter(sc => sc.orientation !== 'vertical');
+          const verticalSubCategories = element.subCategories.filter(sc => sc.orientation === 'vertical');
+          
+          return (
+            <Section 
+              title="Préférences d'affichage" 
+              iconName="Settings" 
+              isOpen={activeSection === 'element-display-preferences'}
+              onToggle={() => toggleSection('element-display-preferences')}
+            >
+              <div className="space-y-4">
+                {/* Toggle et sliders pour sous-catégories horizontales */}
+                {horizontalSubCategories.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-[#1E3A5F] mb-1">
+                          Sous-catégories horizontales
+                        </label>
+                        <p className="text-xs text-[#64748B]">
+                          {horizontalSubCategoriesInline 
+                            ? 'Affichage en ligne (à gauche des sous-éléments)'
+                            : 'Affichage au-dessus des sous-éléments (par défaut)'
+                          }
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newValue = !horizontalSubCategoriesInline;
+                          setHorizontalSubCategoriesInline(newValue);
+                          localStorage.setItem('horizontalSubCategoriesInline', String(newValue));
+                          window.dispatchEvent(new Event('horizontalSubCategoriesPreferenceChanged'));
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+                          horizontalSubCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                        }`}
+                        role="switch"
+                        aria-checked={horizontalSubCategoriesInline}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
+                            horizontalSubCategoriesInline ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    
+                    {/* Slider espacement horizontal */}
+                    <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                        Espacement entre sous-éléments (vues horizontales)
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={elementHorizontalSpacing}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value, 10);
+                          setElementHorizontalSpacing(newValue);
+                          const key = element ? `horizontalSpacing_${elementStorageKey}` : 'horizontalSpacing';
+                          localStorage.setItem(key, String(newValue));
+                          window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
+                        }}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                        <span>Compact</span>
+                        <span>Espacé</span>
+                      </div>
+                    </div>
+                    
+                    {/* Slider espacement entre sous-catégories horizontales */}
+                    <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                        Espacement entre sous-catégories horizontales
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={subCategorySpacing}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value, 10);
+                          setSubCategorySpacing(newValue);
+                          const key = element ? `subCategorySpacing_${elementStorageKey}` : 'subCategorySpacing';
+                          localStorage.setItem(key, String(newValue));
+                          window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
+                        }}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                        <span>Compact</span>
+                        <span>Espacé</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {/* Sliders pour sous-catégories verticales */}
+                {verticalSubCategories.length > 0 && (
+                  <>
+                    {/* Slider largeur sous-catégories verticales */}
+                    <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                        Largeur des sous-catégories verticales (px)
+                      </label>
+                      <input
+                        type="range"
+                        min="100"
+                        max="500"
+                        step="10"
+                        value={verticalSubCategoryWidth}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value, 10);
+                          setVerticalSubCategoryWidth(newValue);
+                          const key = element ? `verticalSubCategoryWidth_${elementStorageKey}` : 'verticalSubCategoryWidth';
+                          localStorage.setItem(key, String(newValue));
+                          window.dispatchEvent(new Event(`verticalSubCategoryWidthChanged_${elementStorageKey}`));
+                        }}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                        <span>100px</span>
+                        <span className="font-medium">{verticalSubCategoryWidth}px</span>
+                        <span>500px</span>
+                      </div>
+                    </div>
+                    
+                    {/* Slider espacement entre sous-catégories verticales */}
+                    <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                        Espacement entre sous-catégories verticales
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={verticalSubCategorySpacing}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value, 10);
+                          setVerticalSubCategorySpacing(newValue);
+                          const key = element ? `verticalSubCategorySpacing_${elementStorageKey}` : 'verticalSubCategorySpacing';
+                          localStorage.setItem(key, String(newValue));
+                          window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
+                        }}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                        <span>Compact</span>
+                        <span>Espacé</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-            
-            {/* Slider espacement horizontal */}
-            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                Espacement entre sous-éléments (vues horizontales)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={elementHorizontalSpacing}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value, 10);
-                  setElementHorizontalSpacing(newValue);
-                  const key = element ? `horizontalSpacing_${elementStorageKey}` : 'horizontalSpacing';
-                  localStorage.setItem(key, String(newValue));
-                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
-                }}
-                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-              />
-              <div className="flex justify-between text-xs text-[#64748B] mt-1">
-                <span>Compact</span>
-                <span>Espacé</span>
-              </div>
-            </div>
-            
-            {/* Slider espacement entre sous-catégories */}
-            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                Espacement entre sous-catégories
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={subCategorySpacing}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value, 10);
-                  setSubCategorySpacing(newValue);
-                  const key = element ? `subCategorySpacing_${elementStorageKey}` : 'subCategorySpacing';
-                  localStorage.setItem(key, String(newValue));
-                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
-                }}
-                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-              />
-              <div className="flex justify-between text-xs text-[#64748B] mt-1">
-                <span>Compact</span>
-                <span>Espacé</span>
-              </div>
-            </div>
-            
-            {/* Slider largeur sous-catégories verticales */}
-            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                Largeur des sous-catégories verticales (px)
-              </label>
-              <input
-                type="range"
-                min="100"
-                max="500"
-                step="10"
-                value={verticalSubCategoryWidth}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value, 10);
-                  setVerticalSubCategoryWidth(newValue);
-                  const key = element ? `verticalSubCategoryWidth_${elementStorageKey}` : 'verticalSubCategoryWidth';
-                  localStorage.setItem(key, String(newValue));
-                  window.dispatchEvent(new Event(`verticalSubCategoryWidthChanged_${elementStorageKey}`));
-                }}
-                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-              />
-              <div className="flex justify-between text-xs text-[#64748B] mt-1">
-                <span>100px</span>
-                <span className="font-medium">{verticalSubCategoryWidth}px</span>
-                <span>500px</span>
-              </div>
-            </div>
-          </Section>
-        )}
+            </Section>
+          );
+        })()}
         
         {/* Liste des sous-éléments à éditer */}
         {allSubElements.length > 0 && (
