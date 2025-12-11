@@ -64,39 +64,58 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     return saved === 'true';
   });
 
-  // Préférences d'espacement
+  // Préférences d'espacement (indépendantes par domaine/élément)
+  const domainStorageKey = domain ? `domain_${domain.id}` : 'global';
+  const elementStorageKey = element ? `element_${element.id}` : 'global';
+  
   const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
-    const saved = localStorage.getItem('horizontalSpacing');
+    const saved = domain ? localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) : localStorage.getItem('horizontalSpacing');
     return saved ? parseInt(saved, 10) : 50;
   });
   const [categorySpacing, setCategorySpacing] = useState(() => {
-    const saved = localStorage.getItem('categorySpacing');
+    const saved = domain ? localStorage.getItem(`categorySpacing_${domainStorageKey}`) : localStorage.getItem('categorySpacing');
     return saved ? parseInt(saved, 10) : 80;
   });
   const [subCategorySpacing, setSubCategorySpacing] = useState(() => {
-    const saved = localStorage.getItem('subCategorySpacing');
+    const saved = element ? localStorage.getItem(`subCategorySpacing_${elementStorageKey}`) : localStorage.getItem('subCategorySpacing');
     return saved ? parseInt(saved, 10) : 80;
   });
   const [verticalSubCategoryWidth, setVerticalSubCategoryWidth] = useState(() => {
-    const saved = localStorage.getItem('verticalSubCategoryWidth');
+    const saved = element ? localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) : localStorage.getItem('verticalSubCategoryWidth');
     return saved ? parseInt(saved, 10) : 200;
   });
   
   // Synchroniser les valeurs depuis localStorage quand on ouvre les sections
   useEffect(() => {
-    const handleSpacingChange = () => {
-      setHorizontalSpacing(parseInt(localStorage.getItem('horizontalSpacing') || '50', 10));
-      setCategorySpacing(parseInt(localStorage.getItem('categorySpacing') || '80', 10));
-      setSubCategorySpacing(parseInt(localStorage.getItem('subCategorySpacing') || '80', 10));
-      setVerticalSubCategoryWidth(parseInt(localStorage.getItem('verticalSubCategoryWidth') || '200', 10));
+    const handleDomainSpacingChange = () => {
+      if (domain) {
+        setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) || '50', 10));
+        setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${domainStorageKey}`) || '80', 10));
+      }
     };
-    window.addEventListener('spacingPreferenceChanged', handleSpacingChange);
-    window.addEventListener('verticalSubCategoryWidthChanged', handleSpacingChange);
+    const handleElementSpacingChange = () => {
+      if (element) {
+        setSubCategorySpacing(parseInt(localStorage.getItem(`subCategorySpacing_${elementStorageKey}`) || '80', 10));
+        setVerticalSubCategoryWidth(parseInt(localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) || '200', 10));
+      }
+    };
+    if (domain) {
+      window.addEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleDomainSpacingChange);
+    }
+    if (element) {
+      window.addEventListener(`spacingPreferenceChanged_${elementStorageKey}`, handleElementSpacingChange);
+      window.addEventListener(`verticalSubCategoryWidthChanged_${elementStorageKey}`, handleElementSpacingChange);
+    }
     return () => {
-      window.removeEventListener('spacingPreferenceChanged', handleSpacingChange);
-      window.removeEventListener('verticalSubCategoryWidthChanged', handleSpacingChange);
+      if (domain) {
+        window.removeEventListener(`spacingPreferenceChanged_${domainStorageKey}`, handleDomainSpacingChange);
+      }
+      if (element) {
+        window.removeEventListener(`spacingPreferenceChanged_${elementStorageKey}`, handleElementSpacingChange);
+        window.removeEventListener(`verticalSubCategoryWidthChanged_${elementStorageKey}`, handleElementSpacingChange);
+      }
     };
-  }, []);
+  }, [domain?.id, element?.id, domainStorageKey, elementStorageKey]);
   
   // États pour la configuration de l'image de fond (MapView et BackgroundView)
   const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
@@ -1050,8 +1069,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onChange={(e) => {
                   const newValue = parseInt(e.target.value, 10);
                   setSubCategorySpacing(newValue);
-                  localStorage.setItem('subCategorySpacing', String(newValue));
-                  window.dispatchEvent(new Event('spacingPreferenceChanged'));
+                  const key = element ? `subCategorySpacing_${elementStorageKey}` : 'subCategorySpacing';
+                  localStorage.setItem(key, String(newValue));
+                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
                 }}
                 className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
               />
@@ -1075,8 +1095,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onChange={(e) => {
                   const newValue = parseInt(e.target.value, 10);
                   setVerticalSubCategoryWidth(newValue);
-                  localStorage.setItem('verticalSubCategoryWidth', String(newValue));
-                  window.dispatchEvent(new Event('verticalSubCategoryWidthChanged'));
+                  const key = element ? `verticalSubCategoryWidth_${elementStorageKey}` : 'verticalSubCategoryWidth';
+                  localStorage.setItem(key, String(newValue));
+                  window.dispatchEvent(new Event(`verticalSubCategoryWidthChanged_${elementStorageKey}`));
                 }}
                 className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
               />
@@ -2033,8 +2054,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onChange={(e) => {
                   const newValue = parseInt(e.target.value, 10);
                   setCategorySpacing(newValue);
-                  localStorage.setItem('categorySpacing', String(newValue));
-                  window.dispatchEvent(new Event('spacingPreferenceChanged'));
+                  const key = domain ? `categorySpacing_${domainStorageKey}` : 'categorySpacing';
+                  localStorage.setItem(key, String(newValue));
+                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
                 }}
                 className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
               />

@@ -9,11 +9,12 @@ interface CategorySectionProps {
   category: Category;
   onElementClick?: (elementId: string) => void;
   readOnly?: boolean;
+  domainId?: string; // ID du domaine pour les préférences indépendantes
 }
 
 // Ce composant gère uniquement les catégories HORIZONTALES
 // Les catégories VERTICALES sont gérées directement dans DomainView
-export default function CategorySection({ category, onElementClick, readOnly = false }: CategorySectionProps) {
+export default function CategorySection({ category, onElementClick, readOnly = false, domainId }: CategorySectionProps) {
   const { addElement, deleteCategory, moveElement, reorderElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingElement, setIsAddingElement] = useState(false);
@@ -81,26 +82,27 @@ export default function CategorySection({ category, onElementClick, readOnly = f
   const isHorizontal = category.orientation === 'horizontal';
   const useInlineLayout = isHorizontal && horizontalCategoriesInline;
   
-  // Préférences d'espacement
+  // Préférences d'espacement (indépendantes par domaine)
+  const storageKey = domainId ? `domain_${domainId}` : 'global';
   const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
-    const saved = localStorage.getItem('horizontalSpacing');
+    const saved = localStorage.getItem(`horizontalSpacing_${storageKey}`);
     return saved ? parseInt(saved, 10) : 50; // Défaut 50 (équivalent à gap-3)
   });
   const [categorySpacing, setCategorySpacing] = useState(() => {
-    const saved = localStorage.getItem('categorySpacing');
+    const saved = localStorage.getItem(`categorySpacing_${storageKey}`);
     return saved ? parseInt(saved, 10) : 80; // Défaut 80 (équivalent à mb-8)
   });
   
   useEffect(() => {
     const handleSpacingChange = () => {
-      setHorizontalSpacing(parseInt(localStorage.getItem('horizontalSpacing') || '50', 10));
-      setCategorySpacing(parseInt(localStorage.getItem('categorySpacing') || '80', 10));
+      setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${storageKey}`) || '50', 10));
+      setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${storageKey}`) || '80', 10));
     };
-    window.addEventListener('spacingPreferenceChanged', handleSpacingChange);
+    window.addEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
     return () => {
-      window.removeEventListener('spacingPreferenceChanged', handleSpacingChange);
+      window.removeEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
     };
-  }, []);
+  }, [storageKey]);
   
   // Convertir la valeur du slider (0-100) en classes Tailwind
   const getGapClass = (value: number) => {

@@ -4,7 +4,7 @@ import CategorySection from './CategorySection';
 import MapView from './MapView';
 import BackgroundView from './BackgroundView';
 import { MuiIcon } from './IconPicker';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ElementTile from './ElementTile';
 import { useConfirm } from '../contexts/ConfirmContext';
 
@@ -23,6 +23,20 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
   const [addingElementToCategory, setAddingElementToCategory] = useState<string | null>(null);
   const [newElementName, setNewElementName] = useState('');
   const [draggingOverCategoryId, setDraggingOverCategoryId] = useState<string | null>(null);
+  const [categorySpacing, setCategorySpacing] = useState(() => {
+    const saved = localStorage.getItem(`categorySpacing_${domain.id}`);
+    return saved ? parseInt(saved, 10) : 80;
+  });
+  
+  useEffect(() => {
+    const handleSpacingChange = () => {
+      setCategorySpacing(parseInt(localStorage.getItem(`categorySpacing_${domain.id}`) || '80', 10));
+    };
+    window.addEventListener(`spacingPreferenceChanged_${domain.id}`, handleSpacingChange);
+    return () => {
+      window.removeEventListener(`spacingPreferenceChanged_${domain.id}`, handleSpacingChange);
+    };
+  }, [domain.id]);
   
   // Modal de configuration supprimée - l'édition se fait maintenant via EditorPanel
   
@@ -279,12 +293,6 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
       {/* Catégories HORIZONTALES */}
       <div>
         {horizontalCategories.map((category) => {
-          // Préférence d'espacement entre catégories
-          const categorySpacing = (() => {
-            const saved = localStorage.getItem('categorySpacing');
-            return saved ? parseInt(saved, 10) : 80;
-          })();
-          
           // Convertir la valeur du slider (0-100) en classes Tailwind
           const getMarginBottomClass = (value: number) => {
             if (value < 5) return 'mb-0';
@@ -302,7 +310,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
           
           return (
             <div key={category.id} className={getMarginBottomClass(categorySpacing)}>
-              <CategorySection category={category} onElementClick={onElementClick} readOnly={readOnly} />
+              <CategorySection category={category} onElementClick={onElementClick} readOnly={readOnly} domainId={domain.id} />
             </div>
           );
         })}

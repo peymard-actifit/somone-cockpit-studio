@@ -23,20 +23,22 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   const [addingSubElementToSubCategory, setAddingSubElementToSubCategory] = useState<string | null>(null);
   const [newSubElementName, setNewSubElementName] = useState('');
   const [draggingOverSubCategoryId, setDraggingOverSubCategoryId] = useState<string | null>(null);
+  // Préférences d'espacement (indépendantes par élément)
+  const storageKey = `element_${element.id}`;
   const [verticalSubCategoryWidth, setVerticalSubCategoryWidth] = useState(() => {
-    const saved = localStorage.getItem('verticalSubCategoryWidth');
+    const saved = localStorage.getItem(`verticalSubCategoryWidth_${storageKey}`);
     return saved ? parseInt(saved, 10) : 200;
   });
   
   useEffect(() => {
     const handleWidthChange = () => {
-      setVerticalSubCategoryWidth(parseInt(localStorage.getItem('verticalSubCategoryWidth') || '200', 10));
+      setVerticalSubCategoryWidth(parseInt(localStorage.getItem(`verticalSubCategoryWidth_${storageKey}`) || '200', 10));
     };
-    window.addEventListener('verticalSubCategoryWidthChanged', handleWidthChange);
+    window.addEventListener(`verticalSubCategoryWidthChanged_${storageKey}`, handleWidthChange);
     return () => {
-      window.removeEventListener('verticalSubCategoryWidthChanged', handleWidthChange);
+      window.removeEventListener(`verticalSubCategoryWidthChanged_${storageKey}`, handleWidthChange);
     };
-  }, []);
+  }, [storageKey]);
   
   // Modal de configuration supprimée - l'édition se fait maintenant via EditorPanel
   
