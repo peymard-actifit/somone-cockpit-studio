@@ -81,8 +81,54 @@ export default function SubCategorySection({ subCategory, element, domain, readO
   const isHorizontal = subCategory.orientation === 'horizontal';
   const useInlineLayout = isHorizontal && horizontalSubCategoriesInline;
   
+  // Préférences d'espacement
+  const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
+    const saved = localStorage.getItem('horizontalSpacing');
+    return saved ? parseInt(saved, 10) : 50; // Défaut 50 (équivalent à gap-3)
+  });
+  const [subCategorySpacing, setSubCategorySpacing] = useState(() => {
+    const saved = localStorage.getItem('subCategorySpacing');
+    return saved ? parseInt(saved, 10) : 80; // Défaut 80 (équivalent à mb-8)
+  });
+  
+  useEffect(() => {
+    const handleSpacingChange = () => {
+      setHorizontalSpacing(parseInt(localStorage.getItem('horizontalSpacing') || '50', 10));
+      setSubCategorySpacing(parseInt(localStorage.getItem('subCategorySpacing') || '80', 10));
+    };
+    window.addEventListener('spacingPreferenceChanged', handleSpacingChange);
+    return () => {
+      window.removeEventListener('spacingPreferenceChanged', handleSpacingChange);
+    };
+  }, []);
+  
+  // Convertir la valeur du slider (0-100) en classes Tailwind
+  const getGapClass = (value: number) => {
+    if (value < 20) return 'gap-1';
+    if (value < 40) return 'gap-2';
+    if (value < 60) return 'gap-3';
+    if (value < 80) return 'gap-4';
+    return 'gap-6';
+  };
+  
+  const getPaddingClass = (value: number) => {
+    if (value < 20) return 'p-1';
+    if (value < 40) return 'p-2';
+    if (value < 60) return 'p-3';
+    if (value < 80) return 'p-4';
+    return 'p-6';
+  };
+  
+  const getMarginBottomClass = (value: number) => {
+    if (value < 20) return 'mb-2';
+    if (value < 40) return 'mb-4';
+    if (value < 60) return 'mb-6';
+    if (value < 80) return 'mb-8';
+    return 'mb-10';
+  };
+  
   return (
-    <div className={`group mb-8 ${useInlineLayout ? 'flex items-center gap-2' : ''}`}>
+    <div className={`group ${getMarginBottomClass(subCategorySpacing)} ${useInlineLayout ? `flex items-center ${getGapClass(horizontalSpacing)}` : ''}`}>
       {/* En-tête de sous-catégorie - Style PDF SOMONE mode clair */}
       <div className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}>
         {subCategory.icon && (
@@ -124,9 +170,9 @@ export default function SubCategorySection({ subCategory, element, domain, readO
           flex-1
           ${subCategory.orientation === 'vertical' 
             ? 'flex flex-col gap-3' 
-            : 'flex flex-row flex-wrap gap-2'
+            : `flex flex-row flex-wrap ${getGapClass(horizontalSpacing)}`
           }
-          transition-all rounded-lg p-1
+          transition-all rounded-lg ${useInlineLayout ? getPaddingClass(horizontalSpacing) : 'p-2'}
           ${isDraggingOver ? 'bg-[#F5F7FA] border-2 border-[#1E3A5F]' : ''}
         `}
         onDragOver={handleDragOver}

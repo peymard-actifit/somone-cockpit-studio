@@ -81,8 +81,54 @@ export default function CategorySection({ category, onElementClick, readOnly = f
   const isHorizontal = category.orientation === 'horizontal';
   const useInlineLayout = isHorizontal && horizontalCategoriesInline;
   
+  // Préférences d'espacement
+  const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
+    const saved = localStorage.getItem('horizontalSpacing');
+    return saved ? parseInt(saved, 10) : 50; // Défaut 50 (équivalent à gap-3)
+  });
+  const [categorySpacing, setCategorySpacing] = useState(() => {
+    const saved = localStorage.getItem('categorySpacing');
+    return saved ? parseInt(saved, 10) : 80; // Défaut 80 (équivalent à mb-8)
+  });
+  
+  useEffect(() => {
+    const handleSpacingChange = () => {
+      setHorizontalSpacing(parseInt(localStorage.getItem('horizontalSpacing') || '50', 10));
+      setCategorySpacing(parseInt(localStorage.getItem('categorySpacing') || '80', 10));
+    };
+    window.addEventListener('spacingPreferenceChanged', handleSpacingChange);
+    return () => {
+      window.removeEventListener('spacingPreferenceChanged', handleSpacingChange);
+    };
+  }, []);
+  
+  // Convertir la valeur du slider (0-100) en classes Tailwind
+  const getGapClass = (value: number) => {
+    if (value < 20) return 'gap-1';
+    if (value < 40) return 'gap-2';
+    if (value < 60) return 'gap-3';
+    if (value < 80) return 'gap-4';
+    return 'gap-6';
+  };
+  
+  const getPaddingClass = (value: number) => {
+    if (value < 20) return 'p-1';
+    if (value < 40) return 'p-2';
+    if (value < 60) return 'p-3';
+    if (value < 80) return 'p-4';
+    return 'p-6';
+  };
+  
+  const getMarginBottomClass = (value: number) => {
+    if (value < 20) return 'mb-2';
+    if (value < 40) return 'mb-4';
+    if (value < 60) return 'mb-6';
+    if (value < 80) return 'mb-8';
+    return 'mb-10';
+  };
+  
   return (
-    <div className={`group mb-8 ${useInlineLayout ? 'flex items-center gap-2' : ''}`}>
+    <div className={`group ${getMarginBottomClass(categorySpacing)} ${useInlineLayout ? `flex items-center ${getGapClass(horizontalSpacing)}` : ''}`}>
       {/* En-tête de catégorie - Style PDF SOMONE mode clair */}
       <div className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}>
         {category.icon && (
@@ -122,7 +168,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
       <div 
         className={`bg-white rounded-xl border shadow-sm transition-all flex-1 ${
           isDraggingOver ? 'border-[#1E3A5F] border-2 bg-[#F5F7FA]' : 'border-[#E2E8F0]'
-        } ${useInlineLayout ? 'relative p-2' : 'p-6'}`}
+        } ${useInlineLayout ? `relative ${getPaddingClass(horizontalSpacing)}` : 'p-6'}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -144,7 +190,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
             <MuiIcon name="Delete" size={16} />
           </button>
         )}
-        <div className={`flex flex-row flex-wrap ${useInlineLayout ? 'gap-2' : 'gap-4'}`}>
+        <div className={`flex flex-row flex-wrap ${useInlineLayout ? getGapClass(horizontalSpacing) : 'gap-4'}`}>
           {category.elements.map((element, index) => (
             <ElementTile 
               key={element.id} 

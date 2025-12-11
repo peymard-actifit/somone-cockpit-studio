@@ -63,6 +63,20 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = localStorage.getItem('horizontalSubCategoriesInline');
     return saved === 'true';
   });
+
+  // Préférences d'espacement
+  const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
+    const saved = localStorage.getItem('horizontalSpacing');
+    return saved ? parseInt(saved, 10) : 50;
+  });
+  const [categorySpacing, setCategorySpacing] = useState(() => {
+    const saved = localStorage.getItem('categorySpacing');
+    return saved ? parseInt(saved, 10) : 80;
+  });
+  const [subCategorySpacing, setSubCategorySpacing] = useState(() => {
+    const saved = localStorage.getItem('subCategorySpacing');
+    return saved ? parseInt(saved, 10) : 80;
+  });
   
   // États pour la configuration de l'image de fond (MapView et BackgroundView)
   const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
@@ -978,6 +992,54 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </button>
               </div>
             </div>
+            
+            {/* Slider espacement horizontal */}
+            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                Espacement entre sous-éléments (vues horizontales)
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={horizontalSpacing}
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value, 10);
+                  setHorizontalSpacing(newValue);
+                  localStorage.setItem('horizontalSpacing', String(newValue));
+                  window.dispatchEvent(new Event('spacingPreferenceChanged'));
+                }}
+                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+              />
+              <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                <span>Compact</span>
+                <span>Espacé</span>
+              </div>
+            </div>
+            
+            {/* Slider espacement entre sous-catégories */}
+            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                Espacement entre sous-catégories
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={subCategorySpacing}
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value, 10);
+                  setSubCategorySpacing(newValue);
+                  localStorage.setItem('subCategorySpacing', String(newValue));
+                  window.dispatchEvent(new Event('spacingPreferenceChanged'));
+                }}
+                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+              />
+              <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                <span>Compact</span>
+                <span>Espacé</span>
+              </div>
+            </div>
           </Section>
         )}
         
@@ -1886,6 +1948,54 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   }`}
                 />
               </button>
+            </div>
+            
+            {/* Slider espacement horizontal */}
+            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                Espacement entre éléments (vues horizontales)
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={horizontalSpacing}
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value, 10);
+                  setHorizontalSpacing(newValue);
+                  localStorage.setItem('horizontalSpacing', String(newValue));
+                  window.dispatchEvent(new Event('spacingPreferenceChanged'));
+                }}
+                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+              />
+              <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                <span>Compact</span>
+                <span>Espacé</span>
+              </div>
+            </div>
+            
+            {/* Slider espacement entre catégories */}
+            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                Espacement entre catégories
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={categorySpacing}
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value, 10);
+                  setCategorySpacing(newValue);
+                  localStorage.setItem('categorySpacing', String(newValue));
+                  window.dispatchEvent(new Event('spacingPreferenceChanged'));
+                }}
+                className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+              />
+              <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                <span>Compact</span>
+                <span>Espacé</span>
+              </div>
             </div>
           </div>
         </Section>
