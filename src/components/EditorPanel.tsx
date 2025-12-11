@@ -868,6 +868,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </div>
               ))}
             </div>
+            {/* Sélecteur d'icônes pour les sous-catégories */}
+            {showIconPicker === 'subCategory' && iconPickerContext && element && (
+              <IconPicker
+                value={element.subCategories.find(sc => sc.id === iconPickerContext.id)?.icon}
+                onChange={(iconName) => {
+                  if (iconPickerContext.type === 'subCategory') {
+                    updateSubCategory(iconPickerContext.id, { icon: iconName });
+                  }
+                }}
+                onClose={() => {
+                  setShowIconPicker(null);
+                  setIconPickerContext(null);
+                }}
+              />
+            )}
           </Section>
         )}
         
