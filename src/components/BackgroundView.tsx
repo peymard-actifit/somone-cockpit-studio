@@ -1273,17 +1273,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           </div>
         </div>
       
-      {/* LÃ©gende */}
-      <div className="absolute bottom-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
-        <div className="flex items-center gap-6">
-          <LegendItem color="#8B5CF6" label="Fatal" />
-          <LegendItem color="#E57373" label="Critique" />
-          <LegendItem color="#FFB74D" label="Mineur" />
-          <LegendItem color="#9CCC65" label="OK" />
-          <LegendItem color="#9E9E9E" label="DÃ©connectÃ©" />
-        </div>
-      </div>
-      
       {/* Boutons d'action - masqués en mode readOnly */}
       {!_readOnly && (
         <div className="absolute bottom-4 right-4 z-20 flex gap-2">
@@ -1668,11 +1657,3 @@ function Modal({ title, children, onClose, maxWidth = 'max-w-lg' }: { title: str
 }
 
 // Composant LÃ©gende
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-4 h-4 rounded" style={{ backgroundColor: color }} />
-      <span className="text-sm text-[#64748B]">{label}</span>
-    </div>
-  );
-}
