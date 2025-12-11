@@ -190,7 +190,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
       <div 
         className={`bg-white rounded-xl border shadow-sm transition-all flex-1 ${
           isDraggingOver ? 'border-[#1E3A5F] border-2 bg-[#F5F7FA]' : 'border-[#E2E8F0]'
-        } ${useInlineLayout ? `relative ${getPaddingClass(horizontalSpacing)}` : 'p-6'}`}
+        } ${useInlineLayout ? `relative ${getPaddingClass(horizontalSpacing)}` : getPaddingClass(horizontalSpacing)}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
