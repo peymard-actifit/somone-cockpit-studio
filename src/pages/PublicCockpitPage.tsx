@@ -151,17 +151,16 @@ export default function PublicCockpitPage() {
               {cockpit.logo && (
                 <img src={cockpit.logo} alt="Logo" className="h-10 w-auto" />
               )}
-              <div>
-                <h1 className="text-xl font-bold text-white">{cockpit.name}</h1>
-                <p className="text-xs text-slate-500">Mode consultation</p>
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="text-xl font-bold text-white">{cockpit.name}</h1>
+                  <p className="text-xs text-slate-500">Mode consultation</p>
+                </div>
+                {/* Version - calée à gauche, même ligne que "Mode consultation" */}
+                <span className="text-xs text-slate-500">v{VERSION_DISPLAY}</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* Version */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 border border-slate-600/30 rounded-lg">
-                <span className="text-xs text-slate-400">v{VERSION_DISPLAY}</span>
-              </div>
-              
               {/* Assistant IA */}
               {publicId && cockpit && (
                 <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
@@ -248,18 +247,13 @@ export default function PublicCockpitPage() {
       <footer className="bg-cockpit-bg-card border-t border-slate-700/50 flex-shrink-0">
         {/* Bandeau défilant */}
         {cockpit.scrollingBanner && (
-          <div className="bg-slate-800/50 py-2 overflow-hidden">
+          <div className="bg-white py-2 overflow-hidden">
             <div className="animate-marquee whitespace-nowrap">
-              <span className="text-sm text-slate-400 mx-4">{cockpit.scrollingBanner}</span>
-              <span className="text-sm text-slate-400 mx-4">{cockpit.scrollingBanner}</span>
+              <span className="text-sm text-black mx-4">{cockpit.scrollingBanner}</span>
+              <span className="text-sm text-black mx-4">{cockpit.scrollingBanner}</span>
             </div>
           </div>
         )}
-        <div className="px-6 py-3 text-center">
-          <p className="text-xs text-slate-600">
-            Cockpit publié avec SOMONE Studio
-          </p>
-        </div>
       </footer>
     </div>
   );
