@@ -13,9 +13,11 @@ interface SubCategorySectionProps {
   onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition d'un sous-élément
   elementId?: string; // ID de l'élément pour les préférences indépendantes
   verticalSubCategoryWidth?: number; // Largeur pour les sous-catégories verticales
+  horizontalSpacing?: number; // Espacement horizontal passé depuis ElementView
+  subCategorySpacing?: number; // Espacement entre sous-catégories passé depuis ElementView
 }
 
-export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick, elementId, verticalSubCategoryWidth }: SubCategorySectionProps) {
+export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick, elementId, verticalSubCategoryWidth, horizontalSpacing: propHorizontalSpacing, subCategorySpacing: propSubCategorySpacing }: SubCategorySectionProps) {
   const { addSubElement, deleteSubCategory, moveSubElement, reorderSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubElement, setIsAddingSubElement] = useState(false);
@@ -86,24 +88,45 @@ export default function SubCategorySection({ subCategory, element, domain, readO
   // Préférences d'espacement (indépendantes par élément)
   const storageKey = elementId ? `element_${elementId}` : 'global';
   const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
+    if (propHorizontalSpacing !== undefined) return propHorizontalSpacing;
     const saved = localStorage.getItem(`horizontalSpacing_${storageKey}`);
     return saved ? parseInt(saved, 10) : 50; // Défaut 50 (équivalent à gap-3)
   });
   const [subCategorySpacing, setSubCategorySpacing] = useState(() => {
+    if (propSubCategorySpacing !== undefined) return propSubCategorySpacing;
     const saved = localStorage.getItem(`subCategorySpacing_${storageKey}`);
     return saved ? parseInt(saved, 10) : 80; // Défaut 80 (équivalent à mb-8)
   });
   
   useEffect(() => {
     const handleSpacingChange = () => {
-      setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${storageKey}`) || '50', 10));
-      setSubCategorySpacing(parseInt(localStorage.getItem(`subCategorySpacing_${storageKey}`) || '80', 10));
+      const newHorizontalSpacing = propHorizontalSpacing !== undefined 
+        ? propHorizontalSpacing 
+        : parseInt(localStorage.getItem(`horizontalSpacing_${storageKey}`) || '50', 10);
+      const newSubCategorySpacing = propSubCategorySpacing !== undefined 
+        ? propSubCategorySpacing 
+        : parseInt(localStorage.getItem(`subCategorySpacing_${storageKey}`) || '80', 10);
+      setHorizontalSpacing(newHorizontalSpacing);
+      setSubCategorySpacing(newSubCategorySpacing);
     };
     window.addEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
     return () => {
       window.removeEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
     };
-  }, [storageKey]);
+  }, [storageKey, propHorizontalSpacing, propSubCategorySpacing]);
+  
+  // Mettre à jour les valeurs si les props changent
+  useEffect(() => {
+    if (propHorizontalSpacing !== undefined) {
+      setHorizontalSpacing(propHorizontalSpacing);
+    }
+  }, [propHorizontalSpacing]);
+  
+  useEffect(() => {
+    if (propSubCategorySpacing !== undefined) {
+      setSubCategorySpacing(propSubCategorySpacing);
+    }
+  }, [propSubCategorySpacing]);
   
   // Convertir la valeur du slider (0-100) en classes Tailwind
   const getGapClass = (value: number) => {

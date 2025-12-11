@@ -1045,8 +1045,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onChange={(e) => {
                   const newValue = parseInt(e.target.value, 10);
                   setHorizontalSpacing(newValue);
-                  localStorage.setItem('horizontalSpacing', String(newValue));
-                  window.dispatchEvent(new Event('spacingPreferenceChanged'));
+                  const key = domain ? `horizontalSpacing_${domainStorageKey}` : 'horizontalSpacing';
+                  localStorage.setItem(key, String(newValue));
+                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
                 }}
                 className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
               />
@@ -2030,8 +2031,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onChange={(e) => {
                   const newValue = parseInt(e.target.value, 10);
                   setHorizontalSpacing(newValue);
-                  localStorage.setItem('horizontalSpacing', String(newValue));
-                  window.dispatchEvent(new Event('spacingPreferenceChanged'));
+                  const key = domain ? `horizontalSpacing_${domainStorageKey}` : 'horizontalSpacing';
+                  localStorage.setItem(key, String(newValue));
+                  window.dispatchEvent(new Event(`spacingPreferenceChanged_${domainStorageKey}`));
                 }}
                 className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
               />

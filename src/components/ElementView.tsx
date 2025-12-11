@@ -29,14 +29,26 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
     const saved = localStorage.getItem(`verticalSubCategoryWidth_${storageKey}`);
     return saved ? parseInt(saved, 10) : 200;
   });
+  const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
+    const saved = localStorage.getItem(`horizontalSpacing_${storageKey}`);
+    return saved ? parseInt(saved, 10) : 50;
+  });
+  const [subCategorySpacing, setSubCategorySpacing] = useState(() => {
+    const saved = localStorage.getItem(`subCategorySpacing_${storageKey}`);
+    return saved ? parseInt(saved, 10) : 80;
+  });
   
   useEffect(() => {
-    const handleWidthChange = () => {
+    const handleSpacingChange = () => {
+      setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${storageKey}`) || '50', 10));
+      setSubCategorySpacing(parseInt(localStorage.getItem(`subCategorySpacing_${storageKey}`) || '80', 10));
       setVerticalSubCategoryWidth(parseInt(localStorage.getItem(`verticalSubCategoryWidth_${storageKey}`) || '200', 10));
     };
-    window.addEventListener(`verticalSubCategoryWidthChanged_${storageKey}`, handleWidthChange);
+    window.addEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
+    window.addEventListener(`verticalSubCategoryWidthChanged_${storageKey}`, handleSpacingChange);
     return () => {
-      window.removeEventListener(`verticalSubCategoryWidthChanged_${storageKey}`, handleWidthChange);
+      window.removeEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
+      window.removeEventListener(`verticalSubCategoryWidthChanged_${storageKey}`, handleSpacingChange);
     };
   }, [storageKey]);
   
@@ -348,18 +360,20 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
         
         {/* Sous-catégories HORIZONTALES : affichées de manière classique */}
         <div className="space-y-10">
-            {horizontalSubCategories.map((subCategory) => (
-              <SubCategorySection 
-                key={subCategory.id} 
-                subCategory={subCategory}
-                element={element}
-                domain={domain}
-                readOnly={readOnly}
-                onSubElementClick={onSubElementClick}
-                elementId={element.id}
-                verticalSubCategoryWidth={verticalSubCategoryWidth}
-              />
-            ))}
+          {horizontalSubCategories.map((subCategory) => (
+            <SubCategorySection 
+              key={subCategory.id} 
+              subCategory={subCategory}
+              element={element}
+              domain={domain}
+              readOnly={readOnly}
+              onSubElementClick={onSubElementClick}
+              elementId={element.id}
+              verticalSubCategoryWidth={verticalSubCategoryWidth}
+              horizontalSpacing={horizontalSpacing}
+              subCategorySpacing={subCategorySpacing}
+            />
+          ))}
         </div>
         
         {/* Bouton ajouter sous-catégorie */}
