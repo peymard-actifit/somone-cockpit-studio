@@ -82,7 +82,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
   const useInlineLayout = isHorizontal && horizontalCategoriesInline;
   
   return (
-    <div className={`group mb-8 ${useInlineLayout ? 'flex items-start gap-4' : ''}`}>
+    <div className={`group mb-8 ${useInlineLayout ? 'flex items-center gap-4' : ''}`}>
       {/* En-tête de sous-catégorie - Style PDF SOMONE mode clair */}
       <div className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}>
         {subCategory.icon && (
