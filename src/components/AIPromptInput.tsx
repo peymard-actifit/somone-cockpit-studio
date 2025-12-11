@@ -1202,8 +1202,8 @@ export default function AIPromptInput() {
           
           if (action.params.elementId && action.params.horizontalSubCategoriesInline !== undefined) {
             const value = Boolean(action.params.horizontalSubCategoriesInline);
-            localStorage.setItem('horizontalSubCategoriesInline', String(value));
-            window.dispatchEvent(new Event('horizontalSubCategoriesPreferenceChanged'));
+            localStorage.setItem(`horizontalSubCategoriesInline_${elementStorageKey}`, String(value));
+            window.dispatchEvent(new Event(`horizontalSubCategoriesPreferenceChanged_${elementStorageKey}`));
           }
           
           return `✅ Préférences d'affichage mises à jour`;

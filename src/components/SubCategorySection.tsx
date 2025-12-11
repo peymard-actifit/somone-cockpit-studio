@@ -67,26 +67,26 @@ export default function SubCategorySection({ subCategory, element, domain, readO
     c.elements.some(e => e.id === element.id)
   );
   
-  // Préférence pour la position des sous-catégories horizontales (indépendante des catégories)
+  // Préférence pour la position des sous-catégories horizontales (indépendante par élément)
+  const storageKey = elementId ? `element_${elementId}` : 'global';
   const [horizontalSubCategoriesInline, setHorizontalSubCategoriesInline] = useState(() => {
-    return localStorage.getItem('horizontalSubCategoriesInline') === 'true';
+    return localStorage.getItem(`horizontalSubCategoriesInline_${storageKey}`) === 'true';
   });
   
   useEffect(() => {
     const handlePreferenceChange = () => {
-      setHorizontalSubCategoriesInline(localStorage.getItem('horizontalSubCategoriesInline') === 'true');
+      setHorizontalSubCategoriesInline(localStorage.getItem(`horizontalSubCategoriesInline_${storageKey}`) === 'true');
     };
-    window.addEventListener('horizontalSubCategoriesPreferenceChanged', handlePreferenceChange);
+    window.addEventListener(`horizontalSubCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
     return () => {
-      window.removeEventListener('horizontalSubCategoriesPreferenceChanged', handlePreferenceChange);
+      window.removeEventListener(`horizontalSubCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
     };
-  }, []);
+  }, [storageKey]);
   
   const isHorizontal = subCategory.orientation === 'horizontal';
   const useInlineLayout = isHorizontal && horizontalSubCategoriesInline;
   
   // Préférences d'espacement (indépendantes par élément)
-  const storageKey = elementId ? `element_${elementId}` : 'global';
   const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
     if (propHorizontalSpacing !== undefined) return propHorizontalSpacing;
     const saved = localStorage.getItem(`horizontalSpacing_${storageKey}`);
