@@ -37,17 +37,12 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
     const saved = localStorage.getItem(`subCategorySpacing_${storageKey}`);
     return saved ? parseInt(saved, 10) : 80;
   });
-  const [verticalSubCategorySpacing, setVerticalSubCategorySpacing] = useState(() => {
-    const saved = localStorage.getItem(`verticalSubCategorySpacing_${storageKey}`);
-    return saved ? parseInt(saved, 10) : 80;
-  });
   
   useEffect(() => {
     const handleSpacingChange = () => {
       setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${storageKey}`) || '50', 10));
       setSubCategorySpacing(parseInt(localStorage.getItem(`subCategorySpacing_${storageKey}`) || '80', 10));
       setVerticalSubCategoryWidth(parseInt(localStorage.getItem(`verticalSubCategoryWidth_${storageKey}`) || '200', 10));
-      setVerticalSubCategorySpacing(parseInt(localStorage.getItem(`verticalSubCategorySpacing_${storageKey}`) || '80', 10));
     };
     window.addEventListener(`spacingPreferenceChanged_${storageKey}`, handleSpacingChange);
     window.addEventListener(`verticalSubCategoryWidthChanged_${storageKey}`, handleSpacingChange);
@@ -70,21 +65,6 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
     if (value < 75) return 'space-y-8';
     if (value < 85) return 'space-y-9';
     return 'space-y-10';
-  };
-  
-  // Convertir la valeur du slider (0-100) en classe Tailwind margin-bottom
-  const getMarginBottomClass = (value: number) => {
-    if (value < 5) return 'mb-0';
-    if (value < 10) return 'mb-1';
-    if (value < 15) return 'mb-2';
-    if (value < 25) return 'mb-3';
-    if (value < 35) return 'mb-4';
-    if (value < 45) return 'mb-5';
-    if (value < 55) return 'mb-6';
-    if (value < 65) return 'mb-7';
-    if (value < 75) return 'mb-8';
-    if (value < 85) return 'mb-9';
-    return 'mb-10';
   };
   
   // Modal de configuration supprimée - l'édition se fait maintenant via EditorPanel
@@ -239,7 +219,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
       <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm">
         {/* Sous-catégories VERTICALES : affichées côte à côte en colonnes */}
         {verticalSubCategories.length > 0 && (
-          <div className={`${getMarginBottomClass(verticalSubCategorySpacing)} bg-[#F5F7FA] rounded-xl border border-[#E2E8F0] overflow-hidden`}>
+          <div className="mb-10 bg-[#F5F7FA] rounded-xl border border-[#E2E8F0] overflow-hidden">
             {/* En-têtes des sous-catégories verticales - en ligne */}
             <div className="flex border-b border-[#E2E8F0]">
               {verticalSubCategories.map((subCategory) => (

@@ -88,10 +88,6 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = element ? localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) : localStorage.getItem('verticalSubCategoryWidth');
     return saved ? parseInt(saved, 10) : 200;
   });
-  const [verticalSubCategorySpacing, setVerticalSubCategorySpacing] = useState(() => {
-    const saved = element ? localStorage.getItem(`verticalSubCategorySpacing_${elementStorageKey}`) : localStorage.getItem('verticalSubCategorySpacing');
-    return saved ? parseInt(saved, 10) : 80;
-  });
   
   // Synchroniser les valeurs depuis localStorage quand on ouvre les sections ou change de domaine/élément
   useEffect(() => {
@@ -122,7 +118,6 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         setElementHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${elementStorageKey}`) || '50', 10));
         setSubCategorySpacing(parseInt(localStorage.getItem(`subCategorySpacing_${elementStorageKey}`) || '80', 10));
         setVerticalSubCategoryWidth(parseInt(localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) || '200', 10));
-        setVerticalSubCategorySpacing(parseInt(localStorage.getItem(`verticalSubCategorySpacing_${elementStorageKey}`) || '80', 10));
       }
     };
     if (domain) {
@@ -1150,30 +1145,6 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       </div>
                     </div>
                     
-                    {/* Slider espacement entre sous-catégories verticales */}
-                    <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                      <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                        Espacement entre sous-catégories verticales
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={verticalSubCategorySpacing}
-                        onChange={(e) => {
-                          const newValue = parseInt(e.target.value, 10);
-                          setVerticalSubCategorySpacing(newValue);
-                          const key = element ? `verticalSubCategorySpacing_${elementStorageKey}` : 'verticalSubCategorySpacing';
-                          localStorage.setItem(key, String(newValue));
-                          window.dispatchEvent(new Event(`spacingPreferenceChanged_${elementStorageKey}`));
-                        }}
-                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
-                      />
-                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
-                        <span>Compact</span>
-                        <span>Espacé</span>
-                      </div>
-                    </div>
                   </>
                 )}
               </div>
