@@ -62,9 +62,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     return saved === 'true';
   });
 
-  // Préférence pour la position des sous-catégories horizontales (indépendante des catégories)
+  // Préférence pour la position des sous-catégories horizontales (indépendante par élément)
   const [horizontalSubCategoriesInline, setHorizontalSubCategoriesInline] = useState(() => {
-    const saved = localStorage.getItem('horizontalSubCategoriesInline');
+    const saved = element ? localStorage.getItem(`horizontalSubCategoriesInline_${elementStorageKey}`) : localStorage.getItem('horizontalSubCategoriesInline');
     return saved === 'true';
   });
   
@@ -123,6 +123,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         setElementHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${elementStorageKey}`) || '50', 10));
         setSubCategorySpacing(parseInt(localStorage.getItem(`subCategorySpacing_${elementStorageKey}`) || '80', 10));
         setVerticalSubCategoryWidth(parseInt(localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) || '200', 10));
+        setHorizontalSubCategoriesInline(localStorage.getItem(`horizontalSubCategoriesInline_${elementStorageKey}`) === 'true');
       }
     };
     if (domain) {
@@ -145,6 +146,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       if (element) {
         window.removeEventListener(`spacingPreferenceChanged_${elementStorageKey}`, handleElementSpacingChange);
         window.removeEventListener(`verticalSubCategoryWidthChanged_${elementStorageKey}`, handleElementSpacingChange);
+        window.removeEventListener(`horizontalSubCategoriesPreferenceChanged_${elementStorageKey}`, handleElementSpacingChange);
       }
     };
   }, [domain?.id, element?.id, domainStorageKey, elementStorageKey]);
@@ -330,7 +332,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="Supprimer ce sous-élément"
             >
-              <MuiIcon name="Trash2" size={18} />
+              <MuiIcon name="Delete" size={18} />
             </button>
           </div>
         </div>
@@ -630,7 +632,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="Supprimer cet élément"
             >
-              <MuiIcon name="Trash2" size={18} />
+              <MuiIcon name="Delete" size={18} />
             </button>
           </div>
         </div>
@@ -1053,8 +1055,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         onClick={() => {
                           const newValue = !horizontalSubCategoriesInline;
                           setHorizontalSubCategoriesInline(newValue);
-                          localStorage.setItem('horizontalSubCategoriesInline', String(newValue));
-                          window.dispatchEvent(new Event('horizontalSubCategoriesPreferenceChanged'));
+                          const key = element ? `horizontalSubCategoriesInline_${elementStorageKey}` : 'horizontalSubCategoriesInline';
+                          localStorage.setItem(key, String(newValue));
+                          window.dispatchEvent(new Event(`horizontalSubCategoriesPreferenceChanged_${elementStorageKey}`));
                         }}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
                           horizontalSubCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
@@ -1412,7 +1415,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     }}
                     className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm"
                   >
-                    <MuiIcon name="Trash2" size={16} />
+                    <MuiIcon name="Delete" size={16} />
                     <span>Supprimer le point</span>
                   </button>
                   <button
@@ -1479,7 +1482,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         onClick={() => deleteZone(zone.id)}
                         className="p-1 text-[#94A3B8] hover:text-[#E57373]"
                       >
-                        <MuiIcon name="Trash2" size={12} />
+                        <MuiIcon name="Delete" size={12} />
                       </button>
                     </div>
                   ))}
@@ -1516,7 +1519,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Supprimer ce domaine"
               >
-                <MuiIcon name="Trash2" size={18} />
+                <MuiIcon name="Delete" size={18} />
               </button>
             )}
           </div>
