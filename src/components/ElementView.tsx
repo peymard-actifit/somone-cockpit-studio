@@ -354,6 +354,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
               domain={domain}
               readOnly={readOnly}
               onSubElementClick={onSubElementClick}
+              elementId={element.id}
             />
           ))}
         </div>
