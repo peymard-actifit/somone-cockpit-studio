@@ -157,6 +157,11 @@ export default function PublicCockpitPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Version */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 border border-slate-600/30 rounded-lg">
+                <span className="text-xs text-slate-400">v{VERSION_DISPLAY}</span>
+              </div>
+              
               {/* Assistant IA */}
               {publicId && cockpit && (
                 <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
@@ -169,16 +174,6 @@ export default function PublicCockpitPage() {
             </div>
           </div>
         </div>
-        
-        {/* Bandeau défilant */}
-        {cockpit.scrollingBanner && (
-          <div className="bg-slate-800/50 py-2 overflow-hidden border-t border-slate-700/30">
-            <div className="animate-marquee whitespace-nowrap">
-              <span className="text-sm text-slate-400 mx-4">{cockpit.scrollingBanner}</span>
-              <span className="text-sm text-slate-400 mx-4">{cockpit.scrollingBanner}</span>
-            </div>
-          </div>
-        )}
         
         {/* Navigation des domaines */}
         <div className="bg-slate-800/30 border-t border-slate-700/30">
@@ -250,10 +245,19 @@ export default function PublicCockpitPage() {
       </main>
       
       {/* Footer */}
-      <footer className="bg-cockpit-bg-card border-t border-slate-700/50 py-3">
-        <div className="px-6 text-center">
+      <footer className="bg-cockpit-bg-card border-t border-slate-700/50 flex-shrink-0">
+        {/* Bandeau défilant */}
+        {cockpit.scrollingBanner && (
+          <div className="bg-slate-800/50 py-2 overflow-hidden">
+            <div className="animate-marquee whitespace-nowrap">
+              <span className="text-sm text-slate-400 mx-4">{cockpit.scrollingBanner}</span>
+              <span className="text-sm text-slate-400 mx-4">{cockpit.scrollingBanner}</span>
+            </div>
+          </div>
+        )}
+        <div className="px-6 py-3 text-center">
           <p className="text-xs text-slate-600">
-            Cockpit publié avec SOMONE Studio {VERSION_DISPLAY}
+            Cockpit publié avec SOMONE Studio
           </p>
         </div>
       </footer>
