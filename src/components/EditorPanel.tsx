@@ -56,6 +56,12 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = localStorage.getItem('horizontalCategoriesInline');
     return saved === 'true';
   });
+
+  // Préférence pour la position des sous-catégories horizontales (indépendante des catégories)
+  const [horizontalSubCategoriesInline, setHorizontalSubCategoriesInline] = useState(() => {
+    const saved = localStorage.getItem('horizontalSubCategoriesInline');
+    return saved === 'true';
+  });
   
   // États pour la configuration de l'image de fond (MapView et BackgroundView)
   const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
@@ -861,6 +867,51 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   </span>
                 </div>
               ))}
+            </div>
+          </Section>
+        )}
+        
+        {/* Préférences d'affichage pour les sous-catégories */}
+        {element.subCategories && element.subCategories.length > 0 && (
+          <Section 
+            title="Préférences d'affichage" 
+            iconName="Settings" 
+            isOpen={activeSection === 'element-display-preferences'}
+            onToggle={() => toggleSection('element-display-preferences')}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-[#1E3A5F] mb-1">
+                    Sous-catégories horizontales
+                  </label>
+                  <p className="text-xs text-[#64748B]">
+                    {horizontalSubCategoriesInline 
+                      ? 'Affichage en ligne (à gauche des sous-éléments)'
+                      : 'Affichage au-dessus des sous-éléments (par défaut)'
+                    }
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const newValue = !horizontalSubCategoriesInline;
+                    setHorizontalSubCategoriesInline(newValue);
+                    localStorage.setItem('horizontalSubCategoriesInline', String(newValue));
+                    window.dispatchEvent(new Event('horizontalSubCategoriesPreferenceChanged'));
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+                    horizontalSubCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                  }`}
+                  role="switch"
+                  aria-checked={horizontalSubCategoriesInline}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
+                      horizontalSubCategoriesInline ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           </Section>
         )}

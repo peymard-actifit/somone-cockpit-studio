@@ -63,23 +63,23 @@ export default function SubCategorySection({ subCategory, element, domain, readO
     c.elements.some(e => e.id === element.id)
   );
   
-  // Préférence pour la position des sous-catégories horizontales
-  const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
-    return localStorage.getItem('horizontalCategoriesInline') === 'true';
+  // Préférence pour la position des sous-catégories horizontales (indépendante des catégories)
+  const [horizontalSubCategoriesInline, setHorizontalSubCategoriesInline] = useState(() => {
+    return localStorage.getItem('horizontalSubCategoriesInline') === 'true';
   });
   
   useEffect(() => {
     const handlePreferenceChange = () => {
-      setHorizontalCategoriesInline(localStorage.getItem('horizontalCategoriesInline') === 'true');
+      setHorizontalSubCategoriesInline(localStorage.getItem('horizontalSubCategoriesInline') === 'true');
     };
-    window.addEventListener('horizontalCategoriesPreferenceChanged', handlePreferenceChange);
+    window.addEventListener('horizontalSubCategoriesPreferenceChanged', handlePreferenceChange);
     return () => {
-      window.removeEventListener('horizontalCategoriesPreferenceChanged', handlePreferenceChange);
+      window.removeEventListener('horizontalSubCategoriesPreferenceChanged', handlePreferenceChange);
     };
   }, []);
   
   const isHorizontal = subCategory.orientation === 'horizontal';
-  const useInlineLayout = isHorizontal && horizontalCategoriesInline;
+  const useInlineLayout = isHorizontal && horizontalSubCategoriesInline;
   
   return (
     <div className={`group mb-8 ${useInlineLayout ? 'flex items-center gap-4' : ''}`}>
