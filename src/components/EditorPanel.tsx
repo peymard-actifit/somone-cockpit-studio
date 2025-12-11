@@ -78,6 +78,19 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     return saved ? parseInt(saved, 10) : 80;
   });
   
+  // Synchroniser les valeurs depuis localStorage quand on ouvre les sections
+  useEffect(() => {
+    const handleSpacingChange = () => {
+      setHorizontalSpacing(parseInt(localStorage.getItem('horizontalSpacing') || '50', 10));
+      setCategorySpacing(parseInt(localStorage.getItem('categorySpacing') || '80', 10));
+      setSubCategorySpacing(parseInt(localStorage.getItem('subCategorySpacing') || '80', 10));
+    };
+    window.addEventListener('spacingPreferenceChanged', handleSpacingChange);
+    return () => {
+      window.removeEventListener('spacingPreferenceChanged', handleSpacingChange);
+    };
+  }, []);
+  
   // États pour la configuration de l'image de fond (MapView et BackgroundView)
   const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
