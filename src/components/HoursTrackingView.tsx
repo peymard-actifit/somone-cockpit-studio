@@ -464,7 +464,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   };
 
   return (
-    <div className="h-full flex flex-col bg-white" style={{ minHeight: 0, height: '100%' }}>
+    <div className="h-full flex flex-col bg-white" style={{ minHeight: 0, height: '100%', overflowX: 'hidden' }}>
       {/* Bandeau en haut avec montant global, prix de vente et marge */}
       <div className="bg-[#1E3A5F] text-white px-6 py-4 flex items-center justify-between border-b border-[#2C4A6E]">
         <div className="flex items-center gap-8">
@@ -622,7 +622,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       )}
 
       {/* Zone de contenu avec colonne fixe et scroll horizontal */}
-      <div className="flex-1 flex" style={{ minHeight: 0, overflow: 'hidden' }}>
+      <div className="flex-1 flex" style={{ minHeight: 0, overflow: 'hidden', overflowX: 'hidden' }}>
         {/* Colonne fixe à gauche */}
         <div className="flex-shrink-0 flex flex-col">
           {/* En-tête fixe avec "Total par jour" */}
@@ -873,9 +873,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
 
       {/* Graphique en bas */}
-      <div className="border-t border-[#E2E8F0] bg-white p-4" style={{ height: '300px', minHeight: '300px' }}>
-        <div className="h-full relative">
-          <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" className="min-w-full">
+      <div className="border-t border-[#E2E8F0] bg-white p-4" style={{ height: '300px', minHeight: '300px', overflowX: 'hidden' }}>
+        <div className="h-full relative" style={{ overflowX: 'hidden' }}>
+          <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none">
             {/* Labels des échelles - seront positionnés dans le graphique */}
 
             {/* Zone de dessin */}
