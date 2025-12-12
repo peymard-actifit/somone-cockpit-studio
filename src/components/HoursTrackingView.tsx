@@ -103,7 +103,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Calculer le coût global
   const getGlobalCost = (): number => {
     let total = 0;
-
+    
     hoursData.resources.forEach(resource => {
       if (resource.type === 'person') {
         total += getPersonTotal(resource);
@@ -111,9 +111,92 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         total += getSupplierTotal(resource);
       }
     });
-
+    
     return total;
   };
+
+  // Calculer le nombre de jours imputés par date
+  const getDaysByDate = (date: string): number => {
+    let days = 0;
+    hoursData.resources.forEach(resource => {
+      if (resource.type === 'person' && resource.timeEntries) {
+        const hasMorning = resource.timeEntries.some(te => te.date === date && te.halfDay === 'morning');
+        const hasAfternoon = resource.timeEntries.some(te => te.date === date && te.halfDay === 'afternoon');
+        if (hasMorning && hasAfternoon) {
+          days += 1; // Journée complète
+        } else if (hasMorning || hasAfternoon) {
+          days += 0.5; // Demi-journée
+        }
+      }
+    });
+    return days;
+  };
+
+  // Calculer le coût cumulé jusqu'à une date
+  const getCumulativeCost = (date: string): number => {
+    let total = 0;
+    const targetDate = new Date(date);
+    
+    hoursData.resources.forEach(resource => {
+      if (resource.type === 'person' && resource.dailyRate !== undefined && resource.timeEntries) {
+        const dailyRate = resource.dailyRate;
+        resource.timeEntries.forEach(te => {
+          const entryDate = new Date(te.date);
+          if (entryDate <= targetDate) {
+            total += dailyRate * 0.5; // Demi-journée
+          }
+        });
+      } else if (resource.type === 'supplier' && resource.entries) {
+        resource.entries.forEach(entry => {
+          const entryDate = new Date(entry.date);
+          if (entryDate <= targetDate) {
+            total += entry.amount;
+          }
+        });
+      }
+    });
+    
+    return total;
+  };
+
+  // Générer les dates pour le graphique (3 mois depuis projectStartDate)
+  const chartDates = useMemo(() => {
+    const startDate = new Date(hoursData.projectStartDate);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 3);
+    
+    const dateList: string[] = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+      dateList.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return dateList;
+  }, [hoursData.projectStartDate]);
+
+  // Calculer les données pour le graphique
+  const chartData = useMemo(() => {
+    return chartDates.map(date => ({
+      date,
+      days: getDaysByDate(date),
+      cumulativeCost: getCumulativeCost(date)
+    }));
+  }, [chartDates, hoursData.resources, hoursData.projectStartDate]);
+
+  // Trouver les valeurs max pour les échelles
+  const maxDays = useMemo(() => {
+    const max = Math.max(...chartData.map(d => d.days), 1);
+    return Math.ceil(max * 1.1); // 10% de marge
+  }, [chartData]);
+
+  const salePrice = hoursData.salePrice || 0;
+  
+  const maxCost = useMemo(() => {
+    const max = Math.max(...chartData.map(d => d.cumulativeCost), salePrice || 0, 1000);
+    return Math.ceil(max * 1.1); // 10% de marge
+  }, [chartData, salePrice]);
 
   // Calculer la marge
   const getMargin = (): number => {
@@ -283,7 +366,6 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   };
 
   const globalCost = getGlobalCost();
-  const salePrice = hoursData.salePrice || 0;
   const margin = getMargin();
 
   // Gestion du redimensionnement
@@ -592,7 +674,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all font-medium"
                   >
-                    <MuiIcon name="User" size={18} />
+                    <MuiIcon name="User" size={18} className="flex-shrink-0" />
                     <span>Ajouter une personne</span>
                   </button>
                   <button
@@ -602,7 +684,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all font-medium"
                   >
-                    <MuiIcon name="Building" size={18} />
+                    <MuiIcon name="Building" size={18} className="flex-shrink-0" />
                     <span>Ajouter un fournisseur</span>
                   </button>
                 </div>
@@ -689,6 +771,205 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Graphique en bas */}
+      <div className="border-t border-[#E2E8F0] bg-white p-4" style={{ height: '300px', minHeight: '300px' }}>
+        <div className="h-full relative overflow-x-auto">
+          <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" className="min-w-full">
+            {/* Labels des échelles */}
+            <text x="10" y="15" className="text-xs font-semibold fill-[#1E3A5F]">J</text>
+            <text x="990" y="15" className="text-xs font-semibold fill-[#1E3A5F]" textAnchor="end">€</text>
+            
+            {/* Zone de dessin */}
+            {(() => {
+              const padding = { top: 30, right: 40, bottom: 30, left: 50 };
+              const width = 1000;
+              const height = 240;
+              const chartWidth = width - padding.left - padding.right;
+              const chartHeight = height - padding.top - padding.bottom;
+              
+              // Calculer les positions X pour chaque date
+              const xScale = (index: number) => padding.left + (index / (chartData.length - 1 || 1)) * chartWidth;
+              
+              // Échelle pour les jours (gauche)
+              const yDaysScale = (days: number) => padding.top + chartHeight - (days / maxDays) * chartHeight;
+              
+              // Échelle pour les coûts (droite)
+              const yCostScale = (cost: number) => padding.top + chartHeight - (cost / maxCost) * chartHeight;
+              
+              // Date du jour en cours
+              const today = new Date().toISOString().split('T')[0];
+              const todayIndex = chartData.findIndex(d => d.date === today);
+              
+              return (
+                <g>
+                  {/* Grille horizontale pour les jours */}
+                  {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+                    const value = maxDays * ratio;
+                    const y = yDaysScale(value);
+                    return (
+                      <g key={`grid-days-${ratio}`}>
+                        <line
+                          x1={padding.left}
+                          y1={y}
+                          x2={width - padding.right}
+                          y2={y}
+                          stroke="#E2E8F0"
+                          strokeWidth="1"
+                          strokeDasharray="2,2"
+                        />
+                        <text
+                          x={padding.left - 10}
+                          y={y + 4}
+                          className="text-[10px] fill-[#64748B]"
+                          textAnchor="end"
+                        >
+                          {value.toFixed(1)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  
+                  {/* Grille horizontale pour les coûts */}
+                  {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+                    const value = maxCost * ratio;
+                    const y = yCostScale(value);
+                    return (
+                      <text
+                        key={`grid-cost-${ratio}`}
+                        x={width - padding.right + 10}
+                        y={y + 4}
+                        className="text-[10px] fill-[#64748B]"
+                        textAnchor="start"
+                      >
+                        {value.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
+                      </text>
+                    );
+                  })}
+                  
+                  {/* Barre de seuil (prix de vente) */}
+                  {salePrice > 0 && (
+                    <line
+                      x1={padding.left}
+                      y1={yCostScale(salePrice)}
+                      x2={width - padding.right}
+                      y2={yCostScale(salePrice)}
+                      stroke="#E57373"
+                      strokeWidth="2"
+                      strokeDasharray="4,2"
+                    />
+                  )}
+                  
+                  {/* Barres cumulées (coûts) */}
+                  {chartData.map((data, index) => {
+                    const x = xScale(index);
+                    const barHeight = (data.cumulativeCost / maxCost) * chartHeight;
+                    const y = padding.top + chartHeight - barHeight;
+                    const isToday = data.date === today;
+                    
+                    return (
+                      <g key={`bar-${index}`}>
+                        <rect
+                          x={x - 2}
+                          y={y}
+                          width="4"
+                          height={barHeight}
+                          fill={isToday ? "#1E3A5F" : "#94A3B8"}
+                          opacity={0.7}
+                        />
+                        
+                        {/* Barre de marge prévisionnelle au jour en cours */}
+                        {isToday && salePrice > 0 && data.cumulativeCost < salePrice && (
+                          <rect
+                            x={x - 2}
+                            y={y - ((salePrice - data.cumulativeCost) / maxCost) * chartHeight}
+                            width="4"
+                            height={((salePrice - data.cumulativeCost) / maxCost) * chartHeight}
+                            fill="#9CCC65"
+                            opacity={0.8}
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+                  
+                  {/* Courbe des jours */}
+                  {chartData.length > 1 && (
+                    <path
+                      d={`M ${chartData.map((data, index) => {
+                        const x = xScale(index);
+                        const y = yDaysScale(data.days);
+                        return `${x},${y}`;
+                      }).join(' L ')}`}
+                      fill="none"
+                      stroke="#42A5F5"
+                      strokeWidth="2"
+                    />
+                  )}
+                  
+                  {/* Points sur la courbe */}
+                  {chartData.map((data, index) => {
+                    const x = xScale(index);
+                    const y = yDaysScale(data.days);
+                    return (
+                      <circle
+                        key={`point-${index}`}
+                        cx={x}
+                        cy={y}
+                        r="3"
+                        fill="#42A5F5"
+                      />
+                    );
+                  })}
+                  
+                  {/* Ligne verticale pour aujourd'hui */}
+                  {todayIndex >= 0 && (
+                    <line
+                      x1={xScale(todayIndex)}
+                      y1={padding.top}
+                      x2={xScale(todayIndex)}
+                      y2={padding.top + chartHeight}
+                      stroke="#1E3A5F"
+                      strokeWidth="1"
+                      strokeDasharray="2,2"
+                      opacity={0.5}
+                    />
+                  )}
+                  
+                  {/* Labels des dates (tous les 15 jours environ) */}
+                  {chartData.map((data, index) => {
+                    const step = Math.max(1, Math.floor(chartData.length / 8)); // ~8 labels
+                    if (index % step !== 0 && index !== chartData.length - 1) return null;
+                    const x = xScale(index);
+                    const dateObj = new Date(data.date);
+                    const label = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
+                    return (
+                      <g key={`label-${index}`}>
+                        <line
+                          x1={x}
+                          y1={padding.top + chartHeight}
+                          x2={x}
+                          y2={padding.top + chartHeight + 5}
+                          stroke="#E2E8F0"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={x}
+                          y={height - padding.bottom + 15}
+                          className="text-[10px] fill-[#64748B]"
+                          textAnchor="middle"
+                        >
+                          {label}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })()}
+          </svg>
         </div>
       </div>
     </div>
