@@ -69,17 +69,43 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     return dateList;
   }, [hoursData.projectStartDate, hoursData.projectEndDate]);
 
-  // Calculer le nombre de jours imputés pour une personne
-  const getPersonDays = (resource: Resource): number => {
-    if (resource.type !== 'person' || !resource.timeEntries) return 0;
-    const uniqueDates = new Set(resource.timeEntries.map(te => te.date));
-    return uniqueDates.size;
+  // Calculer le nombre de jours imputés pour une personne (passés et futurs séparément)
+  const getPersonDays = (resource: Resource): { past: number; future: number } => {
+    if (resource.type !== 'person' || !resource.timeEntries) return { past: 0, future: 0 };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    
+    let pastDays = 0;
+    let futureDays = 0;
+    const uniqueDates = new Set<string>();
+    
+    resource.timeEntries.forEach(te => {
+      if (!uniqueDates.has(te.date)) {
+        uniqueDates.add(te.date);
+        const entryDate = new Date(te.date);
+        entryDate.setHours(0, 0, 0, 0);
+        
+        if (te.date < todayStr) {
+          pastDays++;
+        } else if (te.date > todayStr) {
+          futureDays++;
+        } else {
+          // Aujourd'hui compte comme passé
+          pastDays++;
+        }
+      }
+    });
+    
+    return { past: pastDays, future: futureDays };
   };
 
   // Calculer le coût total pour une personne
   const getPersonTotal = (resource: Resource): number => {
-    if (resource.type !== 'person' || !resource.dailyRate) return 0;
-    return getPersonDays(resource) * resource.dailyRate;
+    if (resource.type !== 'person' || !resource.dailyRate || !resource.timeEntries) return 0;
+    // Compter les demi-journées et multiplier par 0.5 * TJM
+    return resource.timeEntries.length * resource.dailyRate * 0.5;
   };
 
   // Calculer le coût total pour un fournisseur
@@ -741,7 +767,21 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                     <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
                       {resource.type === 'person' ? (
                         <>
-                          <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
+                          <span className="text-[10px] text-[#64748B]">
+                            {(() => {
+                              const days = getPersonDays(resource);
+                              if (days.past === 0 && days.future === 0) {
+                                return '0j';
+                              }
+                              return (
+                                <>
+                                  {days.past > 0 && <span>{days.past}j</span>}
+                                  {days.past > 0 && days.future > 0 && <span>/</span>}
+                                  {days.future > 0 && <span className="text-green-600">{days.future}j</span>}
+                                </>
+                              );
+                            })()}
+                          </span>
                           <span className="text-xs font-semibold text-[#1E3A5F]">
                             {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
                           </span>
@@ -798,10 +838,14 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               const todayIndex = dates.findIndex(d => d === today);
               if (todayIndex >= 0 && headerScrollRef.current) {
                 const scrollContainer = headerScrollRef.current;
-                const dayWidth = 64; // w-16 = 64px
+                const dayWidth = 48; // w-12 = 48px (réduit pour 99999€)
                 const containerWidth = scrollContainer.clientWidth;
                 const scrollPosition = (todayIndex * dayWidth) - (containerWidth / 2) + (dayWidth / 2);
                 scrollContainer.scrollLeft = Math.max(0, scrollPosition);
+                // Synchroniser aussi le contenu
+                if (contentScrollRef.current) {
+                  contentScrollRef.current.scrollLeft = scrollPosition;
+                }
               }
             }}
             style={{ height: '60px' }}
@@ -818,7 +862,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                 return (
                   <div
                     key={date}
-                    className={`w-16 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-blue-50' : ''}`}
+                    className={`w-12 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-blue-50' : ''}`}
                     style={{ height: '60px' }}
                   >
                     <div className="text-[10px] text-[#64748B] leading-tight">{dayName}</div>
@@ -835,7 +879,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           {/* Lignes de ressources - dates scrollables */}
           <div
             ref={contentScrollRef}
-            className="flex-1 overflow-x-auto overflow-y-hidden"
+            className="flex-1 overflow-y-hidden [&::-webkit-scrollbar]:hidden"
+            style={{ 
+              overflowX: 'auto', 
+              scrollbarWidth: 'none' as const, 
+              msOverflowStyle: 'none' as const
+            }}
             onScroll={(e) => {
               if (headerScrollRef.current) {
                 headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
@@ -847,10 +896,14 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               const todayIndex = dates.findIndex(d => d === today);
               if (todayIndex >= 0 && contentScrollRef.current) {
                 const scrollContainer = contentScrollRef.current;
-                const dayWidth = 64; // w-16 = 64px
+                const dayWidth = 48; // w-12 = 48px (réduit pour 99999€)
                 const containerWidth = scrollContainer.clientWidth;
                 const scrollPosition = (todayIndex * dayWidth) - (containerWidth / 2) + (dayWidth / 2);
                 scrollContainer.scrollLeft = Math.max(0, scrollPosition);
+                // Synchroniser aussi l'en-tête
+                if (headerScrollRef.current) {
+                  headerScrollRef.current.scrollLeft = scrollPosition;
+                }
               }
             }}
           >
@@ -873,7 +926,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-16 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-blue-50' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-blue-50' : ''}`}
                           >
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
@@ -913,7 +966,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-16 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-blue-50' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-blue-50' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
                           >
                             {readOnly ? (
                               <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
