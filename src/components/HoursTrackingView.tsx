@@ -1207,7 +1207,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                 const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
                 const dayNumber = dateObj.getDate();
                 const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
-                const isToday = date === new Date().toISOString().split('T')[0];
+                // Utiliser la même logique que dans les lignes de données pour éviter les décalages
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isToday = date === today.toISOString().split('T')[0];
                 const isWeekendDay = isWeekend(dateObj);
                 const isHoliday = isPublicHoliday(dateObj);
                 const isWeekendOrHoliday = isWeekendDay || isHoliday;
