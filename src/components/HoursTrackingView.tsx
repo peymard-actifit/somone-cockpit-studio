@@ -27,9 +27,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const [columnWidth, setColumnWidth] = useState(() => {
     const saved = localStorage.getItem(storageKey);
     if (saved) return parseInt(saved, 10);
-    // Largeur par défaut calculée pour afficher toutes les infos
-    // Nom (max 20 chars) + espace + TJM (max 6 chars) + jours (max 3 chars) + total (max 8 chars) + marges
-    return 280; // px
+    // Largeur par défaut ajustée pour aligner toutes les poubelles
+    // Nom à gauche + TJM centré + jours/total à droite + poubelle alignée
+    return 320; // px (ajusté pour aligner les poubelles)
   });
 
   const isResizing = useRef(false);
@@ -540,9 +540,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                     className="bg-white border-r border-[#E2E8F0] p-2 relative group"
                     style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
                   >
-                    <div className="flex items-center justify-between gap-2 h-full">
+                    <div className="flex items-center h-full relative">
                       {/* Nom à gauche */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <div className="flex items-center gap-1.5 flex-shrink-0 absolute left-2">
                         <MuiIcon
                           name={resource.type === 'person' ? 'Person' : 'Business'}
                           size={16}
@@ -551,26 +551,32 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         <span className="font-medium text-[#1E3A5F] text-sm">{resource.name}</span>
                       </div>
 
-                      {/* Infos à droite */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {/* Zone TJM centrée */}
+                      {resource.type === 'person' && (
+                        <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+                          <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
+                          {readOnly ? (
+                            <span className="text-xs font-semibold text-[#1E3A5F]">
+                              {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
+                            </span>
+                          ) : (
+                            <input
+                              type="number"
+                              value={resource.dailyRate || 0}
+                              onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
+                              className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                              min="0"
+                              step="10"
+                              placeholder="0"
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {/* Infos à droite (jours/total + poubelle) */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0 absolute right-2">
                         {resource.type === 'person' ? (
                           <>
-                            <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
-                            {readOnly ? (
-                              <span className="text-xs font-semibold text-[#1E3A5F]">
-                                {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
-                              </span>
-                            ) : (
-                              <input
-                                type="number"
-                                value={resource.dailyRate || 0}
-                                onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
-                                className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
-                                min="0"
-                                step="10"
-                                placeholder="0"
-                              />
-                            )}
                             <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
                             <span className="text-xs font-semibold text-[#1E3A5F]">
                               {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
@@ -610,10 +616,15 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                   {/* Cases pour chaque date */}
                   <div className="flex">
                     {dates.map((date) => {
+                      const dateObj = new Date(date);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const isToday = date === today.toISOString().split('T')[0];
+                      const isFuture = dateObj > today;
+
                       if (resource.type === 'person') {
                         const hasMorning = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'morning');
                         const hasAfternoon = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'afternoon');
-                        const isToday = date === new Date().toISOString().split('T')[0];
 
                         return (
                           <div
@@ -623,10 +634,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasMorning
-                                ? 'bg-[#1E3A5F] text-white'
-                                : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
+                                hasMorning
+                                  ? isFuture
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-[#1E3A5F] text-white'
+                                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                              } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Matin"
                             >
                               M
@@ -634,10 +648,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'afternoon')}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasAfternoon
-                                ? 'bg-[#1E3A5F] text-white'
-                                : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
+                                hasAfternoon
+                                  ? isFuture
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-[#1E3A5F] text-white'
+                                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                              } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Après-midi"
                             >
                               A
@@ -648,12 +665,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         // Fournisseur : champ de montant
                         const entry = resource.entries?.find(e => e.date === date);
                         const amount = entry?.amount || 0;
-                        const isToday = date === new Date().toISOString().split('T')[0];
+                        const hasValue = amount > 0;
 
                         return (
                           <div
                             key={date}
-                            className={`w-16 border-r border-[#E2E8F0] p-0.5 ${isToday ? 'bg-blue-50' : ''}`}
+                            className={`w-16 border-r border-[#E2E8F0] p-0.5 ${isToday ? 'bg-blue-50' : ''} ${hasValue ? 'bg-green-200/20' : ''}`}
                           >
                             {readOnly ? (
                               <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
@@ -667,7 +684,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                                   const value = parseFloat(e.target.value) || 0;
                                   updateSupplierAmount(resource.id, date, value);
                                 }}
-                                className="w-full h-6 px-0.5 text-[10px] text-center bg-white border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                                className={`w-full h-6 px-0.5 text-[10px] text-center border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] ${hasValue ? 'bg-green-200/20' : 'bg-white'}`}
                                 placeholder="0"
                                 min="0"
                                 max="99999"
