@@ -1,4 +1,4 @@
-﻿import type { Domain, Element, TileStatus } from '../types';
+import type { Domain, Element, TileStatus } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS, STATUS_PRIORITY_MAP, getEffectiveColors, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
@@ -1573,6 +1573,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   type="text"
                   value={newElementForm.newCategoryName}
                   onChange={(e) => setNewElementForm({ ...newElementForm, newCategoryName: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newElementForm.name.trim() && newElementForm.newCategoryName.trim()) {
+                      handleAddElement();
+                    }
+                  }}
                   placeholder="Nom de la nouvelle catÃ©gorie"
                   className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
                 />

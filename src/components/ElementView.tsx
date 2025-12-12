@@ -403,6 +403,15 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                   type="text"
                   value={newSubCategoryName}
                   onChange={(e) => setNewSubCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddSubCategory();
+                    }
+                    if (e.key === 'Escape') {
+                      setIsAddingSubCategory(false);
+                      setNewSubCategoryName('');
+                    }
+                  }}
                   placeholder="Nom de la sous-catégorie"
                   className="w-full px-4 py-3 bg-white border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]"
                   autoFocus

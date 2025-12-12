@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Domain, Element, SubElement, TileStatus, TemplateType, Alert, MapBounds } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
@@ -43,6 +43,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [activeSection, setActiveSection] = useState<string | null>('properties');
   const [newZoneName, setNewZoneName] = useState('');
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
+  const [editingSubElementName, setEditingSubElementName] = useState<string>('');
+  const selectedSubElementIdRef = useRef<string | null>(null);
   const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | 'subElement' | null>(null);
   const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory'; id: string } | null>(null);
   
@@ -295,6 +297,36 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     }
   }, [selectedSubElementId, element]);
   
+  // Synchroniser selectedSubElement avec les données du store après chaque mise à jour
+  useEffect(() => {
+    if (selectedSubElementIdRef.current && element) {
+      // Trouver le sous-élément mis à jour dans l'élément courant
+      for (const subCategory of element.subCategories) {
+        const updatedSubElement = subCategory.subElements.find(se => se.id === selectedSubElementIdRef.current);
+        if (updatedSubElement) {
+          // Si on est en train d'éditer le nom, on préserve la valeur locale
+          if (editingSubElementName !== '' && updatedSubElement.id === selectedSubElementIdRef.current) {
+            setSelectedSubElement(prev => prev ? { ...updatedSubElement, name: editingSubElementName } : updatedSubElement);
+          } else {
+            setSelectedSubElement(updatedSubElement);
+            setEditingSubElementName(updatedSubElement.name);
+          }
+        }
+      }
+    }
+  }, [element]);
+  
+  // Mettre à jour la référence et réinitialiser l'édition quand selectedSubElement change
+  useEffect(() => {
+    if (selectedSubElement) {
+      selectedSubElementIdRef.current = selectedSubElement.id;
+      setEditingSubElementName(selectedSubElement.name);
+    } else {
+      selectedSubElementIdRef.current = null;
+      setEditingSubElementName('');
+    }
+  }, [selectedSubElement?.id]);
+  
   // Édition d'un sous-élément
   if (selectedSubElement) {
     // Ouvrir automatiquement la section "Statut (couleur)" pour les sous-éléments
@@ -366,10 +398,17 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <label className="block text-sm text-[#64748B] mb-1">Nom</label>
               <input
                 type="text"
-                value={selectedSubElement.name}
+                value={editingSubElementName}
                 onChange={(e) => {
-                  updateSubElement(selectedSubElement.id, { name: e.target.value });
-                  setSelectedSubElement({ ...selectedSubElement, name: e.target.value });
+                  const newName = e.target.value;
+                  setEditingSubElementName(newName);
+                  setSelectedSubElement(prev => prev ? { ...prev, name: newName } : null);
+                }}
+                onBlur={(e) => {
+                  // Sauvegarder dans le store quand on quitte le champ
+                  if (selectedSubElement && e.target.value.trim() !== '') {
+                    updateSubElement(selectedSubElement.id, { name: e.target.value.trim() });
+                  }
                 }}
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               />

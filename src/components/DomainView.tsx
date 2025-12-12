@@ -364,6 +364,15 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
               type="text"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddCategory();
+                }
+                if (e.key === 'Escape') {
+                  setIsAddingCategory(false);
+                  setNewCategoryName('');
+                }
+              }}
               placeholder="Nom de la catégorie"
               className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F]"
               autoFocus
