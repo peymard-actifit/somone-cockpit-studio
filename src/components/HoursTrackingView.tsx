@@ -112,28 +112,28 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     const resourceType = type || newResourceType;
     const resourceName = type ? '' : newResourceName.trim();
     const resourceDailyRate = dailyRate !== undefined ? dailyRate : (resourceType === 'person' ? newResourceDailyRate : undefined);
-    
+
     if (!resourceName && !type) {
       // Si on appelle depuis le formulaire, vérifier le nom
       if (!newResourceName.trim()) return;
     }
-    
+
     const newResource: Resource = {
       id: crypto.randomUUID(),
       type: resourceType,
       name: resourceName || (resourceType === 'person' ? 'Nouvelle personne' : 'Nouveau fournisseur'),
       order: hoursData.resources.length,
-      ...(resourceType === 'person' 
+      ...(resourceType === 'person'
         ? { dailyRate: resourceDailyRate || 0, timeEntries: [] }
         : { entries: [] }
       )
     };
-    
+
     const updatedData = {
       ...hoursData,
       resources: [...hoursData.resources, newResource]
     };
-    
+
     updateDomain(domain.id, { hoursTracking: updatedData });
     setNewResourceName('');
     setNewResourceDailyRate(0);
@@ -323,8 +323,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           <div className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10">
             <div className="flex">
               {/* Colonne gauche fixe pour les totaux par jour */}
-              <div className="w-64 bg-[#F5F7FA] border-r border-[#E2E8F0] p-3">
-                <div className="text-xs text-[#64748B] font-medium mb-2">Total par jour</div>
+              <div className="w-48 bg-[#F5F7FA] border-r border-[#E2E8F0] p-2">
+                <div className="text-xs text-[#64748B] font-medium">Total par jour</div>
               </div>
 
               {/* Dates déroulantes */}
@@ -340,12 +340,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                   return (
                     <div
                       key={date}
-                      className={`w-24 border-r border-[#E2E8F0] p-2 text-center ${isToday ? 'bg-blue-50' : ''}`}
+                      className={`w-16 border-r border-[#E2E8F0] p-1 text-center ${isToday ? 'bg-blue-50' : ''}`}
                     >
-                      <div className="text-xs text-[#64748B]">{dayName}</div>
-                      <div className="text-sm font-semibold text-[#1E3A5F]">{dayNumber} {month}</div>
-                      <div className="text-xs font-medium text-[#1E3A5F] mt-1">
-                        {dayCost > 0 ? dayCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) : '-'}
+                      <div className="text-[10px] text-[#64748B] leading-tight">{dayName}</div>
+                      <div className="text-xs font-semibold text-[#1E3A5F] leading-tight">{dayNumber}/{month.substring(0, 3)}</div>
+                      <div className="text-[10px] font-medium text-[#1E3A5F] mt-0.5 leading-tight">
+                        {dayCost > 0 ? dayCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
                       </div>
                     </div>
                   );
@@ -359,55 +359,59 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
             {hoursData.resources.map((resource) => (
               <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
                 <div className="flex">
-                  {/* Colonne gauche avec nom, type, TJM et total */}
-                  <div className="w-64 bg-white border-r border-[#E2E8F0] p-3 flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                  {/* Colonne gauche avec nom, type, TJM et total sur une seule ligne */}
+                  <div className="w-48 bg-white border-r border-[#E2E8F0] p-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
                         <MuiIcon
                           name={resource.type === 'person' ? 'User' : 'Building'}
-                          size={16}
-                          className="text-[#64748B]"
+                          size={14}
+                          className="text-[#64748B] flex-shrink-0"
                         />
-                        <span className="font-medium text-[#1E3A5F]">{resource.name}</span>
+                        <span className="font-medium text-[#1E3A5F] text-sm truncate">{resource.name}</span>
                       </div>
                       {!readOnly && (
                         <button
                           onClick={() => handleDeleteResource(resource.id)}
-                          className="text-[#E57373] hover:text-red-600 p-1"
+                          className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0"
                           title="Supprimer"
                         >
-                          <MuiIcon name="Delete" size={14} />
+                          <MuiIcon name="Delete" size={12} />
                         </button>
                       )}
                     </div>
-
+                    
                     {resource.type === 'person' ? (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-medium text-[#1E3A5F] whitespace-nowrap">TJM (€):</label>
-                          {readOnly ? (
-                            <span className="text-sm font-semibold text-[#1E3A5F]">
-                              {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) || '0 €'}
-                            </span>
-                          ) : (
-                            <input
-                              type="number"
-                              value={resource.dailyRate || 0}
-                              onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
-                              className="flex-1 px-3 py-1.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-sm font-semibold text-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20"
-                              min="0"
-                              step="10"
-                              placeholder="0"
-                            />
-                          )}
-                        </div>
-                        <div className="text-xs text-[#64748B] mt-1">
-                          {getPersonDays(resource)} jour{getPersonDays(resource) > 1 ? 's' : ''} • <span className="font-medium text-[#1E3A5F]">{getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
-                        </div>
-                      </>
+                      <div className="flex items-center gap-2 mt-1">
+                        <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
+                        {readOnly ? (
+                          <span className="text-xs font-semibold text-[#1E3A5F]">
+                            {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={resource.dailyRate || 0}
+                            onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
+                            className="w-16 px-1.5 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                            min="0"
+                            step="10"
+                            placeholder="0"
+                          />
+                        )}
+                        <span className="text-[10px] text-[#64748B]">•</span>
+                        <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
+                        <span className="text-[10px] text-[#64748B]">•</span>
+                        <span className="text-xs font-semibold text-[#1E3A5F]">
+                          {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                        </span>
+                      </div>
                     ) : (
-                      <div className="text-xs text-[#64748B]">
-                        Total: <span className="font-medium text-[#1E3A5F]">{getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[10px] text-[#64748B]">Total:</span>
+                        <span className="text-xs font-semibold text-[#1E3A5F]">
+                          {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -423,12 +427,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-24 border-r border-[#E2E8F0] p-1 flex gap-1 ${isToday ? 'bg-blue-50' : ''}`}
+                            className={`w-16 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 ${isToday ? 'bg-blue-50' : ''}`}
                           >
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
                               disabled={readOnly}
-                              className={`flex-1 h-8 rounded text-xs font-medium transition-all ${hasMorning
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all ${hasMorning
                                   ? 'bg-[#1E3A5F] text-white'
                                   : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
                                 } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
@@ -439,7 +443,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'afternoon')}
                               disabled={readOnly}
-                              className={`flex-1 h-8 rounded text-xs font-medium transition-all ${hasAfternoon
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all ${hasAfternoon
                                   ? 'bg-[#1E3A5F] text-white'
                                   : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
                                 } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
@@ -458,11 +462,11 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-24 border-r border-[#E2E8F0] p-1 ${isToday ? 'bg-blue-50' : ''}`}
+                            className={`w-16 border-r border-[#E2E8F0] p-0.5 ${isToday ? 'bg-blue-50' : ''}`}
                           >
                             {readOnly ? (
-                              <div className="text-xs text-center text-[#1E3A5F] font-medium h-8 flex items-center justify-center">
-                                {amount > 0 ? amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) : '-'}
+                              <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
+                                {amount > 0 ? amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
                               </div>
                             ) : (
                               <input
@@ -472,9 +476,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                                   const value = parseFloat(e.target.value) || 0;
                                   updateSupplierAmount(resource.id, date, value);
                                 }}
-                                className="w-full h-8 px-1 text-xs text-center bg-white border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                                className="w-full h-6 px-0.5 text-[10px] text-center bg-white border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
                                 placeholder="0"
                                 min="0"
+                                max="99999"
                                 step="10"
                               />
                             )}
@@ -518,9 +523,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 px-3 py-2 bg-[#1E3A5F]/10 rounded-lg">
-                      <MuiIcon 
-                        name={newResourceType === 'person' ? 'User' : 'Building'} 
-                        size={18} 
+                      <MuiIcon
+                        name={newResourceType === 'person' ? 'User' : 'Building'}
+                        size={18}
                         className="text-[#1E3A5F]"
                       />
                       <span className="text-sm font-medium text-[#1E3A5F]">
