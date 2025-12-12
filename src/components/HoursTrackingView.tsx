@@ -2,10 +2,215 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import type { Domain, Resource, ResourceType, TimeEntry, HalfDay, SupplierEntry } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from './IconPicker';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface HoursTrackingViewProps {
   domain: Domain;
   readOnly?: boolean;
+}
+
+// Composant pour une ressource sortable
+function SortableResourceItem({ 
+  resource, 
+  columnWidth, 
+  editingResourceId, 
+  editingResourceName, 
+  setEditingResourceId, 
+  setEditingResourceName, 
+  updateResourceName, 
+  updateDailyRate, 
+  getPersonDays, 
+  getPersonTotal, 
+  getSupplierTotal, 
+  handleDeleteResource, 
+  readOnly,
+  columnRef 
+}: {
+  resource: Resource;
+  columnWidth: number;
+  editingResourceId: string | null;
+  editingResourceName: string;
+  setEditingResourceId: (id: string | null) => void;
+  setEditingResourceName: (name: string) => void;
+  updateResourceName: (id: string, name: string) => void;
+  updateDailyRate: (id: string, rate: number) => void;
+  getPersonDays: (resource: Resource) => { past: number; future: number };
+  getPersonTotal: (resource: Resource) => { past: number; future: number };
+  getSupplierTotal: (resource: Resource) => { past: number; future: number };
+  handleDeleteResource: (id: string) => void;
+  readOnly: boolean;
+  columnRef: React.RefObject<HTMLDivElement>;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: resource.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
+      <div
+        ref={columnRef}
+        className="bg-white border-r border-[#E2E8F0] p-2 relative group flex items-center"
+        style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px`, height: '40px' }}
+      >
+        <div className="flex items-center w-full h-full relative">
+          {/* Nom à gauche */}
+          <div className="flex items-center gap-1.5 flex-shrink-0" style={{ minWidth: '30%' }}>
+            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+              <MuiIcon
+                name={resource.type === 'person' ? 'Person' : 'Business'}
+                size={16}
+                className="text-[#1E3A5F] flex-shrink-0"
+              />
+            </div>
+            {editingResourceId === resource.id ? (
+              <input
+                type="text"
+                value={editingResourceName}
+                onChange={(e) => setEditingResourceName(e.target.value)}
+                onBlur={() => {
+                  if (editingResourceName.trim()) {
+                    updateResourceName(resource.id, editingResourceName);
+                  } else {
+                    setEditingResourceId(null);
+                    setEditingResourceName('');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (editingResourceName.trim()) {
+                      updateResourceName(resource.id, editingResourceName);
+                    } else {
+                      setEditingResourceId(null);
+                      setEditingResourceName('');
+                    }
+                  }
+                  if (e.key === 'Escape') {
+                    setEditingResourceId(null);
+                    setEditingResourceName('');
+                  }
+                }}
+                className="font-medium text-[#1E3A5F] text-sm bg-white border border-[#1E3A5F] rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                autoFocus
+              />
+            ) : (
+              <span
+                className="font-medium text-[#1E3A5F] text-sm whitespace-nowrap truncate cursor-pointer hover:underline"
+                onClick={() => {
+                  if (!readOnly) {
+                    setEditingResourceId(resource.id);
+                    setEditingResourceName(resource.name);
+                  }
+                }}
+                title={readOnly ? undefined : "Cliquer pour éditer"}
+              >
+                {resource.name}
+              </span>
+            )}
+          </div>
+
+          {/* Zone TJM centrée */}
+          {resource.type === 'person' && (
+            <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+              <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
+              {readOnly ? (
+                <span className="text-xs font-semibold text-[#1E3A5F]">
+                  {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
+                </span>
+              ) : (
+                <input
+                  type="number"
+                  value={resource.dailyRate || 0}
+                  onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
+                  className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                  min="0"
+                  step="10"
+                  placeholder="0"
+                />
+              )}
+            </div>
+          )}
+
+          {/* Infos à droite (jours/total + poubelle) */}
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+            {resource.type === 'person' ? (
+              <>
+                <span className="text-[10px] text-[#64748B]">
+                  {(() => {
+                    const days = getPersonDays(resource);
+                    if (days.past === 0 && days.future === 0) {
+                      return '0 JH';
+                    }
+                    const formatJH = (jh: number) => {
+                      return jh % 1 === 0 ? jh.toString() : jh.toFixed(1);
+                    };
+                    return (
+                      <>
+                        {days.past > 0 && <span>{formatJH(days.past)}</span>}
+                        {days.past > 0 && days.future > 0 && <span>/</span>}
+                        {days.future > 0 && <span className="text-green-600">{formatJH(days.future)}</span>}
+                        <span className="ml-0.5">JH</span>
+                      </>
+                    );
+                  })()}
+                </span>
+                <span className="text-xs font-semibold text-[#1E3A5F]">
+                  {(() => {
+                    const totals = getPersonTotal(resource);
+                    if (totals.past === 0 && totals.future === 0) {
+                      return '0€';
+                    }
+                    return (
+                      <>
+                        {totals.past > 0 && <span>{totals.past.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
+                        {totals.past > 0 && totals.future > 0 && <span>/</span>}
+                        {totals.future > 0 && <span className="text-green-600">{totals.future.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
+                      </>
+                    );
+                  })()}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-[10px] text-[#64748B]">Total:</span>
+                <span className="text-xs font-semibold text-[#1E3A5F]">
+                  {(() => {
+                    const totals = getSupplierTotal(resource);
+                    if (totals.past === 0 && totals.future === 0) {
+                      return '0€';
+                    }
+                    return (
+                      <>
+                        {totals.past > 0 && <span>{totals.past.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
+                        {totals.past > 0 && totals.future > 0 && <span>/</span>}
+                        {totals.future > 0 && <span className="text-green-600">{totals.future.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
+                      </>
+                    );
+                  })()}
+                </span>
+              </>
+            )}
+            {!readOnly && (
+              <button
+                onClick={() => handleDeleteResource(resource.id)}
+                className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0 ml-1"
+                title="Supprimer"
+              >
+                <MuiIcon name="Delete" size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Poignée de redimensionnement - masquée car on utilise l'icône pour drag */}
+      </div>
+    </div>
+  );
 }
 
 export default function HoursTrackingView({ domain, readOnly = false }: HoursTrackingViewProps) {
@@ -46,7 +251,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const columnRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
-  
+
   // Hauteur du graphique (redimensionnable)
   const [graphHeight, setGraphHeight] = useState(300);
   const isResizingGraph = useRef(false);
@@ -383,7 +588,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       id: crypto.randomUUID(),
       type: resourceType,
       name: resourceName || (resourceType === 'person' ? 'Nouvelle personne' : 'Nouveau fournisseur'),
-      order: hoursData.resources.length,
+      order: hoursData.resources.length > 0 ? Math.max(...hoursData.resources.map(r => r.order || 0)) + 1 : 0,
       ...(resourceType === 'person'
         ? { dailyRate: resourceDailyRate || 0, timeEntries: [] }
         : { entries: [] }
@@ -663,6 +868,44 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     document.body.style.userSelect = 'none';
   };
 
+  // Configuration des capteurs pour le drag & drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handler pour le drag & drop des ressources
+  const handleResourceDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sortedResources.findIndex(r => r.id === active.id);
+    const newIndex = sortedResources.findIndex(r => r.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reorderedResources = arrayMove(sortedResources, oldIndex, newIndex);
+      // Mettre à jour l'ordre
+      const updatedResources = reorderedResources.map((resource, index) => ({
+        ...resource,
+        order: index
+      }));
+
+      updateDomain(domain.id, {
+        hoursTracking: {
+          ...hoursData,
+          resources: updatedResources
+        }
+      });
+    }
+  };
+
+  // Trier les ressources par order
+  const sortedResources = useMemo(() => {
+    return [...hoursData.resources].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [hoursData.resources]);
+
   return (
     <div className="h-full flex flex-col bg-white" style={{ minHeight: 0, height: '100%', overflowX: 'hidden' }}>
       {/* Bandeau en haut avec montant global, prix de vente et marge */}
@@ -838,173 +1081,36 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
           {/* Lignes de ressources - colonne fixe */}
           <div className="bg-white flex-1">
-            {hoursData.resources.map((resource) => (
-              <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
-                <div
-                  ref={columnRef}
-                  className="bg-white border-r border-[#E2E8F0] p-2 relative group flex items-center"
-                  style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px`, height: '40px' }}
-                >
-                  <div className="flex items-center w-full h-full relative">
-                    {/* Nom à gauche */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0" style={{ minWidth: '30%' }}>
-                      <MuiIcon
-                        name={resource.type === 'person' ? 'Person' : 'Business'}
-                        size={16}
-                        className="text-[#1E3A5F] flex-shrink-0"
-                      />
-                      {editingResourceId === resource.id ? (
-                        <input
-                          type="text"
-                          value={editingResourceName}
-                          onChange={(e) => setEditingResourceName(e.target.value)}
-                          onBlur={() => {
-                            if (editingResourceName.trim()) {
-                              updateResourceName(resource.id, editingResourceName);
-                            } else {
-                              setEditingResourceId(null);
-                              setEditingResourceName('');
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              if (editingResourceName.trim()) {
-                                updateResourceName(resource.id, editingResourceName);
-                              } else {
-                                setEditingResourceId(null);
-                                setEditingResourceName('');
-                              }
-                            }
-                            if (e.key === 'Escape') {
-                              setEditingResourceId(null);
-                              setEditingResourceName('');
-                            }
-                          }}
-                          className="font-medium text-[#1E3A5F] text-sm bg-white border border-[#1E3A5F] rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
-                          autoFocus
-                        />
-                      ) : (
-                        <span
-                          className="font-medium text-[#1E3A5F] text-sm whitespace-nowrap truncate cursor-pointer hover:underline"
-                          onClick={() => {
-                            if (!readOnly) {
-                              setEditingResourceId(resource.id);
-                              setEditingResourceName(resource.name);
-                            }
-                          }}
-                          title={readOnly ? undefined : "Cliquer pour éditer"}
-                        >
-                          {resource.name}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Zone TJM centrée */}
-                    {resource.type === 'person' && (
-                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
-                        <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
-                        {readOnly ? (
-                          <span className="text-xs font-semibold text-[#1E3A5F]">
-                            {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
-                          </span>
-                        ) : (
-                          <input
-                            type="number"
-                            value={resource.dailyRate || 0}
-                            onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
-                            className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
-                            min="0"
-                            step="10"
-                            placeholder="0"
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {/* Infos à droite (jours/total + poubelle) */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
-                      {resource.type === 'person' ? (
-                        <>
-                          <span className="text-[10px] text-[#64748B]">
-                            {(() => {
-                              const days = getPersonDays(resource);
-                              if (days.past === 0 && days.future === 0) {
-                                return '0 JH';
-                              }
-                              const formatJH = (jh: number) => {
-                                // Afficher 0.5 comme "0.5" et les entiers sans décimales
-                                return jh % 1 === 0 ? jh.toString() : jh.toFixed(1);
-                              };
-                              return (
-                                <>
-                                  {days.past > 0 && <span>{formatJH(days.past)}</span>}
-                                  {days.past > 0 && days.future > 0 && <span>/</span>}
-                                  {days.future > 0 && <span className="text-green-600">{formatJH(days.future)}</span>}
-                                  <span className="ml-0.5">JH</span>
-                                </>
-                              );
-                            })()}
-                          </span>
-                          <span className="text-xs font-semibold text-[#1E3A5F]">
-                            {(() => {
-                              const totals = getPersonTotal(resource);
-                              if (totals.past === 0 && totals.future === 0) {
-                                return '0€';
-                              }
-                              return (
-                                <>
-                                  {totals.past > 0 && <span>{totals.past.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
-                                  {totals.past > 0 && totals.future > 0 && <span>/</span>}
-                                  {totals.future > 0 && <span className="text-green-600">{totals.future.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
-                                </>
-                              );
-                            })()}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-[10px] text-[#64748B]">Total:</span>
-                          <span className="text-xs font-semibold text-[#1E3A5F]">
-                            {(() => {
-                              const totals = getSupplierTotal(resource);
-                              if (totals.past === 0 && totals.future === 0) {
-                                return '0€';
-                              }
-                              return (
-                                <>
-                                  {totals.past > 0 && <span>{totals.past.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
-                                  {totals.past > 0 && totals.future > 0 && <span>/</span>}
-                                  {totals.future > 0 && <span className="text-green-600">{totals.future.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
-                                </>
-                              );
-                            })()}
-                          </span>
-                        </>
-                      )}
-                      {!readOnly && (
-                        <button
-                          onClick={() => handleDeleteResource(resource.id)}
-                          className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0 ml-1"
-                          title="Supprimer"
-                        >
-                          <MuiIcon name="Delete" size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Poignée de redimensionnement */}
-                  {!readOnly && (
-                    <div
-                      onMouseDown={handleResizeStart}
-                      className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                      style={{ marginRight: '-4px' }}
-                      title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
-                    />
-                  )}
-                </div>
-              </div>
-            ))}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleResourceDragEnd}
+            >
+              <SortableContext
+                items={sortedResources.map(r => r.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {sortedResources.map((resource) => (
+                  <SortableResourceItem
+                    key={resource.id}
+                    resource={resource}
+                    columnWidth={columnWidth}
+                    editingResourceId={editingResourceId}
+                    editingResourceName={editingResourceName}
+                    setEditingResourceId={setEditingResourceId}
+                    setEditingResourceName={setEditingResourceName}
+                    updateResourceName={updateResourceName}
+                    updateDailyRate={updateDailyRate}
+                    getPersonDays={getPersonDays}
+                    getPersonTotal={getPersonTotal}
+                    getSupplierTotal={getSupplierTotal}
+                    handleDeleteResource={handleDeleteResource}
+                    readOnly={readOnly}
+                    columnRef={columnRef}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         </div>
 
@@ -1095,7 +1201,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
             }}
           >
             <div className="bg-white">
-              {hoursData.resources.map((resource) => (
+              {sortedResources.map((resource) => (
                 <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB] flex items-center" style={{ height: '40px' }}>
                   {/* Cases pour chaque date */}
                   <div className="flex items-center" style={{ minWidth: 'max-content', height: '40px' }}>
