@@ -27,6 +27,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const [newResourceDailyRate, setNewResourceDailyRate] = useState<number>(0);
   const [showAddResource, setShowAddResource] = useState(false);
   const [tooltipData, setTooltipData] = useState<{ x: number; y: number; value: number } | null>(null);
+  const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
+  const [editingResourceName, setEditingResourceName] = useState<string>('');
 
   // Largeur de la première colonne (nom + infos)
   const storageKey = `hoursTracking_colWidth_${domain.id}`;
@@ -315,6 +317,24 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   };
 
   // Mettre à jour le TJM d'une personne
+  // Mettre à jour le nom d'une ressource
+  const updateResourceName = (resourceId: string, newName: string) => {
+    if (readOnly) return;
+
+    const updatedData = {
+      ...hoursData,
+      resources: hoursData.resources.map(resource =>
+        resource.id === resourceId
+          ? { ...resource, name: newName.trim() || resource.name }
+          : resource
+      )
+    };
+
+    updateDomain(domain.id, { hoursTracking: updatedData });
+    setEditingResourceId(null);
+    setEditingResourceName('');
+  };
+
   const updateDailyRate = (resourceId: string, dailyRate: number) => {
     if (readOnly) return;
 
@@ -485,27 +505,15 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         </div>
         {!readOnly && (
           <div className="flex items-end gap-4">
-            {/* Boutons d'ajout - alignés sur le bas */}
+            {/* Bouton d'ajout - aligné sur le bas */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  setNewResourceType('person');
                   setShowAddResource(true);
                 }}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/30 rounded text-white text-sm hover:bg-white/20 transition-all font-medium"
               >
-                <MuiIcon name="Person" size={16} className="flex-shrink-0" />
-                <span>Ajouter une personne</span>
-              </button>
-              <button
-                onClick={() => {
-                  setNewResourceType('supplier');
-                  setShowAddResource(true);
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/30 rounded text-white text-sm hover:bg-white/20 transition-all font-medium"
-              >
-                <MuiIcon name="Business" size={16} className="flex-shrink-0" />
-                <span>Ajouter un fournisseur</span>
+                <span>Ajouter Personne ou Fournisseur</span>
               </button>
             </div>
             <div>
@@ -661,7 +669,50 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         size={16}
                         className="text-[#1E3A5F] flex-shrink-0"
                       />
-                      <span className="font-medium text-[#1E3A5F] text-sm whitespace-nowrap truncate">{resource.name}</span>
+                      {editingResourceId === resource.id ? (
+                        <input
+                          type="text"
+                          value={editingResourceName}
+                          onChange={(e) => setEditingResourceName(e.target.value)}
+                          onBlur={() => {
+                            if (editingResourceName.trim()) {
+                              updateResourceName(resource.id, editingResourceName);
+                            } else {
+                              setEditingResourceId(null);
+                              setEditingResourceName('');
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              if (editingResourceName.trim()) {
+                                updateResourceName(resource.id, editingResourceName);
+                              } else {
+                                setEditingResourceId(null);
+                                setEditingResourceName('');
+                              }
+                            }
+                            if (e.key === 'Escape') {
+                              setEditingResourceId(null);
+                              setEditingResourceName('');
+                            }
+                          }}
+                          className="font-medium text-[#1E3A5F] text-sm bg-white border border-[#1E3A5F] rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className="font-medium text-[#1E3A5F] text-sm whitespace-nowrap truncate cursor-pointer hover:underline"
+                          onClick={() => {
+                            if (!readOnly) {
+                              setEditingResourceId(resource.id);
+                              setEditingResourceName(resource.name);
+                            }
+                          }}
+                          title={readOnly ? undefined : "Cliquer pour éditer"}
+                        >
+                          {resource.name}
+                        </span>
+                      )}
                     </div>
 
                     {/* Zone TJM centrée */}
@@ -741,6 +792,18 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                 contentScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
               }
             }}
+            onDoubleClick={() => {
+              // Centrer le scroll sur le jour en cours
+              const today = new Date().toISOString().split('T')[0];
+              const todayIndex = dates.findIndex(d => d === today);
+              if (todayIndex >= 0 && headerScrollRef.current) {
+                const scrollContainer = headerScrollRef.current;
+                const dayWidth = 64; // w-16 = 64px
+                const containerWidth = scrollContainer.clientWidth;
+                const scrollPosition = (todayIndex * dayWidth) - (containerWidth / 2) + (dayWidth / 2);
+                scrollContainer.scrollLeft = Math.max(0, scrollPosition);
+              }
+            }}
             style={{ height: '60px' }}
           >
             <div className="flex items-center" style={{ minWidth: 'max-content', height: '60px' }}>
@@ -776,6 +839,18 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
             onScroll={(e) => {
               if (headerScrollRef.current) {
                 headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+              }
+            }}
+            onDoubleClick={() => {
+              // Centrer le scroll sur le jour en cours
+              const today = new Date().toISOString().split('T')[0];
+              const todayIndex = dates.findIndex(d => d === today);
+              if (todayIndex >= 0 && contentScrollRef.current) {
+                const scrollContainer = contentScrollRef.current;
+                const dayWidth = 64; // w-16 = 64px
+                const containerWidth = scrollContainer.clientWidth;
+                const scrollPosition = (todayIndex * dayWidth) - (containerWidth / 2) + (dayWidth / 2);
+                scrollContainer.scrollLeft = Math.max(0, scrollPosition);
               }
             }}
           >
