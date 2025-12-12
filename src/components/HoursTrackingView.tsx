@@ -72,21 +72,21 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Calculer le nombre de jours imputés pour une personne (passés et futurs séparément)
   const getPersonDays = (resource: Resource): { past: number; future: number } => {
     if (resource.type !== 'person' || !resource.timeEntries) return { past: 0, future: 0 };
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
-    
+
     let pastDays = 0;
     let futureDays = 0;
     const uniqueDates = new Set<string>();
-    
+
     resource.timeEntries.forEach(te => {
       if (!uniqueDates.has(te.date)) {
         uniqueDates.add(te.date);
         const entryDate = new Date(te.date);
         entryDate.setHours(0, 0, 0, 0);
-        
+
         if (te.date < todayStr) {
           pastDays++;
         } else if (te.date > todayStr) {
@@ -97,21 +97,60 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         }
       }
     });
-    
+
     return { past: pastDays, future: futureDays };
   };
 
-  // Calculer le coût total pour une personne
-  const getPersonTotal = (resource: Resource): number => {
-    if (resource.type !== 'person' || !resource.dailyRate || !resource.timeEntries) return 0;
-    // Compter les demi-journées et multiplier par 0.5 * TJM
-    return resource.timeEntries.length * resource.dailyRate * 0.5;
+  // Calculer le coût total pour une personne (passé et futur séparément)
+  const getPersonTotal = (resource: Resource): { past: number; future: number } => {
+    if (resource.type !== 'person' || !resource.dailyRate || !resource.timeEntries) return { past: 0, future: 0 };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    const dailyRate = resource.dailyRate; // S'assurer que dailyRate est défini
+    
+    let pastCost = 0;
+    let futureCost = 0;
+    
+    resource.timeEntries.forEach(te => {
+      const cost = dailyRate * 0.5; // Demi-journée
+      if (te.date < todayStr) {
+        pastCost += cost;
+      } else if (te.date > todayStr) {
+        futureCost += cost;
+      } else {
+        // Aujourd'hui compte comme passé
+        pastCost += cost;
+      }
+    });
+    
+    return { past: pastCost, future: futureCost };
   };
 
-  // Calculer le coût total pour un fournisseur
-  const getSupplierTotal = (resource: Resource): number => {
-    if (resource.type !== 'supplier' || !resource.entries) return 0;
-    return resource.entries.reduce((sum, entry) => sum + entry.amount, 0);
+  // Calculer le coût total pour un fournisseur (passé et futur séparément)
+  const getSupplierTotal = (resource: Resource): { past: number; future: number } => {
+    if (resource.type !== 'supplier' || !resource.entries) return { past: 0, future: 0 };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    
+    let pastCost = 0;
+    let futureCost = 0;
+    
+    resource.entries.forEach(entry => {
+      if (entry.date < todayStr) {
+        pastCost += entry.amount;
+      } else if (entry.date > todayStr) {
+        futureCost += entry.amount;
+      } else {
+        // Aujourd'hui compte comme passé
+        pastCost += entry.amount;
+      }
+    });
+    
+    return { past: pastCost, future: futureCost };
   };
 
   // Calculer le coût par jour (somme de toutes les personnes + fournisseurs)
@@ -148,9 +187,11 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
     hoursData.resources.forEach(resource => {
       if (resource.type === 'person') {
-        total += getPersonTotal(resource);
+        const totals = getPersonTotal(resource);
+        total += totals.past + totals.future;
       } else if (resource.type === 'supplier') {
-        total += getSupplierTotal(resource);
+        const totals = getSupplierTotal(resource);
+        total += totals.past + totals.future;
       }
     });
 
@@ -783,14 +824,38 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             })()}
                           </span>
                           <span className="text-xs font-semibold text-[#1E3A5F]">
-                            {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                            {(() => {
+                              const totals = getPersonTotal(resource);
+                              if (totals.past === 0 && totals.future === 0) {
+                                return '0€';
+                              }
+                              return (
+                                <>
+                                  {totals.past > 0 && <span>{totals.past.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
+                                  {totals.past > 0 && totals.future > 0 && <span>/</span>}
+                                  {totals.future > 0 && <span className="text-green-600">{totals.future.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
+                                </>
+                              );
+                            })()}
                           </span>
                         </>
                       ) : (
                         <>
                           <span className="text-[10px] text-[#64748B]">Total:</span>
                           <span className="text-xs font-semibold text-[#1E3A5F]">
-                            {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                            {(() => {
+                              const totals = getSupplierTotal(resource);
+                              if (totals.past === 0 && totals.future === 0) {
+                                return '0€';
+                              }
+                              return (
+                                <>
+                                  {totals.past > 0 && <span>{totals.past.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
+                                  {totals.past > 0 && totals.future > 0 && <span>/</span>}
+                                  {totals.future > 0 && <span className="text-green-600">{totals.future.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}</span>}
+                                </>
+                              );
+                            })()}
                           </span>
                         </>
                       )}
@@ -880,9 +945,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           <div
             ref={contentScrollRef}
             className="flex-1 overflow-y-hidden [&::-webkit-scrollbar]:hidden"
-            style={{ 
-              overflowX: 'auto', 
-              scrollbarWidth: 'none' as const, 
+            style={{
+              overflowX: 'auto',
+              scrollbarWidth: 'none' as const,
               msOverflowStyle: 'none' as const
             }}
             onScroll={(e) => {

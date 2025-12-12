@@ -895,6 +895,19 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </div>
             </div>
 
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id={`element-publiable-${element.id}`}
+                checked={element.publiable !== false}
+                onChange={(e) => updateElement(element.id, { publiable: e.target.checked })}
+                className="w-4 h-4 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F]"
+              />
+              <label htmlFor={`element-publiable-${element.id}`} className="text-sm text-[#64748B] cursor-pointer">
+                Publiable
+              </label>
+            </div>
+
             {/* Icônes - Sélection via Material Icons */}
             <div>
               <label className="block text-sm text-[#64748B] mb-2">Icône principale</label>
@@ -1752,6 +1765,19 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 placeholder="Mon template"
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id={`domain-publiable-${domain.id}`}
+                checked={domain.publiable !== false}
+                onChange={(e) => updateDomain(domain.id, { publiable: e.target.checked })}
+                className="w-4 h-4 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F]"
+              />
+              <label htmlFor={`domain-publiable-${domain.id}`} className="text-sm text-[#64748B] cursor-pointer">
+                Publiable
+              </label>
             </div>
           </div>
         </Section>

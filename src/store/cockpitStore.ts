@@ -1480,9 +1480,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
 
         // Sauvegarder IMMÉDIATEMENT toutes les données actuelles
+        // Filtrer les domaines et éléments selon publiable (par défaut true)
+        const filteredDomains = (currentCockpit.domains || []).map((domain: any) => {
+          // Filtrer les catégories et leurs éléments selon publiable
+          const filteredCategories = (domain.categories || []).map((category: any) => {
+            const filteredElements = (category.elements || []).filter((el: any) => el.publiable !== false);
+            return { ...category, elements: filteredElements };
+          });
+          return { ...domain, categories: filteredCategories };
+        }).filter((domain: any) => domain.publiable !== false);
+
         const payload: any = {
           name: currentCockpit.name,
-          domains: currentCockpit.domains || [],
+          domains: filteredDomains,
           logo: currentCockpit.logo,
           scrollingBanner: currentCockpit.scrollingBanner,
         };

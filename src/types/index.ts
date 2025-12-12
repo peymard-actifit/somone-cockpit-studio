@@ -73,6 +73,7 @@ export interface Domain {
   mapElements?: MapElement[];
   // Données pour la vue "Suivi des heures"
   hoursTracking?: HoursTrackingData;
+  publiable?: boolean;  // Si le domaine doit être publié (défaut: true)
 }
 
 // Catégorie (groupe d'éléments)
@@ -98,6 +99,7 @@ export interface Element {
   icon3?: string;
   status: TileStatus;
   order: number;
+  publiable?: boolean;  // Si l'élément doit être publié (défaut: true)
   zone?: string;
   subCategories: SubCategory[];
   // Pour les vues avec positionnement libre (background view)
