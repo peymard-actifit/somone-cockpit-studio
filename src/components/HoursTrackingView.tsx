@@ -741,20 +741,20 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     }
 
     const existingEntries = resource.timeEntries || [];
-    
+
     // Déterminer l'action à effectuer en fonction de l'état de la première demi-journée
     const firstDate = datesInRange[0];
     const firstHalfDay = halfDaysToSelect[0];
     const firstEntryExists = existingEntries.some(
       te => te.date === firstDate && te.halfDay === firstHalfDay
     );
-    
+
     // Si la première demi-journée est sélectionnée, on désélectionne toute la zone
     // Sinon, on sélectionne toute la zone
     const shouldAdd = !firstEntryExists;
 
     let updatedEntries: TimeEntry[];
-    
+
     if (shouldAdd) {
       // Ajouter toutes les demi-journées de la zone qui ne sont pas déjà sélectionnées
       const entriesToAdd: TimeEntry[] = [];
@@ -1525,12 +1525,19 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                                 }
                               }}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasMorning || isMorningInSelection
-                                ? isFuture
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-[#1E3A5F] text-white'
-                                : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'} ${isMorningInSelection && !hasMorning ? 'bg-blue-300' : ''}`}
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
+                                isMorningInSelection
+                                  ? hasMorning
+                                    ? isFuture
+                                      ? 'bg-green-500 text-white ring-2 ring-blue-400 ring-offset-1'
+                                      : 'bg-blue-400 text-white ring-2 ring-blue-300 ring-offset-1'
+                                    : 'bg-blue-300 text-white'
+                                  : hasMorning
+                                    ? isFuture
+                                      ? 'bg-green-600 text-white'
+                                      : 'bg-[#1E3A5F] text-white'
+                                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Matin"
                             >
                               M
@@ -1550,12 +1557,19 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                                 }
                               }}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasAfternoon || isAfternoonInSelection
-                                ? isFuture
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-[#1E3A5F] text-white'
-                                : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'} ${isAfternoonInSelection && !hasAfternoon ? 'bg-blue-300' : ''}`}
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
+                                isAfternoonInSelection
+                                  ? hasAfternoon
+                                    ? isFuture
+                                      ? 'bg-green-500 text-white ring-2 ring-blue-400 ring-offset-1'
+                                      : 'bg-blue-400 text-white ring-2 ring-blue-300 ring-offset-1'
+                                    : 'bg-blue-300 text-white'
+                                  : hasAfternoon
+                                    ? isFuture
+                                      ? 'bg-green-600 text-white'
+                                      : 'bg-[#1E3A5F] text-white'
+                                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Après-midi"
                             >
                               A
