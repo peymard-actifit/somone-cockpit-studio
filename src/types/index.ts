@@ -38,6 +38,8 @@ export interface Cockpit {
   isPublished?: boolean;  // Si le cockpit est publié
   publishedAt?: string;   // Date de publication
   order?: number;         // Ordre d'affichage pour le drag & drop
+  // Partage
+  sharedWith?: string[];  // Liste des IDs des utilisateurs avec qui la maquette est partagée
 }
 
 // Coordonnées GPS

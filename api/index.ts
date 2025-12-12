@@ -915,6 +915,23 @@ INSTRUCTIONS:
     // =====================
 
     // List cockpits
+    // Route: Liste des utilisateurs (pour le partage)
+    if (path === '/users' && method === 'GET') {
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const db = await getDb();
+      // Retourner tous les utilisateurs (sans le mot de passe) pour le partage
+      const users = db.users.map(u => ({
+        id: u.id,
+        username: u.username,
+        isAdmin: u.isAdmin,
+        createdAt: u.createdAt
+      }));
+      return res.json(users);
+    }
+
     if (path === '/cockpits' && method === 'GET') {
       if (!currentUser) {
         console.error('[GET /cockpits] User not authenticated');
@@ -933,9 +950,12 @@ INSTRUCTIONS:
       let cockpits = currentUser.isAdmin
         ? db.cockpits
         : db.cockpits.filter(c => {
-          const matches = c.userId === currentUser.id;
+          // Inclure les cockpits créés par l'utilisateur ET ceux partagés avec lui
+          const isOwner = c.userId === currentUser.id;
+          const isShared = c.data?.sharedWith && Array.isArray(c.data.sharedWith) && c.data.sharedWith.includes(currentUser.id);
+          const matches = isOwner || isShared;
           if (!matches) {
-            console.log(`[GET /cockpits] Cockpit "${c.name}" (${c.id}) filtered out - userId: ${c.userId} !== current: ${currentUser.id}`);
+            console.log(`[GET /cockpits] Cockpit "${c.name}" (${c.id}) filtered out - userId: ${c.userId} !== current: ${currentUser.id} and not shared`);
           }
           return matches;
         });
@@ -953,6 +973,7 @@ INSTRUCTIONS:
         isPublished: c.data?.isPublished || false,
         publishedAt: c.data?.publishedAt,
         order: c.data?.order, // Ordre pour le drag & drop
+        sharedWith: c.data?.sharedWith || [], // Partage
       }));
 
       console.log(`[GET /cockpits] Returning ${result.length} cockpits`);
@@ -1090,11 +1111,12 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
+      // Vérifier les permissions : seul le propriétaire ou un admin peut modifier
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
-      const { name, domains, zones, logo, scrollingBanner } = req.body;
+      const { name, domains, zones, logo, scrollingBanner, sharedWith } = req.body;
       const now = new Date().toISOString();
 
       // LOG IMPORTANT : Vérifier ce qui arrive
@@ -1203,6 +1225,8 @@ INSTRUCTIONS:
         publicId: cockpit.data.publicId,
         isPublished: cockpit.data.isPublished,
         publishedAt: cockpit.data.publishedAt,
+        // Partage
+        sharedWith: sharedWith !== undefined ? sharedWith : cockpit.data.sharedWith || [],
         // IMPORTANT: Toujours préserver les originaux sauvegardés
         originals: cockpit.data.originals,
       };

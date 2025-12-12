@@ -112,7 +112,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       if (!response.ok) throw new Error('Erreur lors du chargement');
 
       const cockpits = await response.json();
-      set({ cockpits, isLoading: false });
+      // S'assurer que sharedWith existe pour chaque cockpit
+      const cockpitsWithShared = cockpits.map((c: any) => ({
+        ...c,
+        sharedWith: c.sharedWith || []
+      }));
+      set({ cockpits: cockpitsWithShared, isLoading: false });
     } catch (error) {
       set({ error: 'Erreur lors du chargement des maquettes', isLoading: false });
     }
@@ -131,7 +136,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       const cockpit = await response.json();
       set({
-        currentCockpit: cockpit,
+        currentCockpit: {
+          ...cockpit,
+          sharedWith: cockpit.sharedWith || [], // S'assurer que sharedWith existe
+        },
         currentDomainId: cockpit.domains?.[0]?.id || null,
         currentElementId: null,
         zones: cockpit.zones || [],
@@ -264,6 +272,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           domains: currentCockpit.domains || [], // TOUS les domaines, y compris non publiables
           logo: currentCockpit.logo,
           scrollingBanner: currentCockpit.scrollingBanner,
+          sharedWith: currentCockpit.sharedWith || [],
         };
         // Ajouter zones si disponible (peut ne pas être dans le type Cockpit mais dans les données)
         if ((currentCockpit as any).zones) {
@@ -1489,6 +1498,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           domains: currentCockpit.domains || [], // TOUS les domaines, y compris non publiables
           logo: currentCockpit.logo,
           scrollingBanner: currentCockpit.scrollingBanner,
+          sharedWith: currentCockpit.sharedWith || [],
         };
         if ((currentCockpit as any).zones) {
           payload.zones = (currentCockpit as any).zones;
@@ -1498,7 +1508,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           name: payload.name,
           domainsCount: payload.domains.length,
           domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
-          nonPublishableDomains: payload.domains.filter((d: any) => d.publiable === false).length
+          nonPublishableDomains: payload.domains.filter((d: any) => d.publiable === false).length,
+          sharedWithCount: payload.sharedWith.length
         });
 
         // Sauvegarder immédiatement TOUTES les données

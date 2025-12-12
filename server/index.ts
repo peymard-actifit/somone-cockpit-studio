@@ -226,6 +226,19 @@ app.post('/api/auth/toggle-admin', authMiddleware, (req: AuthRequest, res) => {
   res.json({ isAdmin: true });
 });
 
+// Route: Liste des utilisateurs (pour le partage)
+app.get('/api/users', authMiddleware, (_req: AuthRequest, res) => {
+  const db = loadDb();
+  // Retourner tous les utilisateurs (sans le mot de passe) pour le partage
+  const users = db.users.map(u => ({
+    id: u.id,
+    username: u.username,
+    isAdmin: u.isAdmin,
+    createdAt: u.createdAt
+  }));
+  res.json(users);
+});
+
 // Routes: Cockpits
 app.get('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
@@ -234,7 +247,11 @@ app.get('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
   if (req.user!.isAdmin) {
     cockpits = db.cockpits;
   } else {
-    cockpits = db.cockpits.filter(c => c.userId === req.user!.id);
+    // Inclure les cockpits créés par l'utilisateur ET ceux partagés avec lui
+    cockpits = db.cockpits.filter(c => 
+      c.userId === req.user!.id || 
+      (c.data?.sharedWith && Array.isArray(c.data.sharedWith) && c.data.sharedWith.includes(req.user!.id))
+    );
   }
 
   res.json(cockpits.map(c => ({
@@ -250,6 +267,8 @@ app.get('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
     publishedAt: c.data?.publishedAt,
     // Ordre pour le drag & drop
     order: c.data?.order,
+    // Partage
+    sharedWith: c.data?.sharedWith || [],
   })));
 });
 
@@ -322,7 +341,7 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
 
-  const { name, domains, zones, logo, scrollingBanner, publicId, isPublished, publishedAt } = req.body;
+  const { name, domains, zones, logo, scrollingBanner, publicId, isPublished, publishedAt, sharedWith } = req.body;
   const now = new Date().toISOString();
 
   cockpit.name = name || cockpit.name;
@@ -376,6 +395,7 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
     publicId: publicId !== undefined ? publicId : existingData.publicId,
     isPublished: isPublished !== undefined ? isPublished : existingData.isPublished,
     publishedAt: publishedAt !== undefined ? publishedAt : existingData.publishedAt,
+    sharedWith: sharedWith !== undefined ? sharedWith : existingData.sharedWith || [],
   };
 
   cockpit.updatedAt = now;

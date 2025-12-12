@@ -160,8 +160,12 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     cloneMapElement,
     updateMapBounds
   } = useCockpitStore();
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const confirm = useConfirm();
+  
+  // État pour la liste des utilisateurs et le partage
+  const [users, setUsers] = useState<Array<{ id: string; username: string; isAdmin: boolean }>>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   // Configuration des capteurs pour le drag & drop
   const sensors = useSensors(
@@ -253,6 +257,25 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = element ? localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) : localStorage.getItem('verticalSubCategoryWidth');
     return saved ? parseInt(saved, 10) : 200;
   });
+
+  // Charger la liste des utilisateurs quand on ouvre la section cockpit
+  useEffect(() => {
+    if (activeSection === 'cockpit' && users.length === 0 && !isLoadingUsers) {
+      setIsLoadingUsers(true);
+      fetch('/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+        .then(res => res.json())
+        .then(data => {
+          setUsers(data);
+          setIsLoadingUsers(false);
+        })
+        .catch(err => {
+          console.error('Erreur chargement utilisateurs:', err);
+          setIsLoadingUsers(false);
+        });
+    }
+  }, [activeSection, users.length, isLoadingUsers, token]);
 
   // Synchroniser les valeurs depuis localStorage quand on ouvre les sections ou change de domaine/élément
   useEffect(() => {
@@ -2480,6 +2503,47 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 rows={2}
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F] resize-none"
               />
+            </div>
+
+            {/* Partage avec d'autres utilisateurs */}
+            <div>
+              <label className="block text-sm text-[#64748B] mb-2">Partage avec d'autres utilisateurs</label>
+              {isLoadingUsers ? (
+                <div className="text-sm text-[#94A3B8] py-2">Chargement des utilisateurs...</div>
+              ) : users.length === 0 ? (
+                <div className="text-sm text-[#94A3B8] py-2">Aucun utilisateur disponible</div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {users
+                    .filter(u => u.id !== user?.id) // Exclure l'utilisateur actuel
+                    .map((userItem) => {
+                      const isShared = currentCockpit?.sharedWith?.includes(userItem.id) || false;
+                      return (
+                        <label
+                          key={userItem.id}
+                          className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg hover:bg-[#E2E8F0] cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isShared}
+                            onChange={(e) => {
+                              const currentShared = currentCockpit?.sharedWith || [];
+                              const newShared = e.target.checked
+                                ? [...currentShared, userItem.id]
+                                : currentShared.filter(id => id !== userItem.id);
+                              updateCockpit({ sharedWith: newShared });
+                            }}
+                            className="w-4 h-4 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F] focus:ring-2"
+                          />
+                          <span className="text-sm text-[#1E3A5F] flex-1">{userItem.username}</span>
+                          {userItem.isAdmin && (
+                            <span className="text-xs text-[#94A3B8] bg-[#E2E8F0] px-2 py-0.5 rounded">Admin</span>
+                          )}
+                        </label>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           </div>
         </Section>
