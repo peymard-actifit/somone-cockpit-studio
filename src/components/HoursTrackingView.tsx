@@ -12,21 +12,21 @@ interface HoursTrackingViewProps {
 }
 
 // Composant pour une ressource sortable
-function SortableResourceItem({ 
-  resource, 
-  columnWidth, 
-  editingResourceId, 
-  editingResourceName, 
-  setEditingResourceId, 
-  setEditingResourceName, 
-  updateResourceName, 
-  updateDailyRate, 
-  getPersonDays, 
-  getPersonTotal, 
-  getSupplierTotal, 
-  handleDeleteResource, 
+function SortableResourceItem({
+  resource,
+  columnWidth,
+  editingResourceId,
+  editingResourceName,
+  setEditingResourceId,
+  setEditingResourceName,
+  updateResourceName,
+  updateDailyRate,
+  getPersonDays,
+  getPersonTotal,
+  getSupplierTotal,
+  handleDeleteResource,
   readOnly,
-  columnRef 
+  columnRef
 }: {
   resource: Resource;
   columnWidth: number;
@@ -906,6 +906,63 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     return [...hoursData.resources].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [hoursData.resources]);
 
+  // Fonction pour calculer la date de Pâques (algorithme de Gauss)
+  const getEasterDate = (year: number): Date => {
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+  };
+
+  // Fonction pour vérifier si une date est un jour férié français
+  const isPublicHoliday = (date: Date): boolean => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // 1-12
+    const day = date.getDate();
+
+    // Jours fériés fixes
+    if (month === 1 && day === 1) return true; // Jour de l'an
+    if (month === 5 && day === 1) return true; // Fête du travail
+    if (month === 5 && day === 8) return true; // Victoire en Europe
+    if (month === 7 && day === 14) return true; // Fête nationale
+    if (month === 8 && day === 15) return true; // Assomption
+    if (month === 11 && day === 1) return true; // Toussaint
+    if (month === 11 && day === 11) return true; // Armistice
+    if (month === 12 && day === 25) return true; // Noël
+
+    // Jours fériés variables (basés sur Pâques)
+    const easter = getEasterDate(year);
+    const easterTime = easter.getTime();
+    const dateTime = date.getTime();
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    // Lundi de Pâques (Pâques + 1 jour)
+    if (dateTime === easterTime + oneDay) return true;
+    // Ascension (Pâques + 39 jours)
+    if (dateTime === easterTime + 39 * oneDay) return true;
+    // Lundi de Pentecôte (Pâques + 50 jours)
+    if (dateTime === easterTime + 50 * oneDay) return true;
+
+    return false;
+  };
+
+  // Fonction pour vérifier si une date est un week-end
+  const isWeekend = (date: Date): boolean => {
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = dimanche, 6 = samedi
+  };
+
   return (
     <div className="h-full flex flex-col bg-white" style={{ minHeight: 0, height: '100%', overflowX: 'hidden' }}>
       {/* Bandeau en haut avec montant global, prix de vente et marge */}
@@ -1151,16 +1208,19 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                 const dayNumber = dateObj.getDate();
                 const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
                 const isToday = date === new Date().toISOString().split('T')[0];
+                const isWeekendDay = isWeekend(dateObj);
+                const isHoliday = isPublicHoliday(dateObj);
+                const isWeekendOrHoliday = isWeekendDay || isHoliday;
 
                 return (
                   <div
                     key={date}
-                    className={`w-12 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-blue-50' : ''}`}
+                    className={`w-12 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-purple-200/20' : ''} ${isWeekendOrHoliday ? 'bg-gray-200/20' : ''}`}
                     style={{ height: '60px' }}
                   >
-                    <div className="text-[10px] text-[#64748B] leading-tight">{dayName}</div>
-                    <div className="text-xs font-semibold text-[#1E3A5F] leading-tight">{dayNumber}/{month.substring(0, 3)}</div>
-                    <div className="text-[10px] font-medium text-[#1E3A5F] mt-0.5 leading-tight">
+                    <div className={`text-[10px] leading-tight ${isWeekendOrHoliday ? 'text-[#64748B]/80' : 'text-[#64748B]'}`}>{dayName}</div>
+                    <div className={`text-xs font-semibold leading-tight ${isWeekendOrHoliday ? 'text-[#1E3A5F]/80' : 'text-[#1E3A5F]'}`}>{dayNumber}/{month.substring(0, 3)}</div>
+                    <div className={`text-[10px] font-medium mt-0.5 leading-tight ${isWeekendOrHoliday ? 'text-[#1E3A5F]/80' : 'text-[#1E3A5F]'}`}>
                       {dayCost > 0 ? dayCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
                     </div>
                   </div>
@@ -1219,7 +1279,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-blue-50' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-purple-200/20' : ''}`}
                           >
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
@@ -1259,7 +1319,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-blue-50' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-purple-200/20' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
                           >
                             {readOnly ? (
                               <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
