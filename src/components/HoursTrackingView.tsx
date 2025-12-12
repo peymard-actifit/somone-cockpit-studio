@@ -689,7 +689,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
     const start = selectionStartRef.current;
     const current = selectionCurrent;
-    
+
     if (!current) {
       setIsSelecting(false);
       isSelectingRef.current = false;
@@ -703,12 +703,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     const startDate = new Date(start.date);
     const endDate = new Date(current.date);
     const datesInRange: string[] = [];
-    
+
     // Trier les dates pour gérer les cas où on sélectionne vers le passé
     const sortedDates = [startDate, endDate].sort((a, b) => a.getTime() - b.getTime());
     const minDate = sortedDates[0];
     const maxDate = sortedDates[1];
-    
+
     // Générer toutes les dates dans la plage
     const currentDate = new Date(minDate);
     while (currentDate <= maxDate) {
@@ -728,11 +728,55 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       halfDaysToSelect.push(start.halfDay);
     }
 
-    // Appliquer la sélection
+    // Trouver la ressource et préparer les nouvelles entrées
+    const resource = hoursData.resources.find(r => r.id === start.resourceId);
+    if (!resource || resource.type !== 'person') {
+      // Réinitialiser en cas d'erreur
+      setIsSelecting(false);
+      isSelectingRef.current = false;
+      setSelectionStart(null);
+      selectionStartRef.current = null;
+      setSelectionCurrent(null);
+      return;
+    }
+
+    const existingEntries = resource.timeEntries || [];
+    const newEntries: TimeEntry[] = [];
+
+    // Ajouter toutes les demi-journées sélectionnées
     datesInRange.forEach(date => {
       halfDaysToSelect.forEach(halfDay => {
-        toggleHalfDay(start.resourceId, date, halfDay, true); // forceAdd = true
+        // Vérifier si l'entrée n'existe pas déjà
+        const exists = existingEntries.some(te => te.date === date && te.halfDay === halfDay);
+        if (!exists) {
+          newEntries.push({ date, halfDay });
+        }
       });
+    });
+
+    // Si aucune nouvelle entrée, ne rien faire
+    if (newEntries.length === 0) {
+      setIsSelecting(false);
+      isSelectingRef.current = false;
+      setSelectionStart(null);
+      selectionStartRef.current = null;
+      setSelectionCurrent(null);
+      return;
+    }
+
+    // Appliquer toutes les modifications en une seule fois
+    const updatedEntries = [...existingEntries, ...newEntries];
+    const updatedResources = hoursData.resources.map(r =>
+      r.id === start.resourceId
+        ? { ...r, timeEntries: updatedEntries }
+        : r
+    );
+
+    updateDomain(domain.id, {
+      hoursTracking: {
+        ...hoursData,
+        resources: updatedResources
+      }
     });
 
     // Réinitialiser
@@ -747,12 +791,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isSelectingRef.current) return;
-      
+
       // Trouver l'élément sous le curseur
       const target = e.target as HTMLElement;
       const dateCell = target.closest('[data-date]') as HTMLElement;
       if (!dateCell) return;
-      
+
       const date = dateCell.getAttribute('data-date');
       const halfDay = dateCell.getAttribute('data-halfday') as HalfDay;
       if (date && halfDay) {
@@ -1418,15 +1462,15 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         const checkIsInSelection = (halfDay: HalfDay) => {
                           if (!isSelecting || !selectionStart || !selectionCurrent) return false;
                           if (selectionStart.resourceId !== resource.id) return false;
-                          
+
                           const startDate = new Date(selectionStart.date);
                           const endDate = new Date(selectionCurrent.date);
                           const currentDate = new Date(date);
                           const sortedDates = [startDate, endDate].sort((a, b) => a.getTime() - b.getTime());
                           const inDateRange = currentDate >= sortedDates[0] && currentDate <= sortedDates[1];
-                          
+
                           if (!inDateRange) return false;
-                          
+
                           // Vérifier le type de demi-journée
                           if (selectionStart.halfDay === 'morning' && selectionCurrent.halfDay === 'afternoon') {
                             return true; // Toutes les demi-journées
@@ -1434,7 +1478,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                           if (selectionStart.halfDay === 'afternoon' && selectionCurrent.halfDay === 'morning') {
                             return true; // Toutes les demi-journées
                           }
-                          
+
                           // Même type : vérifier si c'est le bon type
                           if (selectionStart.halfDay === 'morning' && selectionCurrent.halfDay === 'morning') {
                             return halfDay === 'morning';
@@ -1442,10 +1486,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                           if (selectionStart.halfDay === 'afternoon' && selectionCurrent.halfDay === 'afternoon') {
                             return halfDay === 'afternoon';
                           }
-                          
+
                           return false;
                         };
-                        
+
                         const isMorningInSelection = checkIsInSelection('morning');
                         const isAfternoonInSelection = checkIsInSelection('afternoon');
 
