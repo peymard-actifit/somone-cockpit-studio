@@ -1215,7 +1215,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                 return (
                   <div
                     key={date}
-                    className={`w-12 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-purple-200/20' : ''} ${isWeekendOrHoliday ? 'bg-gray-200/20' : ''}`}
+                    className={`w-12 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-purple-200/60' : ''} ${isWeekendOrHoliday ? 'bg-gray-200/60' : ''}`}
                     style={{ height: '60px' }}
                   >
                     <div className={`text-[10px] leading-tight ${isWeekendOrHoliday ? 'text-[#64748B]/80' : 'text-[#64748B]'}`}>{dayName}</div>
@@ -1279,7 +1279,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-purple-200/20' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-purple-200/60' : ''}`}
                           >
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
@@ -1319,7 +1319,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-purple-200/20' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-purple-200/60' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
                           >
                             {readOnly ? (
                               <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
