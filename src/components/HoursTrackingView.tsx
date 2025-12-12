@@ -20,7 +20,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const [newResourceType, setNewResourceType] = useState<ResourceType>('person');
   const [newResourceDailyRate, setNewResourceDailyRate] = useState<number>(0);
   const [showAddResource, setShowAddResource] = useState(false);
-  
+
   // Largeur de la première colonne (nom + infos)
   const storageKey = `hoursTracking_colWidth_${domain.id}`;
   const [columnWidth, setColumnWidth] = useState(() => {
@@ -30,7 +30,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     // Nom (max 20 chars) + espace + TJM (max 6 chars) + jours (max 3 chars) + total (max 8 chars) + marges
     return 280; // px
   });
-  
+
   const isResizing = useRef(false);
   const resizeStartX = useRef(0);
   const resizeStartWidth = useRef(0);
@@ -290,7 +290,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing.current) return;
-      
+
       const diff = e.clientX - resizeStartX.current;
       const newWidth = Math.max(200, Math.min(600, resizeStartWidth.current + diff));
       setColumnWidth(newWidth);
@@ -308,28 +308,26 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       }
     };
 
-    if (isResizing.current) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    }
+    // Ajouter les listeners de manière permanente
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      if (!isResizing.current) {
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      }
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
   }, [storageKey]);
 
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     isResizing.current = true;
     resizeStartX.current = e.clientX;
     resizeStartWidth.current = columnWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   };
 
   return (
@@ -384,11 +382,20 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           <div className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10">
             <div className="flex">
               {/* Colonne gauche fixe pour les totaux par jour - même largeur que la colonne des noms */}
-              <div 
-                className="bg-[#F5F7FA] border-r border-[#E2E8F0] p-2"
+              <div
+                className="bg-[#F5F7FA] border-r border-[#E2E8F0] p-2 relative group"
                 style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
               >
                 <div className="text-xs text-[#64748B] font-medium">Total par jour</div>
+                {/* Poignée de redimensionnement sur l'en-tête aussi */}
+                {!readOnly && (
+                  <div
+                    onMouseDown={handleResizeStart}
+                    className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                    style={{ marginRight: '-4px' }}
+                    title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
+                  />
+                )}
               </div>
 
               {/* Dates déroulantes */}
@@ -424,7 +431,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
                 <div className="flex">
                   {/* Colonne gauche avec nom, type, TJM et total sur une seule ligne */}
-                  <div 
+                  <div
                     ref={columnRef}
                     className="bg-white border-r border-[#E2E8F0] p-2 relative group"
                     style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
@@ -439,7 +446,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         />
                         <span className="font-medium text-[#1E3A5F] text-sm">{resource.name}</span>
                       </div>
-                      
+
                       {/* Infos à droite */}
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {resource.type === 'person' ? (
@@ -484,13 +491,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Poignée de redimensionnement */}
                     {!readOnly && (
                       <div
                         onMouseDown={handleResizeStart}
-                        className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-[#1E3A5F]/50 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        style={{ marginRight: '-2px', cursor: 'col-resize' }}
+                        className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                        style={{ marginRight: '-4px' }}
                         title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
                       />
                     )}
