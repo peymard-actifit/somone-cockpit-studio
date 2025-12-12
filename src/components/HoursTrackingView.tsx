@@ -13,8 +13,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const hoursData = domain.hoursTracking || {
     projectStartDate: new Date().toISOString().split('T')[0],
     projectEndDate: (() => {
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + 90); // 90 jours par défaut
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + 3); // 3 mois par défaut
       return endDate.toISOString().split('T')[0];
     })(),
     salePrice: 0,
@@ -47,13 +48,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Générer la liste des dates depuis projectStartDate jusqu'à projectEndDate
   const dates = useMemo(() => {
     const startDate = new Date(hoursData.projectStartDate);
-    const endDate = hoursData.projectEndDate 
+    const endDate = hoursData.projectEndDate
       ? new Date(hoursData.projectEndDate)
       : (() => {
-          const defaultEnd = new Date(startDate);
-          defaultEnd.setDate(defaultEnd.getDate() + 90);
-          return defaultEnd;
-        })();
+        const defaultEnd = new Date(startDate);
+        defaultEnd.setDate(defaultEnd.getDate() + 90);
+        return defaultEnd;
+      })();
 
     const dateList: string[] = [];
     const current = new Date(startDate);
@@ -194,13 +195,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Générer les dates pour le graphique (de projectStartDate à projectEndDate)
   const chartDates = useMemo(() => {
     const startDate = new Date(hoursData.projectStartDate);
-    const endDate = hoursData.projectEndDate 
+    const endDate = hoursData.projectEndDate
       ? new Date(hoursData.projectEndDate)
       : (() => {
-          const defaultEnd = new Date(startDate);
-          defaultEnd.setMonth(defaultEnd.getMonth() + 3);
-          return defaultEnd;
-        })();
+        const defaultEnd = new Date(startDate);
+        defaultEnd.setMonth(defaultEnd.getMonth() + 3);
+        return defaultEnd;
+      })();
 
     const dateList: string[] = [];
     const current = new Date(startDate);
@@ -484,6 +485,29 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         </div>
         {!readOnly && (
           <div className="flex items-center gap-4">
+            {/* Boutons d'ajout */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setNewResourceType('person');
+                  setShowAddResource(true);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/30 rounded text-white text-sm hover:bg-white/20 transition-all font-medium"
+              >
+                <MuiIcon name="Person" size={16} className="flex-shrink-0" />
+                <span>Ajouter une personne</span>
+              </button>
+              <button
+                onClick={() => {
+                  setNewResourceType('supplier');
+                  setShowAddResource(true);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/30 rounded text-white text-sm hover:bg-white/20 transition-all font-medium"
+              >
+                <MuiIcon name="Business" size={16} className="flex-shrink-0" />
+                <span>Ajouter un fournisseur</span>
+              </button>
+            </div>
             <div>
               <label className="text-xs text-white/70 mb-1 block">Date de début</label>
               <input
@@ -516,61 +540,96 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         )}
       </div>
 
-      {/* Zone de contenu avec colonne fixe et scroll horizontal */}
-      <div className="flex-1 flex flex-col" style={{ minHeight: 0, overflow: 'hidden' }}>
-        {/* Barre de scroll horizontale - juste en dessous du bandeau */}
-        <div className="flex-shrink-0 border-b border-[#E2E8F0] bg-[#F5F7FA]">
-          <div className="flex">
-            {/* Colonne fixe à gauche pour la barre de scroll */}
-            <div
-              className="bg-[#F5F7FA] border-r border-[#E2E8F0]"
-              style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
-            />
-            {/* Zone scrollable pour les dates */}
-            <div 
-              ref={headerScrollRef}
-              className="flex-1 overflow-x-auto overflow-y-hidden"
-              onScroll={(e) => {
-                if (contentScrollRef.current) {
-                  contentScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+      {/* Formulaire d'ajout de ressource (affiché dans le bandeau si showAddResource) */}
+      {!readOnly && showAddResource && (
+        <div className="border-t border-[#2C4A6E] bg-[#1E3A5F] px-6 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg">
+              <MuiIcon
+                name={newResourceType === 'person' ? 'Person' : 'Business'}
+                size={16}
+                className="text-white"
+              />
+              <span className="text-sm font-medium text-white">
+                {newResourceType === 'person' ? 'Nouvelle personne' : 'Nouveau fournisseur'}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setNewResourceType(newResourceType === 'person' ? 'supplier' : 'person');
+                setNewResourceDailyRate(0);
+              }}
+              className="px-3 py-1.5 text-xs text-white/80 hover:text-white border border-white/30 rounded-lg hover:border-white/50 transition-colors"
+            >
+              Changer de type
+            </button>
+            <input
+              type="text"
+              value={newResourceName}
+              onChange={(e) => setNewResourceName(e.target.value)}
+              placeholder={newResourceType === 'person' ? 'Nom de la personne' : 'Nom du fournisseur'}
+              className="flex-1 px-3 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/50 focus:outline-none focus:border-white/40"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddResource();
+                }
+                if (e.key === 'Escape') {
+                  setShowAddResource(false);
+                  setNewResourceName('');
+                  setNewResourceDailyRate(0);
                 }
               }}
-            >
-              <div className="flex" style={{ minWidth: 'max-content' }}>
-                {dates.map((date) => {
-                  const dateObj = new Date(date);
-                  const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
-                  const dayNumber = dateObj.getDate();
-                  const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
-                  const isToday = date === new Date().toISOString().split('T')[0];
-
-                  return (
-                    <div
-                      key={date}
-                      className={`w-16 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 ${isToday ? 'bg-blue-50' : ''}`}
-                    >
-                      <div className="text-[10px] text-[#64748B] leading-tight">{dayName}</div>
-                      <div className="text-xs font-semibold text-[#1E3A5F] leading-tight">{dayNumber}/{month.substring(0, 3)}</div>
-                      <div className="text-[10px] font-medium text-[#1E3A5F] mt-0.5 leading-tight">
-                        {getDayCost(date) > 0 ? getDayCost(date).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
-                      </div>
-                    </div>
-                  );
-                })}
+              autoFocus
+            />
+            {newResourceType === 'person' && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-white/70 whitespace-nowrap">TJM (€):</label>
+                <input
+                  type="number"
+                  value={newResourceDailyRate}
+                  onChange={(e) => setNewResourceDailyRate(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-24 px-3 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/50 focus:outline-none focus:border-white/40"
+                  min="0"
+                  step="10"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddResource();
+                    }
+                  }}
+                />
               </div>
-            </div>
+            )}
+            <button
+              onClick={() => handleAddResource()}
+              className="px-4 py-1.5 bg-white text-[#1E3A5F] rounded-lg hover:bg-white/90 transition-colors font-medium"
+            >
+              Ajouter
+            </button>
+            <button
+              onClick={() => {
+                setShowAddResource(false);
+                setNewResourceName('');
+                setNewResourceDailyRate(0);
+                setNewResourceType('person');
+              }}
+              className="px-4 py-1.5 text-white/80 hover:text-white border border-white/30 rounded-lg hover:border-white/50 transition-colors"
+            >
+              Annuler
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Zone principale avec colonne fixe et scroll horizontal */}
-        <div className="flex-1 flex" style={{ minHeight: 0, overflow: 'hidden' }}>
-          {/* Colonne fixe à gauche */}
-          <div className="flex-shrink-0 flex flex-col">
-            {/* En-tête fixe */}
-            <div className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10">
+      {/* Zone de contenu avec colonne fixe et scroll horizontal */}
+      <div className="flex-1 flex" style={{ minHeight: 0, overflow: 'hidden' }}>
+        {/* Colonne fixe à gauche */}
+        <div className="flex-shrink-0 flex flex-col">
+          {/* En-tête fixe avec "Total par jour" */}
+          <div className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10">
             <div
-              className="bg-[#F5F7FA] border-r border-[#E2E8F0] p-2 relative group h-full"
-              style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
+              className="bg-[#F5F7FA] border-r border-[#E2E8F0] p-2 relative group flex items-center"
+              style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px`, height: '60px' }}
             >
               <div className="text-xs text-[#64748B] font-medium">Total par jour</div>
               {/* Poignée de redimensionnement sur l'en-tête aussi */}
@@ -591,303 +650,231 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
                 <div
                   ref={columnRef}
-                  className="bg-white border-r border-[#E2E8F0] p-2 relative group h-full"
-                  style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
+                  className="bg-white border-r border-[#E2E8F0] p-2 relative group flex items-center"
+                  style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px`, height: '40px' }}
                 >
-                  <div className="flex items-center h-full relative">
-                    {/* Nom à gauche - aligné de la même manière pour personnes et fournisseurs */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0" style={{ position: 'absolute', left: '8px' }}>
-                      <MuiIcon
-                        name={resource.type === 'person' ? 'Person' : 'Business'}
-                        size={16}
-                        className="text-[#1E3A5F] flex-shrink-0"
-                      />
-                      <span className="font-medium text-[#1E3A5F] text-sm">{resource.name}</span>
-                    </div>
-
-                    {/* Zone TJM centrée */}
-                    {resource.type === 'person' && (
-                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
-                        <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
-                        {readOnly ? (
-                          <span className="text-xs font-semibold text-[#1E3A5F]">
-                            {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
-                          </span>
-                        ) : (
-                          <input
-                            type="number"
-                            value={resource.dailyRate || 0}
-                            onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
-                            className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
-                            min="0"
-                            step="10"
-                            placeholder="0"
-                          />
-                        )}
+                    <div className="flex items-center h-full relative">
+                      {/* Nom à gauche - aligné de la même manière pour personnes et fournisseurs */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0 absolute left-2">
+                        <MuiIcon
+                          name={resource.type === 'person' ? 'Person' : 'Business'}
+                          size={16}
+                          className="text-[#1E3A5F] flex-shrink-0"
+                        />
+                        <span className="font-medium text-[#1E3A5F] text-sm">{resource.name}</span>
                       </div>
-                    )}
 
-                    {/* Infos à droite (jours/total + poubelle) */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0 absolute right-2">
-                      {resource.type === 'person' ? (
-                        <>
-                          <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
-                          <span className="text-xs font-semibold text-[#1E3A5F]">
-                            {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-[10px] text-[#64748B]">Total:</span>
-                          <span className="text-xs font-semibold text-[#1E3A5F]">
-                            {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
-                          </span>
-                        </>
-                      )}
-                      {!readOnly && (
-                        <button
-                          onClick={() => handleDeleteResource(resource.id)}
-                          className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0 ml-1"
-                          title="Supprimer"
-                        >
-                          <MuiIcon name="Delete" size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Poignée de redimensionnement */}
-                  {!readOnly && (
-                    <div
-                      onMouseDown={handleResizeStart}
-                      className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                      style={{ marginRight: '-4px' }}
-                      title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
-                    />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Zone scrollable pour les dates */}
-        <div 
-          ref={contentScrollRef}
-          className="flex-1 overflow-x-auto overflow-y-hidden" 
-          style={{ minWidth: 0 }}
-          onScroll={(e) => {
-            if (headerScrollRef.current) {
-              headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
-            }
-          }}
-        >
-          {/* Lignes de ressources - dates scrollables */}
-          <div className="bg-white">
-            {hoursData.resources.map((resource) => (
-              <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
-                {/* Cases pour chaque date */}
-                <div className="flex">
-                  {dates.map((date) => {
-                    const dateObj = new Date(date);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const isToday = date === today.toISOString().split('T')[0];
-                    const isFuture = dateObj > today;
-
-                    if (resource.type === 'person') {
-                      const hasMorning = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'morning');
-                      const hasAfternoon = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'afternoon');
-
-                      return (
-                        <div
-                          key={date}
-                          className={`w-16 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-blue-50' : ''}`}
-                        >
-                          <button
-                            onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
-                            disabled={readOnly}
-                            className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasMorning
-                              ? isFuture
-                                ? 'bg-green-600 text-white'
-                                : 'bg-[#1E3A5F] text-white'
-                              : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                              } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
-                            title="Matin"
-                          >
-                            M
-                          </button>
-                          <button
-                            onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'afternoon')}
-                            disabled={readOnly}
-                            className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasAfternoon
-                              ? isFuture
-                                ? 'bg-green-600 text-white'
-                                : 'bg-[#1E3A5F] text-white'
-                              : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                              } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
-                            title="Après-midi"
-                          >
-                            A
-                          </button>
-                        </div>
-                      );
-                    } else {
-                      // Fournisseur : champ de montant
-                      const entry = resource.entries?.find(e => e.date === date);
-                      const amount = entry?.amount || 0;
-                      const hasValue = amount > 0;
-                      const hasValueAndFuture = hasValue && isFuture;
-
-                      return (
-                        <div
-                          key={date}
-                          className={`w-16 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-blue-50' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
-                        >
+                      {/* Zone TJM centrée */}
+                      {resource.type === 'person' && (
+                        <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+                          <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
                           {readOnly ? (
-                            <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
-                              {amount > 0 ? amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
-                            </div>
+                            <span className="text-xs font-semibold text-[#1E3A5F]">
+                              {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
+                            </span>
                           ) : (
                             <input
                               type="number"
-                              value={amount || ''}
-                              onChange={(e) => {
-                                const value = parseFloat(e.target.value) || 0;
-                                updateSupplierAmount(resource.id, date, value);
-                              }}
-                              className={`w-full h-6 px-0.5 text-[10px] text-center border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] ${hasValueAndFuture ? 'bg-green-200/20' : 'bg-white'}`}
-                              placeholder="0"
+                              value={resource.dailyRate || 0}
+                              onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
+                              className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
                               min="0"
-                              max="99999"
                               step="10"
+                              placeholder="0"
                             />
                           )}
                         </div>
-                      );
-                    }
-                  })}
+                      )}
+
+                      {/* Infos à droite (jours/total + poubelle) */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0 absolute right-2">
+                        {resource.type === 'person' ? (
+                          <>
+                            <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
+                            <span className="text-xs font-semibold text-[#1E3A5F]">
+                              {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[10px] text-[#64748B]">Total:</span>
+                            <span className="text-xs font-semibold text-[#1E3A5F]">
+                              {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                            </span>
+                          </>
+                        )}
+                        {!readOnly && (
+                          <button
+                            onClick={() => handleDeleteResource(resource.id)}
+                            className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0 ml-1"
+                            title="Supprimer"
+                          >
+                            <MuiIcon name="Delete" size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Poignée de redimensionnement */}
+                    {!readOnly && (
+                      <div
+                        onMouseDown={handleResizeStart}
+                        className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                        style={{ marginRight: '-4px' }}
+                        title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+        {/* Zone scrollable pour les dates */}
+        <div className="flex-1 flex flex-col" style={{ minWidth: 0, overflow: 'hidden' }}>
+          {/* En-tête avec dates - scrollable */}
+          <div 
+            ref={headerScrollRef}
+            className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10 overflow-x-auto overflow-y-hidden"
+            onScroll={(e) => {
+              if (contentScrollRef.current) {
+                contentScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+              }
+            }}
+            style={{ height: '60px' }}
+          >
+            <div className="flex items-center" style={{ minWidth: 'max-content', height: '60px' }}>
+              {dates.map((date) => {
+                const dayCost = getDayCost(date);
+                const dateObj = new Date(date);
+                const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
+                const dayNumber = dateObj.getDate();
+                const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
+                const isToday = date === new Date().toISOString().split('T')[0];
+
+                return (
+                  <div
+                    key={date}
+                    className={`w-16 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-blue-50' : ''}`}
+                    style={{ height: '60px' }}
+                  >
+                    <div className="text-[10px] text-[#64748B] leading-tight">{dayName}</div>
+                    <div className="text-xs font-semibold text-[#1E3A5F] leading-tight">{dayNumber}/{month.substring(0, 3)}</div>
+                    <div className="text-[10px] font-medium text-[#1E3A5F] mt-0.5 leading-tight">
+                      {dayCost > 0 ? dayCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Lignes de ressources - dates scrollables */}
+          <div 
+            ref={contentScrollRef}
+            className="flex-1 overflow-x-auto overflow-y-hidden"
+            onScroll={(e) => {
+              if (headerScrollRef.current) {
+                headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+              }
+            }}
+          >
+            <div className="bg-white">
+              {hoursData.resources.map((resource) => (
+                <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB] flex items-center" style={{ height: '40px' }}>
+                  {/* Cases pour chaque date */}
+                  <div className="flex items-center" style={{ minWidth: 'max-content', height: '40px' }}>
+                    {dates.map((date) => {
+                      const dateObj = new Date(date);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const isToday = date === today.toISOString().split('T')[0];
+                      const isFuture = dateObj > today;
+
+                      if (resource.type === 'person') {
+                        const hasMorning = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'morning');
+                        const hasAfternoon = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'afternoon');
+
+                        return (
+                          <div
+                            key={date}
+                            className={`w-16 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-blue-50' : ''}`}
+                          >
+                            <button
+                              onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
+                              disabled={readOnly}
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasMorning
+                                ? isFuture
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-[#1E3A5F] text-white'
+                                : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                              title="Matin"
+                            >
+                              M
+                            </button>
+                            <button
+                              onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'afternoon')}
+                              disabled={readOnly}
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasAfternoon
+                                ? isFuture
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-[#1E3A5F] text-white'
+                                : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                              title="Après-midi"
+                            >
+                              A
+                            </button>
+                          </div>
+                        );
+                      } else {
+                        // Fournisseur : champ de montant
+                        const entry = resource.entries?.find(e => e.date === date);
+                        const amount = entry?.amount || 0;
+                        const hasValue = amount > 0;
+                        const hasValueAndFuture = hasValue && isFuture;
+
+                        return (
+                          <div
+                            key={date}
+                            className={`w-16 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-blue-50' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
+                          >
+                            {readOnly ? (
+                              <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
+                                {amount > 0 ? amount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
+                              </div>
+                            ) : (
+                              <input
+                                type="number"
+                                value={amount || ''}
+                                onChange={(e) => {
+                                  const value = parseFloat(e.target.value) || 0;
+                                  updateSupplierAmount(resource.id, date, value);
+                                }}
+                                className={`w-full h-6 px-0.5 text-[10px] text-center border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] ${hasValueAndFuture ? 'bg-green-200/20' : 'bg-white'}`}
+                                placeholder="0"
+                                min="0"
+                                max="99999"
+                                step="10"
+                              />
+                            )}
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-      </div>
 
-      {/* Boutons pour ajouter une ressource */}
-      {!readOnly && (
-        <div className="border-b border-[#E2E8F0] p-3 bg-[#F9FAFB]">
-          {!showAddResource ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setNewResourceType('person');
-                  setShowAddResource(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all font-medium"
-              >
-                <MuiIcon name="Person" size={18} className="flex-shrink-0" />
-                <span>Ajouter une personne</span>
-              </button>
-              <button
-                onClick={() => {
-                  setNewResourceType('supplier');
-                  setShowAddResource(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all font-medium"
-              >
-                <MuiIcon name="Business" size={18} className="flex-shrink-0" />
-                <span>Ajouter un fournisseur</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-2 bg-[#1E3A5F]/10 rounded-lg">
-                  <MuiIcon
-                    name={newResourceType === 'person' ? 'Person' : 'Business'}
-                    size={18}
-                    className="text-[#1E3A5F]"
-                  />
-                  <span className="text-sm font-medium text-[#1E3A5F]">
-                    {newResourceType === 'person' ? 'Nouvelle personne' : 'Nouveau fournisseur'}
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    setNewResourceType(newResourceType === 'person' ? 'supplier' : 'person');
-                    setNewResourceDailyRate(0);
-                  }}
-                  className="px-3 py-2 text-xs text-[#64748B] hover:text-[#1E3A5F] border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
-                >
-                  Changer de type
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  value={newResourceName}
-                  onChange={(e) => setNewResourceName(e.target.value)}
-                  placeholder={newResourceType === 'person' ? 'Nom de la personne' : 'Nom du fournisseur'}
-                  className="flex-1 px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleAddResource();
-                    }
-                    if (e.key === 'Escape') {
-                      setShowAddResource(false);
-                      setNewResourceName('');
-                      setNewResourceDailyRate(0);
-                    }
-                  }}
-                  autoFocus
-                />
-                {newResourceType === 'person' && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-[#64748B] whitespace-nowrap">TJM (€):</label>
-                    <input
-                      type="number"
-                      value={newResourceDailyRate}
-                      onChange={(e) => setNewResourceDailyRate(parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                      className="w-24 px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                      min="0"
-                      step="10"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleAddResource();
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-                <button
-                  onClick={() => handleAddResource()}
-                  className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors font-medium"
-                >
-                  Ajouter
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAddResource(false);
-                    setNewResourceName('');
-                    setNewResourceDailyRate(0);
-                    setNewResourceType('person');
-                  }}
-                  className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded-lg transition-colors"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Graphique en bas */}
       <div className="border-t border-[#E2E8F0] bg-white p-4" style={{ height: '300px', minHeight: '300px' }}>
-        <div className="h-full relative overflow-x-auto">
+        <div className="h-full relative">
           <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" className="min-w-full">
             {/* Labels des échelles - seront positionnés dans le graphique */}
 

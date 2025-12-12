@@ -346,8 +346,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         hoursTracking: {
           projectStartDate: new Date().toISOString().split('T')[0],
           projectEndDate: (() => {
-            const endDate = new Date();
-            endDate.setDate(endDate.getDate() + 90);
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 3); // 3 mois par défaut
             return endDate.toISOString().split('T')[0];
           })(),
           salePrice: 0,
