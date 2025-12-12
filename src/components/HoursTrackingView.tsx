@@ -484,8 +484,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           </div>
         </div>
         {!readOnly && (
-          <div className="flex items-center gap-4">
-            {/* Boutons d'ajout */}
+          <div className="flex items-end gap-4">
+            {/* Boutons d'ajout - alignés sur le bas */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
@@ -653,87 +653,87 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                   className="bg-white border-r border-[#E2E8F0] p-2 relative group flex items-center"
                   style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px`, height: '40px' }}
                 >
-                    <div className="flex items-center h-full relative">
-                      {/* Nom à gauche - aligné de la même manière pour personnes et fournisseurs */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0 absolute left-2">
-                        <MuiIcon
-                          name={resource.type === 'person' ? 'Person' : 'Business'}
-                          size={16}
-                          className="text-[#1E3A5F] flex-shrink-0"
-                        />
-                        <span className="font-medium text-[#1E3A5F] text-sm">{resource.name}</span>
-                      </div>
-
-                      {/* Zone TJM centrée */}
-                      {resource.type === 'person' && (
-                        <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
-                          <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
-                          {readOnly ? (
-                            <span className="text-xs font-semibold text-[#1E3A5F]">
-                              {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
-                            </span>
-                          ) : (
-                            <input
-                              type="number"
-                              value={resource.dailyRate || 0}
-                              onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
-                              className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
-                              min="0"
-                              step="10"
-                              placeholder="0"
-                            />
-                          )}
-                        </div>
-                      )}
-
-                      {/* Infos à droite (jours/total + poubelle) */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0 absolute right-2">
-                        {resource.type === 'person' ? (
-                          <>
-                            <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
-                            <span className="text-xs font-semibold text-[#1E3A5F]">
-                              {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-[10px] text-[#64748B]">Total:</span>
-                            <span className="text-xs font-semibold text-[#1E3A5F]">
-                              {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
-                            </span>
-                          </>
-                        )}
-                        {!readOnly && (
-                          <button
-                            onClick={() => handleDeleteResource(resource.id)}
-                            className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0 ml-1"
-                            title="Supprimer"
-                          >
-                            <MuiIcon name="Delete" size={12} />
-                          </button>
-                        )}
-                      </div>
+                  <div className="flex items-center w-full h-full relative">
+                    {/* Nom à gauche */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0" style={{ minWidth: '30%' }}>
+                      <MuiIcon
+                        name={resource.type === 'person' ? 'Person' : 'Business'}
+                        size={16}
+                        className="text-[#1E3A5F] flex-shrink-0"
+                      />
+                      <span className="font-medium text-[#1E3A5F] text-sm whitespace-nowrap truncate">{resource.name}</span>
                     </div>
 
-                    {/* Poignée de redimensionnement */}
-                    {!readOnly && (
-                      <div
-                        onMouseDown={handleResizeStart}
-                        className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                        style={{ marginRight: '-4px' }}
-                        title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
-                      />
+                    {/* Zone TJM centrée */}
+                    {resource.type === 'person' && (
+                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+                        <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
+                        {readOnly ? (
+                          <span className="text-xs font-semibold text-[#1E3A5F]">
+                            {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={resource.dailyRate || 0}
+                            onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
+                            className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                            min="0"
+                            step="10"
+                            placeholder="0"
+                          />
+                        )}
+                      </div>
                     )}
+
+                    {/* Infos à droite (jours/total + poubelle) */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+                      {resource.type === 'person' ? (
+                        <>
+                          <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
+                          <span className="text-xs font-semibold text-[#1E3A5F]">
+                            {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-[10px] text-[#64748B]">Total:</span>
+                          <span className="text-xs font-semibold text-[#1E3A5F]">
+                            {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                          </span>
+                        </>
+                      )}
+                      {!readOnly && (
+                        <button
+                          onClick={() => handleDeleteResource(resource.id)}
+                          className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0 ml-1"
+                          title="Supprimer"
+                        >
+                          <MuiIcon name="Delete" size={12} />
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Poignée de redimensionnement */}
+                  {!readOnly && (
+                    <div
+                      onMouseDown={handleResizeStart}
+                      className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                      style={{ marginRight: '-4px' }}
+                      title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
+                    />
+                  )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
+        </div>
 
         {/* Zone scrollable pour les dates */}
         <div className="flex-1 flex flex-col" style={{ minWidth: 0, overflow: 'hidden' }}>
           {/* En-tête avec dates - scrollable */}
-          <div 
+          <div
             ref={headerScrollRef}
             className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10 overflow-x-auto overflow-y-hidden"
             onScroll={(e) => {
@@ -770,7 +770,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           </div>
 
           {/* Lignes de ressources - dates scrollables */}
-          <div 
+          <div
             ref={contentScrollRef}
             className="flex-1 overflow-x-auto overflow-y-hidden"
             onScroll={(e) => {
@@ -919,7 +919,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         <text
                           x={padding.left - 15}
                           y={y + 4}
-                          fontFamily="system-ui, -apple-system, sans-serif"
+                          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
                           fontSize="11"
                           fill="#64748B"
                           textAnchor="end"
@@ -931,7 +931,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                           <text
                             x={padding.left - 15}
                             y={y - 8}
-                            fontFamily="system-ui, -apple-system, sans-serif"
+                            fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
                             fontSize="13"
                             fontWeight="600"
                             fill="#1E3A5F"
@@ -953,7 +953,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         <text
                           x={width - padding.right + 15}
                           y={y + 4}
-                          fontFamily="system-ui, -apple-system, sans-serif"
+                          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
                           fontSize="11"
                           fill="#64748B"
                           textAnchor="start"
@@ -965,7 +965,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                           <text
                             x={width - padding.right + 15}
                             y={y - 8}
-                            fontFamily="system-ui, -apple-system, sans-serif"
+                            fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
                             fontSize="13"
                             fontWeight="600"
                             fill="#1E3A5F"
@@ -1151,7 +1151,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         <text
                           x={x}
                           y={height - padding.bottom + 15}
-                          fontFamily="system-ui, -apple-system, sans-serif"
+                          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
                           fontSize="10"
                           fill="#64748B"
                           textAnchor="middle"
