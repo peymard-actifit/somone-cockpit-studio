@@ -46,6 +46,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const columnRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
+  
+  // Hauteur du graphique (redimensionnable)
+  const [graphHeight, setGraphHeight] = useState(300);
+  const isResizingGraph = useRef(false);
+  const resizeStartY = useRef(0);
+  const resizeStartHeight = useRef(0);
 
   // Générer la liste des dates depuis projectStartDate jusqu'à projectEndDate
   const dates = useMemo(() => {
@@ -589,6 +595,54 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     };
   }, [storageKey]);
 
+  // Centrer sur aujourd'hui au chargement
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayIndex = dates.findIndex(d => d === today);
+    if (todayIndex >= 0) {
+      // Attendre un peu pour que le DOM soit prêt
+      setTimeout(() => {
+        if (contentScrollRef.current && headerScrollRef.current) {
+          const dayWidth = 48; // w-12 = 48px
+          const containerWidth = contentScrollRef.current.clientWidth;
+          const scrollPosition = (todayIndex * dayWidth) - (containerWidth / 2) + (dayWidth / 2);
+          const finalScroll = Math.max(0, scrollPosition);
+          contentScrollRef.current.scrollLeft = finalScroll;
+          headerScrollRef.current.scrollLeft = finalScroll;
+        }
+      }, 100);
+    }
+  }, [dates]);
+
+  // Gestion du redimensionnement vertical du graphique
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingGraph.current) return;
+
+      const diff = resizeStartY.current - e.clientY; // Inversé car on tire vers le haut
+      const newHeight = Math.max(150, Math.min(800, resizeStartHeight.current + diff));
+      setGraphHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      if (isResizingGraph.current) {
+        isResizingGraph.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, []);
+
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -596,6 +650,16 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     resizeStartX.current = e.clientX;
     resizeStartWidth.current = columnWidth;
     document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const handleGraphResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingGraph.current = true;
+    resizeStartY.current = e.clientY;
+    resizeStartHeight.current = graphHeight;
+    document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
   };
 
@@ -1123,8 +1187,21 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       </div>
 
 
+      {/* Séparateur redimensionnable */}
+      {!readOnly && (
+        <div
+          onMouseDown={handleGraphResizeStart}
+          className="h-2 bg-[#E2E8F0] cursor-row-resize hover:bg-[#1E3A5F] transition-colors relative group"
+          style={{ flexShrink: 0 }}
+        >
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-0.5 bg-[#94A3B8] group-hover:bg-[#1E3A5F] transition-colors" />
+          </div>
+        </div>
+      )}
+
       {/* Graphique en bas */}
-      <div className="border-t border-[#E2E8F0] bg-white p-4" style={{ height: '300px', minHeight: '300px', overflowX: 'hidden' }}>
+      <div className="bg-white p-4" style={{ height: `${graphHeight}px`, minHeight: `${graphHeight}px`, overflowX: 'hidden', flexShrink: 0 }}>
         <div className="h-full relative" style={{ overflowX: 'hidden' }}>
           <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none">
             {/* Labels des échelles - seront positionnés dans le graphique */}
