@@ -8,6 +8,9 @@ import SubElementTile from './SubElementTile';
 import { useConfirm } from '../contexts/ConfirmContext';
 import ElementTile from './ElementTile';
 import SourcesAndCalculationsPanel from './subelements/SourcesAndCalculationsPanel';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface EditorPanelProps {
   domain: Domain | undefined;
@@ -16,12 +19,132 @@ interface EditorPanelProps {
   selectedSubElementId?: string | null; // ID du sous-élément à sélectionner depuis l'extérieur
 }
 
+// Composant pour une catégorie sortable
+function SortableCategoryItem({ category, onIconClick, onNameChange, onDelete, subElementsCount }: {
+  category: { id: string; name: string; icon?: string };
+  onIconClick: () => void;
+  onNameChange: (name: string) => void;
+  onDelete: () => void;
+  subElementsCount: number;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+      {/* Handle de drag */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 text-[#94A3B8] hover:text-[#1E3A5F]"
+        title="Glisser pour réorganiser"
+      >
+        <MuiIcon name="DragIndicator" size={16} />
+      </div>
+      <button
+        onClick={onIconClick}
+        className="flex items-center justify-center w-8 h-8 bg-white border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
+        title="Choisir une icône"
+      >
+        {category.icon ? (
+          <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
+        ) : (
+          <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
+        )}
+      </button>
+      <input
+        type="text"
+        value={category.name}
+        onChange={(e) => onNameChange(e.target.value)}
+        className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+      />
+      <span className="text-xs text-[#94A3B8]">
+        {subElementsCount} élément{subElementsCount > 1 ? 's' : ''}
+      </span>
+      <button
+        onClick={onDelete}
+        className="p-1 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+        title="Supprimer la catégorie"
+      >
+        <MuiIcon name="Delete" size={16} />
+      </button>
+    </div>
+  );
+}
+
+// Composant pour une sous-catégorie sortable
+function SortableSubCategoryItem({ subCategory, onIconClick, onNameChange, onDelete, subElementsCount }: {
+  subCategory: { id: string; name: string; icon?: string };
+  onIconClick: () => void;
+  onNameChange: (name: string) => void;
+  onDelete: () => void;
+  subElementsCount: number;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subCategory.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+      {/* Handle de drag */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 text-[#94A3B8] hover:text-[#1E3A5F]"
+        title="Glisser pour réorganiser"
+      >
+        <MuiIcon name="DragIndicator" size={16} />
+      </div>
+      <button
+        onClick={onIconClick}
+        className="flex items-center justify-center w-8 h-8 bg-white border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
+        title="Choisir une icône"
+      >
+        {subCategory.icon ? (
+          <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
+        ) : (
+          <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
+        )}
+      </button>
+      <input
+        type="text"
+        value={subCategory.name}
+        onChange={(e) => onNameChange(e.target.value)}
+        className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+      />
+      <span className="text-xs text-[#94A3B8]">
+        {subElementsCount} sous-élément{subElementsCount > 1 ? 's' : ''}
+      </span>
+      <button
+        onClick={onDelete}
+        className="p-1 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+        title="Supprimer la sous-catégorie"
+      >
+        <MuiIcon name="Delete" size={16} />
+      </button>
+    </div>
+  );
+}
+
 export default function EditorPanel({ domain, element, selectedSubElementId }: EditorPanelProps) {
   const {
     updateDomain,
     deleteDomain,
     updateCategory,
+    deleteCategory,
+    reorderCategory,
     updateSubCategory,
+    deleteSubCategory,
+    reorderSubCategory,
     updateElement,
     deleteElement,
     updateSubElement,
@@ -39,6 +162,42 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   } = useCockpitStore();
   const { token } = useAuthStore();
   const confirm = useConfirm();
+  
+  // Configuration des capteurs pour le drag & drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+  
+  // Handler pour le drag & drop des catégories
+  const handleCategoryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!domain || !over || active.id === over.id) return;
+    
+    const oldIndex = domain.categories.findIndex(c => c.id === active.id);
+    const newIndex = domain.categories.findIndex(c => c.id === over.id);
+    
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const newOrder = arrayMove(domain.categories.map(c => c.id), oldIndex, newIndex);
+      reorderCategory(domain.id, newOrder);
+    }
+  };
+  
+  // Handler pour le drag & drop des sous-catégories
+  const handleSubCategoryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!element || !over || active.id === over.id) return;
+    
+    const oldIndex = element.subCategories.findIndex(sc => sc.id === active.id);
+    const newIndex = element.subCategories.findIndex(sc => sc.id === over.id);
+    
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const newOrder = arrayMove(element.subCategories.map(sc => sc.id), oldIndex, newIndex);
+      reorderSubCategory(element.id, newOrder);
+    }
+  };
 
   const [activeSection, setActiveSection] = useState<string | null>('properties');
   const [newZoneName, setNewZoneName] = useState('');
@@ -297,9 +456,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     }
   }, [selectedSubElementId, element]);
 
+  // Référence pour savoir si on est en train d'éditer (le champ a le focus)
+  const isEditingNameRef = useRef(false);
+  
   // Synchroniser selectedSubElement avec les données du store après chaque mise à jour
+  // Mais seulement si on n'est pas en train d'éditer
   useEffect(() => {
-    if (selectedSubElementIdRef.current && element) {
+    if (selectedSubElementIdRef.current && element && !isEditingNameRef.current) {
       // Trouver le sous-élément mis à jour dans l'élément courant
       for (const subCategory of element.subCategories) {
         const updatedSubElement = subCategory.subElements.find(se => se.id === selectedSubElementIdRef.current);
@@ -404,7 +567,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   setEditingSubElementName(newName);
                   setSelectedSubElement(prev => prev ? { ...prev, name: newName } : null);
                 }}
+                onFocus={() => {
+                  isEditingNameRef.current = true;
+                }}
                 onBlur={(e) => {
+                  isEditingNameRef.current = false;
                   // Sauvegarder dans le store quand on quitte le champ
                   if (selectedSubElement && e.target.value.trim() !== '') {
                     updateSubElement(selectedSubElement.id, { name: e.target.value.trim() });
@@ -1010,36 +1177,40 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             isOpen={activeSection === 'subcategories'}
             onToggle={() => toggleSection('subcategories')}
           >
-            <div className="space-y-2">
-              {element.subCategories.map((subCategory) => (
-                <div key={subCategory.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIconPickerContext({ type: 'subCategory', id: subCategory.id });
-                      setShowIconPicker('subCategory');
-                    }}
-                    className="flex items-center justify-center w-8 h-8 bg-white border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
-                    title="Choisir une icône"
-                  >
-                    {subCategory.icon ? (
-                      <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
-                    ) : (
-                      <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
-                    )}
-                  </button>
-                  <input
-                    type="text"
-                    value={subCategory.name}
-                    onChange={(e) => updateSubCategory(subCategory.id, { name: e.target.value })}
-                    className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                  />
-                  <span className="text-xs text-[#94A3B8]">
-                    {subCategory.subElements.length} sous-élément{subCategory.subElements.length > 1 ? 's' : ''}
-                  </span>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleSubCategoryDragEnd}
+            >
+              <SortableContext
+                items={element.subCategories.map(sc => sc.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {element.subCategories.map((subCategory) => (
+                    <SortableSubCategoryItem
+                      key={subCategory.id}
+                      subCategory={subCategory}
+                      onIconClick={() => {
+                        setIconPickerContext({ type: 'subCategory', id: subCategory.id });
+                        setShowIconPicker('subCategory');
+                      }}
+                      onNameChange={(name) => updateSubCategory(subCategory.id, { name })}
+                      onDelete={async () => {
+                        const confirmed = await confirm({
+                          title: 'Supprimer la sous-catégorie',
+                          message: `Voulez-vous supprimer la sous-catégorie "${subCategory.name}" ?`,
+                        });
+                        if (confirmed) {
+                          deleteSubCategory(subCategory.id);
+                        }
+                      }}
+                      subElementsCount={subCategory.subElements.length}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
             {/* Sélecteur d'icônes pour les sous-catégories */}
             {showIconPicker === 'subCategory' && iconPickerContext && element && (
               <IconPicker
@@ -1967,36 +2138,40 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             isOpen={activeSection === 'categories'}
             onToggle={() => toggleSection('categories')}
           >
-            <div className="space-y-2">
-              {domain.categories.map((category) => (
-                <div key={category.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIconPickerContext({ type: 'category', id: category.id });
-                      setShowIconPicker('category');
-                    }}
-                    className="flex items-center justify-center w-8 h-8 bg-white border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
-                    title="Choisir une icône"
-                  >
-                    {category.icon ? (
-                      <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
-                    ) : (
-                      <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
-                    )}
-                  </button>
-                  <input
-                    type="text"
-                    value={category.name}
-                    onChange={(e) => updateCategory(category.id, { name: e.target.value })}
-                    className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                  />
-                  <span className="text-xs text-[#94A3B8]">
-                    {category.elements.length} élément{category.elements.length > 1 ? 's' : ''}
-                  </span>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleCategoryDragEnd}
+            >
+              <SortableContext
+                items={domain.categories.map(c => c.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {domain.categories.map((category) => (
+                    <SortableCategoryItem
+                      key={category.id}
+                      category={category}
+                      onIconClick={() => {
+                        setIconPickerContext({ type: 'category', id: category.id });
+                        setShowIconPicker('category');
+                      }}
+                      onNameChange={(name) => updateCategory(category.id, { name })}
+                      onDelete={async () => {
+                        const confirmed = await confirm({
+                          title: 'Supprimer la catégorie',
+                          message: `Voulez-vous supprimer la catégorie "${category.name}" ?`,
+                        });
+                        if (confirmed) {
+                          deleteCategory(category.id);
+                        }
+                      }}
+                      subElementsCount={category.elements.length}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
             {/* Sélecteur d'icônes pour les catégories */}
             {showIconPicker === 'category' && iconPickerContext && (
               <IconPicker
