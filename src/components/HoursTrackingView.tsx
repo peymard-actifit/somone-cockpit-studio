@@ -634,13 +634,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
-                                hasMorning
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasMorning
                                   ? isFuture
                                     ? 'bg-green-600 text-white'
                                     : 'bg-[#1E3A5F] text-white'
                                   : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                              } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Matin"
                             >
                               M
@@ -648,13 +647,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'afternoon')}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
-                                hasAfternoon
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasAfternoon
                                   ? isFuture
                                     ? 'bg-green-600 text-white'
                                     : 'bg-[#1E3A5F] text-white'
                                   : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                              } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Après-midi"
                             >
                               A
@@ -666,11 +664,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         const entry = resource.entries?.find(e => e.date === date);
                         const amount = entry?.amount || 0;
                         const hasValue = amount > 0;
+                        const hasValueAndFuture = hasValue && isFuture;
 
                         return (
                           <div
                             key={date}
-                            className={`w-16 border-r border-[#E2E8F0] p-0.5 ${isToday ? 'bg-blue-50' : ''} ${hasValue ? 'bg-green-200/20' : ''}`}
+                            className={`w-16 border-r border-[#E2E8F0] p-0.5 ${isToday ? 'bg-blue-50' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
                           >
                             {readOnly ? (
                               <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
@@ -684,7 +683,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                                   const value = parseFloat(e.target.value) || 0;
                                   updateSupplierAmount(resource.id, date, value);
                                 }}
-                                className={`w-full h-6 px-0.5 text-[10px] text-center border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] ${hasValue ? 'bg-green-200/20' : 'bg-white'}`}
+                                className={`w-full h-6 px-0.5 text-[10px] text-center border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] ${hasValueAndFuture ? 'bg-green-200/20' : 'bg-white'}`}
                                 placeholder="0"
                                 min="0"
                                 max="99999"
