@@ -93,7 +93,7 @@ const authMiddleware = (req: AuthRequest, res: express.Response, next: express.N
   if (!authHeader) {
     return res.status(401).json({ error: 'Token manquant' });
   }
-  
+
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; username: string; isAdmin: boolean };
@@ -116,25 +116,25 @@ const generateId = () => {
 // Routes: Auth
 app.post('/api/auth/register', async (req, res) => {
   const { username, password } = req.body;
-  
+
   if (!username || !password) {
     return res.status(400).json({ error: 'Identifiant et mot de passe requis' });
   }
-  
+
   if (password.length < 6) {
     return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
   }
-  
+
   const db = loadDb();
   const existing = db.users.find(u => u.username === username);
   if (existing) {
     return res.status(400).json({ error: 'Cet identifiant est déjà utilisé' });
   }
-  
+
   const hashedPassword = await bcrypt.hash(password, 10);
   const id = generateId();
   const now = new Date().toISOString();
-  
+
   const newUser: User = {
     id,
     username,
@@ -142,12 +142,12 @@ app.post('/api/auth/register', async (req, res) => {
     isAdmin: false,
     createdAt: now
   };
-  
+
   db.users.push(newUser);
   saveDb(db);
-  
+
   const token = jwt.sign({ id, username, isAdmin: false }, JWT_SECRET, { expiresIn: '30d' });
-  
+
   res.json({
     user: { id, username, isAdmin: false, createdAt: now },
     token,
@@ -156,21 +156,21 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
-  
+
   const db = loadDb();
   const user = db.users.find(u => u.username === username);
-  
+
   if (!user) {
     return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
   }
-  
+
   const validPassword = await bcrypt.compare(password, user.password);
   if (!validPassword) {
     return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
   }
-  
+
   const token = jwt.sign({ id: user.id, username: user.username, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '30d' });
-  
+
   res.json({
     user: { id: user.id, username: user.username, isAdmin: user.isAdmin, createdAt: user.createdAt },
     token,
@@ -179,48 +179,48 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/change-password', authMiddleware, async (req: AuthRequest, res) => {
   const { oldPassword, newPassword } = req.body;
-  
+
   if (!oldPassword || !newPassword) {
     return res.status(400).json({ error: 'Ancien et nouveau mot de passe requis' });
   }
-  
+
   const db = loadDb();
   const user = db.users.find(u => u.id === req.user!.id);
   if (!user) {
     return res.status(404).json({ error: 'Utilisateur non trouvé' });
   }
-  
+
   const validPassword = await bcrypt.compare(oldPassword, user.password);
   if (!validPassword) {
     return res.status(401).json({ error: 'Ancien mot de passe incorrect' });
   }
-  
+
   user.password = await bcrypt.hash(newPassword, 10);
   saveDb(db);
-  
+
   res.json({ success: true });
 });
 
 app.post('/api/auth/toggle-admin', authMiddleware, (req: AuthRequest, res) => {
   const { code } = req.body;
-  
+
   const db = loadDb();
   const user = db.users.find(u => u.id === req.user!.id);
   if (!user) {
     return res.status(404).json({ error: 'Utilisateur non trouvé' });
   }
-  
+
   if (user.isAdmin) {
     // Quitter le mode admin
     user.isAdmin = false;
     saveDb(db);
     return res.json({ isAdmin: false });
   }
-  
+
   if (code !== ADMIN_CODE) {
     return res.status(401).json({ error: 'Code administrateur incorrect' });
   }
-  
+
   user.isAdmin = true;
   saveDb(db);
   res.json({ isAdmin: true });
@@ -230,13 +230,13 @@ app.post('/api/auth/toggle-admin', authMiddleware, (req: AuthRequest, res) => {
 app.get('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   let cockpits;
-  
+
   if (req.user!.isAdmin) {
     cockpits = db.cockpits;
   } else {
     cockpits = db.cockpits.filter(c => c.userId === req.user!.id);
   }
-  
+
   res.json(cockpits.map(c => ({
     id: c.id,
     name: c.name,
@@ -256,17 +256,17 @@ app.get('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
 app.get('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
-  
+
   if (!cockpit) {
     return res.status(404).json({ error: 'Maquette non trouvée' });
   }
-  
+
   if (!req.user!.isAdmin && cockpit.userId !== req.user!.id) {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
-  
+
   const data = cockpit.data || { domains: [], zones: [] };
-  
+
   res.json({
     id: cockpit.id,
     name: cockpit.name,
@@ -279,15 +279,15 @@ app.get('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
 
 app.post('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
   const { name } = req.body;
-  
+
   if (!name) {
     return res.status(400).json({ error: 'Nom requis' });
   }
-  
+
   const db = loadDb();
   const id = generateId();
   const now = new Date().toISOString();
-  
+
   const newCockpit: CockpitData = {
     id,
     name,
@@ -296,10 +296,10 @@ app.post('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
     createdAt: now,
     updatedAt: now
   };
-  
+
   db.cockpits.push(newCockpit);
   saveDb(db);
-  
+
   res.json({
     id,
     name,
@@ -313,29 +313,29 @@ app.post('/api/cockpits', authMiddleware, (req: AuthRequest, res) => {
 app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
-  
+
   if (!cockpit) {
     return res.status(404).json({ error: 'Maquette non trouvée' });
   }
-  
+
   if (!req.user!.isAdmin && cockpit.userId !== req.user!.id) {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
-  
+
   const { name, domains, zones, logo, scrollingBanner, publicId, isPublished, publishedAt } = req.body;
   const now = new Date().toISOString();
-  
+
   cockpit.name = name || cockpit.name;
-  
+
   // Préserver les données existantes et fusionner avec les nouvelles
   const existingData = cockpit.data || {};
-  
+
   // SIMPLIFICATION : Merge profond pour préserver TOUTES les propriétés des domaines existants
   let mergedDomains = existingData.domains || [];
   if (domains !== undefined && Array.isArray(domains)) {
     mergedDomains = domains.map((newDomain: any) => {
       const existingDomain = existingData.domains?.find((d: any) => d.id === newDomain.id);
-      
+
       if (existingDomain) {
         // MERGE PROFOND : Partir de l'existant et appliquer les nouvelles valeurs
         // Mais PRÉSERVER backgroundImage et mapBounds si pas explicitement fournis ou vides
@@ -343,7 +343,7 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
           ...existingDomain,  // D'abord toutes les propriétés existantes
           ...newDomain,       // Puis les nouvelles propriétés
         };
-        
+
         // FORCER la préservation si backgroundImage n'est pas valide dans newDomain
         if (!newDomain.backgroundImage || newDomain.backgroundImage === '' || newDomain.backgroundImage === null) {
           if (existingDomain.backgroundImage && existingDomain.backgroundImage !== '') {
@@ -351,14 +351,14 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
             console.log(`[PUT] Préservé backgroundImage pour "${newDomain.name}" (${existingDomain.backgroundImage.length} chars)`);
           }
         }
-        
+
         // FORCER la préservation si mapBounds n'est pas valide dans newDomain
         if (!newDomain.mapBounds || (!newDomain.mapBounds.topLeft && !newDomain.mapBounds.bottomRight)) {
           if (existingDomain.mapBounds && (existingDomain.mapBounds.topLeft || existingDomain.mapBounds.bottomRight)) {
             merged.mapBounds = existingDomain.mapBounds;
           }
         }
-        
+
         return merged;
       } else {
         // Nouveau domaine
@@ -366,7 +366,7 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
       }
     });
   }
-  
+
   cockpit.data = {
     ...existingData,
     domains: mergedDomains,
@@ -377,31 +377,31 @@ app.put('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
     isPublished: isPublished !== undefined ? isPublished : existingData.isPublished,
     publishedAt: publishedAt !== undefined ? publishedAt : existingData.publishedAt,
   };
-  
+
   cockpit.updatedAt = now;
-  
+
   saveDb(db);
-  
+
   res.json({ success: true });
 });
 
 app.post('/api/cockpits/:id/duplicate', authMiddleware, (req: AuthRequest, res) => {
   const { name } = req.body;
-  
+
   const db = loadDb();
   const original = db.cockpits.find(c => c.id === req.params.id);
-  
+
   if (!original) {
     return res.status(404).json({ error: 'Maquette non trouvée' });
   }
-  
+
   if (!req.user!.isAdmin && original.userId !== req.user!.id) {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
-  
+
   const id = generateId();
   const now = new Date().toISOString();
-  
+
   const newCockpit: CockpitData = {
     id,
     name: name || `${original.name} - Copie`,
@@ -410,10 +410,10 @@ app.post('/api/cockpits/:id/duplicate', authMiddleware, (req: AuthRequest, res) 
     createdAt: now,
     updatedAt: now
   };
-  
+
   db.cockpits.push(newCockpit);
   saveDb(db);
-  
+
   res.json({
     id,
     name: newCockpit.name,
@@ -427,20 +427,20 @@ app.post('/api/cockpits/:id/duplicate', authMiddleware, (req: AuthRequest, res) 
 app.delete('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   const cockpitIndex = db.cockpits.findIndex(c => c.id === req.params.id);
-  
+
   if (cockpitIndex === -1) {
     return res.status(404).json({ error: 'Maquette non trouvée' });
   }
-  
+
   const cockpit = db.cockpits[cockpitIndex];
-  
+
   if (!req.user!.isAdmin && cockpit.userId !== req.user!.id) {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
-  
+
   db.cockpits.splice(cockpitIndex, 1);
   saveDb(db);
-  
+
   res.json({ success: true });
 });
 
@@ -448,26 +448,26 @@ app.delete('/api/cockpits/:id', authMiddleware, (req: AuthRequest, res) => {
 app.post('/api/cockpits/:id/publish', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
-  
+
   if (!cockpit) {
     return res.status(404).json({ error: 'Maquette non trouvée' });
   }
-  
+
   if (!req.user!.isAdmin && cockpit.userId !== req.user!.id) {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
-  
+
   // Générer un ID public unique s'il n'existe pas
   if (!cockpit.data.publicId) {
     cockpit.data.publicId = generateId().substring(0, 12);
   }
-  
+
   cockpit.data.isPublished = true;
   cockpit.data.publishedAt = new Date().toISOString();
   saveDb(db);
-  
-  res.json({ 
-    success: true, 
+
+  res.json({
+    success: true,
     publicId: cockpit.data.publicId,
     publishedAt: cockpit.data.publishedAt
   });
@@ -476,13 +476,13 @@ app.post('/api/cockpits/:id/publish', authMiddleware, (req: AuthRequest, res) =>
 // Dépublier un cockpit
 app.post('/api/cockpits/reorder', authMiddleware, (req: AuthRequest, res) => {
   const { cockpitIds } = req.body;
-  
+
   if (!Array.isArray(cockpitIds)) {
     return res.status(400).json({ error: 'cockpitIds doit être un tableau' });
   }
-  
+
   const db = loadDb();
-  
+
   // Mettre à jour l'ordre de chaque cockpit
   cockpitIds.forEach((cockpitId: string, index: number) => {
     const cockpit = db.cockpits.find(c => c.id === cockpitId);
@@ -491,7 +491,7 @@ app.post('/api/cockpits/reorder', authMiddleware, (req: AuthRequest, res) => {
       if (!req.user!.isAdmin && cockpit.userId !== req.user!.id) {
         return; // Ignorer les cockpits non autorisés
       }
-      
+
       if (!cockpit.data) {
         cockpit.data = {};
       }
@@ -499,7 +499,7 @@ app.post('/api/cockpits/reorder', authMiddleware, (req: AuthRequest, res) => {
       cockpit.updatedAt = new Date().toISOString();
     }
   });
-  
+
   saveDb(db);
   res.json({ success: true });
 });
@@ -507,18 +507,18 @@ app.post('/api/cockpits/reorder', authMiddleware, (req: AuthRequest, res) => {
 app.post('/api/cockpits/:id/unpublish', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
-  
+
   if (!cockpit) {
     return res.status(404).json({ error: 'Maquette non trouvée' });
   }
-  
+
   if (!req.user!.isAdmin && cockpit.userId !== req.user!.id) {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
-  
+
   cockpit.data.isPublished = false;
   saveDb(db);
-  
+
   res.json({ success: true });
 });
 
@@ -526,22 +526,22 @@ app.post('/api/cockpits/:id/unpublish', authMiddleware, (req: AuthRequest, res) 
 app.get('/api/public/cockpit/:publicId', (req, res) => {
   const publicId = req.params.publicId;
   console.log('[Public API] Recherche cockpit avec publicId:', publicId);
-  
+
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
-  
+
   if (!cockpit) {
     console.log('[Public API] Cockpit non trouvé pour publicId:', publicId);
     return res.status(404).json({ error: 'Maquette non trouvée ou non publiée' });
   }
-  
+
   console.log('[Public API] Cockpit trouvé:', cockpit.name);
   const data = cockpit.data || { domains: [], zones: [] };
-  
+
   // SIMPLIFICATION : Retourner directement les données telles quelles, sans transformation
   console.log(`[Public API] Cockpit "${cockpit.name}" trouvé`);
   console.log(`[Public API] Domains count: ${(data.domains || []).length}`);
-  
+
   // Log des images dans chaque domaine
   (data.domains || []).forEach((domain: any, index: number) => {
     const hasImage = domain.backgroundImage && domain.backgroundImage.length > 0;
@@ -550,7 +550,7 @@ app.get('/api/public/cockpit/:publicId', (req, res) => {
       console.log(`[Public API]   Preview: ${domain.backgroundImage.substring(0, 50)}...`);
     }
   });
-  
+
   // Retourner les données telles quelles - PAS de transformation
   res.json({
     id: cockpit.id,
@@ -571,20 +571,20 @@ app.get('/api/public/cockpit/:publicId', (req, res) => {
 app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
-  
+
   if (!cockpit) {
     return res.status(404).json({ error: 'Maquette non trouvée' });
   }
-  
+
   if (!req.user!.isAdmin && cockpit.userId !== req.user!.id) {
     return res.status(403).json({ error: 'Accès non autorisé' });
   }
-  
+
   const data = cockpit.data || { domains: [], zones: [] };
-  
+
   // Créer le workbook Excel
   const wb = XLSX.utils.book_new();
-  
+
   // Onglet Domaines
   const domainsData = (data.domains || []).map((d: any) => ({
     'ID': d.id,
@@ -595,7 +595,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   }));
   const wsDomainsData = XLSX.utils.json_to_sheet(domainsData.length ? domainsData : [{ 'ID': '', 'Nom': '', 'Type': '', 'Template': '', 'Ordre': '' }]);
   XLSX.utils.book_append_sheet(wb, wsDomainsData, 'Domaines');
-  
+
   // Onglet Catégories
   const categoriesData: any[] = [];
   (data.domains || []).forEach((d: any) => {
@@ -612,7 +612,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   });
   const wsCategoriesData = XLSX.utils.json_to_sheet(categoriesData.length ? categoriesData : [{ 'ID': '', 'Domaine': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }]);
   XLSX.utils.book_append_sheet(wb, wsCategoriesData, 'Catégories');
-  
+
   // Onglet Éléments
   const elementsData: any[] = [];
   (data.domains || []).forEach((d: any) => {
@@ -637,7 +637,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   });
   const wsElements = XLSX.utils.json_to_sheet(elementsData.length ? elementsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Icône': '', 'Icône 2': '', 'Icône 3': '', 'Statut': '', 'Zone': '', 'Ordre': '' }]);
   XLSX.utils.book_append_sheet(wb, wsElements, 'Éléments');
-  
+
   // Onglet Sous-catégories
   const subCategoriesData: any[] = [];
   (data.domains || []).forEach((d: any) => {
@@ -660,7 +660,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   });
   const wsSubCategories = XLSX.utils.json_to_sheet(subCategoriesData.length ? subCategoriesData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }]);
   XLSX.utils.book_append_sheet(wb, wsSubCategories, 'Sous-catégories');
-  
+
   // Onglet Sous-éléments
   const subElementsData: any[] = [];
   (data.domains || []).forEach((d: any) => {
@@ -687,7 +687,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   });
   const wsSubElements = XLSX.utils.json_to_sheet(subElementsData.length ? subElementsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Statut': '', 'Ordre': '' }]);
   XLSX.utils.book_append_sheet(wb, wsSubElements, 'Sous-éléments');
-  
+
   // Onglet Alertes
   const alertsData: any[] = [];
   (data.domains || []).forEach((d: any) => {
@@ -717,7 +717,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   });
   const wsAlerts = XLSX.utils.json_to_sheet(alertsData.length ? alertsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Date': '', 'Description': '', 'Durée': '', 'Ticket': '', 'Actions': '' }]);
   XLSX.utils.book_append_sheet(wb, wsAlerts, 'Alertes');
-  
+
   // Onglet Zones
   const zonesData = (data.zones || []).map((z: any) => ({
     'ID': z.id,
@@ -725,12 +725,12 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   }));
   const wsZones = XLSX.utils.json_to_sheet(zonesData.length ? zonesData : [{ 'ID': '', 'Nom': '' }]);
   XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
-  
+
   // Onglets pour les domaines "Suivi des heures" (un onglet par domaine)
   (data.domains || []).forEach((d: any) => {
     if (d.templateType === 'hours-tracking' && d.hoursTracking) {
       const hoursData = d.hoursTracking;
-      
+
       // Générer toutes les dates depuis projectStartDate jusqu'à aujourd'hui + 30 jours
       const startDate = new Date(hoursData.projectStartDate);
       const endDate = new Date();
@@ -741,7 +741,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
         dates.push(current.toISOString().split('T')[0]);
         current.setDate(current.getDate() + 1);
       }
-      
+
       // Section 1 : Informations générales
       const generalInfo: any[] = [
         { 'Libellé': 'Date de début du projet', 'Valeur': hoursData.projectStartDate },
@@ -749,7 +749,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
         { 'Libellé': 'Coût global (€)', 'Valeur': '' }, // Sera calculé
         { 'Libellé': 'Marge (€)', 'Valeur': '' }, // Sera calculé
       ];
-      
+
       // Calculer le coût global
       let globalCost = 0;
       (hoursData.resources || []).forEach((r: any) => {
@@ -763,10 +763,10 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
       });
       generalInfo[2].Valeur = globalCost;
       generalInfo[3].Valeur = (hoursData.salePrice || 0) - globalCost;
-      
+
       // Section 2 : Tableau des ressources et imputations
       const resourcesData: any[] = [];
-      
+
       // En-tête avec dates
       const headerRow: any = {
         'Type': 'Type',
@@ -779,7 +779,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
         headerRow[date] = date;
       });
       resourcesData.push(headerRow);
-      
+
       // Lignes pour chaque ressource
       (hoursData.resources || []).forEach((r: any) => {
         const row: any = {
@@ -789,7 +789,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
           'Jours': '',
           'Total (€)': ''
         };
-        
+
         // Calculer jours et total pour les personnes
         if (r.type === 'person') {
           const days = (r.timeEntries || []).length * 0.5;
@@ -801,7 +801,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
           const total = (r.entries || []).reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
           row['Total (€)'] = total;
         }
-        
+
         // Remplir les dates
         dates.forEach(date => {
           if (r.type === 'person') {
@@ -821,10 +821,10 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
             row[date] = entry ? (entry.amount || 0) : '';
           }
         });
-        
+
         resourcesData.push(row);
       });
-      
+
       // Ligne de total par jour
       const totalRow: any = {
         'Type': 'TOTAL',
@@ -849,7 +849,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
         totalRow[date] = dayTotal;
       });
       resourcesData.push(totalRow);
-      
+
       // Section 3 : Données pour le graphique (3 mois depuis projectStartDate)
       const chartStartDate = new Date(hoursData.projectStartDate);
       const chartEndDate = new Date(chartStartDate);
@@ -860,11 +860,11 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
         chartDates.push(chartCurrent.toISOString().split('T')[0]);
         chartCurrent.setDate(chartCurrent.getDate() + 1);
       }
-      
+
       const chartData: any[] = [
         { 'Date': 'Date', 'Jours imputés': 'Jours imputés', 'Coût cumulé (€)': 'Coût cumulé (€)', 'Coût fournisseurs cumulé (€)': 'Coût fournisseurs cumulé (€)', 'Prix de vente (€)': 'Prix de vente (€)' }
       ];
-      
+
       chartDates.forEach(date => {
         // Calculer jours imputés
         let days = 0;
@@ -876,7 +876,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
             else if (hasMorning || hasAfternoon) days += 0.5;
           }
         });
-        
+
         // Calculer coût cumulé
         let cumulativeCost = 0;
         const targetDate = new Date(date);
@@ -897,7 +897,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
             });
           }
         });
-        
+
         // Calculer coût fournisseurs cumulé
         let cumulativeSupplierCost = 0;
         (hoursData.resources || []).forEach((r: any) => {
@@ -910,7 +910,7 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
             });
           }
         });
-        
+
         chartData.push({
           'Date': date,
           'Jours imputés': days,
@@ -919,10 +919,10 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
           'Prix de vente (€)': hoursData.salePrice || 0
         });
       });
-      
+
       // Créer une feuille combinée avec toutes les sections
       const combinedData: any[] = [];
-      
+
       // Ajouter les informations générales
       combinedData.push({ '': '=== INFORMATIONS GÉNÉRALES ===' });
       combinedData.push({});
@@ -932,39 +932,39 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
       combinedData.push({});
       combinedData.push({ '': '=== RESSOURCES ET IMPUTATIONS ===' });
       combinedData.push({});
-      
+
       // Ajouter le tableau des ressources
       resourcesData.forEach((row: any) => {
         combinedData.push(row);
       });
-      
+
       combinedData.push({});
       combinedData.push({ '': '=== DONNÉES POUR GRAPHIQUE ===' });
       combinedData.push({});
-      
+
       // Ajouter les données du graphique
       chartData.forEach((row: any) => {
         combinedData.push(row);
       });
-      
+
       const wsCombined = XLSX.utils.json_to_sheet(combinedData);
       // Note: Excel limite les noms d'onglets à 31 caractères
       const sheetName = (d.name || 'Suivi des heures').substring(0, 31);
       XLSX.utils.book_append_sheet(wb, wsCombined, sheetName);
     }
   });
-  
+
   // Générer le buffer Excel
   try {
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    
+
     // Encoder le nom du fichier pour éviter les problèmes avec les caractères spéciaux
     const encodedFileName = encodeURIComponent(cockpit.name.replace(/[^\w\s-]/g, '')).replace(/'/g, '%27');
-    
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}.xlsx"; filename*=UTF-8''${encodedFileName}.xlsx`);
     res.setHeader('Content-Length', buffer.length.toString());
-    
+
     res.send(buffer);
   } catch (error: any) {
     console.error('Erreur génération Excel:', error);
@@ -988,16 +988,16 @@ app.get('/api/templates', authMiddleware, (_req: AuthRequest, res) => {
 // API Assistant IA avec OpenAI
 app.post('/api/ai/chat', authMiddleware, async (req: AuthRequest, res) => {
   const { message, cockpitContext, history = [] } = req.body;
-  
+
   // Vérifier la clé API - essayer plusieurs méthodes
   const apiKey = process.env.OPENAI_API_KEY || OPENAI_API_KEY;
-  
+
   if (!apiKey) {
-    return res.status(500).json({ 
-      error: 'Clé API OpenAI non configurée. Ajoutez OPENAI_API_KEY dans vos variables d\'environnement.' 
+    return res.status(500).json({
+      error: 'Clé API OpenAI non configurée. Ajoutez OPENAI_API_KEY dans vos variables d\'environnement.'
     });
   }
-  
+
   try {
     const systemPrompt = `Tu es un assistant IA pour le studio de cockpit SOMONE. Tu aides les utilisateurs à créer et modifier leurs maquettes de cockpit.
 
@@ -1138,7 +1138,7 @@ Toutes les actions peuvent être combinées dans un tableau pour une exécution 
     const chatMessages: Array<{ role: string; content: string }> = [
       { role: 'system', content: systemPrompt }
     ];
-    
+
     // Ajouter l'historique de la conversation (limité aux 20 derniers messages pour éviter de dépasser les limites)
     const recentHistory = history.slice(-20);
     for (const msg of recentHistory) {
@@ -1147,7 +1147,7 @@ Toutes les actions peuvent être combinées dans un tableau pour une exécution 
         content: msg.content
       });
     }
-    
+
     // Ajouter le nouveau message
     chatMessages.push({ role: 'user', content: message });
 
@@ -1164,20 +1164,20 @@ Toutes les actions peuvent être combinées dans un tableau pour une exécution 
         max_tokens: 1000,
       }),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Erreur OpenAI:', errorData);
       return res.status(500).json({ error: 'Erreur lors de la communication avec OpenAI' });
     }
-    
+
     const data = await response.json();
     const aiMessage = data.choices[0]?.message?.content || 'Désolé, je n\'ai pas pu générer de réponse.';
-    
+
     // Extraire les actions du message (peut être un tableau ou une action unique)
     const actionMatch = aiMessage.match(/```action\n([\s\S]*?)\n```/);
     let actions: any[] = [];
-    
+
     if (actionMatch) {
       try {
         const parsed = JSON.parse(actionMatch[1]);
@@ -1187,12 +1187,12 @@ Toutes les actions peuvent être combinées dans un tableau pour une exécution 
         console.error('Erreur parsing action:', actionMatch[1]);
       }
     }
-    
+
     res.json({
       message: aiMessage.replace(/```action\n[\s\S]*?\n```/g, '').trim(),
       actions, // Retourner un tableau d'actions
     });
-    
+
   } catch (error) {
     console.error('Erreur API IA:', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
@@ -1201,7 +1201,7 @@ Toutes les actions peuvent être combinées dans un tableau pour une exécution 
 
 // Endpoint pour vérifier si l'API OpenAI est configurée
 app.get('/api/ai/status', authMiddleware, (_req: AuthRequest, res) => {
-  res.json({ 
+  res.json({
     configured: !!OPENAI_API_KEY,
     model: 'gpt-4o-mini'
   });
@@ -1211,25 +1211,25 @@ app.get('/api/ai/status', authMiddleware, (_req: AuthRequest, res) => {
 app.post('/api/public/ai/chat/:publicId', async (req, res) => {
   const { publicId } = req.params;
   const { message, history = [] } = req.body;
-  
+
   // Vérifier que le cockpit existe et est publié
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
-  
+
   if (!cockpit) {
     return res.status(404).json({ error: 'Cockpit non trouvé ou non publié' });
   }
-  
+
   // Vérifier la clé API - essayer plusieurs méthodes
   const apiKey = process.env.OPENAI_API_KEY || OPENAI_API_KEY;
-  
+
   if (!apiKey) {
     console.error('[AI Chat Public] OPENAI_API_KEY non configurée');
-    return res.status(500).json({ 
-      error: 'Clé API OpenAI non configurée. L\'assistant IA n\'est pas disponible.' 
+    return res.status(500).json({
+      error: 'Clé API OpenAI non configurée. L\'assistant IA n\'est pas disponible.'
     });
   }
-  
+
   try {
     // Construire le contexte COMPLET du cockpit (en lecture seule pour les cockpits publics)
     const cockpitData = cockpit.data || {};
@@ -1309,7 +1309,7 @@ app.post('/api/public/ai/chat/:publicId', async (req, res) => {
         name: z.name
       }))
     };
-    
+
     const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, en mode consultation d'un cockpit publié.
 
 Ce cockpit est en MODE LECTURE SEULE - tu ne peux QUE répondre aux questions, pas modifier le cockpit.
@@ -1365,12 +1365,12 @@ INSTRUCTIONS:
    - Faire des recherches croisées entre zones, domaines et éléments
    - Identifier les tendances et patterns
 5. Sois précis et utilise les données réelles du cockpit dans tes réponses`;
-    
+
     // Construire les messages avec l'historique
     const chatMessages: Array<{ role: string; content: string }> = [
       { role: 'system', content: systemPrompt }
     ];
-    
+
     // Ajouter l'historique de la conversation (limité aux 20 derniers messages)
     const recentHistory = history.slice(-20);
     for (const msg of recentHistory) {
@@ -1379,7 +1379,7 @@ INSTRUCTIONS:
         content: msg.content
       });
     }
-    
+
     // Ajouter le nouveau message
     chatMessages.push({ role: 'user', content: message });
 
@@ -1396,20 +1396,20 @@ INSTRUCTIONS:
         max_tokens: 1000,
       }),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Erreur OpenAI (public):', errorData);
       return res.status(500).json({ error: 'Erreur lors de la communication avec OpenAI' });
     }
-    
+
     const data = await response.json();
     const aiMessage = data.choices[0]?.message?.content || 'Désolé, je n\'ai pas pu générer de réponse.';
-    
+
     res.json({
       message: aiMessage,
     });
-    
+
   } catch (error) {
     console.error('Erreur API IA publique:', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
@@ -1419,26 +1419,26 @@ INSTRUCTIONS:
 // Endpoint pour vérifier si l'API OpenAI est configurée (version publique)
 app.get('/api/public/ai/status/:publicId', (req, res) => {
   const { publicId } = req.params;
-  
+
   // Vérifier que le cockpit existe et est publié
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
-  
+
   if (!cockpit) {
     return res.status(404).json({ error: 'Cockpit non trouvé ou non publié' });
   }
-  
+
   // Vérifier la clé API - essayer plusieurs méthodes
   const envKey = process.env.OPENAI_API_KEY;
   const constKey = OPENAI_API_KEY;
   const hasKey = !!(envKey || constKey);
   const keyLength = (envKey || constKey || '').length;
   const keyPrefix = (envKey || constKey || '').substring(0, 7);
-  
+
   console.log(`[AI Status] PublicId: ${publicId}, Has Key: ${hasKey}, Length: ${keyLength}, Prefix: ${keyPrefix}`);
   console.log(`[AI Status] envKey exists: ${!!envKey}, constKey exists: ${!!constKey}`);
-  
-  res.json({ 
+
+  res.json({
     configured: hasKey,
     model: 'gpt-4o-mini',
     debug: process.env.NODE_ENV === 'development' ? {
@@ -1454,22 +1454,22 @@ app.get('/api/public/ai/status/:publicId', (req, res) => {
 // Endpoint pour analyser une image de carte et détecter les coordonnées GPS
 app.post('/api/ai/analyze-map', authMiddleware, async (req: AuthRequest, res) => {
   const { imageUrl } = req.body;
-  
+
   // Vérifier la clé API - essayer plusieurs méthodes
   const apiKey = process.env.OPENAI_API_KEY || OPENAI_API_KEY;
-  
+
   if (!apiKey) {
-    return res.status(500).json({ 
-      error: 'Clé API OpenAI non configurée.' 
+    return res.status(500).json({
+      error: 'Clé API OpenAI non configurée.'
     });
   }
-  
+
   if (!imageUrl) {
     return res.status(400).json({ error: 'URL de l\'image requise' });
   }
-  
+
   console.log('Analyse carte - URL reçue:', imageUrl.substring(0, 100) + '...');
-  
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -1531,24 +1531,24 @@ Si tu ne reconnais pas la carte:
         max_tokens: 300,
       }),
     });
-    
+
     console.log('Réponse OpenAI status:', response.status);
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Erreur OpenAI Vision:', JSON.stringify(errorData, null, 2));
       const errorMessage = errorData.error?.message || 'Erreur lors de l\'analyse de l\'image';
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: errorMessage,
         details: errorData.error?.code || 'unknown'
       });
     }
-    
+
     const data = await response.json();
     const aiMessage = data.choices[0]?.message?.content || '';
-    
+
     console.log('Réponse IA brute:', aiMessage);
-    
+
     // Parser le JSON de la réponse
     try {
       // Nettoyer la réponse (enlever les backticks markdown si présents)
@@ -1558,19 +1558,19 @@ Si tu ne reconnais pas la carte:
       } else if (cleanedMessage.startsWith('```')) {
         cleanedMessage = cleanedMessage.replace(/^```\n?/, '').replace(/\n?```$/, '');
       }
-      
+
       const result = JSON.parse(cleanedMessage);
       console.log('Résultat parsé:', JSON.stringify(result, null, 2));
       res.json(result);
     } catch (parseError) {
       console.error('Erreur parsing réponse IA:', aiMessage);
-      res.json({ 
-        detected: false, 
+      res.json({
+        detected: false,
         reason: 'Impossible de parser la réponse de l\'IA',
         rawResponse: aiMessage
       });
     }
-    
+
   } catch (error) {
     console.error('Erreur API analyse carte:', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
@@ -1581,12 +1581,12 @@ Si tu ne reconnais pas la carte:
 app.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
   console.log(`📦 Environnement: ${process.env.NODE_ENV || 'production'}`);
-  
+
   // Diagnostic de la clé API
   const hasKey = !!OPENAI_API_KEY;
   const keyLength = OPENAI_API_KEY ? OPENAI_API_KEY.length : 0;
   const keyPrefix = OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 10) + '...' : 'none';
-  
+
   console.log(`🔑 OPENAI_API_KEY présente: ${hasKey}`);
   if (hasKey) {
     console.log(`✅ Assistant IA OpenAI activé (clé de ${keyLength} caractères, préfixe: ${keyPrefix})`);
@@ -1594,7 +1594,7 @@ app.listen(PORT, () => {
     console.log('⚠️  Assistant IA désactivé - OPENAI_API_KEY non configurée');
     console.log('💡 Pour activer: Ajoutez OPENAI_API_KEY dans les variables d\'environnement Vercel');
   }
-  
+
   // Vérifier aussi process.env directement
   if (process.env.OPENAI_API_KEY) {
     console.log(`📝 Variable d'environnement process.env.OPENAI_API_KEY détectée`);

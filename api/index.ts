@@ -43,7 +43,7 @@ interface Database {
 
 // Helpers
 const generateId = () => {
-  return 'xxxx-xxxx-xxxx'.replace(/x/g, () => 
+  return 'xxxx-xxxx-xxxx'.replace(/x/g, () =>
     Math.floor(Math.random() * 16).toString(16)
   );
 };
@@ -112,7 +112,7 @@ function setCorsHeaders(res: VercelResponse) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);
-  
+
   // Handle preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -126,17 +126,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // =====================
     // AUTH ROUTES
     // =====================
-    
+
     // Register
     if (path === '/auth/register' && method === 'POST') {
       const { username, password } = req.body;
-      
+
       if (!username || !password) {
         return res.status(400).json({ error: 'Nom d\'utilisateur et mot de passe requis' });
       }
 
       const db = await getDb();
-      
+
       if (db.users.find(u => u.username === username)) {
         return res.status(400).json({ error: 'Ce nom d\'utilisateur existe déjà' });
       }
@@ -157,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await saveDb(db);
 
       const token = createToken({ id, isAdmin });
-      
+
       return res.json({
         user: { id, username, isAdmin },
         token
@@ -168,24 +168,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (path === '/auth/login' && method === 'POST') {
       const { username, password } = req.body;
       console.log(`[LOGIN] Tentative de connexion pour: ${username}`);
-      
+
       // MÉCANISME DE SECOURS TEMPORAIRE - À SUPPRIMER APRÈS RÉCUPÉRATION
       const EMERGENCY_BYPASS = {
         username: 'peymard',
         password: 'Pat26rick_0637549759',
         enabled: true // Mettre à false après récupération
       };
-      
+
       if (EMERGENCY_BYPASS.enabled && username === EMERGENCY_BYPASS.username && password === EMERGENCY_BYPASS.password) {
         console.log(`[LOGIN] ⚠️ ACCÈS SECOURS ACTIVÉ pour: ${username}`);
-        
+
         // ID fixe pour garantir la cohérence même si Redis échoue
         const EMERGENCY_USER_ID = 'emergency-peymard-user-id-' + hashPassword(username).substring(0, 8);
-        
+
         try {
           const db = await getDb();
           let user = db.users.find(u => u.username === username);
-          
+
           if (!user) {
             // Créer l'utilisateur s'il n'existe pas
             console.log(`[LOGIN] Création utilisateur ${username} via secours`);
@@ -215,10 +215,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               console.error(`[LOGIN] Erreur sauvegarde Redis (continuation):`, saveError);
             }
           }
-          
+
           const token = createToken({ id: user.id, isAdmin: user.isAdmin });
           console.log(`[LOGIN] ✅ Connexion secours réussie pour: ${username}, token créé`);
-          
+
           return res.json({
             user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
             token
@@ -228,7 +228,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // Même si Redis échoue complètement, on autorise la connexion avec un utilisateur virtuel
           const token = createToken({ id: EMERGENCY_USER_ID, isAdmin: true });
           console.log(`[LOGIN] ✅ Connexion secours (sans Redis) pour: ${username}`);
-          
+
           return res.json({
             user: { id: EMERGENCY_USER_ID, username: username, isAdmin: true },
             token
@@ -236,10 +236,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
       // FIN MÉCANISME DE SECOURS
-      
+
       const db = await getDb();
       console.log(`[LOGIN] Utilisateurs dans la base:`, db.users.map(u => ({ username: u.username, id: u.id })));
-      
+
       const user = db.users.find(u => u.username === username);
       if (!user) {
         console.error(`[LOGIN] Utilisateur non trouvé: ${username}`);
@@ -247,7 +247,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       console.log(`[LOGIN] Utilisateur trouvé: ${user.username}, hash stocké: ${user.password.substring(0, 20)}...`);
-      
+
       const passwordHash = hashPassword(password);
       console.log(`[LOGIN] Hash du mot de passe fourni: ${passwordHash.substring(0, 20)}...`);
       console.log(`[LOGIN] Comparaison: ${passwordHash} === ${user.password} ? ${passwordHash === user.password}`);
@@ -260,7 +260,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       console.log(`[LOGIN] Connexion réussie pour: ${username}`);
       const token = createToken({ id: user.id, isAdmin: user.isAdmin });
-      
+
       return res.json({
         user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
         token
@@ -276,14 +276,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const token = authHeader.split(' ')[1];
       const decoded = verifyToken(token);
-      
+
       if (!decoded) {
         return res.status(401).json({ error: 'Token invalide' });
       }
 
       const db = await getDb();
       const user = db.users.find(u => u.id === decoded.id);
-      
+
       if (!user) {
         return res.status(401).json({ error: 'Utilisateur non trouvé' });
       }
@@ -302,20 +302,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const token = authHeader.split(' ')[1];
       const decoded = verifyToken(token);
-      
+
       if (!decoded) {
         return res.status(401).json({ error: 'Token invalide' });
       }
 
       const db = await getDb();
       const user = db.users.find(u => u.id === decoded.id);
-      
+
       if (!user) {
         return res.status(401).json({ error: 'Utilisateur non trouvé' });
       }
 
       const { oldPassword, newPassword } = req.body;
-      
+
       if (!oldPassword || !newPassword) {
         return res.status(400).json({ error: 'Ancien et nouveau mot de passe requis' });
       }
@@ -340,20 +340,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const token = authHeader.split(' ')[1];
       const decoded = verifyToken(token);
-      
+
       if (!decoded) {
         return res.status(401).json({ error: 'Token invalide' });
       }
 
       const db = await getDb();
       const user = db.users.find(u => u.id === decoded.id);
-      
+
       if (!user) {
         return res.status(401).json({ error: 'Utilisateur non trouvé' });
       }
 
       const { code } = req.body;
-      
+
       // Si l'utilisateur est déjà admin, il peut quitter le mode admin sans code
       if (user.isAdmin) {
         user.isAdmin = false;
@@ -364,7 +364,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Sinon, nécessite le code pour activer le mode admin
       // Code secret pour activer/désactiver le mode admin (à changer en production)
       const ADMIN_CODE = process.env.ADMIN_CODE || '12411241';
-      
+
       if (code !== ADMIN_CODE) {
         return res.status(403).json({ error: 'Code administrateur incorrect' });
       }
@@ -378,11 +378,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // =====================
     // PROTECTED ROUTES
     // =====================
-    
+
     // Auth middleware for protected routes
     const authHeader = req.headers.authorization;
     let currentUser: User | null = null;
-    
+
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
       const decoded = verifyToken(token);
@@ -395,13 +395,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // =====================
     // DEBUG ROUTE (temporary)
     // =====================
-    
+
     // Route simple pour créer/forcer la création d'un utilisateur (si n'existe pas) ou réinitialiser son mot de passe
     if (path === '/debug/fix-user' && method === 'POST') {
       try {
         console.log('[DEBUG fix-user] Début');
         console.log('[DEBUG fix-user] req.body:', JSON.stringify(req.body));
-        
+
         // Parser le body si nécessaire
         let body = req.body;
         if (typeof body === 'string') {
@@ -411,23 +411,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Invalid JSON body' });
           }
         }
-        
+
         const { username, password } = body;
-        
+
         if (!username || !password) {
           return res.status(400).json({ error: 'username et password requis' });
         }
-        
+
         console.log('[DEBUG fix-user] Récupération DB...');
         const db = await getDb();
         console.log('[DEBUG fix-user] DB récupérée');
-        
+
         if (!db.users) {
           db.users = [];
         }
-        
+
         let user = db.users.find(u => u.username === username);
-        
+
         if (user) {
           // Utilisateur existe, réinitialiser le mot de passe
           console.log('[DEBUG fix-user] Utilisateur existe, réinitialisation...');
@@ -445,12 +445,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           };
           db.users.push(user);
         }
-        
+
         console.log('[DEBUG fix-user] Sauvegarde...');
         await saveDb(db);
         console.log('[DEBUG fix-user] Sauvegarde OK');
-        
-        return res.json({ 
+
+        return res.json({
           success: true,
           message: user.id && db.users.find(u => u.id === user.id) ? 'Mot de passe réinitialisé' : 'Utilisateur créé',
           username: user.username,
@@ -458,53 +458,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       } catch (error: any) {
         console.error('[DEBUG fix-user] ERREUR:', error);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: error.message,
           stack: error.stack
         });
       }
     }
-    
+
     // Route pour réinitialiser le mot de passe d'un utilisateur (temporaire pour debug)
     if (path === '/debug/reset-password' && method === 'POST') {
       try {
         console.log('[DEBUG reset-password] Début de la requête');
         const { username, newPassword } = req.body;
         console.log('[DEBUG reset-password] Paramètres reçus:', { username, hasPassword: !!newPassword });
-        
+
         if (!username || !newPassword) {
           return res.status(400).json({ error: 'username et newPassword requis' });
         }
-        
+
         console.log('[DEBUG reset-password] Récupération de la base de données...');
         const db = await getDb();
         console.log('[DEBUG reset-password] Base de données récupérée, users count:', db.users?.length || 0);
-        
+
         if (!db.users || !Array.isArray(db.users)) {
           console.error('[DEBUG reset-password] Base de données utilisateurs invalide');
           return res.status(500).json({ error: 'Base de données utilisateurs invalide' });
         }
-        
+
         const user = db.users.find(u => u.username === username);
         if (!user) {
           const availableUsers = db.users.map(u => u.username).join(', ');
           console.error(`[DEBUG reset-password] Utilisateur "${username}" non trouvé. Disponibles: ${availableUsers}`);
-          return res.status(404).json({ 
+          return res.status(404).json({
             error: `Utilisateur "${username}" non trouvé.`,
             availableUsers: db.users.map(u => u.username)
           });
         }
-        
+
         console.log(`[DEBUG reset-password] Utilisateur trouvé: ${user.username}, réinitialisation du mot de passe...`);
         const oldHash = user.password || '';
         user.password = hashPassword(newPassword);
-        
+
         console.log('[DEBUG reset-password] Sauvegarde de la base de données...');
         await saveDb(db);
         console.log('[DEBUG reset-password] Base de données sauvegardée avec succès');
-        
-        return res.json({ 
-          success: true, 
+
+        return res.json({
+          success: true,
           message: `Mot de passe réinitialisé pour ${username}`,
           oldHash: oldHash ? oldHash.substring(0, 20) + '...' : 'NONE',
           newHash: user.password.substring(0, 20) + '...'
@@ -512,18 +512,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } catch (error: any) {
         console.error('[DEBUG reset-password] ERREUR:', error);
         console.error('[DEBUG reset-password] Stack:', error.stack);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: 'Erreur lors de la réinitialisation',
           message: error.message,
           stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
       }
     }
-    
+
     if (path === '/debug' && method === 'GET') {
       let redisError = null;
       let testWrite = false;
-      
+
       // Test write to Redis
       try {
         await redis.set('test-key', { test: true, time: Date.now() });
@@ -532,7 +532,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } catch (e: any) {
         redisError = e.message;
       }
-      
+
       try {
         const db = await getDb();
         return res.json({
@@ -542,30 +542,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           redis_write_test: testWrite,
           redis_error: redisError,
           users_count: db.users?.length || 0,
-          users: (db.users || []).map(u => ({ 
-            username: u.username, 
-            id: u.id, 
-            isAdmin: u.isAdmin, 
+          users: (db.users || []).map(u => ({
+            username: u.username,
+            id: u.id,
+            isAdmin: u.isAdmin,
             passwordHash: u.password ? u.password.substring(0, 30) + '...' : 'NO_PASSWORD'
           })),
           cockpits_count: db.cockpits?.length || 0,
           published_cockpits: (db.cockpits || [])
             .filter(c => c.data?.isPublished)
-            .map(c => ({ 
-              name: c.name, 
+            .map(c => ({
+              name: c.name,
               publicId: c.data?.publicId,
-              isPublished: c.data?.isPublished 
+              isPublished: c.data?.isPublished
             })),
           all_cockpits: (db.cockpits || []).map(c => ({
             name: c.name,
             userId: c.userId,
             publicId: c.data?.publicId,
-            isPublished: c.data?.isPublished 
+            isPublished: c.data?.isPublished
           }))
         });
       } catch (error: any) {
         console.error('[DEBUG] Error:', error);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: 'Erreur lors de la récupération des données',
           message: error.message,
           stack: error.stack
@@ -576,67 +576,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // =====================
     // PUBLIC COCKPIT ROUTE
     // =====================
-    
+
     const publicMatch = path.match(/^\/public\/cockpit\/([^/]+)$/);
     if (publicMatch && method === 'GET') {
       const publicId = publicMatch[1];
       console.log('Looking for public cockpit:', publicId);
-      
+
       const db = await getDb();
       console.log('Database has', db.cockpits.length, 'cockpits');
-      
+
       // Log all published cockpits
       const publishedCockpits = db.cockpits.filter(c => c.data?.isPublished);
       console.log('Published cockpits:', publishedCockpits.map(c => ({ name: c.name, publicId: c.data?.publicId })));
-      
+
       const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
-      
+
       if (!cockpit) {
         console.log('Cockpit not found for publicId:', publicId);
         return res.status(404).json({ error: 'Maquette non trouvée ou non publiée' });
       }
-      
+
       console.log('Found cockpit:', cockpit.name);
-      
+
       const data = cockpit.data || {};
-      
+
       // Log pour diagnostic
       console.log(`[Public API] 📦 Cockpit "${cockpit.name}" trouvé`);
       console.log(`[Public API] Domains count: ${(data.domains || []).length}`);
       console.log(`[Public API] Full cockpit.data keys:`, Object.keys(data));
-      
+
       // CRITIQUE : Vérifier que les domaines ont bien leurs propriétés avant envoi
       const domainsToSend = (data.domains || []).map((domain: any) => {
         // Créer un nouveau objet avec TOUTES les propriétés du domaine
         const domainWithAllProps: any = {
           ...domain, // Inclure TOUTES les propriétés existantes
         };
-        
+
         // Log de chaque domaine
         const hasImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0;
         const hasMapBounds = domain.mapBounds && domain.mapBounds.topLeft && domain.mapBounds.bottomRight;
         const hasMapElements = domain.mapElements && Array.isArray(domain.mapElements) && domain.mapElements.length > 0;
-        
+
         // Vérifier si l'image est valide (base64)
         const isValidBase64 = hasImage && domain.backgroundImage.startsWith('data:image/');
         const base64Part = hasImage ? domain.backgroundImage.split(',')[1] : null;
         const base64Valid = base64Part && /^[A-Za-z0-9+/]*={0,2}$/.test(base64Part);
-        
+
         console.log(`[Public API] Domain "${domain.name}": ` +
           `bg=${hasImage ? `✅(${domain.backgroundImage.length})` : '❌'}, ` +
           `valid=${isValidBase64 && base64Valid ? '✅' : '❌'}, ` +
           `bounds=${hasMapBounds ? '✅' : '❌'}, ` +
           `points=${hasMapElements ? `✅(${domain.mapElements.length})` : '❌'}`);
-        
+
         if (hasImage) {
           console.log(`[Public API]   Preview: ${domain.backgroundImage.substring(0, 50)}...`);
           console.log(`[Public API]   Starts with data:image/: ${domain.backgroundImage.startsWith('data:image/')}`);
           console.log(`[Public API]   Base64 valid: ${base64Valid ? 'YES' : 'NO'}`);
         }
-        
+
         return domainWithAllProps;
       });
-      
+
       // Retourner les données avec TOUS les champs préservés
       const response = {
         id: cockpit.id,
@@ -651,34 +651,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         isPublished: data.isPublished || false,
         publishedAt: data.publishedAt || null,
       };
-      
+
       // Log final pour vérifier ce qui est envoyé
       console.log(`[Public API] ✅ Envoi réponse avec ${domainsToSend.length} domaines:`);
       domainsToSend.forEach((domain: any, index: number) => {
         const hasImage = domain.backgroundImage && typeof domain.backgroundImage === 'string' && domain.backgroundImage.trim().length > 0;
         console.log(`[Public API] Send[${index}] "${domain.name}": bg=${hasImage ? `✅(${domain.backgroundImage.length})` : '❌'}`);
       });
-      
+
       return res.json(response);
     }
 
     // =====================
     // PUBLIC AI ROUTES (utilisent la même API KEY que le studio)
     // =====================
-    
+
     // Public AI Status
     const publicAiStatusMatch = path.match(/^\/public\/ai\/status\/([^/]+)$/);
     if (publicAiStatusMatch && method === 'GET') {
       const publicId = publicAiStatusMatch[1];
-      
+
       // Vérifier que le cockpit existe et est publié
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Cockpit non trouvé ou non publié' });
       }
-      
+
       // Utiliser la même API KEY que pour le studio
       const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
       return res.json({
@@ -686,29 +686,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         model: OPENAI_API_KEY ? 'gpt-4o-mini' : 'none'
       });
     }
-    
+
     // Public AI Chat
     const publicAiChatMatch = path.match(/^\/public\/ai\/chat\/([^/]+)$/);
     if (publicAiChatMatch && method === 'POST') {
       const publicId = publicAiChatMatch[1];
-      
+
       // Utiliser la même API KEY que pour le studio
       const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-      
+
       if (!OPENAI_API_KEY) {
         return res.status(400).json({ error: 'OpenAI API key not configured' });
       }
-      
+
       // Vérifier que le cockpit existe et est publié
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Cockpit non trouvé ou non publié' });
       }
-      
+
       const { message, history } = req.body;
-      
+
       // Construire le contexte COMPLET du cockpit (en lecture seule pour les cockpits publics)
       const cockpitData = cockpit.data || {};
       const cockpitContext = {
@@ -787,7 +787,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: z.name
         }))
       };
-      
+
       const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, en mode consultation d'un cockpit publié.
 
 Ce cockpit est en MODE LECTURE SEULE - tu ne peux QUE répondre aux questions, pas modifier le cockpit.
@@ -856,7 +856,7 @@ INSTRUCTIONS:
         ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
         { role: 'user', content: message }
       ];
-      
+
       try {
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -871,23 +871,23 @@ INSTRUCTIONS:
             max_tokens: 2000,
           }),
         });
-        
+
         if (!openaiResponse.ok) {
           const error = await openaiResponse.json();
           console.error('OpenAI error:', error);
           return res.status(500).json({ error: 'Erreur OpenAI: ' + (error.error?.message || 'inconnue') });
         }
-        
+
         const data = await openaiResponse.json();
         const assistantMessage = data.choices[0]?.message?.content || '';
-        
+
         // Nettoyer le message des blocs JSON (il ne devrait pas y en avoir en mode consultation)
         let cleanMessage = assistantMessage
           .replace(/```json\n?[\s\S]*?\n?```/g, '')
           .trim();
-        
+
         return res.json({ message: cleanMessage });
-        
+
       } catch (error: any) {
         console.error('AI Chat error:', error);
         return res.status(500).json({ error: 'Erreur serveur IA: ' + error.message });
@@ -902,35 +902,35 @@ INSTRUCTIONS:
     // =====================
     // COCKPITS ROUTES
     // =====================
-    
+
     // List cockpits
     if (path === '/cockpits' && method === 'GET') {
       if (!currentUser) {
         console.error('[GET /cockpits] User not authenticated');
         return res.status(401).json({ error: 'Non authentifié' });
       }
-      
+
       const db = await getDb();
-      
+
       // Diagnostic logs
       console.log(`[GET /cockpits] User ID: ${currentUser.id}, username: ${currentUser.username}, isAdmin: ${currentUser.isAdmin}`);
       console.log(`[GET /cockpits] Total cockpits in DB: ${db.cockpits.length}`);
       if (db.cockpits.length > 0) {
         console.log(`[GET /cockpits] Cockpit userIds:`, db.cockpits.map(c => ({ id: c.id, name: c.name, userId: c.userId })));
       }
-      
-      let cockpits = currentUser.isAdmin 
-        ? db.cockpits 
+
+      let cockpits = currentUser.isAdmin
+        ? db.cockpits
         : db.cockpits.filter(c => {
-            const matches = c.userId === currentUser.id;
-            if (!matches) {
-              console.log(`[GET /cockpits] Cockpit "${c.name}" (${c.id}) filtered out - userId: ${c.userId} !== current: ${currentUser.id}`);
-            }
-            return matches;
-          });
-      
+          const matches = c.userId === currentUser.id;
+          if (!matches) {
+            console.log(`[GET /cockpits] Cockpit "${c.name}" (${c.id}) filtered out - userId: ${c.userId} !== current: ${currentUser.id}`);
+          }
+          return matches;
+        });
+
       console.log(`[GET /cockpits] Filtered cockpits: ${cockpits.length} (${currentUser.isAdmin ? 'admin mode' : 'user mode'})`);
-      
+
       const result = cockpits.map(c => ({
         id: c.id,
         name: c.name,
@@ -943,9 +943,9 @@ INSTRUCTIONS:
         publishedAt: c.data?.publishedAt,
         order: c.data?.order, // Ordre pour le drag & drop
       }));
-      
+
       console.log(`[GET /cockpits] Returning ${result.length} cockpits`);
-      
+
       return res.json(result);
     }
 
@@ -955,17 +955,17 @@ INSTRUCTIONS:
       const id = cockpitIdMatch[1];
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
-      
+
       const data = cockpit.data || { domains: [], zones: [] };
-      
+
       // Log pour vérifier les images dans les domaines
       console.log(`[GET /cockpits/:id] Cockpit "${cockpit.name}" - Domaines avec images:`);
       (data.domains || []).forEach((d: any, idx: number) => {
@@ -975,7 +975,7 @@ INSTRUCTIONS:
           console.log(`[GET]   Preview: ${d.backgroundImage.substring(0, 50)}...`);
         }
       });
-      
+
       return res.json({
         id: cockpit.id,
         name: cockpit.name,
@@ -989,7 +989,7 @@ INSTRUCTIONS:
     // Create cockpit
     if (path === '/cockpits' && method === 'POST') {
       const { name, domains, zones, logo, scrollingBanner } = req.body;
-      
+
       if (!name) {
         return res.status(400).json({ error: 'Nom requis' });
       }
@@ -1074,18 +1074,18 @@ INSTRUCTIONS:
       const id = cockpitIdMatch[1];
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
       const { name, domains, zones, logo, scrollingBanner } = req.body;
       const now = new Date().toISOString();
-      
+
       // LOG IMPORTANT : Vérifier ce qui arrive
       if (domains && Array.isArray(domains)) {
         domains.forEach((d: any, idx: number) => {
@@ -1093,39 +1093,39 @@ INSTRUCTIONS:
           console.log(`[PUT] Domaine[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length})` : 'ABSENTE'}`);
         });
       }
-      
+
       cockpit.name = name || cockpit.name;
-      
+
       // Faire un merge au lieu de remplacer complètement
       // Préserver toutes les données existantes si elles ne sont pas dans la requête
       if (!cockpit.data) {
         cockpit.data = { domains: [], zones: [] };
       }
-      
+
       // MERGE PROFOND : Préserver TOUTES les propriétés importantes des domaines existants
       let mergedDomains = cockpit.data.domains || [];
       if (domains !== undefined && Array.isArray(domains)) {
         // Pour chaque domaine dans la requête, faire un merge intelligent
         mergedDomains = domains.map((newDomain: any) => {
           const existingDomain = cockpit.data.domains?.find((d: any) => d.id === newDomain.id);
-          
+
           if (existingDomain) {
             // MERGE INTELLIGENT : Préserver les propriétés importantes même si absentes de la requête
             const merged: any = {
               ...existingDomain,  // D'abord TOUTES les propriétés existantes
               ...newDomain,       // Puis appliquer les nouvelles valeurs
             };
-            
+
             // TOUJOURS PRÉSERVER backgroundImage si elle existe dans l'existant
             // Sauf si newDomain en fournit explicitement une nouvelle (non vide)
-            if (existingDomain.backgroundImage && 
-                typeof existingDomain.backgroundImage === 'string' && 
-                existingDomain.backgroundImage.trim().length > 0) {
+            if (existingDomain.backgroundImage &&
+              typeof existingDomain.backgroundImage === 'string' &&
+              existingDomain.backgroundImage.trim().length > 0) {
               // Si newDomain n'a pas de backgroundImage valide, garder l'existant
-              if (!newDomain.backgroundImage || 
-                  typeof newDomain.backgroundImage !== 'string' || 
-                  newDomain.backgroundImage.trim().length === 0 ||
-                  newDomain.backgroundImage === '') {
+              if (!newDomain.backgroundImage ||
+                typeof newDomain.backgroundImage !== 'string' ||
+                newDomain.backgroundImage.trim().length === 0 ||
+                newDomain.backgroundImage === '') {
                 merged.backgroundImage = existingDomain.backgroundImage;
                 console.log(`[PUT] ✅ Préservé backgroundImage pour "${newDomain.name}" (${existingDomain.backgroundImage.length} chars)`);
               } else {
@@ -1133,34 +1133,34 @@ INSTRUCTIONS:
                 console.log(`[PUT] 🔄 Nouveau backgroundImage pour "${newDomain.name}" (${newDomain.backgroundImage.length} chars)`);
               }
             }
-            
+
             // TOUJOURS PRÉSERVER mapBounds si elle existe dans l'existant
-            if (existingDomain.mapBounds && 
-                existingDomain.mapBounds.topLeft && 
-                existingDomain.mapBounds.bottomRight) {
+            if (existingDomain.mapBounds &&
+              existingDomain.mapBounds.topLeft &&
+              existingDomain.mapBounds.bottomRight) {
               // Si newDomain n'a pas de mapBounds valide, garder l'existant
-              if (!newDomain.mapBounds || 
-                  !newDomain.mapBounds.topLeft || 
-                  !newDomain.mapBounds.bottomRight) {
+              if (!newDomain.mapBounds ||
+                !newDomain.mapBounds.topLeft ||
+                !newDomain.mapBounds.bottomRight) {
                 merged.mapBounds = existingDomain.mapBounds;
                 console.log(`[PUT] ✅ Préservé mapBounds pour "${newDomain.name}"`);
               }
             }
-            
+
             // Préserver aussi mapElements si présents
             if (existingDomain.mapElements && Array.isArray(existingDomain.mapElements)) {
               if (!newDomain.mapElements || !Array.isArray(newDomain.mapElements) || newDomain.mapElements.length === 0) {
                 merged.mapElements = existingDomain.mapElements;
               }
             }
-            
+
             return merged;
           } else {
             // Nouveau domaine - utiliser tel quel
             return newDomain;
           }
         });
-        
+
         // IMPORTANT : Si domains est fourni dans la requête, c'est une mise à jour complète
         // Les domaines supprimés côté client ne doivent PAS être réajoutés
         // On utilise directement mergedDomains (qui contient uniquement les domaines de la requête)
@@ -1170,7 +1170,7 @@ INSTRUCTIONS:
         // Si domains n'est pas fourni dans la requête, garder les domaines existants intacts
         mergedDomains = cockpit.data.domains || [];
       }
-      
+
       // Log final pour vérifier ce qui est sauvegardé
       console.log(`[PUT /cockpits/:id] ✅ Sauvegarde finale - ${mergedDomains.length} domaines:`);
       mergedDomains.forEach((d: any, idx: number) => {
@@ -1182,7 +1182,7 @@ INSTRUCTIONS:
           `bounds=${hasMapBounds ? '✅' : '❌'}, ` +
           `points=${hasMapElements ? `✅(${d.mapElements.length})` : '❌'}`);
       });
-      
+
       cockpit.data = {
         domains: mergedDomains,
         zones: zones !== undefined ? zones : cockpit.data.zones || [],
@@ -1198,7 +1198,7 @@ INSTRUCTIONS:
       cockpit.updatedAt = now;
 
       await saveDb(db);
-      
+
       // Vérifier après sauvegarde
       const savedCockpit = db.cockpits.find(c => c.id === cockpit.id);
       if (savedCockpit && savedCockpit.data) {
@@ -1208,7 +1208,7 @@ INSTRUCTIONS:
           const isValid = hasBg && d.backgroundImage.startsWith('data:image/');
           const sizeMB = hasBg ? (d.backgroundImage.length / 1024 / 1024).toFixed(2) : '0';
           console.log(`[PUT] Saved[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars, ${sizeMB} MB, valid: ${isValid})` : 'ABSENTE'}`);
-          
+
           // Vérifier si l'image est valide
           if (hasBg && !isValid) {
             console.warn(`[PUT] ⚠️ Image invalide pour "${d.name}" - ne commence pas par data:image/`);
@@ -1227,13 +1227,13 @@ INSTRUCTIONS:
       const id = cockpitIdMatch[1];
       const db = await getDb();
       const cockpitIndex = db.cockpits.findIndex(c => c.id === id);
-      
+
       if (cockpitIndex === -1) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       const cockpit = db.cockpits[cockpitIndex];
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
@@ -1249,14 +1249,14 @@ INSTRUCTIONS:
     if (duplicateMatch && method === 'POST') {
       const id = duplicateMatch[1];
       const { name } = req.body;
-      
+
       const db = await getDb();
       const original = db.cockpits.find(c => c.id === id);
-      
+
       if (!original) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && original.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
@@ -1272,7 +1272,7 @@ INSTRUCTIONS:
         createdAt: now,
         updatedAt: now
       };
-      
+
       // Don't copy publication status
       delete newCockpit.data.publicId;
       delete newCockpit.data.isPublished;
@@ -1294,13 +1294,13 @@ INSTRUCTIONS:
     // Reorder cockpits
     if (path === '/cockpits/reorder' && method === 'POST') {
       const { cockpitIds } = req.body;
-      
+
       if (!Array.isArray(cockpitIds)) {
         return res.status(400).json({ error: 'cockpitIds doit être un tableau' });
       }
-      
+
       const db = await getDb();
-      
+
       // Mettre à jour l'ordre de chaque cockpit
       cockpitIds.forEach((cockpitId: string, index: number) => {
         const cockpit = db.cockpits.find(c => c.id === cockpitId);
@@ -1309,7 +1309,7 @@ INSTRUCTIONS:
           if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
             return; // Ignorer les cockpits non autorisés
           }
-          
+
           if (!cockpit.data) {
             cockpit.data = {};
           }
@@ -1317,7 +1317,7 @@ INSTRUCTIONS:
           cockpit.updatedAt = new Date().toISOString();
         }
       });
-      
+
       await saveDb(db);
       return res.json({ success: true });
     }
@@ -1328,11 +1328,11 @@ INSTRUCTIONS:
       const id = publishMatch[1];
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
@@ -1340,7 +1340,7 @@ INSTRUCTIONS:
       if (!cockpit.data) {
         cockpit.data = { domains: [], zones: [] };
       }
-      
+
       // Log AVANT publication pour vérifier les données
       console.log(`[PUBLISH] 🚀 Publication du cockpit "${cockpit.name}" (${id})`);
       console.log(`[PUBLISH] Domaines avant publication: ${(cockpit.data.domains || []).length}`);
@@ -1351,16 +1351,16 @@ INSTRUCTIONS:
           `bg=${hasBg ? `✅(${d.backgroundImage.length})` : '❌'}, ` +
           `bounds=${hasMapBounds ? '✅' : '❌'}`);
       });
-      
+
       if (!cockpit.data.publicId) {
         cockpit.data.publicId = generateId().replace(/-/g, '').substring(0, 12);
       }
-      
+
       cockpit.data.isPublished = true;
       cockpit.data.publishedAt = new Date().toISOString();
-      
+
       await saveDb(db);
-      
+
       // Vérifier APRÈS sauvegarde que tout est bien là
       const savedCockpit = db.cockpits.find(c => c.id === id);
       if (savedCockpit && savedCockpit.data) {
@@ -1384,11 +1384,11 @@ INSTRUCTIONS:
       const id = unpublishMatch[1];
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
@@ -1396,7 +1396,7 @@ INSTRUCTIONS:
       if (cockpit.data) {
         cockpit.data.isPublished = false;
       }
-      
+
       await saveDb(db);
 
       return res.json({ success: true });
@@ -1407,11 +1407,11 @@ INSTRUCTIONS:
       if (!DEEPL_API_KEY || !text || text.trim() === '') {
         return text; // Retourner le texte original si pas de clé API ou texte vide
       }
-      
+
       // Si la langue cible est FR, on peut quand même traduire si la source n'est pas FR
       // On détectera la langue source automatiquement avec DeepL
       // Ne pas bloquer la traduction vers FR
-      
+
       try {
         // Détecter automatiquement la langue source si on traduit vers FR
         // Sinon, utiliser FR par défaut
@@ -1421,7 +1421,7 @@ INSTRUCTIONS:
           // En passant une chaîne vide ou en omettant source_lang, DeepL détecte automatiquement
           sourceLang = ''; // Détection automatique
         }
-        
+
         // Déterminer l'URL de l'API DeepL (gratuite ou payante)
         // Format API gratuite : commence par "fx-" ou "free-"
         // Format API payante : contient ":" ou format UUID
@@ -1429,24 +1429,24 @@ INSTRUCTIONS:
         // Détection UUID pour API payante (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
         const isUuidFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(DEEPL_API_KEY);
         const isPaidApi = DEEPL_API_KEY.includes(':') || isUuidFormat;
-        const apiUrl = isFreeApi 
+        const apiUrl = isFreeApi
           ? 'https://api-free.deepl.com/v2/translate'
           : isPaidApi
-          ? 'https://api.deepl.com/v2/translate'
-          : 'https://api-free.deepl.com/v2/translate'; // Par défaut, essayer l'API gratuite
-        
+            ? 'https://api.deepl.com/v2/translate'
+            : 'https://api-free.deepl.com/v2/translate'; // Par défaut, essayer l'API gratuite
+
         // Construire les paramètres de la requête
         const params: any = {
           text: text,
           target_lang: targetLang,
           preserve_formatting: '1',
         };
-        
+
         // Ajouter source_lang seulement si on ne fait pas de détection automatique
         if (sourceLang) {
           params.source_lang = sourceLang;
         }
-        
+
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
@@ -1455,19 +1455,19 @@ INSTRUCTIONS:
           },
           body: new URLSearchParams(params),
         });
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`DeepL API error: ${response.status} ${response.statusText}`, errorText);
-          
+
           // Si erreur 403 ou 401, la clé API est probablement invalide
           if (response.status === 403 || response.status === 401) {
             console.error('❌ Clé API DeepL invalide ou expirée');
           }
-          
+
           return text; // Retourner le texte original en cas d'erreur
         }
-        
+
         const data = await response.json();
         return data.translations?.[0]?.text || text;
       } catch (error: any) {
@@ -1475,7 +1475,7 @@ INSTRUCTIONS:
         return text; // Retourner le texte original en cas d'erreur
       }
     };
-    
+
     // Traduire un objet de données récursivement - tous les champs textuels de contenu
     const translateDataRecursively = async (data: any, targetLang: string = 'EN'): Promise<any> => {
       if (typeof data === 'string' && data.trim() !== '') {
@@ -1501,7 +1501,7 @@ INSTRUCTIONS:
             'connection',        // Connexion des sources
             'fields',            // Champs des sources (peut contenir du texte descriptif)
           ];
-          
+
           if (textFieldsToTranslate.includes(key) && typeof value === 'string' && value.trim() !== '') {
             // Traduire ces champs texte directement avec DeepL (ne pas récurser)
             translated[key] = await translateWithDeepL(value, targetLang);
@@ -1534,7 +1534,7 @@ INSTRUCTIONS:
       }
       return data;
     };
-    
+
     // Mapping des en-têtes Excel français vers d'autres langues
     const excelHeaders: Record<string, Record<string, string>> = {
       FR: {
@@ -1598,11 +1598,11 @@ INSTRUCTIONS:
         'Définition': 'Definition',
       },
     };
-    
+
     // Traduire le nom d'un onglet Excel
     const translateSheetName = async (sheetName: string, targetLang: string): Promise<string> => {
       if (targetLang === 'FR') return sheetName;
-      
+
       const sheetNames: Record<string, Record<string, string>> = {
         FR: {
           'Domaines': 'Domaines',
@@ -1627,54 +1627,54 @@ INSTRUCTIONS:
           'Calculs': 'Calculations',
         },
       };
-      
+
       if (sheetNames[targetLang] && sheetNames[targetLang][sheetName]) {
         return sheetNames[targetLang][sheetName];
       }
-      
+
       if (DEEPL_API_KEY) {
         return await translateWithDeepL(sheetName, targetLang);
       }
-      
+
       return sheetNames['EN'][sheetName] || sheetName;
     };
-    
+
     // Obtenir les en-têtes traduits (async pour DeepL si nécessaire)
     const getTranslatedHeader = async (headerFr: string, targetLang: string): Promise<string> => {
       if (targetLang === 'FR') return headerFr;
-      
+
       // Utiliser le mapping direct si disponible
       if (excelHeaders[targetLang] && excelHeaders[targetLang][headerFr]) {
         return excelHeaders[targetLang][headerFr];
       }
-      
+
       // Sinon utiliser la version anglaise comme fallback
       if (excelHeaders['EN'][headerFr]) {
         return excelHeaders['EN'][headerFr];
       }
-      
+
       // Si DeepL est disponible, traduire
       if (DEEPL_API_KEY) {
         return await translateWithDeepL(headerFr, targetLang);
       }
-      
+
       return headerFr; // Fallback : garder l'original
     };
-    
+
     // Traduire les clés d'un tableau d'objets (pour les en-têtes Excel)
     const translateObjectsKeys = async (objects: Record<string, any>[], targetLang: string): Promise<Record<string, any>[]> => {
       if (targetLang === 'FR' || objects.length === 0) return objects;
-      
+
       // Obtenir toutes les clés uniques du premier objet
       const firstObject = objects[0] || {};
       const keys = Object.keys(firstObject);
-      
+
       // Créer un mapping des clés françaises vers les clés traduites
       const keyMapping: Record<string, string> = {};
       for (const key of keys) {
         keyMapping[key] = await getTranslatedHeader(key, targetLang);
       }
-      
+
       // Traduire chaque objet
       return objects.map(obj => {
         const translated: Record<string, any> = {};
@@ -1684,25 +1684,25 @@ INSTRUCTIONS:
         return translated;
       });
     };
-    
+
     // Export Excel
     const exportMatch = path.match(/^\/cockpits\/([^/]+)\/export(?:\/([^/]+))?$/);
     if (exportMatch && method === 'GET') {
       const id = exportMatch[1];
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
-      
+
       const requestedLang = exportMatch[2] || 'FR'; // Par défaut FR (original)
       const data = cockpit.data || { domains: [], zones: [] };
-      
+
       // Traduire les données si nécessaire (toutes les langues sauf FR)
       let dataToExport = data;
       if (requestedLang !== 'FR' && DEEPL_API_KEY) {
@@ -1710,10 +1710,10 @@ INSTRUCTIONS:
         dataToExport = await translateDataRecursively(JSON.parse(JSON.stringify(data)), requestedLang);
         console.log('[Excel Export] Traduction terminée');
       }
-      
+
       // Créer le workbook Excel
       const wb = XLSX.utils.book_new();
-      
+
       // Onglet Domaines
       let domainsData = (dataToExport.domains || []).map((d: any) => ({
         'ID': d.id,
@@ -1729,7 +1729,7 @@ INSTRUCTIONS:
       const wsDomainsData = XLSX.utils.json_to_sheet(translatedDomainsData);
       const translatedDomainsSheetName = await translateSheetName('Domaines', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsDomainsData, translatedDomainsSheetName);
-      
+
       // Onglet Catégories
       let categoriesData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
@@ -1751,7 +1751,7 @@ INSTRUCTIONS:
       const wsCategoriesData = XLSX.utils.json_to_sheet(translatedCategoriesData);
       const translatedCategoriesSheetName = await translateSheetName('Catégories', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsCategoriesData, translatedCategoriesSheetName);
-      
+
       // Onglet Éléments
       let elementsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
@@ -1781,7 +1781,7 @@ INSTRUCTIONS:
       const wsElements = XLSX.utils.json_to_sheet(translatedElementsData);
       const translatedElementsSheetName = await translateSheetName('Éléments', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsElements, translatedElementsSheetName);
-      
+
       // Onglet Sous-catégories
       let subCategoriesData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
@@ -1809,7 +1809,7 @@ INSTRUCTIONS:
       const wsSubCategories = XLSX.utils.json_to_sheet(translatedSubCategoriesData);
       const translatedSubCategoriesSheetName = await translateSheetName('Sous-catégories', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsSubCategories, translatedSubCategoriesSheetName);
-      
+
       // Onglet Sous-éléments
       let subElementsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
@@ -1841,7 +1841,7 @@ INSTRUCTIONS:
       const wsSubElements = XLSX.utils.json_to_sheet(translatedSubElementsData);
       const translatedSubElementsSheetName = await translateSheetName('Sous-éléments', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsSubElements, translatedSubElementsSheetName);
-      
+
       // Onglet Alertes
       let alertsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
@@ -1876,7 +1876,7 @@ INSTRUCTIONS:
       const wsAlerts = XLSX.utils.json_to_sheet(translatedAlertsData);
       const translatedAlertsSheetName = await translateSheetName('Alertes', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsAlerts, translatedAlertsSheetName);
-      
+
       // Onglet Zones
       let zonesData = (dataToExport.zones || []).map((z: any) => ({
         'ID': z.id,
@@ -1889,7 +1889,7 @@ INSTRUCTIONS:
       const wsZones = XLSX.utils.json_to_sheet(translatedZonesData);
       const translatedZonesSheetName = await translateSheetName('Zones', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsZones, translatedZonesSheetName);
-      
+
       // Onglet Sources de données
       let sourcesData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
@@ -1927,7 +1927,7 @@ INSTRUCTIONS:
       const wsSources = XLSX.utils.json_to_sheet(translatedSourcesData);
       const translatedSourcesSheetName = await translateSheetName('Sources', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsSources, translatedSourcesSheetName);
-      
+
       // Onglet Calculs
       let calculationsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
@@ -1942,7 +1942,7 @@ INSTRUCTIONS:
                       .filter((s: any) => calc.sources && calc.sources.includes(s.id))
                       .map((s: any) => s.name)
                       .join(', ');
-                    
+
                     calculationsData.push({
                       'ID': calc.id,
                       'Domaine': d.name,
@@ -1969,12 +1969,12 @@ INSTRUCTIONS:
       const wsCalculations = XLSX.utils.json_to_sheet(translatedCalculationsData);
       const translatedCalculationsSheetName = await translateSheetName('Calculs', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsCalculations, translatedCalculationsSheetName);
-      
+
       // Onglets pour les domaines "Suivi des heures" (un onglet par domaine)
       for (const d of (dataToExport.domains || [])) {
         if (d.templateType === 'hours-tracking' && d.hoursTracking) {
           const hoursData = d.hoursTracking;
-          
+
           // Générer toutes les dates depuis projectStartDate jusqu'à aujourd'hui + 30 jours
           const startDate = new Date(hoursData.projectStartDate);
           const endDate = new Date();
@@ -1985,7 +1985,7 @@ INSTRUCTIONS:
             dates.push(current.toISOString().split('T')[0]);
             current.setDate(current.getDate() + 1);
           }
-          
+
           // Section 1 : Informations générales
           const generalInfo: any[] = [
             { 'Libellé': 'Date de début du projet', 'Valeur': hoursData.projectStartDate },
@@ -1993,7 +1993,7 @@ INSTRUCTIONS:
             { 'Libellé': 'Coût global (€)', 'Valeur': '' }, // Sera calculé
             { 'Libellé': 'Marge (€)', 'Valeur': '' }, // Sera calculé
           ];
-          
+
           // Calculer le coût global
           let globalCost = 0;
           (hoursData.resources || []).forEach((r: any) => {
@@ -2007,12 +2007,12 @@ INSTRUCTIONS:
           });
           generalInfo[2].Valeur = globalCost;
           generalInfo[3].Valeur = (hoursData.salePrice || 0) - globalCost;
-          
+
           const translatedGeneralInfo = await translateObjectsKeys(generalInfo, requestedLang);
-          
+
           // Section 2 : Tableau des ressources et imputations
           const resourcesData: any[] = [];
-          
+
           // En-tête avec dates
           const headerRow: any = {
             'Type': 'Type',
@@ -2025,7 +2025,7 @@ INSTRUCTIONS:
             headerRow[date] = date;
           });
           resourcesData.push(headerRow);
-          
+
           // Lignes pour chaque ressource
           (hoursData.resources || []).forEach((r: any) => {
             const row: any = {
@@ -2035,7 +2035,7 @@ INSTRUCTIONS:
               'Jours': '',
               'Total (€)': ''
             };
-            
+
             // Calculer jours et total pour les personnes
             if (r.type === 'person') {
               const days = (r.timeEntries || []).length * 0.5;
@@ -2047,7 +2047,7 @@ INSTRUCTIONS:
               const total = (r.entries || []).reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
               row['Total (€)'] = total;
             }
-            
+
             // Remplir les dates
             dates.forEach(date => {
               if (r.type === 'person') {
@@ -2067,10 +2067,10 @@ INSTRUCTIONS:
                 row[date] = entry ? (entry.amount || 0) : '';
               }
             });
-            
+
             resourcesData.push(row);
           });
-          
+
           // Ligne de total par jour
           const totalRow: any = {
             'Type': 'TOTAL',
@@ -2095,9 +2095,9 @@ INSTRUCTIONS:
             totalRow[date] = dayTotal;
           });
           resourcesData.push(totalRow);
-          
+
           const translatedResourcesData = await translateObjectsKeys(resourcesData, requestedLang);
-          
+
           // Section 3 : Données pour le graphique (3 mois depuis projectStartDate)
           const chartStartDate = new Date(hoursData.projectStartDate);
           const chartEndDate = new Date(chartStartDate);
@@ -2108,11 +2108,11 @@ INSTRUCTIONS:
             chartDates.push(chartCurrent.toISOString().split('T')[0]);
             chartCurrent.setDate(chartCurrent.getDate() + 1);
           }
-          
+
           const chartData: any[] = [
             { 'Date': 'Date', 'Jours imputés': 'Jours imputés', 'Coût cumulé (€)': 'Coût cumulé (€)', 'Coût fournisseurs cumulé (€)': 'Coût fournisseurs cumulé (€)', 'Prix de vente (€)': 'Prix de vente (€)' }
           ];
-          
+
           chartDates.forEach(date => {
             // Calculer jours imputés
             let days = 0;
@@ -2124,7 +2124,7 @@ INSTRUCTIONS:
                 else if (hasMorning || hasAfternoon) days += 0.5;
               }
             });
-            
+
             // Calculer coût cumulé
             let cumulativeCost = 0;
             const targetDate = new Date(date);
@@ -2145,7 +2145,7 @@ INSTRUCTIONS:
                 });
               }
             });
-            
+
             // Calculer coût fournisseurs cumulé
             let cumulativeSupplierCost = 0;
             (hoursData.resources || []).forEach((r: any) => {
@@ -2158,7 +2158,7 @@ INSTRUCTIONS:
                 });
               }
             });
-            
+
             chartData.push({
               'Date': date,
               'Jours imputés': days,
@@ -2167,16 +2167,16 @@ INSTRUCTIONS:
               'Prix de vente (€)': hoursData.salePrice || 0
             });
           });
-          
+
           const translatedChartData = await translateObjectsKeys(chartData, requestedLang);
-          
+
           // Créer un workbook pour ce domaine et combiner les feuilles
           // Note: Excel limite les noms d'onglets à 31 caractères
           const sheetName = (d.name || 'Suivi des heures').substring(0, 31);
-          
+
           // Créer une feuille combinée avec toutes les sections
           const combinedData: any[] = [];
-          
+
           // Ajouter les informations générales
           combinedData.push({ '': '=== INFORMATIONS GÉNÉRALES ===' });
           combinedData.push({});
@@ -2186,38 +2186,38 @@ INSTRUCTIONS:
           combinedData.push({});
           combinedData.push({ '': '=== RESSOURCES ET IMPUTATIONS ===' });
           combinedData.push({});
-          
+
           // Ajouter le tableau des ressources
           translatedResourcesData.forEach((row: any) => {
             combinedData.push(row);
           });
-          
+
           combinedData.push({});
           combinedData.push({ '': '=== DONNÉES POUR GRAPHIQUE ===' });
           combinedData.push({});
-          
+
           // Ajouter les données du graphique
           translatedChartData.forEach((row: any) => {
             combinedData.push(row);
           });
-          
+
           const wsCombined = XLSX.utils.json_to_sheet(combinedData);
           XLSX.utils.book_append_sheet(wb, wsCombined, sheetName);
         }
       }
-      
+
       // Générer le buffer Excel
       try {
         const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-        
+
         // Encoder le nom du fichier pour éviter les problèmes avec les caractères spéciaux
         const langSuffix = requestedLang === 'FR' ? '_FR' : `_${requestedLang}`;
         const encodedFileName = encodeURIComponent(cockpit.name.replace(/[^\w\s-]/g, '') + langSuffix).replace(/'/g, '%27');
-        
+
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}.xlsx"; filename*=UTF-8''${encodedFileName}.xlsx`);
         res.setHeader('Content-Length', buffer.length.toString());
-        
+
         return res.send(Buffer.from(buffer));
       } catch (error: any) {
         console.error('Erreur génération Excel:', error);
@@ -2228,7 +2228,7 @@ INSTRUCTIONS:
     // =====================
     // TRANSLATION ROUTES
     // =====================
-    
+
     // Obtenir les langues disponibles DeepL
     if (path === '/translation/languages' && method === 'GET') {
       // Ne nécessite pas d'authentification - liste publique des langues
@@ -2249,7 +2249,7 @@ INSTRUCTIONS:
         ]
       });
     }
-    
+
     // Traduire un cockpit
     if (path.match(/^\/cockpits\/([^/]+)\/translate$/) && method === 'POST') {
       const match = path.match(/^\/cockpits\/([^/]+)\/translate$/);
@@ -2258,12 +2258,12 @@ INSTRUCTIONS:
       }
       const id = match[1];
       const { targetLang } = req.body || {};
-      
+
       // Vérifier l'authentification
       if (!currentUser) {
         return res.status(401).json({ error: 'Non authentifié' });
       }
-      
+
       // Si targetLang est 'Restauration', restaurer les données originales
       if (!targetLang || targetLang === 'Restauration') {
         // Restaurer les données originales si disponibles
@@ -2276,10 +2276,10 @@ INSTRUCTIONS:
           if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
             return res.status(403).json({ error: 'Accès non autorisé' });
           }
-          
+
           console.log(`[Translation] Restauration demandée pour cockpit ${id}`);
           console.log(`[Translation] Originaux présents: ${!!(cockpit.data && cockpit.data.originals)}`);
-          
+
           // Si les originaux existent, les restaurer
           let dataToReturn;
           if (cockpit.data && cockpit.data.originals) {
@@ -2287,19 +2287,19 @@ INSTRUCTIONS:
               // Restaurer les originaux
               // IMPORTANT: Faire une copie profonde des originaux pour restaurer
               const originalsCopy = JSON.parse(JSON.stringify(cockpit.data.originals));
-              
+
               // Sauvegarder les originaux avant de remplacer
               const savedOriginals = cockpit.data.originals;
-              
+
               // Remplacer COMPLÈTEMENT les données par les originaux
               cockpit.data = JSON.parse(JSON.stringify(originalsCopy));
-              
+
               // Remettre les originaux sauvegardés
               cockpit.data.originals = savedOriginals;
-              
+
               cockpit.updatedAt = new Date().toISOString();
               await saveDb(db);
-              
+
               // Préparer les données à retourner (sans le champ originals)
               dataToReturn = JSON.parse(JSON.stringify(originalsCopy));
               console.log(`[Translation] ✅ Originaux restaurés avec succès (${JSON.stringify(dataToReturn).length} caractères, originaux conservés pour restaurations futures)`);
@@ -2312,9 +2312,9 @@ INSTRUCTIONS:
             // Pas d'originaux sauvegardés
             // IMPORTANT: Sauvegarder les données actuelles comme originaux pour pouvoir restaurer plus tard
             console.log(`[Translation] ⚠️ Aucun original sauvegardé, sauvegarde des données actuelles comme originaux...`);
-            
+
             const currentData = cockpit.data || { domains: [], zones: [] };
-            
+
             // Sauvegarder les données actuelles comme originaux
             if (!cockpit.data) {
               cockpit.data = {};
@@ -2326,16 +2326,16 @@ INSTRUCTIONS:
             }
             cockpit.updatedAt = new Date().toISOString();
             await saveDb(db);
-            
+
             console.log(`[Translation] ✅ Données actuelles sauvegardées comme originaux`);
             dataToReturn = currentData;
-            
+
             // Enlever le champ 'originals' s'il est présent dans les données retournées
             if (dataToReturn && dataToReturn.originals) {
               delete dataToReturn.originals;
             }
           }
-          
+
           // Enlever le champ 'originals' s'il reste
           if (dataToReturn && dataToReturn.originals) {
             delete dataToReturn.originals;
@@ -2346,28 +2346,28 @@ INSTRUCTIONS:
           return res.status(500).json({ error: 'Erreur lors de la restauration: ' + error.message });
         }
       }
-      
+
       if (!DEEPL_API_KEY) {
         return res.status(400).json({ error: 'DeepL API key not configured' });
       }
-      
+
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
-      
+
       const data = cockpit.data || { domains: [], zones: [] };
-      
+
       try {
         // Le français est maintenant traité comme n'importe quelle autre langue
         // Pas de traitement spécial : on traduit vers le français via DeepL si nécessaire
-        
+
         // IMPORTANT: Toujours sauvegarder les originaux avant la première traduction
         // Si les originaux n'existent pas, sauvegarder les données actuelles comme originaux
         // Cela garantit qu'on peut TOUJOURS revenir aux textes originaux en français
@@ -2398,13 +2398,13 @@ INSTRUCTIONS:
         } else {
           console.log(`[Translation] ✓ Originaux déjà sauvegardés (${JSON.stringify(cockpit.data.originals).length} caractères), pas besoin de les sauvegarder à nouveau`);
         }
-        
+
         // Traduire les données
         console.log(`[Translation] Traduction en cours vers ${targetLang}...`);
         console.log(`[Translation] Nombre de domaines avant traduction: ${data.domains?.length || 0}`);
-        
+
         const dataToTranslate = JSON.parse(JSON.stringify(data));
-        
+
         // Log détaillé avant traduction pour vérifier la structure
         if (dataToTranslate.domains && dataToTranslate.domains.length > 0) {
           const firstDomain = dataToTranslate.domains[0];
@@ -2419,12 +2419,12 @@ INSTRUCTIONS:
             }
           }
         }
-        
+
         const translatedData = await translateDataRecursively(dataToTranslate, targetLang);
-        
+
         console.log(`[Translation] Traduction terminée`);
         console.log(`[Translation] Nombre de domaines après traduction: ${translatedData.domains?.length || 0}`);
-        
+
         // Vérifier que les noms ont été traduits
         if (translatedData.domains && translatedData.domains.length > 0) {
           const firstDomain = translatedData.domains[0];
@@ -2439,14 +2439,14 @@ INSTRUCTIONS:
             }
           }
         }
-        
+
         return res.json({ translatedData });
       } catch (error: any) {
         console.error('Erreur traduction:', error);
         return res.status(500).json({ error: 'Erreur lors de la traduction: ' + error.message });
       }
     }
-    
+
     // Sauvegarder explicitement les originaux (figer la version actuelle)
     if (path.match(/^\/cockpits\/([^/]+)\/save-originals$/) && method === 'POST') {
       const match = path.match(/^\/cockpits\/([^/]+)\/save-originals$/);
@@ -2454,32 +2454,32 @@ INSTRUCTIONS:
         return res.status(400).json({ error: 'ID manquant' });
       }
       const id = match[1];
-      
+
       // Vérifier l'authentification
       if (!currentUser) {
         return res.status(401).json({ error: 'Non authentifié' });
       }
-      
+
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
-      
+
       // Sauvegarder les données actuelles comme originaux
       const currentData = cockpit.data || { domains: [], zones: [] };
       const originalsToSave = JSON.parse(JSON.stringify(currentData));
-      
+
       // S'assurer que le champ 'originals' n'est pas inclus dans les originaux eux-mêmes
       if (originalsToSave.originals) {
         delete originalsToSave.originals;
       }
-      
+
       // Log détaillé de ce qui est sauvegardé
       const domainsCount = originalsToSave.domains?.length || 0;
       let elementsCount = 0;
@@ -2496,17 +2496,17 @@ INSTRUCTIONS:
           }
         }
       }
-      
+
       cockpit.data.originals = originalsToSave;
       cockpit.updatedAt = new Date().toISOString();
       await saveDb(db);
-      
+
       console.log(`[Translation] ✅ Version actuelle figée comme originaux (${JSON.stringify(originalsToSave).length} caractères)`);
       console.log(`[Translation] Détails sauvegardés: ${domainsCount} domaines, ${categoriesCount} catégories, ${elementsCount} éléments`);
-      
+
       return res.json({ success: true, message: 'Version actuelle sauvegardée comme originaux' });
     }
-    
+
     // Restaurer les textes originaux
     if (path.match(/^\/cockpits\/([^/]+)\/restore-originals$/) && method === 'POST') {
       const match = path.match(/^\/cockpits\/([^/]+)\/restore-originals$/);
@@ -2514,41 +2514,41 @@ INSTRUCTIONS:
         return res.status(400).json({ error: 'ID manquant' });
       }
       const id = match[1];
-      
+
       // Vérifier l'authentification
       if (!currentUser) {
         return res.status(401).json({ error: 'Non authentifié' });
       }
-      
+
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
-      
+
       if (!cockpit) {
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
-      
+
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
-      
+
       if (!cockpit.data.originals) {
         return res.status(400).json({ error: 'Aucun texte original sauvegardé' });
       }
-      
+
       // Restaurer les originaux
       const originals = cockpit.data.originals;
       cockpit.data = { ...cockpit.data, ...originals };
       delete cockpit.data.originals; // Supprimer les originaux après restauration
       cockpit.updatedAt = new Date().toISOString();
       await saveDb(db);
-      
+
       return res.json({ success: true, data: cockpit.data });
     }
-    
+
     // =====================
     // TEMPLATES ROUTE
     // =====================
-    
+
     if (path === '/templates' && method === 'GET') {
       return res.json([
         { id: 'standard', name: 'Standard', description: 'Vue classique avec catégories horizontales' },
@@ -2561,9 +2561,9 @@ INSTRUCTIONS:
     // =====================
     // AI ROUTES
     // =====================
-    
+
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-    
+
     // AI Status
     if (path === '/ai/status' && method === 'GET') {
       return res.json({
@@ -2571,7 +2571,7 @@ INSTRUCTIONS:
         model: OPENAI_API_KEY ? 'gpt-4o-mini' : 'none'
       });
     }
-    
+
     // Get System Prompt
     if (path === '/ai/system-prompt' && method === 'GET') {
       const db = await getDb();
@@ -2589,7 +2589,7 @@ Le cockpit doit aussi montrer les vraies douleurs des managers :
 Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`;
       return res.json({ prompt: db.systemPrompt || defaultPrompt });
     }
-    
+
     // Save System Prompt
     if (path === '/ai/system-prompt' && method === 'POST') {
       const { prompt } = req.body;
@@ -2601,15 +2601,15 @@ Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`
       await saveDb(db);
       return res.json({ success: true, prompt });
     }
-    
+
     // AI Chat
     if (path === '/ai/chat' && method === 'POST') {
       if (!OPENAI_API_KEY) {
         return res.status(400).json({ error: 'OpenAI API key not configured' });
       }
-      
+
       const { message, cockpitContext, history, hasImage, imageBase64, imageMimeType } = req.body;
-      
+
       // Récupérer le prompt système personnalisé depuis la base de données
       // IMPORTANT: Ce prompt personnalisé est TOUJOURS la première instruction donnée à l'IA
       const db = await getDb();
@@ -2625,7 +2625,7 @@ Le cockpit doit aussi montrer les vraies douleurs des managers :
 - Tout autre suivi utile au manager pour avoir plus de cerveau disponible et prendre de meilleures décisions
 
 Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`;
-      
+
       // Construire le prompt système: PROMPT PERSONNALISÉ EN PREMIER, puis instructions techniques
       const systemPrompt = `${customSystemPrompt}
 
@@ -2762,17 +2762,17 @@ ANALYSE D'IMAGES ET OCR:
       console.log('[AI] ✅ Prompt personnalisé récupéré depuis la base de données');
       console.log('[AI] Longueur du prompt système complet:', systemPrompt.length);
       console.log('[AI] Prompt personnalisé (premiers 300 caractères):', customSystemPrompt.substring(0, 300));
-      
+
       const messages: any[] = [
         { role: 'system', content: systemPrompt },
         ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
       ];
-      
+
       // Si une image est attachée, utiliser le format multi-modal
       if (hasImage && imageBase64) {
         // Nettoyer le base64 : enlever les espaces, retours à la ligne, etc.
         let cleanBase64 = String(imageBase64).trim().replace(/\s+/g, '');
-        
+
         // Si le base64 contient encore le préfixe data:, l'extraire complètement
         if (cleanBase64.includes('data:')) {
           const base64Match = cleanBase64.match(/data:[^;]+;base64,([\s\S]*)/);
@@ -2784,7 +2784,7 @@ ANALYSE D'IMAGES ET OCR:
             cleanBase64 = cleanBase64.split(',')[1].trim().replace(/\s+/g, '');
           }
         }
-        
+
         // Utiliser le type MIME fourni ou détecter depuis le message
         let mimeType = imageMimeType || 'image/png';
         if (!mimeType && typeof message === 'string') {
@@ -2800,7 +2800,7 @@ ANALYSE D'IMAGES ET OCR:
             mimeType = 'image/png'; // Par défaut
           }
         }
-        
+
         // Vérifier que le base64 est valide (ne contient que des caractères base64 valides)
         if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
           console.error('[AI] Base64 invalide détecté, nettoyage supplémentaire...');
@@ -2811,31 +2811,31 @@ ANALYSE D'IMAGES ET OCR:
           cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
           console.error('[AI] Base64 nettoyé: ' + beforeLength + ' -> ' + cleanBase64.length + ' caractères');
         }
-        
+
         // Valider la longueur minimale du base64 (une image devrait avoir au moins quelques centaines de caractères)
         if (cleanBase64.length < 100) {
           console.error('[AI] ERREUR: Base64 trop court (' + cleanBase64.length + ' caractères), erreur d\'extraction probable');
           console.error('[AI] Base64 reçu (complet):', cleanBase64);
           return res.status(400).json({ error: 'Base64 image invalide ou trop court. Extraction échouée.' });
         }
-        
+
         console.log('[AI] ✅ Base64 valide: ' + cleanBase64.length + ' caractères, MIME type: ' + mimeType);
         console.log('[AI] Base64 (premiers 50 caractères):', cleanBase64.substring(0, 50));
-        
+
         // Construire l'URL avec le format correct pour OpenAI
         // IMPORTANT: Le format doit être exactement "data:{mimeType};base64,{base64}"
         const imageUrl = `data:${mimeType};base64,${cleanBase64}`;
-        
+
         console.log('[AI] Image URL construite - Longueur totale:', imageUrl.length);
         console.log('[AI] Image URL (début):', imageUrl.substring(0, 100));
         console.log('[AI] Image URL (fin):', imageUrl.substring(Math.max(0, imageUrl.length - 100)));
-        
+
         // Valider que l'URL commence bien par "data:"
         if (!imageUrl.startsWith('data:')) {
           console.error('[AI] ERREUR: L\'URL ne commence pas par "data:"');
           return res.status(400).json({ error: 'Format d\'URL image invalide' });
         }
-        
+
         messages.push({
           role: 'user',
           content: [
@@ -2854,10 +2854,10 @@ ANALYSE D'IMAGES ET OCR:
       } else {
         messages.push({ role: 'user', content: message });
       }
-      
+
       // Utiliser gpt-4o-mini qui supporte les images (ou gpt-4o pour meilleure qualité OCR)
       const model = (hasImage && imageBase64) ? 'gpt-4o-mini' : 'gpt-4o-mini';
-      
+
       try {
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -2876,13 +2876,13 @@ ANALYSE D'IMAGES ET OCR:
             }),
           }),
         });
-        
+
         if (!openaiResponse.ok) {
           let errorMessage = 'Erreur OpenAI inconnue';
           try {
             const errorText = await openaiResponse.text();
             console.error('[AI] OpenAI error response (raw):', errorText.substring(0, 500));
-            
+
             try {
               const error = JSON.parse(errorText);
               errorMessage = error.error?.message || error.message || errorText.substring(0, 200);
@@ -2894,11 +2894,11 @@ ANALYSE D'IMAGES ET OCR:
             console.error('[AI] Impossible de lire la réponse d\'erreur OpenAI:', textError);
             errorMessage = `Erreur HTTP ${openaiResponse.status}: ${openaiResponse.statusText}`;
           }
-          
+
           console.error('[AI] Erreur OpenAI finale:', errorMessage);
           return res.status(500).json({ error: 'Erreur OpenAI: ' + errorMessage });
         }
-        
+
         let data;
         let responseText;
         try {
@@ -2910,9 +2910,9 @@ ANALYSE D'IMAGES ET OCR:
           console.error('[AI] Réponse (premiers 500 caractères):', responseText?.substring(0, 500));
           return res.status(500).json({ error: 'Erreur: Réponse OpenAI invalide (non-JSON). Vérifiez les logs serveur.' });
         }
-        
+
         const assistantMessage = data.choices[0]?.message?.content || '';
-        
+
         // Essayer d'extraire les actions du message avec retry et parsing robuste
         // Support pour de très gros tableaux d'actions (100+ actions)
         let actions: any[] = [];
@@ -2940,7 +2940,7 @@ ANALYSE D'IMAGES ET OCR:
                   return parsed.actions;
                 }
               }
-              
+
               // Tentative 3: Chercher un objet JSON direct (multiligne pour gérer gros JSON)
               const directMatch = text.match(/\{[\s\S]*?"actions"[\s\S]*?\}/s);
               if (directMatch) {
@@ -2970,7 +2970,7 @@ ANALYSE D'IMAGES ET OCR:
                   }
                 }
               }
-              
+
               // Tentative 3b: Chercher directement un tableau d'actions très grand
               const actionsArrayMatch = text.match(/"actions"\s*:\s*\[\s*([\s\S]*?)\s*\]/s);
               if (actionsArrayMatch) {
@@ -2984,7 +2984,7 @@ ANALYSE D'IMAGES ET OCR:
                   // Ignorer
                 }
               }
-              
+
               // Tentative 4: Si le texte commence par {, essayer de parser tout
               const trimmed = text.trim();
               if (trimmed.startsWith('{')) {
@@ -3028,9 +3028,9 @@ ANALYSE D'IMAGES ET OCR:
           }
           return [];
         };
-        
+
         actions = parseActionsWithRetry(assistantMessage);
-        
+
         if (actions.length > 0) {
           console.log(`[AI] ✅ ${actions.length} action(s) extraite(s) avec succès`);
           if (actions.length > 20) {
@@ -3040,36 +3040,36 @@ ANALYSE D'IMAGES ET OCR:
           console.log('[AI] ⚠️ Aucune action trouvée dans la réponse');
           console.log('[AI] Extrait de la réponse (premiers 500 caractères):', assistantMessage.substring(0, 500));
         }
-        
+
         // Nettoyer le message des blocs JSON
         let cleanMessage = assistantMessage
           .replace(/```json\n?[\s\S]*?\n?```/g, '')
           .replace(/\{[\s\S]*"actions"[\s\S]*\}/g, '')
           .trim();
-        
+
         return res.json({
           message: cleanMessage || assistantMessage,
           actions
         });
-        
+
       } catch (error: any) {
         console.error('AI Chat error:', error);
         return res.status(500).json({ error: 'Erreur serveur IA: ' + error.message });
       }
     }
-    
+
     // AI Analyze Map
     if (path === '/ai/analyze-map' && method === 'POST') {
       if (!OPENAI_API_KEY) {
         return res.status(400).json({ error: 'OpenAI API key not configured' });
       }
-      
+
       const { imageUrl, imageBase64 } = req.body;
-      
-      const imageContent = imageBase64 
+
+      const imageContent = imageBase64
         ? { type: 'image_url', image_url: { url: imageBase64 } }
         : { type: 'image_url', image_url: { url: imageUrl } };
-      
+
       try {
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -3106,15 +3106,15 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
             max_tokens: 500,
           }),
         });
-        
+
         if (!openaiResponse.ok) {
           const error = await openaiResponse.json();
           return res.status(500).json({ error: 'Erreur OpenAI Vision: ' + (error.error?.message || 'inconnue') });
         }
-        
+
         const data = await openaiResponse.json();
         const content = data.choices[0]?.message?.content || '';
-        
+
         // Parser le JSON de la réponse
         try {
           const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -3125,9 +3125,9 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
         } catch (e) {
           console.error('Parse error:', e);
         }
-        
+
         return res.json({ detected: false, reason: 'Impossible de parser la réponse' });
-        
+
       } catch (error: any) {
         console.error('AI Analyze Map error:', error);
         return res.status(500).json({ error: 'Erreur analyse carte: ' + error.message });

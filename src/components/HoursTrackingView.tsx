@@ -479,67 +479,38 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         )}
       </div>
 
-      {/* Zone de contenu avec scroll horizontal */}
-      <div className="flex-1 overflow-auto" style={{ minHeight: 0 }}>
-        <div className="inline-block min-w-full">
-          {/* En-tête avec dates */}
+      {/* Zone de contenu avec colonne fixe et scroll horizontal */}
+      <div className="flex-1 flex" style={{ minHeight: 0, overflow: 'hidden' }}>
+        {/* Colonne fixe à gauche */}
+        <div className="flex-shrink-0 flex flex-col">
+          {/* En-tête fixe */}
           <div className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10">
-            <div className="flex">
-              {/* Colonne gauche fixe pour les totaux par jour - même largeur que la colonne des noms */}
-              <div
-                className="bg-[#F5F7FA] border-r border-[#E2E8F0] p-2 relative group"
-                style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
-              >
-                <div className="text-xs text-[#64748B] font-medium">Total par jour</div>
-                {/* Poignée de redimensionnement sur l'en-tête aussi */}
-                {!readOnly && (
-                  <div
-                    onMouseDown={handleResizeStart}
-                    className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                    style={{ marginRight: '-4px' }}
-                    title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
-                  />
-                )}
-              </div>
-
-              {/* Dates déroulantes */}
-              <div className="flex">
-                {dates.map((date) => {
-                  const dayCost = getDayCost(date);
-                  const dateObj = new Date(date);
-                  const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
-                  const dayNumber = dateObj.getDate();
-                  const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
-                  const isToday = date === new Date().toISOString().split('T')[0];
-
-                  return (
-                    <div
-                      key={date}
-                      className={`w-16 border-r border-[#E2E8F0] p-1 text-center ${isToday ? 'bg-blue-50' : ''}`}
-                    >
-                      <div className="text-[10px] text-[#64748B] leading-tight">{dayName}</div>
-                      <div className="text-xs font-semibold text-[#1E3A5F] leading-tight">{dayNumber}/{month.substring(0, 3)}</div>
-                      <div className="text-[10px] font-medium text-[#1E3A5F] mt-0.5 leading-tight">
-                        {dayCost > 0 ? dayCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            <div
+              className="bg-[#F5F7FA] border-r border-[#E2E8F0] p-2 relative group h-full"
+              style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
+            >
+              <div className="text-xs text-[#64748B] font-medium">Total par jour</div>
+              {/* Poignée de redimensionnement sur l'en-tête aussi */}
+              {!readOnly && (
+                <div
+                  onMouseDown={handleResizeStart}
+                  className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                  style={{ marginRight: '-4px' }}
+                  title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
+                />
+              )}
             </div>
           </div>
 
-          {/* Lignes de ressources */}
-          <div className="bg-white">
+          {/* Lignes de ressources - colonne fixe */}
+          <div className="bg-white flex-1">
             {hoursData.resources.map((resource) => (
               <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
-                <div className="flex">
-                  {/* Colonne gauche avec nom, type, TJM et total sur une seule ligne */}
-                  <div
-                    ref={columnRef}
-                    className="bg-white border-r border-[#E2E8F0] p-2 relative group"
-                    style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
-                  >
+                <div
+                  ref={columnRef}
+                  className="bg-white border-r border-[#E2E8F0] p-2 relative group h-full"
+                  style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
+                >
                     <div className="flex items-center h-full relative">
                       {/* Nom à gauche */}
                       <div className="flex items-center gap-1.5 flex-shrink-0 absolute left-2">
@@ -602,17 +573,55 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       </div>
                     </div>
 
-                    {/* Poignée de redimensionnement */}
-                    {!readOnly && (
-                      <div
-                        onMouseDown={handleResizeStart}
-                        className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                        style={{ marginRight: '-4px' }}
-                        title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
-                      />
-                    )}
-                  </div>
+                  {/* Poignée de redimensionnement */}
+                  {!readOnly && (
+                    <div
+                      onMouseDown={handleResizeStart}
+                      className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-[#1E3A5F] opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                      style={{ marginRight: '-4px' }}
+                      title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
+        {/* Zone scrollable pour les dates */}
+        <div className="flex-1 overflow-x-auto overflow-y-hidden" style={{ minWidth: 0 }}>
+          <div className="inline-block min-w-full">
+            {/* En-tête avec dates - scrollable */}
+            <div className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10">
+              <div className="flex">
+                {dates.map((date) => {
+                  const dayCost = getDayCost(date);
+                  const dateObj = new Date(date);
+                  const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
+                  const dayNumber = dateObj.getDate();
+                  const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
+                  const isToday = date === new Date().toISOString().split('T')[0];
+
+                  return (
+                    <div
+                      key={date}
+                      className={`w-16 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 ${isToday ? 'bg-blue-50' : ''}`}
+                    >
+                      <div className="text-[10px] text-[#64748B] leading-tight">{dayName}</div>
+                      <div className="text-xs font-semibold text-[#1E3A5F] leading-tight">{dayNumber}/{month.substring(0, 3)}</div>
+                      <div className="text-[10px] font-medium text-[#1E3A5F] mt-0.5 leading-tight">
+                        {dayCost > 0 ? dayCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') : '-'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Lignes de ressources - dates scrollables */}
+            <div className="bg-white">
+              {hoursData.resources.map((resource) => (
+                <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
                   {/* Cases pour chaque date */}
                   <div className="flex">
                     {dates.map((date) => {
@@ -629,7 +638,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-16 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center ${isToday ? 'bg-blue-50' : ''}`}
+                            className={`w-16 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-blue-50' : ''}`}
                           >
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
@@ -669,7 +678,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-16 border-r border-[#E2E8F0] p-0.5 ${isToday ? 'bg-blue-50' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
+                            className={`w-16 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-blue-50' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
                           >
                             {readOnly ? (
                               <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
@@ -696,13 +705,15 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                     })}
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Boutons pour ajouter une ressource */}
-          {!readOnly && (
-            <div className="border-b border-[#E2E8F0] p-3 bg-[#F9FAFB]">
+      {/* Boutons pour ajouter une ressource */}
+      {!readOnly && (
+        <div className="border-b border-[#E2E8F0] p-3 bg-[#F9FAFB]">
               {!showAddResource ? (
                 <div className="flex items-center gap-3">
                   <button
@@ -807,10 +818,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                   </div>
                 </div>
               )}
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
       {/* Graphique en bas */}
       <div className="border-t border-[#E2E8F0] bg-white p-4" style={{ height: '300px', minHeight: '300px' }}>
