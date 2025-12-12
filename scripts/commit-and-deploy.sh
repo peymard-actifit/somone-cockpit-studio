@@ -8,7 +8,7 @@ echo "=== Commit et Déploiement Automatique ==="
 echo ""
 
 # Token Vercel
-VERCEL_TOKEN="${VERCEL_TOKEN:-GLe0CsmnKQKOs1PV7o2eHsH7}"
+VERCEL_TOKEN="${VERCEL_TOKEN:-YiP93dsRt11543wEH5zb2r9K}"
 
 # 1. Vérifier s'il y a des changements
 echo "Étape 1/5 : Vérification des changements..."

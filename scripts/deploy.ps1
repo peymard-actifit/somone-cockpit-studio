@@ -9,7 +9,7 @@ Write-Host ""
 # Token Vercel
 $VERCEL_TOKEN = $env:VERCEL_TOKEN
 if (-not $VERCEL_TOKEN) {
-    $VERCEL_TOKEN = "GLe0CsmnKQKOs1PV7o2eHsH7"
+    $VERCEL_TOKEN = "YiP93dsRt11543wEH5zb2r9K"
 }
 
 # 1. Build avec retry automatique en cas d'erreurs TypeScript
