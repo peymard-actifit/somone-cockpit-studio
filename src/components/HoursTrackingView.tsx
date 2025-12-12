@@ -20,6 +20,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const [newResourceType, setNewResourceType] = useState<ResourceType>('person');
   const [newResourceDailyRate, setNewResourceDailyRate] = useState<number>(0);
   const [showAddResource, setShowAddResource] = useState(false);
+  const [tooltipData, setTooltipData] = useState<{ x: number; y: number; value: number } | null>(null);
 
   // Largeur de la première colonne (nom + infos)
   const storageKey = `hoursTracking_colWidth_${domain.id}`;
@@ -103,7 +104,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Calculer le coût global
   const getGlobalCost = (): number => {
     let total = 0;
-    
+
     hoursData.resources.forEach(resource => {
       if (resource.type === 'person') {
         total += getPersonTotal(resource);
@@ -111,7 +112,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         total += getSupplierTotal(resource);
       }
     });
-    
+
     return total;
   };
 
@@ -136,7 +137,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const getCumulativeCost = (date: string): number => {
     let total = 0;
     const targetDate = new Date(date);
-    
+
     hoursData.resources.forEach(resource => {
       if (resource.type === 'person' && resource.dailyRate !== undefined && resource.timeEntries) {
         const dailyRate = resource.dailyRate;
@@ -155,7 +156,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         });
       }
     });
-    
+
     return total;
   };
 
@@ -164,15 +165,15 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     const startDate = new Date(hoursData.projectStartDate);
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 3);
-    
+
     const dateList: string[] = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       dateList.push(current.toISOString().split('T')[0]);
       current.setDate(current.getDate() + 1);
     }
-    
+
     return dateList;
   }, [hoursData.projectStartDate]);
 
@@ -181,22 +182,36 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     return chartDates.map(date => ({
       date,
       days: getDaysByDate(date),
-      cumulativeCost: getCumulativeCost(date)
+      cumulativeCost: getCumulativeCost(date),
+      cumulativeSupplierCost: getCumulativeSupplierCost(date)
     }));
   }, [chartDates, hoursData.resources, hoursData.projectStartDate]);
 
-  // Trouver les valeurs max pour les échelles
-  const maxDays = useMemo(() => {
-    const max = Math.max(...chartData.map(d => d.days), 1);
-    return Math.ceil(max * 1.1); // 10% de marge
-  }, [chartData]);
+  // Calculer le coût cumulé fournisseurs jusqu'à une date
+  const getCumulativeSupplierCost = (date: string): number => {
+    let total = 0;
+    const targetDate = new Date(date);
+    
+    hoursData.resources.forEach(resource => {
+      if (resource.type === 'supplier' && resource.entries) {
+        resource.entries.forEach(entry => {
+          const entryDate = new Date(entry.date);
+          if (entryDate <= targetDate) {
+            total += entry.amount;
+          }
+        });
+      }
+    });
+    
+    return total;
+  };
 
+  // Trouver les valeurs max pour les échelles
+  const maxDays = 365; // Maximum fixe à 365 jours
+  
   const salePrice = hoursData.salePrice || 0;
   
-  const maxCost = useMemo(() => {
-    const max = Math.max(...chartData.map(d => d.cumulativeCost), salePrice || 0, 1000);
-    return Math.ceil(max * 1.1); // 10% de marge
-  }, [chartData, salePrice]);
+  const maxCost = 999999; // Maximum fixe à 999999€
 
   // Calculer la marge
   const getMargin = (): number => {
@@ -522,9 +537,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       {/* Nom à gauche */}
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <MuiIcon
-                          name={resource.type === 'person' ? 'User' : 'Building'}
-                          size={14}
-                          className="text-[#64748B] flex-shrink-0"
+                          name={resource.type === 'person' ? 'Person' : 'Business'}
+                          size={16}
+                          className="text-[#1E3A5F] flex-shrink-0"
                         />
                         <span className="font-medium text-[#1E3A5F] text-sm">{resource.name}</span>
                       </div>
@@ -674,7 +689,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all font-medium"
                   >
-                    <MuiIcon name="User" size={18} className="flex-shrink-0" />
+                    <MuiIcon name="Person" size={18} className="flex-shrink-0" />
                     <span>Ajouter une personne</span>
                   </button>
                   <button
@@ -684,7 +699,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all font-medium"
                   >
-                    <MuiIcon name="Building" size={18} className="flex-shrink-0" />
+                    <MuiIcon name="Business" size={18} className="flex-shrink-0" />
                     <span>Ajouter un fournisseur</span>
                   </button>
                 </div>
@@ -693,7 +708,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 px-3 py-2 bg-[#1E3A5F]/10 rounded-lg">
                       <MuiIcon
-                        name={newResourceType === 'person' ? 'User' : 'Building'}
+                        name={newResourceType === 'person' ? 'Person' : 'Business'}
                         size={18}
                         className="text-[#1E3A5F]"
                       />
@@ -778,10 +793,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       <div className="border-t border-[#E2E8F0] bg-white p-4" style={{ height: '300px', minHeight: '300px' }}>
         <div className="h-full relative overflow-x-auto">
           <svg width="100%" height="100%" viewBox="0 0 1000 240" preserveAspectRatio="none" className="min-w-full">
-            {/* Labels des échelles */}
-            <text x="10" y="15" className="text-xs font-semibold fill-[#1E3A5F]">J</text>
-            <text x="990" y="15" className="text-xs font-semibold fill-[#1E3A5F]" textAnchor="end">€</text>
-            
+            {/* Labels des échelles - seront positionnés dans le graphique */}
+
             {/* Zone de dessin */}
             {(() => {
               const padding = { top: 30, right: 40, bottom: 30, left: 50 };
@@ -789,20 +802,20 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               const height = 240;
               const chartWidth = width - padding.left - padding.right;
               const chartHeight = height - padding.top - padding.bottom;
-              
+
               // Calculer les positions X pour chaque date
               const xScale = (index: number) => padding.left + (index / (chartData.length - 1 || 1)) * chartWidth;
-              
+
               // Échelle pour les jours (gauche)
               const yDaysScale = (days: number) => padding.top + chartHeight - (days / maxDays) * chartHeight;
-              
+
               // Échelle pour les coûts (droite)
               const yCostScale = (cost: number) => padding.top + chartHeight - (cost / maxCost) * chartHeight;
-              
+
               // Date du jour en cours
               const today = new Date().toISOString().split('T')[0];
               const todayIndex = chartData.findIndex(d => d.date === today);
-              
+
               return (
                 <g>
                   {/* Grille horizontale pour les jours */}
@@ -823,32 +836,65 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         <text
                           x={padding.left - 10}
                           y={y + 4}
-                          className="text-[10px] fill-[#64748B]"
+                          fontFamily="Arial, sans-serif"
+                          fontSize="10"
+                          fill="#64748B"
                           textAnchor="end"
                         >
-                          {value.toFixed(1)}
+                          {value.toFixed(0)}
                         </text>
+                        {/* Label "J" au-dessus de la première valeur */}
+                        {ratio === 1 && (
+                          <text
+                            x={padding.left - 10}
+                            y={y - 5}
+                            fontFamily="Arial, sans-serif"
+                            fontSize="12"
+                            fontWeight="600"
+                            fill="#1E3A5F"
+                            textAnchor="end"
+                          >
+                            J
+                          </text>
+                        )}
                       </g>
                     );
                   })}
-                  
+
                   {/* Grille horizontale pour les coûts */}
                   {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
                     const value = maxCost * ratio;
                     const y = yCostScale(value);
                     return (
-                      <text
-                        key={`grid-cost-${ratio}`}
-                        x={width - padding.right + 10}
-                        y={y + 4}
-                        className="text-[10px] fill-[#64748B]"
-                        textAnchor="start"
-                      >
-                        {value.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
-                      </text>
+                      <g key={`grid-cost-${ratio}`}>
+                        <text
+                          x={width - padding.right + 10}
+                          y={y + 4}
+                          fontFamily="Arial, sans-serif"
+                          fontSize="10"
+                          fill="#64748B"
+                          textAnchor="start"
+                        >
+                          {value.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
+                        </text>
+                        {/* Label "€" au-dessus de la première valeur */}
+                        {ratio === 1 && (
+                          <text
+                            x={width - padding.right + 10}
+                            y={y - 5}
+                            fontFamily="Arial, sans-serif"
+                            fontSize="12"
+                            fontWeight="600"
+                            fill="#1E3A5F"
+                            textAnchor="start"
+                          >
+                            €
+                          </text>
+                        )}
+                      </g>
                     );
                   })}
-                  
+
                   {/* Barre de seuil (prix de vente) */}
                   {salePrice > 0 && (
                     <line
@@ -861,14 +907,14 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       strokeDasharray="4,2"
                     />
                   )}
-                  
+
                   {/* Barres cumulées (coûts) */}
                   {chartData.map((data, index) => {
                     const x = xScale(index);
                     const barHeight = (data.cumulativeCost / maxCost) * chartHeight;
                     const y = padding.top + chartHeight - barHeight;
                     const isToday = data.date === today;
-                    
+
                     return (
                       <g key={`bar-${index}`}>
                         <rect
@@ -879,7 +925,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                           fill={isToday ? "#1E3A5F" : "#94A3B8"}
                           opacity={0.7}
                         />
-                        
+
                         {/* Barre de marge prévisionnelle au jour en cours */}
                         {isToday && salePrice > 0 && data.cumulativeCost < salePrice && (
                           <rect
@@ -889,12 +935,45 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             height={((salePrice - data.cumulativeCost) / maxCost) * chartHeight}
                             fill="#9CCC65"
                             opacity={0.8}
+                            onMouseEnter={(e) => {
+                              const svg = e.currentTarget.ownerSVGElement;
+                              if (!svg) return;
+                              const svgPoint = svg.createSVGPoint();
+                              svgPoint.x = e.clientX;
+                              svgPoint.y = e.clientY;
+                              const ctm = svg.getScreenCTM();
+                              if (ctm) {
+                                const point = svgPoint.matrixTransform(ctm.inverse());
+                                setTooltipData({
+                                  x: point.x,
+                                  y: point.y - 10,
+                                  value: salePrice - data.cumulativeCost
+                                });
+                              }
+                            }}
+                            onMouseLeave={() => setTooltipData(null)}
+                            onMouseMove={(e) => {
+                              const svg = e.currentTarget.ownerSVGElement;
+                              if (!svg) return;
+                              const svgPoint = svg.createSVGPoint();
+                              svgPoint.x = e.clientX;
+                              svgPoint.y = e.clientY;
+                              const ctm = svg.getScreenCTM();
+                              if (ctm) {
+                                const point = svgPoint.matrixTransform(ctm.inverse());
+                                setTooltipData(prev => prev ? {
+                                  ...prev,
+                                  x: point.x,
+                                  y: point.y - 10
+                                } : null);
+                              }
+                            }}
                           />
                         )}
                       </g>
                     );
                   })}
-                  
+
                   {/* Courbe des jours */}
                   {chartData.length > 1 && (
                     <path
@@ -923,7 +1002,38 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       />
                     );
                   })}
+
+                  {/* Courbe des dépenses fournisseurs (échelle de droite) */}
+                  {chartData.length > 1 && (
+                    <path
+                      d={`M ${chartData.map((data, index) => {
+                        const x = xScale(index);
+                        const y = yCostScale(data.cumulativeSupplierCost);
+                        return `${x},${y}`;
+                      }).join(' L ')}`}
+                      fill="none"
+                      stroke="#FFB74D"
+                      strokeWidth="2"
+                      strokeDasharray="4,2"
+                    />
+                  )}
                   
+                  {/* Points sur la courbe fournisseurs */}
+                  {chartData.map((data, index) => {
+                    if (data.cumulativeSupplierCost === 0) return null;
+                    const x = xScale(index);
+                    const y = yCostScale(data.cumulativeSupplierCost);
+                    return (
+                      <circle
+                        key={`supplier-point-${index}`}
+                        cx={x}
+                        cy={y}
+                        r="3"
+                        fill="#FFB74D"
+                      />
+                    );
+                  })}
+
                   {/* Ligne verticale pour aujourd'hui */}
                   {todayIndex >= 0 && (
                     <line
@@ -937,7 +1047,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       opacity={0.5}
                     />
                   )}
-                  
+
                   {/* Labels des dates (tous les 15 jours environ) */}
                   {chartData.map((data, index) => {
                     const step = Math.max(1, Math.floor(chartData.length / 8)); // ~8 labels
@@ -958,7 +1068,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         <text
                           x={x}
                           y={height - padding.bottom + 15}
-                          className="text-[10px] fill-[#64748B]"
+                          fontFamily="Arial, sans-serif"
+                          fontSize="10"
+                          fill="#64748B"
                           textAnchor="middle"
                         >
                           {label}
@@ -966,6 +1078,32 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       </g>
                     );
                   })}
+
+                  {/* Tooltip pour la marge prévisionnelle */}
+                  {tooltipData && (
+                    <g>
+                      <rect
+                        x={tooltipData.x - 50}
+                        y={tooltipData.y - 30}
+                        width="100"
+                        height="24"
+                        fill="#1E3A5F"
+                        rx="4"
+                        opacity="0.95"
+                      />
+                      <text
+                        x={tooltipData.x}
+                        y={tooltipData.y - 12}
+                        fontFamily="Arial, sans-serif"
+                        fontSize="11"
+                        fill="white"
+                        textAnchor="middle"
+                        fontWeight="600"
+                      >
+                        {tooltipData.value.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                      </text>
+                    </g>
+                  )}
                 </g>
               );
             })()}
