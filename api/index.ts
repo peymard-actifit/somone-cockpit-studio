@@ -600,13 +600,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const data = cockpit.data || {};
 
+      // Filtrer les domaines et éléments non publiables pour l'accès public
+      const filteredDomains = (data.domains || []).filter((domain: any) => domain.publiable !== false).map((domain: any) => {
+        // Filtrer les catégories et leurs éléments selon publiable
+        const filteredCategories = (domain.categories || []).map((category: any) => {
+          const filteredElements = (category.elements || []).filter((el: any) => el.publiable !== false);
+          return { ...category, elements: filteredElements };
+        });
+        return { ...domain, categories: filteredCategories };
+      });
+
       // Log pour diagnostic
       console.log(`[Public API] 📦 Cockpit "${cockpit.name}" trouvé`);
-      console.log(`[Public API] Domains count: ${(data.domains || []).length}`);
+      console.log(`[Public API] Domains count (avant filtre): ${(data.domains || []).length}`);
+      console.log(`[Public API] Domains count (après filtre): ${filteredDomains.length}`);
       console.log(`[Public API] Full cockpit.data keys:`, Object.keys(data));
 
-      // CRITIQUE : Vérifier que les domaines ont bien leurs propriétés avant envoi
-      const domainsToSend = (data.domains || []).map((domain: any) => {
+      // CRITIQUE : Vérifier que les domaines filtrés ont bien leurs propriétés avant envoi
+      const domainsToSend = filteredDomains.map((domain: any) => {
         // Créer un nouveau objet avec TOUTES les propriétés du domaine
         const domainWithAllProps: any = {
           ...domain, // Inclure TOUTES les propriétés existantes

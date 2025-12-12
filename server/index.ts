@@ -538,12 +538,22 @@ app.get('/api/public/cockpit/:publicId', (req, res) => {
   console.log('[Public API] Cockpit trouvé:', cockpit.name);
   const data = cockpit.data || { domains: [], zones: [] };
 
-  // SIMPLIFICATION : Retourner directement les données telles quelles, sans transformation
-  console.log(`[Public API] Cockpit "${cockpit.name}" trouvé`);
-  console.log(`[Public API] Domains count: ${(data.domains || []).length}`);
+  // Filtrer les domaines et éléments non publiables pour l'accès public
+  const filteredDomains = (data.domains || []).filter((domain: any) => domain.publiable !== false).map((domain: any) => {
+    // Filtrer les catégories et leurs éléments selon publiable
+    const filteredCategories = (domain.categories || []).map((category: any) => {
+      const filteredElements = (category.elements || []).filter((el: any) => el.publiable !== false);
+      return { ...category, elements: filteredElements };
+    });
+    return { ...domain, categories: filteredCategories };
+  });
 
-  // Log des images dans chaque domaine
-  (data.domains || []).forEach((domain: any, index: number) => {
+  console.log(`[Public API] Cockpit "${cockpit.name}" trouvé`);
+  console.log(`[Public API] Domains count (avant filtre): ${(data.domains || []).length}`);
+  console.log(`[Public API] Domains count (après filtre): ${filteredDomains.length}`);
+
+  // Log des images dans chaque domaine filtré
+  filteredDomains.forEach((domain: any, index: number) => {
     const hasImage = domain.backgroundImage && domain.backgroundImage.length > 0;
     console.log(`[Public API] Domain[${index}] "${domain.name}": backgroundImage=${hasImage ? `PRESENTE (${domain.backgroundImage.length} chars)` : 'ABSENTE'}`);
     if (hasImage) {
@@ -551,13 +561,13 @@ app.get('/api/public/cockpit/:publicId', (req, res) => {
     }
   });
 
-  // Retourner les données telles quelles - PAS de transformation
+  // Retourner les données filtrées (uniquement les éléments publiables)
   res.json({
     id: cockpit.id,
     name: cockpit.name,
     createdAt: cockpit.createdAt,
     updatedAt: cockpit.updatedAt,
-    domains: data.domains || [],
+    domains: filteredDomains, // Domaines filtrés (uniquement publiables)
     zones: data.zones || [],
     logo: data.logo || null,
     scrollingBanner: data.scrollingBanner || null,

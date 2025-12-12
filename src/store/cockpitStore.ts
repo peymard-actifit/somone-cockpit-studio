@@ -257,11 +257,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       const token = useAuthStore.getState().token;
       try {
-        // Envoyer uniquement les champs attendus par l'API PUT
-        // L'API fait un merge profond, donc on envoie les domains avec TOUTES leurs propriétés
+        // IMPORTANT : Sauvegarder TOUTES les données (y compris non publiables)
+        // L'auto-save doit préserver toutes les données du studio
         const payload: any = {
           name: currentCockpit.name,
-          domains: currentCockpit.domains || [],
+          domains: currentCockpit.domains || [], // TOUS les domaines, y compris non publiables
           logo: currentCockpit.logo,
           scrollingBanner: currentCockpit.scrollingBanner,
         };
@@ -270,17 +270,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           payload.zones = (currentCockpit as any).zones;
         }
 
-        console.log('[Auto-save] Envoi des données:', {
+        console.log('[Auto-save] Envoi de TOUTES les données (y compris non publiables):', {
           name: payload.name,
           domainsCount: payload.domains.length,
-          zonesCount: payload.zones.length,
-          domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length
+          zonesCount: payload.zones?.length || 0,
+          domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
+          nonPublishableDomains: payload.domains.filter((d: any) => d.publiable === false).length
         });
 
         // Log des images dans les domaines
         payload.domains.forEach((d: any, idx: number) => {
           const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
-          console.log(`[Auto-save] Domain[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+          const isPublishable = d.publiable !== false;
+          console.log(`[Auto-save] Domain[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}, publiable=${isPublishable}`);
         });
 
         await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
@@ -1470,6 +1472,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     try {
       // FORCER une sauvegarde complète et synchrone avant publication
+      // IMPORTANT : Sauvegarder TOUTES les données (y compris non publiables) pour le studio
       const currentCockpit = get().currentCockpit;
       if (currentCockpit && currentCockpit.id === id) {
         // Annuler l'auto-save en attente
@@ -1479,20 +1482,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           set({ autoSaveTimeout: null });
         }
 
-        // Sauvegarder IMMÉDIATEMENT toutes les données actuelles
-        // Filtrer les domaines et éléments selon publiable (par défaut true)
-        const filteredDomains = (currentCockpit.domains || []).map((domain: any) => {
-          // Filtrer les catégories et leurs éléments selon publiable
-          const filteredCategories = (domain.categories || []).map((category: any) => {
-            const filteredElements = (category.elements || []).filter((el: any) => el.publiable !== false);
-            return { ...category, elements: filteredElements };
-          });
-          return { ...domain, categories: filteredCategories };
-        }).filter((domain: any) => domain.publiable !== false);
-
+        // Sauvegarder IMMÉDIATEMENT TOUTES les données actuelles (sans filtre)
+        // Les données non publiables doivent rester dans le studio
         const payload: any = {
           name: currentCockpit.name,
-          domains: filteredDomains,
+          domains: currentCockpit.domains || [], // TOUS les domaines, y compris non publiables
           logo: currentCockpit.logo,
           scrollingBanner: currentCockpit.scrollingBanner,
         };
@@ -1500,13 +1494,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           payload.zones = (currentCockpit as any).zones;
         }
 
-        console.log('[Publish] 💾 Sauvegarde forcée avant publication:', {
+        console.log('[Publish] 💾 Sauvegarde complète avant publication (TOUTES les données, y compris non publiables):', {
           name: payload.name,
           domainsCount: payload.domains.length,
-          domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length
+          domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
+          nonPublishableDomains: payload.domains.filter((d: any) => d.publiable === false).length
         });
 
-        // Sauvegarder immédiatement
+        // Sauvegarder immédiatement TOUTES les données
         const saveResponse = await fetch(`${API_URL}/cockpits/${id}`, {
           method: 'PUT',
           headers: {
