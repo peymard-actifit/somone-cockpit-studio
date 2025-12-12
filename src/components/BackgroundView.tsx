@@ -1466,8 +1466,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     key={status}
                     onClick={() => setNewElementForm({ ...newElementForm, status })}
                     className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${newElementForm.status === status
-                        ? 'border-[#1E3A5F] ring-2 ring-[#1E3A5F]/20'
-                        : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
+                      ? 'border-[#1E3A5F] ring-2 ring-[#1E3A5F]/20'
+                      : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
                       }`}
                   >
                     <div
@@ -1490,8 +1490,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 <button
                   onClick={() => setNewElementForm({ ...newElementForm, icon: '' })}
                   className={`p-2 rounded-lg border transition-all ${!newElementForm.icon
-                      ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
-                      : 'border-transparent hover:bg-white'
+                    ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                    : 'border-transparent hover:bg-white'
                     }`}
                   title="Aucune icÃ´ne (rectangle)"
                 >
@@ -1502,8 +1502,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     key={iconName}
                     onClick={() => setNewElementForm({ ...newElementForm, icon: iconName })}
                     className={`p-2 rounded-lg border transition-all ${newElementForm.icon === iconName
-                        ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
-                        : 'border-transparent hover:bg-white'
+                      ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                      : 'border-transparent hover:bg-white'
                       }`}
                     title={iconName}
                     style={{ color: STATUS_COLORS[newElementForm.status].hex }}
@@ -1523,8 +1523,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 <button
                   onClick={() => setNewElementForm({ ...newElementForm, categoryMode: 'existing' })}
                   className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm ${newElementForm.categoryMode === 'existing'
-                      ? 'border-[#1E3A5F] bg-[#1E3A5F]/5 text-[#1E3A5F]'
-                      : 'border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]'
+                    ? 'border-[#1E3A5F] bg-[#1E3A5F]/5 text-[#1E3A5F]'
+                    : 'border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]'
                     }`}
                 >
                   <MuiIcon name="FolderOpen" size={16} />
@@ -1533,8 +1533,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 <button
                   onClick={() => setNewElementForm({ ...newElementForm, categoryMode: 'new' })}
                   className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm ${newElementForm.categoryMode === 'new'
-                      ? 'border-[#1E3A5F] bg-[#1E3A5F]/5 text-[#1E3A5F]'
-                      : 'border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]'
+                    ? 'border-[#1E3A5F] bg-[#1E3A5F]/5 text-[#1E3A5F]'
+                    : 'border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]'
                     }`}
                 >
                   <MuiIcon name="CreateNewFolder" size={16} />

@@ -384,8 +384,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 <button
                   onClick={() => setNewCategoryOrientation('horizontal')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${newCategoryOrientation === 'horizontal'
-                      ? 'bg-[#1E3A5F] text-white'
-                      : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                    ? 'bg-[#1E3A5F] text-white'
+                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                     }`}
                 >
                   Horizontal
@@ -393,8 +393,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 <button
                   onClick={() => setNewCategoryOrientation('vertical')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${newCategoryOrientation === 'vertical'
-                      ? 'bg-[#1E3A5F] text-white'
-                      : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                    ? 'bg-[#1E3A5F] text-white'
+                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                     }`}
                 >
                   Vertical
