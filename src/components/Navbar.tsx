@@ -16,7 +16,7 @@ function SortableDomainTab({ domain, isActive, onSelect, onDelete, domainsCount 
   domainsCount: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: domain.id });
-  
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -55,18 +55,18 @@ function SortableDomainTab({ domain, isActive, onSelect, onDelete, domainsCount 
       >
         <MuiIcon name="DragIndicator" size={14} className={isActive ? 'text-[#1E3A5F]/50' : 'text-white/50'} />
       </div>
-      
+
       <span>{domain.name}</span>
-      
+
       {/* Indicateur point de couleur basé sur le statut le plus critique */}
       {worstStatus !== 'ok' && (
-        <div 
+        <div
           className={`absolute top-1 ${domainsCount > 1 ? 'right-10' : 'right-2'} w-2.5 h-2.5 rounded-full z-10`}
           style={{ backgroundColor: statusColor }}
           title={`Statut le plus critique: ${worstStatus}`}
         />
       )}
-      
+
       {/* Bouton supprimer - visible au survol */}
       {domainsCount > 1 && (
         <button
@@ -74,11 +74,10 @@ function SortableDomainTab({ domain, isActive, onSelect, onDelete, domainsCount 
             e.stopPropagation();
             onDelete();
           }}
-          className={`ml-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all ${
-            isActive
+          className={`ml-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all ${isActive
               ? 'text-red-500 hover:bg-red-50'
               : 'text-white/70 hover:text-red-300 hover:bg-red-500/20'
-          }`}
+            }`}
           title="Supprimer ce domaine"
         >
           <MuiIcon name="Delete" size={14} />
@@ -94,14 +93,14 @@ export default function Navbar() {
   const [isAdding, setIsAdding] = useState(false);
   const [newDomainName, setNewDomainName] = useState('');
   const [newDomainType, setNewDomainType] = useState<TemplateType>('standard');
-  
+
   if (!currentCockpit) return null;
-  
+
   const domains = currentCockpit.domains || [];
-  
+
   // Trier les domaines par order pour garantir l'ordre correct
   const sortedDomains = [...domains].sort((a, b) => a.order - b.order);
-  
+
   // Capteurs pour le drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -112,16 +111,16 @@ export default function Navbar() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
       const oldIndex = sortedDomains.findIndex(d => d.id === active.id);
       const newIndex = sortedDomains.findIndex(d => d.id === over.id);
-      
+
       const newOrder = arrayMove(sortedDomains, oldIndex, newIndex);
       reorderDomains(newOrder.map(d => d.id));
     }
   };
-  
+
   const handleAddDomain = () => {
     if (newDomainName.trim()) {
       addDomain(newDomainName.trim(), newDomainType);
@@ -130,7 +129,7 @@ export default function Navbar() {
       setIsAdding(false);
     }
   };
-  
+
   return (
     <nav className="bg-[#1E3A5F]">
       <div className="flex items-center">
@@ -166,7 +165,7 @@ export default function Navbar() {
             </div>
           </SortableContext>
         </DndContext>
-        
+
         {/* Bouton ajouter domaine */}
         {!isAdding && (
           <button
@@ -177,7 +176,7 @@ export default function Navbar() {
             <span className="text-sm font-medium">Ajouter</span>
           </button>
         )}
-        
+
         {/* Input nouveau domaine */}
         {isAdding && (
           <div className="flex items-center gap-2 px-4 py-2">

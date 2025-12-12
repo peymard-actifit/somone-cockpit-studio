@@ -4,7 +4,7 @@
 export type TileStatus = 'fatal' | 'critique' | 'mineur' | 'ok' | 'deconnecte' | 'information' | 'herite';
 
 // Types de templates de vues
-export type TemplateType = 
+export type TemplateType =
   | 'standard'      // Vue domaine classique avec catégories
   | 'grid'          // Vue grille simple (type Magasins)
   | 'map'           // Vue carte dynamique
@@ -123,16 +123,16 @@ export interface SubCategory {
 }
 
 // Type de source de données
-export type DataSourceType = 
-  | 'excel' 
-  | 'csv' 
-  | 'json' 
-  | 'api' 
-  | 'database' 
-  | 'email' 
-  | 'supervision' 
-  | 'hypervision' 
-  | 'observability' 
+export type DataSourceType =
+  | 'excel'
+  | 'csv'
+  | 'json'
+  | 'api'
+  | 'database'
+  | 'email'
+  | 'supervision'
+  | 'hypervision'
+  | 'observability'
   | 'other';
 
 // Source de données
@@ -275,13 +275,13 @@ export const STATUS_LABELS: Record<TileStatus, string> = {
 export function getInheritedStatus(element: { subCategories: Array<{ subElements: Array<{ status: TileStatus }> }> }): TileStatus {
   let worstStatus: TileStatus = 'ok';
   let worstPriority = STATUS_PRIORITY_MAP['ok'];
-  
+
   // Parcourir tous les sous-éléments pour trouver le statut le plus critique
   for (const subCategory of element.subCategories) {
     for (const subElement of subCategory.subElements) {
       // Ignorer les statuts 'herite' dans le calcul
       if (subElement.status === 'herite') continue;
-      
+
       const priority = STATUS_PRIORITY_MAP[subElement.status] || 0;
       if (priority > worstPriority) {
         worstPriority = priority;
@@ -289,7 +289,7 @@ export function getInheritedStatus(element: { subCategories: Array<{ subElements
       }
     }
   }
-  
+
   return worstStatus;
 }
 
@@ -308,32 +308,32 @@ export function getEffectiveColors(element: { status: TileStatus; subCategories:
 }
 
 // Fonction pour calculer le statut le plus critique d'un domaine
-export function getDomainWorstStatus(domain: { 
-  categories: Array<{ 
-    elements: Array<{ 
-      status: TileStatus; 
-      subCategories: Array<{ 
-        subElements: Array<{ status: TileStatus }> 
-      }> 
-    }> 
-  }>; 
-  mapElements?: Array<{ status: TileStatus }> 
+export function getDomainWorstStatus(domain: {
+  categories: Array<{
+    elements: Array<{
+      status: TileStatus;
+      subCategories: Array<{
+        subElements: Array<{ status: TileStatus }>
+      }>
+    }>
+  }>;
+  mapElements?: Array<{ status: TileStatus }>
 }): TileStatus {
   let worstStatus: TileStatus = 'ok';
   let worstPriority = STATUS_PRIORITY_MAP['ok'];
-  
+
   // Parcourir tous les éléments dans toutes les catégories
   for (const category of domain.categories) {
     for (const element of category.elements) {
       // Calculer le statut effectif de l'élément (gère l'héritage)
       const effectiveStatus = getEffectiveStatus(element);
       const priority = STATUS_PRIORITY_MAP[effectiveStatus] || 0;
-      
+
       if (priority > worstPriority) {
         worstPriority = priority;
         worstStatus = effectiveStatus;
       }
-      
+
       // Parcourir aussi tous les sous-éléments directement (au cas où)
       for (const subCategory of element.subCategories) {
         for (const subElement of subCategory.subElements) {
@@ -347,7 +347,7 @@ export function getDomainWorstStatus(domain: {
       }
     }
   }
-  
+
   // Parcourir aussi les mapElements si le domaine est de type map
   if (domain.mapElements) {
     for (const mapElement of domain.mapElements) {
@@ -358,7 +358,7 @@ export function getDomainWorstStatus(domain: {
       }
     }
   }
-  
+
   return worstStatus;
 }
 

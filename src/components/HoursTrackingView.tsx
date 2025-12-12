@@ -18,6 +18,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
   const [newResourceName, setNewResourceName] = useState('');
   const [newResourceType, setNewResourceType] = useState<ResourceType>('person');
+  const [newResourceDailyRate, setNewResourceDailyRate] = useState<number>(0);
   const [showAddResource, setShowAddResource] = useState(false);
 
   // Générer la liste des dates depuis projectStartDate jusqu'à aujourd'hui + 30 jours
@@ -25,15 +26,15 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     const startDate = new Date(hoursData.projectStartDate);
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 30); // 30 jours dans le futur
-    
+
     const dateList: string[] = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       dateList.push(current.toISOString().split('T')[0]);
       current.setDate(current.getDate() + 1);
     }
-    
+
     return dateList;
   }, [hoursData.projectStartDate]);
 
@@ -59,7 +60,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Calculer le coût par jour (somme de toutes les personnes + fournisseurs)
   const getDayCost = (date: string): number => {
     let cost = 0;
-    
+
     hoursData.resources.forEach(resource => {
       if (resource.type === 'person' && resource.dailyRate && resource.timeEntries) {
         const hasMorning = resource.timeEntries.some(te => te.date === date && te.halfDay === 'morning');
@@ -80,14 +81,14 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         }
       }
     });
-    
+
     return cost;
   };
 
   // Calculer le coût global
   const getGlobalCost = (): number => {
     let total = 0;
-    
+
     hoursData.resources.forEach(resource => {
       if (resource.type === 'person') {
         total += getPersonTotal(resource);
@@ -95,7 +96,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         total += getSupplierTotal(resource);
       }
     });
-    
+
     return total;
   };
 
@@ -107,16 +108,23 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   };
 
   // Ajouter une ressource
-  const handleAddResource = () => {
-    if (!newResourceName.trim()) return;
+  const handleAddResource = (type?: ResourceType, dailyRate?: number) => {
+    const resourceType = type || newResourceType;
+    const resourceName = type ? '' : newResourceName.trim();
+    const resourceDailyRate = dailyRate !== undefined ? dailyRate : (resourceType === 'person' ? newResourceDailyRate : undefined);
+    
+    if (!resourceName && !type) {
+      // Si on appelle depuis le formulaire, vérifier le nom
+      if (!newResourceName.trim()) return;
+    }
     
     const newResource: Resource = {
       id: crypto.randomUUID(),
-      type: newResourceType,
-      name: newResourceName.trim(),
+      type: resourceType,
+      name: resourceName || (resourceType === 'person' ? 'Nouvelle personne' : 'Nouveau fournisseur'),
       order: hoursData.resources.length,
-      ...(newResourceType === 'person' 
-        ? { dailyRate: 0, timeEntries: [] }
+      ...(resourceType === 'person' 
+        ? { dailyRate: resourceDailyRate || 0, timeEntries: [] }
         : { entries: [] }
       )
     };
@@ -128,21 +136,23 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     
     updateDomain(domain.id, { hoursTracking: updatedData });
     setNewResourceName('');
+    setNewResourceDailyRate(0);
+    setNewResourceType('person');
     setShowAddResource(false);
   };
 
   // Toggle une demi-journée pour une personne
   const toggleHalfDay = (resourceId: string, date: string, halfDay: HalfDay) => {
     if (readOnly) return;
-    
+
     const resource = hoursData.resources.find(r => r.id === resourceId);
     if (!resource || resource.type !== 'person') return;
-    
+
     const timeEntries = resource.timeEntries || [];
     const existingIndex = timeEntries.findIndex(
       te => te.date === date && te.halfDay === halfDay
     );
-    
+
     let updatedEntries: TimeEntry[];
     if (existingIndex >= 0) {
       // Retirer la demi-journée
@@ -151,13 +161,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       // Ajouter la demi-journée
       updatedEntries = [...timeEntries, { date, halfDay }];
     }
-    
+
     const updatedResources = hoursData.resources.map(r =>
       r.id === resourceId
         ? { ...r, timeEntries: updatedEntries }
         : r
     );
-    
+
     updateDomain(domain.id, {
       hoursTracking: {
         ...hoursData,
@@ -169,13 +179,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Mettre à jour le TJM d'une personne
   const updateDailyRate = (resourceId: string, dailyRate: number) => {
     if (readOnly) return;
-    
+
     const updatedResources = hoursData.resources.map(r =>
       r.id === resourceId && r.type === 'person'
         ? { ...r, dailyRate }
         : r
     );
-    
+
     updateDomain(domain.id, {
       hoursTracking: {
         ...hoursData,
@@ -187,13 +197,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Ajouter/modifier un montant pour un fournisseur
   const updateSupplierAmount = (resourceId: string, date: string, amount: number) => {
     if (readOnly) return;
-    
+
     const resource = hoursData.resources.find(r => r.id === resourceId);
     if (!resource || resource.type !== 'supplier') return;
-    
+
     const entries = resource.entries || [];
     const existingIndex = entries.findIndex(e => e.date === date);
-    
+
     let updatedEntries: SupplierEntry[];
     if (amount === 0 && existingIndex >= 0) {
       // Supprimer l'entrée si le montant est 0
@@ -207,13 +217,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       // Ajouter une nouvelle entrée
       updatedEntries = [...entries, { date, amount }];
     }
-    
+
     const updatedResources = hoursData.resources.map(r =>
       r.id === resourceId
         ? { ...r, entries: updatedEntries }
         : r
     );
-    
+
     updateDomain(domain.id, {
       hoursTracking: {
         ...hoursData,
@@ -225,7 +235,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Supprimer une ressource
   const handleDeleteResource = (resourceId: string) => {
     if (readOnly) return;
-    
+
     const updatedResources = hoursData.resources.filter(r => r.id !== resourceId);
     updateDomain(domain.id, {
       hoursTracking: {
@@ -316,7 +326,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               <div className="w-64 bg-[#F5F7FA] border-r border-[#E2E8F0] p-3">
                 <div className="text-xs text-[#64748B] font-medium mb-2">Total par jour</div>
               </div>
-              
+
               {/* Dates déroulantes */}
               <div className="flex">
                 {dates.map((date) => {
@@ -326,7 +336,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                   const dayNumber = dateObj.getDate();
                   const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
                   const isToday = date === new Date().toISOString().split('T')[0];
-                  
+
                   return (
                     <div
                       key={date}
@@ -353,9 +363,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                   <div className="w-64 bg-white border-r border-[#E2E8F0] p-3 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <MuiIcon 
-                          name={resource.type === 'person' ? 'User' : 'Building'} 
-                          size={16} 
+                        <MuiIcon
+                          name={resource.type === 'person' ? 'User' : 'Building'}
+                          size={16}
                           className="text-[#64748B]"
                         />
                         <span className="font-medium text-[#1E3A5F]">{resource.name}</span>
@@ -370,13 +380,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         </button>
                       )}
                     </div>
-                    
+
                     {resource.type === 'person' ? (
                       <>
                         <div className="flex items-center gap-2">
-                          <label className="text-xs text-[#64748B]">TJM (€):</label>
+                          <label className="text-xs font-medium text-[#1E3A5F] whitespace-nowrap">TJM (€):</label>
                           {readOnly ? (
-                            <span className="text-sm font-medium text-[#1E3A5F]">
+                            <span className="text-sm font-semibold text-[#1E3A5F]">
                               {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) || '0 €'}
                             </span>
                           ) : (
@@ -384,23 +394,24 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                               type="number"
                               value={resource.dailyRate || 0}
                               onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
-                              className="flex-1 px-2 py-1 bg-[#F5F7FA] border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                              className="flex-1 px-3 py-1.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-sm font-semibold text-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20"
                               min="0"
                               step="10"
+                              placeholder="0"
                             />
                           )}
                         </div>
-                        <div className="text-xs text-[#64748B]">
-                          {getPersonDays(resource)} jour{getPersonDays(resource) > 1 ? 's' : ''} • {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                        <div className="text-xs text-[#64748B] mt-1">
+                          {getPersonDays(resource)} jour{getPersonDays(resource) > 1 ? 's' : ''} • <span className="font-medium text-[#1E3A5F]">{getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
                         </div>
                       </>
                     ) : (
                       <div className="text-xs text-[#64748B]">
-                        Total: {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                        Total: <span className="font-medium text-[#1E3A5F]">{getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</span>
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Cases pour chaque date */}
                   <div className="flex">
                     {dates.map((date) => {
@@ -408,7 +419,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         const hasMorning = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'morning');
                         const hasAfternoon = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'afternoon');
                         const isToday = date === new Date().toISOString().split('T')[0];
-                        
+
                         return (
                           <div
                             key={date}
@@ -417,11 +428,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
                               disabled={readOnly}
-                              className={`flex-1 h-8 rounded text-xs font-medium transition-all ${
-                                hasMorning
+                              className={`flex-1 h-8 rounded text-xs font-medium transition-all ${hasMorning
                                   ? 'bg-[#1E3A5F] text-white'
                                   : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                              } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Matin"
                             >
                               M
@@ -429,11 +439,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             <button
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'afternoon')}
                               disabled={readOnly}
-                              className={`flex-1 h-8 rounded text-xs font-medium transition-all ${
-                                hasAfternoon
+                              className={`flex-1 h-8 rounded text-xs font-medium transition-all ${hasAfternoon
                                   ? 'bg-[#1E3A5F] text-white'
                                   : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                              } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Après-midi"
                             >
                               A
@@ -445,7 +454,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         const entry = resource.entries?.find(e => e.date === date);
                         const amount = entry?.amount || 0;
                         const isToday = date === new Date().toISOString().split('T')[0];
-                        
+
                         return (
                           <div
                             key={date}
@@ -479,59 +488,111 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
             ))}
           </div>
 
-          {/* Bouton pour ajouter une ressource */}
+          {/* Boutons pour ajouter une ressource */}
           {!readOnly && (
-            <div className="border-b border-[#E2E8F0] p-3">
+            <div className="border-b border-[#E2E8F0] p-3 bg-[#F9FAFB]">
               {!showAddResource ? (
-                <button
-                  onClick={() => setShowAddResource(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#64748B] hover:bg-[#EEF2F7] hover:border-[#1E3A5F] hover:text-[#1E3A5F] transition-colors"
-                >
-                  <MuiIcon name="Plus" size={16} />
-                  <span>Ajouter une personne ou un fournisseur</span>
-                </button>
-              ) : (
                 <div className="flex items-center gap-3">
-                  <select
-                    value={newResourceType}
-                    onChange={(e) => setNewResourceType(e.target.value as ResourceType)}
-                    className="px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                  >
-                    <option value="person">Personne</option>
-                    <option value="supplier">Fournisseur</option>
-                  </select>
-                  <input
-                    type="text"
-                    value={newResourceName}
-                    onChange={(e) => setNewResourceName(e.target.value)}
-                    placeholder="Nom"
-                    className="flex-1 px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleAddResource();
-                      }
-                      if (e.key === 'Escape') {
-                        setShowAddResource(false);
-                        setNewResourceName('');
-                      }
-                    }}
-                    autoFocus
-                  />
                   <button
-                    onClick={handleAddResource}
-                    className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors"
+                    onClick={() => {
+                      setNewResourceType('person');
+                      setShowAddResource(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all font-medium"
                   >
-                    Ajouter
+                    <MuiIcon name="User" size={18} />
+                    <span>Ajouter une personne</span>
                   </button>
                   <button
                     onClick={() => {
-                      setShowAddResource(false);
-                      setNewResourceName('');
+                      setNewResourceType('supplier');
+                      setShowAddResource(true);
                     }}
-                    className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#1E3A5F] rounded-lg text-[#1E3A5F] hover:bg-[#1E3A5F] hover:text-white transition-all font-medium"
                   >
-                    Annuler
+                    <MuiIcon name="Building" size={18} />
+                    <span>Ajouter un fournisseur</span>
                   </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-[#1E3A5F]/10 rounded-lg">
+                      <MuiIcon 
+                        name={newResourceType === 'person' ? 'User' : 'Building'} 
+                        size={18} 
+                        className="text-[#1E3A5F]"
+                      />
+                      <span className="text-sm font-medium text-[#1E3A5F]">
+                        {newResourceType === 'person' ? 'Nouvelle personne' : 'Nouveau fournisseur'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setNewResourceType(newResourceType === 'person' ? 'supplier' : 'person');
+                        setNewResourceDailyRate(0);
+                      }}
+                      className="px-3 py-2 text-xs text-[#64748B] hover:text-[#1E3A5F] border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
+                    >
+                      Changer de type
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={newResourceName}
+                      onChange={(e) => setNewResourceName(e.target.value)}
+                      placeholder={newResourceType === 'person' ? 'Nom de la personne' : 'Nom du fournisseur'}
+                      className="flex-1 px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAddResource();
+                        }
+                        if (e.key === 'Escape') {
+                          setShowAddResource(false);
+                          setNewResourceName('');
+                          setNewResourceDailyRate(0);
+                        }
+                      }}
+                      autoFocus
+                    />
+                    {newResourceType === 'person' && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-[#64748B] whitespace-nowrap">TJM (€):</label>
+                        <input
+                          type="number"
+                          value={newResourceDailyRate}
+                          onChange={(e) => setNewResourceDailyRate(parseFloat(e.target.value) || 0)}
+                          placeholder="0"
+                          className="w-24 px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                          min="0"
+                          step="10"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleAddResource();
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => handleAddResource()}
+                      className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors font-medium"
+                    >
+                      Ajouter
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddResource(false);
+                        setNewResourceName('');
+                        setNewResourceDailyRate(0);
+                        setNewResourceType('person');
+                      }}
+                      className="px-4 py-2 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded-lg transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

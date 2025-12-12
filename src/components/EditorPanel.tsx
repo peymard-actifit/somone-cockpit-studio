@@ -1798,339 +1798,339 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             isOpen={activeSection === 'background'}
             onToggle={() => toggleSection('background')}
           >
-          <div className="space-y-4">
-            {/* Zone de sélection de fichier */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</label>
-              <label
-                htmlFor={`bg-upload-${domain.id}`}
-                className="block p-4 border-2 border-dashed border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors cursor-pointer"
-              >
-                <input
-                  type="file"
-                  accept="image/*"
-                  id={`bg-upload-${domain.id}`}
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const maxSizeMB = 30;
-                      const maxSizeBytes = maxSizeMB * 1024 * 1024;
-                      if (file.size > maxSizeBytes) {
-                        alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
-                        e.target.value = '';
-                        return;
+            <div className="space-y-4">
+              {/* Zone de sélection de fichier */}
+              <div>
+                <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</label>
+                <label
+                  htmlFor={`bg-upload-${domain.id}`}
+                  className="block p-4 border-2 border-dashed border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors cursor-pointer"
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id={`bg-upload-${domain.id}`}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const maxSizeMB = 30;
+                        const maxSizeBytes = maxSizeMB * 1024 * 1024;
+                        if (file.size > maxSizeBytes) {
+                          alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
+                          e.target.value = '';
+                          return;
+                        }
+
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const base64 = event.target?.result as string;
+                          setImageUrl(base64);
+                          updateDomain(domain.id, { backgroundImage: base64 });
+                        };
+                        reader.readAsDataURL(file);
                       }
+                    }}
+                  />
+                  <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
+                    <MuiIcon name="Upload" size={24} className="mb-2" />
+                    <span className="text-xs font-medium">Cliquez pour choisir un fichier</span>
+                    <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF jusqu'à 30MB</span>
+                  </div>
+                </label>
+              </div>
 
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        const base64 = event.target?.result as string;
-                        setImageUrl(base64);
-                        updateDomain(domain.id, { backgroundImage: base64 });
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
-                <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
-                  <MuiIcon name="Upload" size={24} className="mb-2" />
-                  <span className="text-xs font-medium">Cliquez pour choisir un fichier</span>
-                  <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF jusqu'à 30MB</span>
+              {/* Séparateur */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-[#E2E8F0]" />
+                <span className="text-xs text-[#94A3B8]">ou</span>
+                <div className="flex-1 h-px bg-[#E2E8F0]" />
+              </div>
+
+              {/* URL alternative */}
+              <div>
+                <label className="block text-sm font-medium text-[#1E3A5F] mb-2">URL de l'image</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={imageUrl.startsWith('data:') ? '' : imageUrl}
+                    onChange={(e) => {
+                      setImageUrl(e.target.value);
+                      setAnalysisResult(null);
+                    }}
+                    placeholder="https://exemple.com/image.png"
+                    className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                  />
+                  {domain.templateType === 'map' && (
+                    <button
+                      onClick={analyzeMapImage}
+                      disabled={!imageUrl || isAnalyzing}
+                      className="px-3 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap text-xs"
+                      title="Analyser l'image avec l'IA pour détecter les coordonnées GPS"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <div className="animate-spin"><MuiIcon name="Refresh" size={14} /></div>
+                          <span>Analyse...</span>
+                        </>
+                      ) : (
+                        <>
+                          <MuiIcon name="AutoAwesome" size={14} />
+                          <span>Détecter GPS</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
-              </label>
-            </div>
-
-            {/* Séparateur */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-[#E2E8F0]" />
-              <span className="text-xs text-[#94A3B8]">ou</span>
-              <div className="flex-1 h-px bg-[#E2E8F0]" />
-            </div>
-
-            {/* URL alternative */}
-            <div>
-              <label className="block text-sm font-medium text-[#1E3A5F] mb-2">URL de l'image</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={imageUrl.startsWith('data:') ? '' : imageUrl}
-                  onChange={(e) => {
-                    setImageUrl(e.target.value);
-                    setAnalysisResult(null);
-                  }}
-                  placeholder="https://exemple.com/image.png"
-                  className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-                />
-                {domain.templateType === 'map' && (
+                {domain.templateType !== 'map' && (
                   <button
-                    onClick={analyzeMapImage}
-                    disabled={!imageUrl || isAnalyzing}
-                    className="px-3 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap text-xs"
-                    title="Analyser l'image avec l'IA pour détecter les coordonnées GPS"
+                    onClick={() => {
+                      if (imageUrl && imageUrl.trim()) {
+                        updateDomain(domain.id, { backgroundImage: imageUrl });
+                      }
+                    }}
+                    className="mt-2 w-full px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] text-sm"
                   >
-                    {isAnalyzing ? (
-                      <>
-                        <div className="animate-spin"><MuiIcon name="Refresh" size={14} /></div>
-                        <span>Analyse...</span>
-                      </>
-                    ) : (
-                      <>
-                        <MuiIcon name="AutoAwesome" size={14} />
-                        <span>Détecter GPS</span>
-                      </>
-                    )}
+                    Enregistrer l'URL
                   </button>
                 )}
               </div>
-              {domain.templateType !== 'map' && (
-                <button
-                  onClick={() => {
-                    if (imageUrl && imageUrl.trim()) {
-                      updateDomain(domain.id, { backgroundImage: imageUrl });
-                    }
-                  }}
-                  className="mt-2 w-full px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] text-sm"
-                >
-                  Enregistrer l'URL
-                </button>
+
+              {/* Aperçu */}
+              {imageUrl && (
+                <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
+                  <img
+                    src={imageUrl}
+                    alt="Aperçu"
+                    className="max-h-32 rounded border border-[#E2E8F0] mx-auto w-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  {imageUrl.startsWith('data:') && (
+                    <p className="text-xs text-green-600 mt-2 flex items-center justify-center gap-1">
+                      <MuiIcon name="CheckCircle" size={12} />
+                      Fichier chargé
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Résultat de l'analyse IA (MapView uniquement) */}
+              {domain.templateType === 'map' && analysisResult && (
+                <div className={`p-3 rounded-lg text-sm ${analysisResult.detected
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-amber-50 border border-amber-200 text-amber-800'
+                  }`}>
+                  {analysisResult.detected ? (
+                    <div className="flex items-start gap-2">
+                      <MuiIcon name="CheckCircle" size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Zone détectée : {analysisResult.region}</p>
+                        <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
+                        {analysisResult.confidence && (
+                          <p className="text-xs mt-1 opacity-60">Confiance : {analysisResult.confidence}</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <MuiIcon name="Warning" size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Détection impossible</p>
+                        <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Coordonnées GPS (MapView uniquement) */}
+              {domain.templateType === 'map' && (
+                <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                  <h4 className="font-medium text-[#1E3A5F] mb-2 text-sm flex items-center gap-2">
+                    <MuiIcon name="Place" size={14} />
+                    Coordonnées GPS des coins de l'image
+                  </h4>
+                  <p className="text-xs text-[#64748B] mb-3">
+                    Ces coordonnées correspondent aux pixels des coins de l'image (pas à la zone géographique).
+                  </p>
+
+                  {/* Coin haut-gauche */}
+                  <div className="mb-3">
+                    <label className="block text-xs text-[#64748B] mb-1">📍 Coin haut-gauche (Nord-Ouest)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-[#94A3B8] mb-1">Latitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={gpsForm.topLeftLat}
+                          onChange={(e) => setGpsForm({ ...gpsForm, topLeftLat: e.target.value })}
+                          placeholder="ex: 51.089"
+                          className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-[#94A3B8] mb-1">Longitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={gpsForm.topLeftLng}
+                          onChange={(e) => setGpsForm({ ...gpsForm, topLeftLng: e.target.value })}
+                          placeholder="ex: -5.142"
+                          className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Coin bas-droite */}
+                  <div className="mb-3">
+                    <label className="block text-xs text-[#64748B] mb-1">📍 Coin bas-droite (Sud-Est)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-[#94A3B8] mb-1">Latitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={gpsForm.bottomRightLat}
+                          onChange={(e) => setGpsForm({ ...gpsForm, bottomRightLat: e.target.value })}
+                          placeholder="ex: 41.303"
+                          className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-[#94A3B8] mb-1">Longitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={gpsForm.bottomRightLng}
+                          onChange={(e) => setGpsForm({ ...gpsForm, bottomRightLng: e.target.value })}
+                          placeholder="ex: 9.561"
+                          className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={saveGpsBounds}
+                    className="w-full px-3 py-1.5 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] text-xs"
+                  >
+                    Enregistrer les coordonnées GPS
+                  </button>
+                </div>
+              )}
+
+              {/* Options d'affichage */}
+              {domain.backgroundImage && (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <img
+                      src={domain.backgroundImage}
+                      alt="Aperçu"
+                      className="w-full h-20 object-cover rounded-lg border border-[#E2E8F0]"
+                    />
+                    <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <span className="text-white text-xs">Image de fond</span>
+                    </div>
+                  </div>
+
+                  {/* Mode d'affichage */}
+                  <div>
+                    <p className="text-xs text-[#64748B] mb-2">Position de l'image</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => updateDomain(domain.id, { backgroundMode: 'behind' })}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${(!domain.backgroundMode || domain.backgroundMode === 'behind')
+                          ? 'bg-[#1E3A5F] text-white'
+                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                          }`}
+                      >
+                        En dessous
+                      </button>
+                      <button
+                        onClick={() => updateDomain(domain.id, { backgroundMode: 'overlay' })}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${domain.backgroundMode === 'overlay'
+                          ? 'bg-[#1E3A5F] text-white'
+                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                          }`}
+                      >
+                        Au dessus
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-[#94A3B8] mt-1">
+                      {(!domain.backgroundMode || domain.backgroundMode === 'behind')
+                        ? 'L\'image sera derrière les tuiles'
+                        : 'L\'image sera par-dessus (transparente, sans gêner les clics)'}
+                    </p>
+                  </div>
+
+                  {/* Opacité de l'image (BackgroundView uniquement) */}
+                  {domain.templateType === 'background' && (
+                    <div>
+                      <label className="block text-sm text-[#64748B] mb-2">
+                        Opacité de l'image ({domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%)
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}
+                        onChange={(e) => updateDomain(domain.id, { backgroundImageOpacity: Number(e.target.value) })}
+                        className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer"
+                        style={{
+                          background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%, #E2E8F0 ${domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%, #E2E8F0 100%)`
+                        }}
+                      />
+                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
+                        <span>0%</span>
+                        <span>100%</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Regroupement (clustering) */}
+                  <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-sm font-medium text-[#1E3A5F]">
+                          {domain.templateType === 'map' ? 'Regroupement des points' : 'Regroupement des éléments'}
+                        </label>
+                        <p className="text-xs text-[#64748B] mt-1">
+                          {domain.templateType === 'map'
+                            ? 'Regrouper les points proches en clusters pour améliorer la lisibilité'
+                            : 'Regrouper les éléments proches en clusters pour améliorer la lisibilité'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => updateDomain(domain.id, { enableClustering: !(domain.enableClustering !== false) })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${domain.enableClustering !== false ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                          }`}
+                        role="switch"
+                        aria-checked={domain.enableClustering !== false}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${domain.enableClustering !== false ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => updateDomain(domain.id, { backgroundImage: undefined, backgroundMode: undefined, backgroundImageOpacity: undefined })}
+                    className="w-full px-3 py-1.5 text-xs text-[#E57373] hover:bg-red-50 rounded-lg border border-[#E57373]/30 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <MuiIcon name="Delete" size={12} />
+                    Supprimer l'image
+                  </button>
+                </div>
               )}
             </div>
-
-            {/* Aperçu */}
-            {imageUrl && (
-              <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
-                <img
-                  src={imageUrl}
-                  alt="Aperçu"
-                  className="max-h-32 rounded border border-[#E2E8F0] mx-auto w-full object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-                {imageUrl.startsWith('data:') && (
-                  <p className="text-xs text-green-600 mt-2 flex items-center justify-center gap-1">
-                    <MuiIcon name="CheckCircle" size={12} />
-                    Fichier chargé
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Résultat de l'analyse IA (MapView uniquement) */}
-            {domain.templateType === 'map' && analysisResult && (
-              <div className={`p-3 rounded-lg text-sm ${analysisResult.detected
-                ? 'bg-green-50 border border-green-200 text-green-800'
-                : 'bg-amber-50 border border-amber-200 text-amber-800'
-                }`}>
-                {analysisResult.detected ? (
-                  <div className="flex items-start gap-2">
-                    <MuiIcon name="CheckCircle" size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Zone détectée : {analysisResult.region}</p>
-                      <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
-                      {analysisResult.confidence && (
-                        <p className="text-xs mt-1 opacity-60">Confiance : {analysisResult.confidence}</p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2">
-                    <MuiIcon name="Warning" size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Détection impossible</p>
-                      <p className="text-xs mt-1 opacity-80">{analysisResult.description}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Coordonnées GPS (MapView uniquement) */}
-            {domain.templateType === 'map' && (
-              <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                <h4 className="font-medium text-[#1E3A5F] mb-2 text-sm flex items-center gap-2">
-                  <MuiIcon name="Place" size={14} />
-                  Coordonnées GPS des coins de l'image
-                </h4>
-                <p className="text-xs text-[#64748B] mb-3">
-                  Ces coordonnées correspondent aux pixels des coins de l'image (pas à la zone géographique).
-                </p>
-
-                {/* Coin haut-gauche */}
-                <div className="mb-3">
-                  <label className="block text-xs text-[#64748B] mb-1">📍 Coin haut-gauche (Nord-Ouest)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] text-[#94A3B8] mb-1">Latitude</label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={gpsForm.topLeftLat}
-                        onChange={(e) => setGpsForm({ ...gpsForm, topLeftLat: e.target.value })}
-                        placeholder="ex: 51.089"
-                        className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-[#94A3B8] mb-1">Longitude</label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={gpsForm.topLeftLng}
-                        onChange={(e) => setGpsForm({ ...gpsForm, topLeftLng: e.target.value })}
-                        placeholder="ex: -5.142"
-                        className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Coin bas-droite */}
-                <div className="mb-3">
-                  <label className="block text-xs text-[#64748B] mb-1">📍 Coin bas-droite (Sud-Est)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] text-[#94A3B8] mb-1">Latitude</label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={gpsForm.bottomRightLat}
-                        onChange={(e) => setGpsForm({ ...gpsForm, bottomRightLat: e.target.value })}
-                        placeholder="ex: 41.303"
-                        className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-[#94A3B8] mb-1">Longitude</label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={gpsForm.bottomRightLng}
-                        onChange={(e) => setGpsForm({ ...gpsForm, bottomRightLng: e.target.value })}
-                        placeholder="ex: 9.561"
-                        className="w-full px-2 py-1.5 bg-white border border-[#E2E8F0] rounded text-xs text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={saveGpsBounds}
-                  className="w-full px-3 py-1.5 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] text-xs"
-                >
-                  Enregistrer les coordonnées GPS
-                </button>
-              </div>
-            )}
-
-            {/* Options d'affichage */}
-            {domain.backgroundImage && (
-              <div className="space-y-3">
-                <div className="relative">
-                  <img
-                    src={domain.backgroundImage}
-                    alt="Aperçu"
-                    className="w-full h-20 object-cover rounded-lg border border-[#E2E8F0]"
-                  />
-                  <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <span className="text-white text-xs">Image de fond</span>
-                  </div>
-                </div>
-
-                {/* Mode d'affichage */}
-                <div>
-                  <p className="text-xs text-[#64748B] mb-2">Position de l'image</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => updateDomain(domain.id, { backgroundMode: 'behind' })}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${(!domain.backgroundMode || domain.backgroundMode === 'behind')
-                        ? 'bg-[#1E3A5F] text-white'
-                        : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                        }`}
-                    >
-                      En dessous
-                    </button>
-                    <button
-                      onClick={() => updateDomain(domain.id, { backgroundMode: 'overlay' })}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${domain.backgroundMode === 'overlay'
-                        ? 'bg-[#1E3A5F] text-white'
-                        : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                        }`}
-                    >
-                      Au dessus
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-[#94A3B8] mt-1">
-                    {(!domain.backgroundMode || domain.backgroundMode === 'behind')
-                      ? 'L\'image sera derrière les tuiles'
-                      : 'L\'image sera par-dessus (transparente, sans gêner les clics)'}
-                  </p>
-                </div>
-
-                {/* Opacité de l'image (BackgroundView uniquement) */}
-                {domain.templateType === 'background' && (
-                  <div>
-                    <label className="block text-sm text-[#64748B] mb-2">
-                      Opacité de l'image ({domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%)
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}
-                      onChange={(e) => updateDomain(domain.id, { backgroundImageOpacity: Number(e.target.value) })}
-                      className="w-full h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer"
-                      style={{
-                        background: `linear-gradient(to right, #1E3A5F 0%, #1E3A5F ${domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%, #E2E8F0 ${domain.backgroundImageOpacity !== undefined ? domain.backgroundImageOpacity : 100}%, #E2E8F0 100%)`
-                      }}
-                    />
-                    <div className="flex justify-between text-xs text-[#64748B] mt-1">
-                      <span>0%</span>
-                      <span>100%</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Regroupement (clustering) */}
-                <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="block text-sm font-medium text-[#1E3A5F]">
-                        {domain.templateType === 'map' ? 'Regroupement des points' : 'Regroupement des éléments'}
-                      </label>
-                      <p className="text-xs text-[#64748B] mt-1">
-                        {domain.templateType === 'map'
-                          ? 'Regrouper les points proches en clusters pour améliorer la lisibilité'
-                          : 'Regrouper les éléments proches en clusters pour améliorer la lisibilité'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => updateDomain(domain.id, { enableClustering: !(domain.enableClustering !== false) })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${domain.enableClustering !== false ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                        }`}
-                      role="switch"
-                      aria-checked={domain.enableClustering !== false}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${domain.enableClustering !== false ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => updateDomain(domain.id, { backgroundImage: undefined, backgroundMode: undefined, backgroundImageOpacity: undefined })}
-                  className="w-full px-3 py-1.5 text-xs text-[#E57373] hover:bg-red-50 rounded-lg border border-[#E57373]/30 transition-colors flex items-center justify-center gap-1"
-                >
-                  <MuiIcon name="Delete" size={12} />
-                  Supprimer l'image
-                </button>
-              </div>
-            )}
-          </div>
-        </Section>
+          </Section>
         )}
 
         {/* Édition des catégories - Masquée pour hours-tracking */}

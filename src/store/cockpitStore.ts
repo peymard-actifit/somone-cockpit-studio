@@ -17,69 +17,69 @@ interface CockpitState {
   fetchCockpits: () => Promise<void>;
   fetchCockpit: (id: string) => Promise<void>;
   fetchTemplates: () => Promise<void>;
-  
+
   // CRUD Cockpits
   createCockpit: (name: string) => Promise<Cockpit | null>;
   duplicateCockpit: (id: string, newName: string) => Promise<Cockpit | null>;
   deleteCockpit: (id: string) => Promise<boolean>;
   reorderCockpits: (cockpitIds: string[]) => Promise<void>;
-  
+
   // Navigation
   setCurrentDomain: (domainId: string | null) => void;
   setCurrentElement: (elementId: string | null) => void;
-  
+
   // Modifications avec auto-save
   updateCockpit: (updates: Partial<Cockpit>) => void;
   addDomain: (name: string, templateType?: TemplateType) => void;
   updateDomain: (domainId: string, updates: Partial<Domain>) => void;
   deleteDomain: (domainId: string) => void;
   reorderDomains: (domainIds: string[]) => void;
-  
+
   addCategory: (domainId: string, name: string, orientation: 'horizontal' | 'vertical') => void;
   updateCategory: (categoryId: string, updates: Partial<Category>) => void;
   deleteCategory: (categoryId: string) => void;
   reorderCategory: (domainId: string, categoryIds: string[]) => void;
-  
+
   addElement: (categoryId: string, name: string) => void;
   updateElement: (elementId: string, updates: Partial<Element>) => void;
   deleteElement: (elementId: string) => void;
   moveElement: (elementId: string, fromCategoryId: string, toCategoryId: string) => void;
   reorderElement: (elementId: string, categoryId: string, newIndex: number) => void;
-  
+
   addSubCategory: (elementId: string, name: string, orientation: 'horizontal' | 'vertical') => void;
   updateSubCategory: (subCategoryId: string, updates: Partial<SubCategory>) => void;
   deleteSubCategory: (subCategoryId: string) => void;
   reorderSubCategory: (elementId: string, subCategoryIds: string[]) => void;
-  
+
   addSubElement: (subCategoryId: string, name: string) => void;
   updateSubElement: (subElementId: string, updates: Partial<SubElement>) => void;
   deleteSubElement: (subElementId: string) => void;
   moveSubElement: (subElementId: string, fromSubCategoryId: string, toSubCategoryId: string) => void;
   reorderSubElement: (subElementId: string, subCategoryId: string, newIndex: number) => void;
-  
+
   // Zones
   addZone: (name: string) => void;
   deleteZone: (zoneId: string) => void;
-  
+
   // Map Elements (points sur la carte)
   addMapElement: (domainId: string, name: string, gps: GpsCoords, status?: TileStatus, icon?: string) => void;
   updateMapElement: (mapElementId: string, updates: Partial<MapElement>) => void;
   deleteMapElement: (mapElementId: string) => void;
   cloneMapElement: (mapElementId: string) => void;
   updateMapBounds: (domainId: string, bounds: MapBounds) => void;
-  
+
   // Clone Element (pour BackgroundView)
   cloneElement: (elementId: string) => void;
-  
+
   // Export
   exportToExcel: () => Promise<Blob | null>;
   exportCockpit: (id: string, fileName?: string, directoryHandle?: FileSystemDirectoryHandle | null) => Promise<void>;
   importCockpit: (file: File) => Promise<Cockpit | null>;
-  
+
   // Publication
   publishCockpit: (id: string) => Promise<{ publicId: string } | null>;
   unpublishCockpit: (id: string) => Promise<boolean>;
-  
+
   // Utilitaires
   triggerAutoSave: () => void;
   clearError: () => void;
@@ -103,14 +103,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   fetchCockpits: async () => {
     const token = useAuthStore.getState().token;
     set({ isLoading: true, error: null });
-    
+
     try {
       const response = await fetch(`${API_URL}/cockpits`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
+
       if (!response.ok) throw new Error('Erreur lors du chargement');
-      
+
       const cockpits = await response.json();
       set({ cockpits, isLoading: false });
     } catch (error) {
@@ -121,21 +121,21 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   fetchCockpit: async (id: string) => {
     const token = useAuthStore.getState().token;
     set({ isLoading: true, error: null });
-    
+
     try {
       const response = await fetch(`${API_URL}/cockpits/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
+
       if (!response.ok) throw new Error('Erreur lors du chargement');
-      
+
       const cockpit = await response.json();
-      set({ 
-        currentCockpit: cockpit, 
+      set({
+        currentCockpit: cockpit,
         currentDomainId: cockpit.domains?.[0]?.id || null,
         currentElementId: null,
         zones: cockpit.zones || [],
-        isLoading: false 
+        isLoading: false
       });
     } catch (error) {
       set({ error: 'Erreur lors du chargement de la maquette', isLoading: false });
@@ -144,14 +144,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   fetchTemplates: async () => {
     const token = useAuthStore.getState().token;
-    
+
     try {
       const response = await fetch(`${API_URL}/templates`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
+
       if (!response.ok) throw new Error('Erreur lors du chargement');
-      
+
       const templates = await response.json();
       set({ templates });
     } catch (error) {
@@ -162,7 +162,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   createCockpit: async (name: string) => {
     const token = useAuthStore.getState().token;
     set({ isLoading: true, error: null });
-    
+
     try {
       const response = await fetch(`${API_URL}/cockpits`, {
         method: 'POST',
@@ -172,13 +172,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         },
         body: JSON.stringify({ name }),
       });
-      
+
       if (!response.ok) throw new Error('Erreur lors de la création');
-      
+
       const cockpit = await response.json();
-      set((state) => ({ 
+      set((state) => ({
         cockpits: [...state.cockpits, cockpit],
-        isLoading: false 
+        isLoading: false
       }));
       return cockpit;
     } catch (error) {
@@ -190,7 +190,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   duplicateCockpit: async (id: string, newName: string) => {
     const token = useAuthStore.getState().token;
     set({ isLoading: true, error: null });
-    
+
     try {
       const response = await fetch(`${API_URL}/cockpits/${id}/duplicate`, {
         method: 'POST',
@@ -200,13 +200,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         },
         body: JSON.stringify({ name: newName }),
       });
-      
+
       if (!response.ok) throw new Error('Erreur lors de la duplication');
-      
+
       const cockpit = await response.json();
-      set((state) => ({ 
+      set((state) => ({
         cockpits: [...state.cockpits, cockpit],
-        isLoading: false 
+        isLoading: false
       }));
       return cockpit;
     } catch (error) {
@@ -217,16 +217,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   deleteCockpit: async (id: string) => {
     const token = useAuthStore.getState().token;
-    
+
     try {
       const response = await fetch(`${API_URL}/cockpits/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
+
       if (!response.ok) throw new Error('Erreur lors de la suppression');
-      
-      set((state) => ({ 
+
+      set((state) => ({
         cockpits: state.cockpits.filter(c => c.id !== id),
         currentCockpit: state.currentCockpit?.id === id ? null : state.currentCockpit,
       }));
@@ -247,55 +247,55 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   triggerAutoSave: () => {
     const { autoSaveTimeout, currentCockpit } = get();
-    
+
     if (autoSaveTimeout) {
       clearTimeout(autoSaveTimeout);
     }
-    
-      const timeout = setTimeout(async () => {
-        if (!currentCockpit) return;
-        
-        const token = useAuthStore.getState().token;
-        try {
-          // Envoyer uniquement les champs attendus par l'API PUT
-          // L'API fait un merge profond, donc on envoie les domains avec TOUTES leurs propriétés
-          const payload: any = {
-            name: currentCockpit.name,
-            domains: currentCockpit.domains || [],
-            logo: currentCockpit.logo,
-            scrollingBanner: currentCockpit.scrollingBanner,
-          };
-          // Ajouter zones si disponible (peut ne pas être dans le type Cockpit mais dans les données)
-          if ((currentCockpit as any).zones) {
-            payload.zones = (currentCockpit as any).zones;
-          }
-          
-          console.log('[Auto-save] Envoi des données:', {
-            name: payload.name,
-            domainsCount: payload.domains.length,
-            zonesCount: payload.zones.length,
-            domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length
-          });
-          
-          // Log des images dans les domaines
-          payload.domains.forEach((d: any, idx: number) => {
-            const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
-            console.log(`[Auto-save] Domain[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
-          });
-          
-          await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          });
-        } catch (error) {
-          console.error('Erreur auto-save:', error);
+
+    const timeout = setTimeout(async () => {
+      if (!currentCockpit) return;
+
+      const token = useAuthStore.getState().token;
+      try {
+        // Envoyer uniquement les champs attendus par l'API PUT
+        // L'API fait un merge profond, donc on envoie les domains avec TOUTES leurs propriétés
+        const payload: any = {
+          name: currentCockpit.name,
+          domains: currentCockpit.domains || [],
+          logo: currentCockpit.logo,
+          scrollingBanner: currentCockpit.scrollingBanner,
+        };
+        // Ajouter zones si disponible (peut ne pas être dans le type Cockpit mais dans les données)
+        if ((currentCockpit as any).zones) {
+          payload.zones = (currentCockpit as any).zones;
         }
-      }, 1000);
-    
+
+        console.log('[Auto-save] Envoi des données:', {
+          name: payload.name,
+          domainsCount: payload.domains.length,
+          zonesCount: payload.zones.length,
+          domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length
+        });
+
+        // Log des images dans les domaines
+        payload.domains.forEach((d: any, idx: number) => {
+          const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
+          console.log(`[Auto-save] Domain[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}`);
+        });
+
+        await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (error) {
+        console.error('Erreur auto-save:', error);
+      }
+    }, 1000);
+
     set({ autoSaveTimeout: timeout });
   },
 
@@ -312,7 +312,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         scrollingBanner: updates.scrollingBanner !== undefined ? updates.scrollingBanner : state.currentCockpit.scrollingBanner,
         updatedAt: new Date().toISOString(),
       };
-      
+
       // Log pour vérifier que les domaines sont bien remplacés
       if (updates.domains && updates.domains.length > 0) {
         const firstDomain = updates.domains[0];
@@ -326,7 +326,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           }
         }
       }
-      
+
       return {
         currentCockpit: updatedCockpit,
       };
@@ -350,7 +350,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
       } : {})
     };
-    
+
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -390,8 +390,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           domains,
           updatedAt: new Date().toISOString(),
         },
-        currentDomainId: state.currentDomainId === domainId 
-          ? (domains[0]?.id || null) 
+        currentDomainId: state.currentDomainId === domainId
+          ? (domains[0]?.id || null)
           : state.currentDomainId,
       };
     });
@@ -401,10 +401,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   reorderDomains: (domainIds: string[]) => {
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       // Créer un map pour un accès rapide aux domaines par ID
       const domainMap = new Map(state.currentCockpit.domains.map(d => [d.id, d]));
-      
+
       // Reconstruire le tableau des domaines dans le nouvel ordre
       const reorderedDomains = domainIds
         .map((domainId, index) => {
@@ -413,11 +413,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           return { ...domain, order: index };
         })
         .filter((d): d is Domain => d !== null);
-      
+
       // Ajouter les domaines qui n'étaient pas dans la liste (au cas où)
       const missingDomains = state.currentCockpit.domains.filter(d => !domainIds.includes(d.id));
       reorderedDomains.push(...missingDomains.map((d, index) => ({ ...d, order: reorderedDomains.length + index })));
-      
+
       return {
         currentCockpit: {
           ...state.currentCockpit,
@@ -438,7 +438,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       order: 0,
       elements: [],
     };
-    
+
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -498,13 +498,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   reorderCategory: (domainId: string, categoryIds: string[]) => {
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       const domain = state.currentCockpit.domains.find(d => d.id === domainId);
       if (!domain) return state;
-      
+
       // Créer un map pour un accès rapide aux catégories par ID
       const categoryMap = new Map(domain.categories.map(c => [c.id, c]));
-      
+
       // Reconstruire le tableau des catégories dans le nouvel ordre
       const reorderedCategories = categoryIds
         .map((categoryId, index) => {
@@ -513,20 +513,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           return { ...category, order: index };
         })
         .filter((c): c is Category => c !== null);
-      
+
       // Ajouter les catégories qui n'étaient pas dans la liste (au cas où)
       const missingCategories = domain.categories.filter(c => !categoryIds.includes(c.id));
       reorderedCategories.push(...missingCategories.map((c, index) => ({ ...c, order: reorderedCategories.length + index })));
-      
+
       return {
         currentCockpit: {
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d =>
             d.id === domainId
               ? {
-                  ...d,
-                  categories: reorderedCategories.sort((a, b) => a.order - b.order),
-                }
+                ...d,
+                categories: reorderedCategories.sort((a, b) => a.order - b.order),
+              }
               : d
           ),
           updatedAt: new Date().toISOString(),
@@ -545,7 +545,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       order: 0,
       subCategories: [],
     };
-    
+
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -621,7 +621,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       order: 0,
       subElements: [],
     };
-    
+
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -699,11 +699,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   reorderSubCategory: (elementId: string, subCategoryIds: string[]) => {
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       // Trouver l'élément qui contient les sous-catégories
       let targetElement: Element | null = null;
       let targetDomain: Domain | null = null;
-      
+
       for (const domain of state.currentCockpit.domains) {
         for (const category of domain.categories) {
           const element = category.elements.find(e => e.id === elementId);
@@ -715,12 +715,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
         if (targetElement) break;
       }
-      
+
       if (!targetElement || !targetDomain) return state;
-      
+
       // Créer un map pour un accès rapide aux sous-catégories par ID
       const subCategoryMap = new Map(targetElement.subCategories.map(sc => [sc.id, sc]));
-      
+
       // Reconstruire le tableau des sous-catégories dans le nouvel ordre
       const reorderedSubCategories = subCategoryIds
         .map((subCategoryId, index) => {
@@ -729,30 +729,30 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           return { ...subCategory, order: index };
         })
         .filter((sc): sc is SubCategory => sc !== null);
-      
+
       // Ajouter les sous-catégories qui n'étaient pas dans la liste (au cas où)
       const missingSubCategories = targetElement.subCategories.filter(sc => !subCategoryIds.includes(sc.id));
       reorderedSubCategories.push(...missingSubCategories.map((sc, index) => ({ ...sc, order: reorderedSubCategories.length + index })));
-      
+
       return {
         currentCockpit: {
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d =>
             d.id === targetDomain!.id
               ? {
-                  ...d,
-                  categories: d.categories.map(c => ({
-                    ...c,
-                    elements: c.elements.map(e =>
-                      e.id === elementId
-                        ? {
-                            ...e,
-                            subCategories: reorderedSubCategories.sort((a, b) => a.order - b.order),
-                          }
-                        : e
-                    ),
-                  })),
-                }
+                ...d,
+                categories: d.categories.map(c => ({
+                  ...c,
+                  elements: c.elements.map(e =>
+                    e.id === elementId
+                      ? {
+                        ...e,
+                        subCategories: reorderedSubCategories.sort((a, b) => a.order - b.order),
+                      }
+                      : e
+                  ),
+                })),
+              }
               : d
           ),
           updatedAt: new Date().toISOString(),
@@ -770,7 +770,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       status: 'ok' as TileStatus,
       order: 0,
     };
-    
+
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -856,12 +856,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   moveElement: (elementId: string, fromCategoryId: string, toCategoryId: string) => {
     if (fromCategoryId === toCategoryId) return; // Pas besoin de déplacer si même catégorie
-    
+
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       let elementToMove: Element | null = null;
-      
+
       // Trouver l'élément à déplacer dans tous les domaines
       for (const domain of state.currentCockpit.domains) {
         for (const category of domain.categories) {
@@ -875,9 +875,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
         if (elementToMove) break;
       }
-      
+
       if (!elementToMove) return state;
-      
+
       // Retirer de la catégorie source et ajouter à la catégorie destination
       return {
         currentCockpit: {
@@ -912,12 +912,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   moveSubElement: (subElementId: string, fromSubCategoryId: string, toSubCategoryId: string) => {
     if (fromSubCategoryId === toSubCategoryId) return; // Pas besoin de déplacer si même sous-catégorie
-    
+
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       let subElementToMove: SubElement | null = null;
-      
+
       // Trouver le sous-élément à déplacer dans tous les domaines
       for (const domain of state.currentCockpit.domains) {
         for (const category of domain.categories) {
@@ -937,9 +937,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
         if (subElementToMove) break;
       }
-      
+
       if (!subElementToMove) return state;
-      
+
       // Retirer de la sous-catégorie source et ajouter à la sous-catégorie destination
       return {
         currentCockpit: {
@@ -981,7 +981,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   reorderElement: (elementId: string, categoryId: string, newIndex: number) => {
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       return {
         currentCockpit: {
           ...state.currentCockpit,
@@ -989,29 +989,29 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             ...d,
             categories: d.categories.map(c => {
               if (c.id !== categoryId) return c;
-              
+
               const elements = [...c.elements];
               const currentIndex = elements.findIndex(e => e.id === elementId);
-              
+
               if (currentIndex === -1 || currentIndex === newIndex) return c;
-              
+
               // Retirer l'élément de sa position actuelle
               const [element] = elements.splice(currentIndex, 1);
-              
+
               // Ajuster l'index cible si on déplace vers l'arrière
               // (car après avoir retiré l'élément, les indices après lui sont décalés)
               const adjustedIndex = currentIndex < newIndex ? newIndex - 1 : newIndex;
-              
+
               // Insérer à la nouvelle position (bornée entre 0 et la longueur)
               const finalIndex = Math.max(0, Math.min(adjustedIndex, elements.length));
               elements.splice(finalIndex, 0, element);
-              
+
               // Mettre à jour les ordres
               const updatedElements = elements.map((e, idx) => ({
                 ...e,
                 order: idx,
               }));
-              
+
               return {
                 ...c,
                 elements: updatedElements,
@@ -1028,7 +1028,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   reorderSubElement: (subElementId: string, subCategoryId: string, newIndex: number) => {
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       return {
         currentCockpit: {
           ...state.currentCockpit,
@@ -1040,29 +1040,29 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                 ...e,
                 subCategories: e.subCategories.map(sc => {
                   if (sc.id !== subCategoryId) return sc;
-                  
+
                   const subElements = [...sc.subElements];
                   const currentIndex = subElements.findIndex(se => se.id === subElementId);
-                  
+
                   if (currentIndex === -1 || currentIndex === newIndex) return sc;
-                  
+
                   // Retirer le sous-élément de sa position actuelle
                   const [subElement] = subElements.splice(currentIndex, 1);
-                  
+
                   // Ajuster l'index cible si on déplace vers l'arrière
                   // (car après avoir retiré le sous-élément, les indices après lui sont décalés)
                   const adjustedIndex = currentIndex < newIndex ? newIndex - 1 : newIndex;
-                  
+
                   // Insérer à la nouvelle position (bornée entre 0 et la longueur)
                   const finalIndex = Math.max(0, Math.min(adjustedIndex, subElements.length));
                   subElements.splice(finalIndex, 0, subElement);
-                  
+
                   // Mettre à jour les ordres
                   const updatedSubElements = subElements.map((se, idx) => ({
                     ...se,
                     order: idx,
                   }));
-                  
+
                   return {
                     ...sc,
                     subElements: updatedSubElements,
@@ -1102,7 +1102,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       status,
       icon,
     };
-    
+
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -1161,10 +1161,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   cloneMapElement: (mapElementId: string) => {
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       let elementToClone: MapElement | null = null;
       let domainId: string | null = null;
-      
+
       // Trouver l'élément à cloner
       for (const domain of state.currentCockpit.domains) {
         const element = (domain.mapElements || []).find(me => me.id === mapElementId);
@@ -1174,16 +1174,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           break;
         }
       }
-      
+
       if (!elementToClone || !domainId) return state;
-      
+
       // Créer un clone avec un nouveau nom et un nouvel ID
       const clonedElement: MapElement = {
         ...elementToClone,
         id: generateId(),
         name: `${elementToClone.name} (copie)`,
       };
-      
+
       return {
         currentCockpit: {
           ...state.currentCockpit,
@@ -1204,10 +1204,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   cloneElement: (elementId: string) => {
     set((state) => {
       if (!state.currentCockpit) return state;
-      
+
       let elementToClone: Element | null = null;
       let categoryId: string | null = null;
-      
+
       // Trouver l'élément à cloner
       for (const domain of state.currentCockpit.domains) {
         for (const category of domain.categories) {
@@ -1220,13 +1220,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
         if (elementToClone) break;
       }
-      
+
       if (!elementToClone || !categoryId) return state;
-      
+
       // Décaler légèrement la position du clone (2% vers la droite et le bas)
       const offsetX = elementToClone.positionX !== undefined ? Math.min(95, (elementToClone.positionX || 0) + 2) : undefined;
       const offsetY = elementToClone.positionY !== undefined ? Math.min(95, (elementToClone.positionY || 0) + 2) : undefined;
-      
+
       // Créer un clone avec un nouveau nom, un nouvel ID et réinitialiser les sous-catégories
       const clonedElement: Element = {
         ...elementToClone,
@@ -1239,7 +1239,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         positionX: offsetX,
         positionY: offsetY,
       };
-      
+
       return {
         currentCockpit: {
           ...state.currentCockpit,
@@ -1280,23 +1280,23 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   exportToExcel: async () => {
     const { currentCockpit } = get();
     const token = useAuthStore.getState().token;
-    
+
     if (!currentCockpit) return null;
-    
+
     try {
       // Télécharger les deux versions : FR et EN
       const downloadFile = async (lang: string) => {
         const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}/export/${lang}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
-        
+
         if (!response.ok) throw new Error(`Erreur export ${lang}`);
-        
+
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        
+
         // Extraire le nom du fichier depuis Content-Disposition
         const contentDisposition = response.headers.get('Content-Disposition');
         let fileName = `${currentCockpit.name}_${lang}.xlsx`;
@@ -1312,23 +1312,23 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             }
           }
         }
-        
+
         a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       };
-      
+
       // Télécharger la version FR d'abord
       await downloadFile('FR');
-      
+
       // Attendre un peu avant de télécharger la version EN (pour laisser le temps de traduire)
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Télécharger la version EN
       await downloadFile('EN');
-      
+
       return null; // Retourne null car les fichiers sont téléchargés directement
     } catch (error) {
       set({ error: 'Erreur lors de l\'export Excel' });
@@ -1338,17 +1338,17 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   exportCockpit: async (id: string, fileName?: string, directoryHandle?: FileSystemDirectoryHandle | null) => {
     const token = useAuthStore.getState().token;
-    
+
     try {
       // Récupérer le cockpit complet avec toutes ses données
       const response = await fetch(`${API_URL}/cockpits/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
+
       if (!response.ok) throw new Error('Erreur lors de la récupération de la maquette');
-      
+
       const cockpit = await response.json();
-      
+
       // Créer un objet d'export avec toutes les données
       const exportData = {
         version: '1.0',
@@ -1362,18 +1362,18 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           // Ne pas exporter les infos de publication (sera créé comme nouvelle maquette)
         }
       };
-      
+
       // Convertir en JSON
       const jsonStr = JSON.stringify(exportData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
-      
+
       // Utiliser le nom personnalisé ou générer un nom par défaut
       const defaultFileName = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}`;
       const finalFileName = fileName ? fileName.trim() : defaultFileName;
       // S'assurer que le nom se termine par .json
       const fileExtension = finalFileName.endsWith('.json') ? '' : '.json';
       const completeFileName = `${finalFileName}${fileExtension}`;
-      
+
       // Si un répertoire personnalisé est sélectionné, sauvegarder dedans
       if (directoryHandle) {
         try {
@@ -1387,7 +1387,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           throw new Error(`Impossible de sauvegarder dans le répertoire: ${error.message}`);
         }
       }
-      
+
       // Sinon, utiliser le téléchargement par défaut
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1406,19 +1406,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   importCockpit: async (file: File): Promise<Cockpit | null> => {
     const token = useAuthStore.getState().token;
     set({ isLoading: true, error: null });
-    
+
     try {
       // Lire le fichier
       const text = await file.text();
       const importData = JSON.parse(text);
-      
+
       // Vérifier la structure
       if (!importData.cockpit || !importData.cockpit.name) {
         throw new Error('Format de fichier invalide : structure de maquette manquante');
       }
-      
+
       const importedCockpit = importData.cockpit;
-      
+
       // Créer une nouvelle maquette avec les données importées
       // Les IDs seront régénérés automatiquement par le serveur
       const response = await fetch(`${API_URL}/cockpits`, {
@@ -1435,20 +1435,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           scrollingBanner: importedCockpit.scrollingBanner || null,
         })
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Erreur lors de l\'import');
       }
-      
+
       const newCockpit = await response.json();
-      
+
       // Ajouter le nouveau cockpit à la liste sans recharger (préserve l'ordre)
       set((state) => ({
         cockpits: [...state.cockpits, newCockpit],
         isLoading: false
       }));
-      
+
       return newCockpit;
     } catch (error: any) {
       const errorMessage = error.message || 'Erreur lors de l\'import de la maquette';
@@ -1457,11 +1457,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return null;
     }
   },
-  
+
   publishCockpit: async (id: string) => {
     const token = useAuthStore.getState().token;
     set({ isLoading: true });
-    
+
     try {
       // FORCER une sauvegarde complète et synchrone avant publication
       const currentCockpit = get().currentCockpit;
@@ -1472,7 +1472,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           clearTimeout(autoSaveTimeout);
           set({ autoSaveTimeout: null });
         }
-        
+
         // Sauvegarder IMMÉDIATEMENT toutes les données actuelles
         const payload: any = {
           name: currentCockpit.name,
@@ -1483,13 +1483,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         if ((currentCockpit as any).zones) {
           payload.zones = (currentCockpit as any).zones;
         }
-        
+
         console.log('[Publish] 💾 Sauvegarde forcée avant publication:', {
           name: payload.name,
           domainsCount: payload.domains.length,
           domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length
         });
-        
+
         // Sauvegarder immédiatement
         const saveResponse = await fetch(`${API_URL}/cockpits/${id}`, {
           method: 'PUT',
@@ -1499,69 +1499,69 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           },
           body: JSON.stringify(payload),
         });
-        
+
         if (!saveResponse.ok) {
           throw new Error('Erreur lors de la sauvegarde avant publication');
         }
-        
+
         // Attendre un peu pour que la DB soit à jour
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
+
       const response = await fetch(`${API_URL}/cockpits/${id}/publish`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
       });
-      
+
       if (!response.ok) throw new Error('Erreur publication');
-      
+
       const result = await response.json();
-      
+
       // Mettre à jour la liste des cockpits
       set(state => ({
-        cockpits: state.cockpits.map(c => 
-          c.id === id 
+        cockpits: state.cockpits.map(c =>
+          c.id === id
             ? { ...c, publicId: result.publicId, isPublished: true, publishedAt: result.publishedAt }
             : c
         ),
         isLoading: false
       }));
-      
+
       return { publicId: result.publicId };
     } catch (error) {
       set({ error: 'Erreur lors de la publication', isLoading: false });
       return null;
     }
   },
-  
+
   unpublishCockpit: async (id: string) => {
     const token = useAuthStore.getState().token;
     set({ isLoading: true });
-    
+
     try {
       const response = await fetch(`${API_URL}/cockpits/${id}/unpublish`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
       });
-      
+
       if (!response.ok) throw new Error('Erreur dépublication');
-      
+
       // Mettre à jour la liste des cockpits
       set(state => ({
-        cockpits: state.cockpits.map(c => 
-          c.id === id 
+        cockpits: state.cockpits.map(c =>
+          c.id === id
             ? { ...c, isPublished: false }
             : c
         ),
         isLoading: false
       }));
-      
+
       return true;
     } catch (error) {
       set({ error: 'Erreur lors de la dépublication', isLoading: false });
@@ -1571,29 +1571,29 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   reorderCockpits: async (cockpitIds: string[]) => {
     const token = useAuthStore.getState().token;
-    
+
     try {
       // Mettre à jour l'ordre localement
       set((state) => {
         const cockpitMap = new Map(state.cockpits.map(c => [c.id, c]));
         const reorderedCockpits: Cockpit[] = [];
-        
+
         cockpitIds.forEach((id, index) => {
           const cockpit = cockpitMap.get(id);
           if (cockpit) {
             reorderedCockpits.push({ ...cockpit, order: index });
           }
         });
-        
+
         // Ajouter les cockpits qui ne sont pas dans la liste (au cas où) avec leur ordre existant
         const remainingCockpits = state.cockpits
           .filter(c => !cockpitIds.includes(c.id))
           .map(c => ({ ...c, order: c.order ?? 9999 })); // Garder l'ordre existant ou mettre à la fin
         const allCockpits = [...reorderedCockpits, ...remainingCockpits];
-        
+
         return { cockpits: allCockpits };
       });
-      
+
       // Sauvegarder sur le serveur
       const response = await fetch(`${API_URL}/cockpits/reorder`, {
         method: 'POST',
@@ -1603,11 +1603,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         },
         body: JSON.stringify({ cockpitIds }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Erreur lors de la réorganisation');
       }
-      
+
       // Ne PAS recharger les cockpits - l'ordre local est déjà à jour
       // Cela évite que les cockpits reviennent à leur position initiale
     } catch (error) {
