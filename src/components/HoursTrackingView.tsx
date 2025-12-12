@@ -69,50 +69,64 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     return dateList;
   }, [hoursData.projectStartDate, hoursData.projectEndDate]);
 
-  // Calculer le nombre de jours imputés pour une personne (passés et futurs séparément)
+  // Calculer le nombre de jours/hommes (JH) imputés pour une personne (passés et futurs séparément)
   const getPersonDays = (resource: Resource): { past: number; future: number } => {
     if (resource.type !== 'person' || !resource.timeEntries) return { past: 0, future: 0 };
-
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
-
-    let pastDays = 0;
-    let futureDays = 0;
-    const uniqueDates = new Set<string>();
-
+    
+    let pastJH = 0;
+    let futureJH = 0;
+    
+    // Grouper les imputations par date
+    const entriesByDate = new Map<string, { morning: boolean; afternoon: boolean }>();
+    
     resource.timeEntries.forEach(te => {
-      if (!uniqueDates.has(te.date)) {
-        uniqueDates.add(te.date);
-        const entryDate = new Date(te.date);
-        entryDate.setHours(0, 0, 0, 0);
-
-        if (te.date < todayStr) {
-          pastDays++;
-        } else if (te.date > todayStr) {
-          futureDays++;
-        } else {
-          // Aujourd'hui compte comme passé
-          pastDays++;
-        }
+      const existing = entriesByDate.get(te.date) || { morning: false, afternoon: false };
+      if (te.halfDay === 'morning') {
+        existing.morning = true;
+      } else if (te.halfDay === 'afternoon') {
+        existing.afternoon = true;
+      }
+      entriesByDate.set(te.date, existing);
+    });
+    
+    // Calculer les JH par date
+    entriesByDate.forEach((entry, date) => {
+      let jh = 0;
+      if (entry.morning && entry.afternoon) {
+        jh = 1; // Journée complète = 1 JH
+      } else if (entry.morning || entry.afternoon) {
+        jh = 0.5; // Demi-journée = 0.5 JH
+      }
+      
+      if (date < todayStr) {
+        pastJH += jh;
+      } else if (date > todayStr) {
+        futureJH += jh;
+      } else {
+        // Aujourd'hui compte comme passé
+        pastJH += jh;
       }
     });
-
-    return { past: pastDays, future: futureDays };
+    
+    return { past: pastJH, future: futureJH };
   };
 
   // Calculer le coût total pour une personne (passé et futur séparément)
   const getPersonTotal = (resource: Resource): { past: number; future: number } => {
     if (resource.type !== 'person' || !resource.dailyRate || !resource.timeEntries) return { past: 0, future: 0 };
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
     const dailyRate = resource.dailyRate; // S'assurer que dailyRate est défini
-    
+
     let pastCost = 0;
     let futureCost = 0;
-    
+
     resource.timeEntries.forEach(te => {
       const cost = dailyRate * 0.5; // Demi-journée
       if (te.date < todayStr) {
@@ -124,21 +138,21 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         pastCost += cost;
       }
     });
-    
+
     return { past: pastCost, future: futureCost };
   };
 
   // Calculer le coût total pour un fournisseur (passé et futur séparément)
   const getSupplierTotal = (resource: Resource): { past: number; future: number } => {
     if (resource.type !== 'supplier' || !resource.entries) return { past: 0, future: 0 };
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
-    
+
     let pastCost = 0;
     let futureCost = 0;
-    
+
     resource.entries.forEach(entry => {
       if (entry.date < todayStr) {
         pastCost += entry.amount;
@@ -149,7 +163,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         pastCost += entry.amount;
       }
     });
-    
+
     return { past: pastCost, future: futureCost };
   };
 
@@ -812,13 +826,18 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             {(() => {
                               const days = getPersonDays(resource);
                               if (days.past === 0 && days.future === 0) {
-                                return '0j';
+                                return '0 JH';
                               }
+                              const formatJH = (jh: number) => {
+                                // Afficher 0.5 comme "0.5" et les entiers sans décimales
+                                return jh % 1 === 0 ? jh.toString() : jh.toFixed(1);
+                              };
                               return (
                                 <>
-                                  {days.past > 0 && <span>{days.past}j</span>}
+                                  {days.past > 0 && <span>{formatJH(days.past)}</span>}
                                   {days.past > 0 && days.future > 0 && <span>/</span>}
-                                  {days.future > 0 && <span className="text-green-600">{days.future}j</span>}
+                                  {days.future > 0 && <span className="text-green-600">{formatJH(days.future)}</span>}
+                                  <span className="ml-0.5">JH</span>
                                 </>
                               );
                             })()}
