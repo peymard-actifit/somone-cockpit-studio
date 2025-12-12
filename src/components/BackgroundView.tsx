@@ -1563,8 +1563,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   value={newElementForm.newCategoryName}
                   onChange={(e) => setNewElementForm({ ...newElementForm, newCategoryName: e.target.value })}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newElementForm.name.trim() && newElementForm.newCategoryName.trim()) {
-                      handleAddElement();
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (newElementForm.name.trim() && newElementForm.newCategoryName.trim()) {
+                        handleAddElement();
+                      }
+                    }
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setNewElementForm({ ...newElementForm, categoryMode: 'existing', newCategoryName: '' });
                     }
                   }}
                   placeholder="Nom de la nouvelle catÃ©gorie"

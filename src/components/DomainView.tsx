@@ -365,9 +365,11 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
+                    e.preventDefault();
                     handleAddCategory();
                   }
                   if (e.key === 'Escape') {
+                    e.preventDefault();
                     setIsAddingCategory(false);
                     setNewCategoryName('');
                   }

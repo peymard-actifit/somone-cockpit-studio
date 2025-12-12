@@ -404,9 +404,11 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                     onChange={(e) => setNewSubCategoryName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
+                        e.preventDefault();
                         handleAddSubCategory();
                       }
                       if (e.key === 'Escape') {
+                        e.preventDefault();
                         setIsAddingSubCategory(false);
                         setNewSubCategoryName('');
                       }
