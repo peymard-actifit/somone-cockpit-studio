@@ -1970,6 +1970,245 @@ INSTRUCTIONS:
       const translatedCalculationsSheetName = await translateSheetName('Calculs', requestedLang);
       XLSX.utils.book_append_sheet(wb, wsCalculations, translatedCalculationsSheetName);
       
+      // Onglets pour les domaines "Suivi des heures" (un onglet par domaine)
+      (dataToExport.domains || []).forEach((d: any) => {
+        if (d.templateType === 'hours-tracking' && d.hoursTracking) {
+          const hoursData = d.hoursTracking;
+          
+          // Générer toutes les dates depuis projectStartDate jusqu'à aujourd'hui + 30 jours
+          const startDate = new Date(hoursData.projectStartDate);
+          const endDate = new Date();
+          endDate.setDate(endDate.getDate() + 30);
+          const dates: string[] = [];
+          const current = new Date(startDate);
+          while (current <= endDate) {
+            dates.push(current.toISOString().split('T')[0]);
+            current.setDate(current.getDate() + 1);
+          }
+          
+          // Section 1 : Informations générales
+          const generalInfo: any[] = [
+            { 'Libellé': 'Date de début du projet', 'Valeur': hoursData.projectStartDate },
+            { 'Libellé': 'Prix de vente au client (€)', 'Valeur': hoursData.salePrice || 0 },
+            { 'Libellé': 'Coût global (€)', 'Valeur': '' }, // Sera calculé
+            { 'Libellé': 'Marge (€)', 'Valeur': '' }, // Sera calculé
+          ];
+          
+          // Calculer le coût global
+          let globalCost = 0;
+          (hoursData.resources || []).forEach((r: any) => {
+            if (r.type === 'person' && r.dailyRate !== undefined && r.timeEntries) {
+              globalCost += r.dailyRate * (r.timeEntries.length * 0.5);
+            } else if (r.type === 'supplier' && r.entries) {
+              r.entries.forEach((e: any) => {
+                globalCost += e.amount || 0;
+              });
+            }
+          });
+          generalInfo[2].Valeur = globalCost;
+          generalInfo[3].Valeur = (hoursData.salePrice || 0) - globalCost;
+          
+          const translatedGeneralInfo = await translateObjectsKeys(generalInfo, requestedLang);
+          const wsGeneral = XLSX.utils.json_to_sheet(translatedGeneralInfo);
+          
+          // Section 2 : Tableau des ressources et imputations
+          const resourcesData: any[] = [];
+          
+          // En-tête avec dates
+          const headerRow: any = {
+            'Type': 'Type',
+            'Nom': 'Nom',
+            'TJM (€)': 'TJM (€)',
+            'Jours': 'Jours',
+            'Total (€)': 'Total (€)'
+          };
+          dates.forEach(date => {
+            headerRow[date] = date;
+          });
+          resourcesData.push(headerRow);
+          
+          // Lignes pour chaque ressource
+          (hoursData.resources || []).forEach((r: any) => {
+            const row: any = {
+              'Type': r.type === 'person' ? 'Personne' : 'Fournisseur',
+              'Nom': r.name,
+              'TJM (€)': r.type === 'person' ? (r.dailyRate || 0) : '',
+              'Jours': '',
+              'Total (€)': ''
+            };
+            
+            // Calculer jours et total pour les personnes
+            if (r.type === 'person') {
+              const days = (r.timeEntries || []).length * 0.5;
+              const total = (r.dailyRate || 0) * days;
+              row['Jours'] = days;
+              row['Total (€)'] = total;
+            } else {
+              // Total pour les fournisseurs
+              const total = (r.entries || []).reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
+              row['Total (€)'] = total;
+            }
+            
+            // Remplir les dates
+            dates.forEach(date => {
+              if (r.type === 'person') {
+                const hasMorning = (r.timeEntries || []).some((te: any) => te.date === date && te.halfDay === 'morning');
+                const hasAfternoon = (r.timeEntries || []).some((te: any) => te.date === date && te.halfDay === 'afternoon');
+                if (hasMorning && hasAfternoon) {
+                  row[date] = 'M+A';
+                } else if (hasMorning) {
+                  row[date] = 'M';
+                } else if (hasAfternoon) {
+                  row[date] = 'A';
+                } else {
+                  row[date] = '';
+                }
+              } else {
+                const entry = (r.entries || []).find((e: any) => e.date === date);
+                row[date] = entry ? (entry.amount || 0) : '';
+              }
+            });
+            
+            resourcesData.push(row);
+          });
+          
+          // Ligne de total par jour
+          const totalRow: any = {
+            'Type': 'TOTAL',
+            'Nom': 'Total par jour',
+            'TJM (€)': '',
+            'Jours': '',
+            'Total (€)': ''
+          };
+          dates.forEach(date => {
+            let dayTotal = 0;
+            (hoursData.resources || []).forEach((r: any) => {
+              if (r.type === 'person' && r.dailyRate !== undefined && r.timeEntries) {
+                const hasMorning = (r.timeEntries || []).some((te: any) => te.date === date && te.halfDay === 'morning');
+                const hasAfternoon = (r.timeEntries || []).some((te: any) => te.date === date && te.halfDay === 'afternoon');
+                if (hasMorning) dayTotal += r.dailyRate * 0.5;
+                if (hasAfternoon) dayTotal += r.dailyRate * 0.5;
+              } else if (r.type === 'supplier' && r.entries) {
+                const entry = (r.entries || []).find((e: any) => e.date === date);
+                if (entry) dayTotal += entry.amount || 0;
+              }
+            });
+            totalRow[date] = dayTotal;
+          });
+          resourcesData.push(totalRow);
+          
+          const translatedResourcesData = await translateObjectsKeys(resourcesData, requestedLang);
+          const wsResources = XLSX.utils.json_to_sheet(translatedResourcesData);
+          
+          // Section 3 : Données pour le graphique (3 mois depuis projectStartDate)
+          const chartStartDate = new Date(hoursData.projectStartDate);
+          const chartEndDate = new Date(chartStartDate);
+          chartEndDate.setMonth(chartEndDate.getMonth() + 3);
+          const chartDates: string[] = [];
+          const chartCurrent = new Date(chartStartDate);
+          while (chartCurrent <= chartEndDate) {
+            chartDates.push(chartCurrent.toISOString().split('T')[0]);
+            chartCurrent.setDate(chartCurrent.getDate() + 1);
+          }
+          
+          const chartData: any[] = [
+            { 'Date': 'Date', 'Jours imputés': 'Jours imputés', 'Coût cumulé (€)': 'Coût cumulé (€)', 'Coût fournisseurs cumulé (€)': 'Coût fournisseurs cumulé (€)', 'Prix de vente (€)': 'Prix de vente (€)' }
+          ];
+          
+          chartDates.forEach(date => {
+            // Calculer jours imputés
+            let days = 0;
+            (hoursData.resources || []).forEach((r: any) => {
+              if (r.type === 'person' && r.timeEntries) {
+                const hasMorning = (r.timeEntries || []).some((te: any) => te.date === date && te.halfDay === 'morning');
+                const hasAfternoon = (r.timeEntries || []).some((te: any) => te.date === date && te.halfDay === 'afternoon');
+                if (hasMorning && hasAfternoon) days += 1;
+                else if (hasMorning || hasAfternoon) days += 0.5;
+              }
+            });
+            
+            // Calculer coût cumulé
+            let cumulativeCost = 0;
+            const targetDate = new Date(date);
+            (hoursData.resources || []).forEach((r: any) => {
+              if (r.type === 'person' && r.dailyRate !== undefined && r.timeEntries) {
+                (r.timeEntries || []).forEach((te: any) => {
+                  const entryDate = new Date(te.date);
+                  if (entryDate <= targetDate) {
+                    cumulativeCost += r.dailyRate * 0.5;
+                  }
+                });
+              } else if (r.type === 'supplier' && r.entries) {
+                (r.entries || []).forEach((entry: any) => {
+                  const entryDate = new Date(entry.date);
+                  if (entryDate <= targetDate) {
+                    cumulativeCost += entry.amount || 0;
+                  }
+                });
+              }
+            });
+            
+            // Calculer coût fournisseurs cumulé
+            let cumulativeSupplierCost = 0;
+            (hoursData.resources || []).forEach((r: any) => {
+              if (r.type === 'supplier' && r.entries) {
+                (r.entries || []).forEach((entry: any) => {
+                  const entryDate = new Date(entry.date);
+                  if (entryDate <= targetDate) {
+                    cumulativeSupplierCost += entry.amount || 0;
+                  }
+                });
+              }
+            });
+            
+            chartData.push({
+              'Date': date,
+              'Jours imputés': days,
+              'Coût cumulé (€)': cumulativeCost,
+              'Coût fournisseurs cumulé (€)': cumulativeSupplierCost,
+              'Prix de vente (€)': hoursData.salePrice || 0
+            });
+          });
+          
+          const translatedChartData = await translateObjectsKeys(chartData, requestedLang);
+          const wsChart = XLSX.utils.json_to_sheet(translatedChartData);
+          
+          // Créer un workbook pour ce domaine et combiner les feuilles
+          // Note: Excel limite les noms d'onglets à 31 caractères
+          const sheetName = (d.name || 'Suivi des heures').substring(0, 31);
+          
+          // Créer une feuille combinée avec toutes les sections
+          const combinedData: any[] = [];
+          
+          // Ajouter les informations générales
+          combinedData.push({ '': '=== INFORMATIONS GÉNÉRALES ===' });
+          combinedData.push({});
+          translatedGeneralInfo.forEach((row: any) => {
+            combinedData.push(row);
+          });
+          combinedData.push({});
+          combinedData.push({ '': '=== RESSOURCES ET IMPUTATIONS ===' });
+          combinedData.push({});
+          
+          // Ajouter le tableau des ressources
+          translatedResourcesData.forEach((row: any) => {
+            combinedData.push(row);
+          });
+          
+          combinedData.push({});
+          combinedData.push({ '': '=== DONNÉES POUR GRAPHIQUE ===' });
+          combinedData.push({});
+          
+          // Ajouter les données du graphique
+          translatedChartData.forEach((row: any) => {
+            combinedData.push(row);
+          });
+          
+          const wsCombined = XLSX.utils.json_to_sheet(combinedData);
+          XLSX.utils.book_append_sheet(wb, wsCombined, sheetName);
+        }
+      });
+      
       // Générer le buffer Excel
       try {
         const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
