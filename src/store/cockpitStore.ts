@@ -345,6 +345,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       ...(templateType === 'hours-tracking' ? {
         hoursTracking: {
           projectStartDate: new Date().toISOString().split('T')[0],
+          projectEndDate: (() => {
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + 90);
+            return endDate.toISOString().split('T')[0];
+          })(),
           salePrice: 0,
           resources: []
         }

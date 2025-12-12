@@ -413,6 +413,7 @@ export interface Resource {
 // Données complètes pour la vue "Suivi des heures"
 export interface HoursTrackingData {
   projectStartDate: string; // Date d'origine du projet (format YYYY-MM-DD)
+  projectEndDate?: string; // Date de fin du projet (format YYYY-MM-DD)
   salePrice?: number; // Prix de vente au client en €
   resources: Resource[]; // Liste des personnes et fournisseurs
 }
