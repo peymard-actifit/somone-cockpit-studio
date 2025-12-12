@@ -1971,7 +1971,7 @@ INSTRUCTIONS:
       XLSX.utils.book_append_sheet(wb, wsCalculations, translatedCalculationsSheetName);
       
       // Onglets pour les domaines "Suivi des heures" (un onglet par domaine)
-      (dataToExport.domains || []).forEach((d: any) => {
+      for (const d of (dataToExport.domains || [])) {
         if (d.templateType === 'hours-tracking' && d.hoursTracking) {
           const hoursData = d.hoursTracking;
           
@@ -2009,7 +2009,6 @@ INSTRUCTIONS:
           generalInfo[3].Valeur = (hoursData.salePrice || 0) - globalCost;
           
           const translatedGeneralInfo = await translateObjectsKeys(generalInfo, requestedLang);
-          const wsGeneral = XLSX.utils.json_to_sheet(translatedGeneralInfo);
           
           // Section 2 : Tableau des ressources et imputations
           const resourcesData: any[] = [];
@@ -2098,7 +2097,6 @@ INSTRUCTIONS:
           resourcesData.push(totalRow);
           
           const translatedResourcesData = await translateObjectsKeys(resourcesData, requestedLang);
-          const wsResources = XLSX.utils.json_to_sheet(translatedResourcesData);
           
           // Section 3 : Données pour le graphique (3 mois depuis projectStartDate)
           const chartStartDate = new Date(hoursData.projectStartDate);
@@ -2171,7 +2169,6 @@ INSTRUCTIONS:
           });
           
           const translatedChartData = await translateObjectsKeys(chartData, requestedLang);
-          const wsChart = XLSX.utils.json_to_sheet(translatedChartData);
           
           // Créer un workbook pour ce domaine et combiner les feuilles
           // Note: Excel limite les noms d'onglets à 31 caractères
@@ -2207,7 +2204,7 @@ INSTRUCTIONS:
           const wsCombined = XLSX.utils.json_to_sheet(combinedData);
           XLSX.utils.book_append_sheet(wb, wsCombined, sheetName);
         }
-      });
+      }
       
       // Générer le buffer Excel
       try {
