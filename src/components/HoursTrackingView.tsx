@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import type { Domain, Resource, ResourceType, TimeEntry, HalfDay, SupplierEntry } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from './IconPicker';
@@ -20,6 +20,21 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const [newResourceType, setNewResourceType] = useState<ResourceType>('person');
   const [newResourceDailyRate, setNewResourceDailyRate] = useState<number>(0);
   const [showAddResource, setShowAddResource] = useState(false);
+  
+  // Largeur de la première colonne (nom + infos)
+  const storageKey = `hoursTracking_colWidth_${domain.id}`;
+  const [columnWidth, setColumnWidth] = useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) return parseInt(saved, 10);
+    // Largeur par défaut calculée pour afficher toutes les infos
+    // Nom (max 20 chars) + espace + TJM (max 6 chars) + jours (max 3 chars) + total (max 8 chars) + marges
+    return 280; // px
+  });
+  
+  const isResizing = useRef(false);
+  const resizeStartX = useRef(0);
+  const resizeStartWidth = useRef(0);
+  const columnRef = useRef<HTMLDivElement>(null);
 
   // Générer la liste des dates depuis projectStartDate jusqu'à aujourd'hui + 30 jours
   const dates = useMemo(() => {
@@ -271,6 +286,52 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const salePrice = hoursData.salePrice || 0;
   const margin = getMargin();
 
+  // Gestion du redimensionnement
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      
+      const diff = e.clientX - resizeStartX.current;
+      const newWidth = Math.max(200, Math.min(600, resizeStartWidth.current + diff));
+      setColumnWidth(newWidth);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (isResizing.current) {
+        const diff = e.clientX - resizeStartX.current;
+        const finalWidth = Math.max(200, Math.min(600, resizeStartWidth.current + diff));
+        setColumnWidth(finalWidth);
+        localStorage.setItem(storageKey, finalWidth.toString());
+        isResizing.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    if (isResizing.current) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      if (!isResizing.current) {
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+  }, [storageKey]);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    resizeStartX.current = e.clientX;
+    resizeStartWidth.current = columnWidth;
+  };
+
   return (
     <div className="h-full flex flex-col bg-white" style={{ minHeight: 0, height: '100%' }}>
       {/* Bandeau en haut avec montant global, prix de vente et marge */}
@@ -322,8 +383,11 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           {/* En-tête avec dates */}
           <div className="sticky top-0 bg-[#F5F7FA] border-b border-[#E2E8F0] z-10">
             <div className="flex">
-              {/* Colonne gauche fixe pour les totaux par jour */}
-              <div className="w-48 bg-[#F5F7FA] border-r border-[#E2E8F0] p-2">
+              {/* Colonne gauche fixe pour les totaux par jour - même largeur que la colonne des noms */}
+              <div 
+                className="bg-[#F5F7FA] border-r border-[#E2E8F0] p-2"
+                style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
+              >
                 <div className="text-xs text-[#64748B] font-medium">Total par jour</div>
               </div>
 
@@ -360,57 +424,76 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
                 <div className="flex">
                   {/* Colonne gauche avec nom, type, TJM et total sur une seule ligne */}
-                  <div className="w-48 bg-white border-r border-[#E2E8F0] p-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  <div 
+                    ref={columnRef}
+                    className="bg-white border-r border-[#E2E8F0] p-2 relative group"
+                    style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px` }}
+                  >
+                    <div className="flex items-center justify-between gap-2 h-full">
+                      {/* Nom à gauche */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
                         <MuiIcon
                           name={resource.type === 'person' ? 'User' : 'Building'}
                           size={14}
                           className="text-[#64748B] flex-shrink-0"
                         />
-                        <span className="font-medium text-[#1E3A5F] text-sm truncate">{resource.name}</span>
+                        <span className="font-medium text-[#1E3A5F] text-sm">{resource.name}</span>
                       </div>
-                      {resource.type === 'person' ? (
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
-                          {readOnly ? (
+                      
+                      {/* Infos à droite */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {resource.type === 'person' ? (
+                          <>
+                            <label className="text-[10px] text-[#64748B] whitespace-nowrap">TJM:</label>
+                            {readOnly ? (
+                              <span className="text-xs font-semibold text-[#1E3A5F]">
+                                {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
+                              </span>
+                            ) : (
+                              <input
+                                type="number"
+                                value={resource.dailyRate || 0}
+                                onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
+                                className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                                min="0"
+                                step="10"
+                                placeholder="0"
+                              />
+                            )}
+                            <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
                             <span className="text-xs font-semibold text-[#1E3A5F]">
-                              {resource.dailyRate?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '') || '0€'}
+                              {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
                             </span>
-                          ) : (
-                            <input
-                              type="number"
-                              value={resource.dailyRate || 0}
-                              onChange={(e) => updateDailyRate(resource.id, parseFloat(e.target.value) || 0)}
-                              className="w-14 px-1 py-0.5 bg-white border border-[#1E3A5F] rounded text-xs font-semibold text-[#1E3A5F] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
-                              min="0"
-                              step="10"
-                              placeholder="0"
-                            />
-                          )}
-                          <span className="text-[10px] text-[#64748B]">{getPersonDays(resource)}j</span>
-                          <span className="text-xs font-semibold text-[#1E3A5F] mr-1">
-                            {getPersonTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <span className="text-[10px] text-[#64748B]">Total:</span>
-                          <span className="text-xs font-semibold text-[#1E3A5F] mr-1">
-                            {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
-                          </span>
-                        </div>
-                      )}
-                      {!readOnly && (
-                        <button
-                          onClick={() => handleDeleteResource(resource.id)}
-                          className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0 ml-1"
-                          title="Supprimer"
-                        >
-                          <MuiIcon name="Delete" size={12} />
-                        </button>
-                      )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[10px] text-[#64748B]">Total:</span>
+                            <span className="text-xs font-semibold text-[#1E3A5F]">
+                              {getSupplierTotal(resource).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0, minimumFractionDigits: 0 }).replace(/\s/g, '')}
+                            </span>
+                          </>
+                        )}
+                        {!readOnly && (
+                          <button
+                            onClick={() => handleDeleteResource(resource.id)}
+                            className="text-[#E57373] hover:text-red-600 p-0.5 flex-shrink-0 ml-1"
+                            title="Supprimer"
+                          >
+                            <MuiIcon name="Delete" size={12} />
+                          </button>
+                        )}
+                      </div>
                     </div>
+                    
+                    {/* Poignée de redimensionnement */}
+                    {!readOnly && (
+                      <div
+                        onMouseDown={handleResizeStart}
+                        className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-[#1E3A5F]/50 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        style={{ marginRight: '-2px', cursor: 'col-resize' }}
+                        title="Redimensionner la colonne (glisser vers la droite ou la gauche)"
+                      />
+                    )}
                   </div>
 
                   {/* Cases pour chaque date */}
@@ -430,8 +513,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
                               disabled={readOnly}
                               className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasMorning
-                                  ? 'bg-[#1E3A5F] text-white'
-                                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                                ? 'bg-[#1E3A5F] text-white'
+                                : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
                                 } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Matin"
                             >
@@ -441,8 +524,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                               onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'afternoon')}
                               disabled={readOnly}
                               className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasAfternoon
-                                  ? 'bg-[#1E3A5F] text-white'
-                                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                                ? 'bg-[#1E3A5F] text-white'
+                                : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
                                 } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Après-midi"
                             >
