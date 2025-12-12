@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords } from '../types';
+import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType } from '../types';
 import { useAuthStore } from './authStore';
 
 interface CockpitState {
@@ -30,7 +30,7 @@ interface CockpitState {
   
   // Modifications avec auto-save
   updateCockpit: (updates: Partial<Cockpit>) => void;
-  addDomain: (name: string) => void;
+  addDomain: (name: string, templateType?: TemplateType) => void;
   updateDomain: (domainId: string, updates: Partial<Domain>) => void;
   deleteDomain: (domainId: string) => void;
   reorderDomains: (domainIds: string[]) => void;
@@ -334,14 +334,21 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     get().triggerAutoSave();
   },
 
-  addDomain: (name: string) => {
+  addDomain: (name: string, templateType: TemplateType = 'standard') => {
     const newDomain: Domain = {
       id: generateId(),
       cockpitId: get().currentCockpit?.id || '',
       name,
       order: get().currentCockpit?.domains.length || 0,
-      templateType: 'standard',
+      templateType,
       categories: [],
+      ...(templateType === 'hours-tracking' ? {
+        hoursTracking: {
+          projectStartDate: new Date().toISOString().split('T')[0],
+          salePrice: 0,
+          resources: []
+        }
+      } : {})
     };
     
     set((state) => {

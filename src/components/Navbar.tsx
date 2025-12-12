@@ -5,7 +5,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { getDomainWorstStatus, STATUS_COLORS } from '../types';
+import { getDomainWorstStatus, STATUS_COLORS, type TemplateType } from '../types';
 
 // Composant pour un onglet de domaine sortable
 function SortableDomainTab({ domain, isActive, onSelect, onDelete, domainsCount }: {
@@ -93,6 +93,7 @@ export default function Navbar() {
   const confirm = useConfirm();
   const [isAdding, setIsAdding] = useState(false);
   const [newDomainName, setNewDomainName] = useState('');
+  const [newDomainType, setNewDomainType] = useState<TemplateType>('standard');
   
   if (!currentCockpit) return null;
   
@@ -123,8 +124,9 @@ export default function Navbar() {
   
   const handleAddDomain = () => {
     if (newDomainName.trim()) {
-      addDomain(newDomainName.trim());
+      addDomain(newDomainName.trim(), newDomainType);
       setNewDomainName('');
+      setNewDomainType('standard');
       setIsAdding(false);
     }
   };
@@ -188,12 +190,23 @@ export default function Navbar() {
                 if (e.key === 'Escape') {
                   setIsAdding(false);
                   setNewDomainName('');
+                  setNewDomainType('standard');
                 }
               }}
               placeholder="Nom du domaine"
               className="px-3 py-1.5 bg-white/10 border border-white/30 rounded-lg text-white text-sm placeholder-white/50 focus:outline-none focus:border-white/60 w-40"
               autoFocus
             />
+            <select
+              value={newDomainType}
+              onChange={(e) => setNewDomainType(e.target.value as TemplateType)}
+              className="px-3 py-1.5 bg-white/10 border border-white/30 rounded-lg text-white text-sm focus:outline-none focus:border-white/60"
+            >
+              <option value="standard">Standard</option>
+              <option value="map">Carte</option>
+              <option value="background">Image de fond</option>
+              <option value="hours-tracking">Suivi des heures</option>
+            </select>
             <button
               onClick={handleAddDomain}
               className="p-1.5 bg-white text-[#1E3A5F] hover:bg-white/90 rounded-lg transition-colors"
@@ -204,6 +217,7 @@ export default function Navbar() {
               onClick={() => {
                 setIsAdding(false);
                 setNewDomainName('');
+                setNewDomainType('standard');
               }}
               className="p-1.5 text-white/70 hover:text-white transition-colors"
             >

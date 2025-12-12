@@ -28,7 +28,7 @@ function SortableCategoryItem({ category, onIconClick, onNameChange, onDelete, s
   subElementsCount: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
-  
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -86,7 +86,7 @@ function SortableSubCategoryItem({ subCategory, onIconClick, onNameChange, onDel
   subElementsCount: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subCategory.id });
-  
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -162,7 +162,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   } = useCockpitStore();
   const { token } = useAuthStore();
   const confirm = useConfirm();
-  
+
   // Configuration des capteurs pour le drag & drop
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -170,29 +170,29 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-  
+
   // Handler pour le drag & drop des catégories
   const handleCategoryDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!domain || !over || active.id === over.id) return;
-    
+
     const oldIndex = domain.categories.findIndex(c => c.id === active.id);
     const newIndex = domain.categories.findIndex(c => c.id === over.id);
-    
+
     if (oldIndex !== -1 && newIndex !== -1) {
       const newOrder = arrayMove(domain.categories.map(c => c.id), oldIndex, newIndex);
       reorderCategory(domain.id, newOrder);
     }
   };
-  
+
   // Handler pour le drag & drop des sous-catégories
   const handleSubCategoryDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!element || !over || active.id === over.id) return;
-    
+
     const oldIndex = element.subCategories.findIndex(sc => sc.id === active.id);
     const newIndex = element.subCategories.findIndex(sc => sc.id === over.id);
-    
+
     if (oldIndex !== -1 && newIndex !== -1) {
       const newOrder = arrayMove(element.subCategories.map(sc => sc.id), oldIndex, newIndex);
       reorderSubCategory(element.id, newOrder);
@@ -458,7 +458,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
   // Référence pour savoir si on est en train d'éditer (le champ a le focus)
   const isEditingNameRef = useRef(false);
-  
+
   // Synchroniser selectedSubElement avec les données du store après chaque mise à jour
   // Mais seulement si on n'est pas en train d'éditer
   useEffect(() => {
@@ -660,8 +660,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   setSelectedSubElement({ ...selectedSubElement, status });
                 }}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${selectedSubElement.status === status
-                    ? `${STATUS_COLORS[status].bg} text-white`
-                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                  ? `${STATUS_COLORS[status].bg} text-white`
+                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                   }`}
               >
                 <div
@@ -1107,8 +1107,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     <button
                       onClick={() => updateElement(element.id, { backgroundMode: 'behind' })}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${(!element.backgroundMode || element.backgroundMode === 'behind')
-                          ? 'bg-[#1E3A5F] text-white'
-                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                        ? 'bg-[#1E3A5F] text-white'
+                        : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                         }`}
                     >
                       En dessous
@@ -1116,8 +1116,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     <button
                       onClick={() => updateElement(element.id, { backgroundMode: 'overlay' })}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${element.backgroundMode === 'overlay'
-                          ? 'bg-[#1E3A5F] text-white'
-                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                        ? 'bg-[#1E3A5F] text-white'
+                        : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                         }`}
                     >
                       Au dessus
@@ -1155,8 +1155,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 key={status}
                 onClick={() => updateElement(element.id, { status })}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${element.status === status
-                    ? `${STATUS_COLORS[status].bg} text-white`
-                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                  ? `${STATUS_COLORS[status].bg} text-white`
+                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                   }`}
               >
                 <div
@@ -1462,8 +1462,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   <button
                     onClick={() => updateElement(element.id, { icon: '' })}
                     className={`p-2 rounded-lg border transition-all ${!element.icon
-                        ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
-                        : 'border-transparent hover:bg-white'
+                      ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                      : 'border-transparent hover:bg-white'
                       }`}
                     title="Aucune icône (rectangle)"
                   >
@@ -1480,8 +1480,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       key={iconName}
                       onClick={() => updateElement(element.id, { icon: iconName })}
                       className={`p-2 rounded-lg border transition-all ${element.icon === iconName
-                          ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
-                          : 'border-transparent hover:bg-white'
+                        ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                        : 'border-transparent hover:bg-white'
                         }`}
                       title={iconName}
                       style={{ color: STATUS_COLORS[element.status].hex }}
@@ -1562,8 +1562,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         key={status}
                         onClick={() => updateMapElement(mapElement.id, { status })}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${mapElement.status === status
-                            ? `${STATUS_COLORS[status].bg} text-white`
-                            : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                          ? `${STATUS_COLORS[status].bg} text-white`
+                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                           }`}
                       >
                         <div
@@ -1590,8 +1590,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         key={iconName}
                         onClick={() => updateMapElement(mapElement.id, { icon: iconName })}
                         className={`p-2 rounded-lg border transition-all ${mapElement.icon === iconName
-                            ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
-                            : 'border-transparent hover:bg-white'
+                          ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                          : 'border-transparent hover:bg-white'
                           }`}
                         title={iconName}
                         style={{ color: STATUS_COLORS[mapElement.status].hex }}
@@ -1769,13 +1769,14 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               { type: 'grid' as TemplateType, label: 'Grille', desc: 'Tuiles en grille simple' },
               { type: 'map' as TemplateType, label: 'Carte', desc: 'Carte dynamique' },
               { type: 'background' as TemplateType, label: 'Image de fond', desc: 'Positionnement libre' },
+              { type: 'hours-tracking' as TemplateType, label: 'Suivi des heures', desc: 'Suivi des heures et coûts du projet' },
             ].map(({ type, label, desc }) => (
               <button
                 key={type}
                 onClick={() => updateDomain(domain.id, { templateType: type })}
                 className={`w-full flex items-start gap-3 px-3 py-3 rounded-lg transition-all text-left ${domain.templateType === type
-                    ? 'bg-[#1E3A5F]/10 border border-[#1E3A5F]/30 text-[#1E3A5F]'
-                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                  ? 'bg-[#1E3A5F]/10 border border-[#1E3A5F]/30 text-[#1E3A5F]'
+                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                   }`}
               >
                 <div className={`w-4 h-4 rounded-full mt-0.5 ${domain.templateType === type ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
@@ -1789,13 +1790,14 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           </div>
         </Section>
 
-        {/* Image de fond */}
-        <Section
-          title="Image de fond"
-          iconName="Image"
-          isOpen={activeSection === 'background'}
-          onToggle={() => toggleSection('background')}
-        >
+        {/* Image de fond - Masquée pour hours-tracking */}
+        {domain.templateType !== 'hours-tracking' && (
+          <Section
+            title="Image de fond"
+            iconName="Image"
+            isOpen={activeSection === 'background'}
+            onToggle={() => toggleSection('background')}
+          >
           <div className="space-y-4">
             {/* Zone de sélection de fichier */}
             <div>
@@ -1918,8 +1920,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             {/* Résultat de l'analyse IA (MapView uniquement) */}
             {domain.templateType === 'map' && analysisResult && (
               <div className={`p-3 rounded-lg text-sm ${analysisResult.detected
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-amber-50 border border-amber-200 text-amber-800'
+                ? 'bg-green-50 border border-green-200 text-green-800'
+                : 'bg-amber-50 border border-amber-200 text-amber-800'
                 }`}>
                 {analysisResult.detected ? (
                   <div className="flex items-start gap-2">
@@ -2043,8 +2045,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     <button
                       onClick={() => updateDomain(domain.id, { backgroundMode: 'behind' })}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${(!domain.backgroundMode || domain.backgroundMode === 'behind')
-                          ? 'bg-[#1E3A5F] text-white'
-                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                        ? 'bg-[#1E3A5F] text-white'
+                        : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                         }`}
                     >
                       En dessous
@@ -2052,8 +2054,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     <button
                       onClick={() => updateDomain(domain.id, { backgroundMode: 'overlay' })}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${domain.backgroundMode === 'overlay'
-                          ? 'bg-[#1E3A5F] text-white'
-                          : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
+                        ? 'bg-[#1E3A5F] text-white'
+                        : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
                         }`}
                     >
                       Au dessus
@@ -2129,9 +2131,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             )}
           </div>
         </Section>
+        )}
 
-        {/* Édition des catégories */}
-        {domain.categories && domain.categories.length > 0 && (
+        {/* Édition des catégories - Masquée pour hours-tracking */}
+        {domain.templateType !== 'hours-tracking' && domain.categories && domain.categories.length > 0 && (
           <Section
             title={`Catégories (${domain.categories.length})`}
             iconName="FolderOpen"
@@ -2190,8 +2193,64 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           </Section>
         )}
 
-        {/* Préférences d'affichage - Masquées pour les vues Map et Background */}
-        {domain && domain.templateType !== 'map' && domain.templateType !== 'background' && (() => {
+        {/* Menu d'édition spécifique pour Suivi des heures */}
+        {domain && domain.templateType === 'hours-tracking' && (
+          <Section
+            title="Configuration du suivi"
+            iconName="Clock"
+            isOpen={activeSection === 'hours-tracking-config'}
+            onToggle={() => toggleSection('hours-tracking-config')}
+          >
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-[#64748B] mb-1">Date de début du projet</label>
+                <input
+                  type="date"
+                  value={domain.hoursTracking?.projectStartDate || new Date().toISOString().split('T')[0]}
+                  onChange={(e) => updateDomain(domain.id, {
+                    hoursTracking: {
+                      ...(domain.hoursTracking || {
+                        projectStartDate: new Date().toISOString().split('T')[0],
+                        salePrice: 0,
+                        resources: []
+                      }),
+                      projectStartDate: e.target.value
+                    }
+                  })}
+                  className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-[#64748B] mb-1">Prix de vente au client (€)</label>
+                <input
+                  type="number"
+                  value={domain.hoursTracking?.salePrice || 0}
+                  onChange={(e) => updateDomain(domain.id, {
+                    hoursTracking: {
+                      ...(domain.hoursTracking || {
+                        projectStartDate: new Date().toISOString().split('T')[0],
+                        salePrice: 0,
+                        resources: []
+                      }),
+                      salePrice: parseFloat(e.target.value) || 0
+                    }
+                  })}
+                  className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                  min="0"
+                  step="100"
+                />
+              </div>
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  💡 Les personnes et fournisseurs sont gérés directement dans la vue. Utilisez le bouton "Ajouter" dans la vue pour ajouter des ressources.
+                </p>
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {/* Préférences d'affichage - Masquées pour les vues Map, Background et Hours-tracking */}
+        {domain && domain.templateType !== 'map' && domain.templateType !== 'background' && domain.templateType !== 'hours-tracking' && (() => {
           const horizontalCategories = domain.categories.filter(c => c.orientation === 'horizontal');
           const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
 

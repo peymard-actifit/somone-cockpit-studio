@@ -9,7 +9,8 @@ export type TemplateType =
   | 'grid'          // Vue grille simple (type Magasins)
   | 'map'           // Vue carte dynamique
   | 'background'    // Vue avec image de fond et positionnement libre
-  | 'element';      // Vue élément (sous-catégories)
+  | 'element'       // Vue élément (sous-catégories)
+  | 'hours-tracking'; // Vue suivi des heures
 
 // Orientation des catégories
 export type Orientation = 'horizontal' | 'vertical';
@@ -70,6 +71,8 @@ export interface Domain {
   enableClustering?: boolean;  // Activer/désactiver le regroupement des éléments (défaut: true)
   categories: Category[];
   mapElements?: MapElement[];
+  // Données pour la vue "Suivi des heures"
+  hoursTracking?: HoursTrackingData;
 }
 
 // Catégorie (groupe d'éléments)
@@ -359,4 +362,58 @@ export function getDomainWorstStatus(domain: {
   return worstStatus;
 }
 
+// Types pour la vue "Suivi des heures"
+export type ResourceType = 'person' | 'supplier';
+
+// Demi-journée (matin ou après-midi)
+export type HalfDay = 'morning' | 'afternoon';
+
+// Entrée de temps pour une personne (demi-journée cochée)
+export interface TimeEntry {
+  date: string; // Format YYYY-MM-DD
+  halfDay: HalfDay;
+}
+
+// Personne travaillant sur le projet
+export interface Person {
+  id: string;
+  name: string;
+  dailyRate: number; // TJM en €
+  timeEntries: TimeEntry[]; // Liste des demi-journées imputées
+  order: number;
+}
+
+// Entrée de coût pour un fournisseur (montant à une date)
+export interface SupplierEntry {
+  date: string; // Format YYYY-MM-DD
+  amount: number; // Montant en €
+}
+
+// Fournisseur
+export interface Supplier {
+  id: string;
+  name: string;
+  entries: SupplierEntry[]; // Liste des montants par date
+  order: number;
+}
+
+// Ressource (personne ou fournisseur)
+export interface Resource {
+  id: string;
+  type: ResourceType;
+  name: string;
+  order: number;
+  // Si type = 'person'
+  dailyRate?: number;
+  timeEntries?: TimeEntry[];
+  // Si type = 'supplier'
+  entries?: SupplierEntry[];
+}
+
+// Données complètes pour la vue "Suivi des heures"
+export interface HoursTrackingData {
+  projectStartDate: string; // Date d'origine du projet (format YYYY-MM-DD)
+  salePrice?: number; // Prix de vente au client en €
+  resources: Resource[]; // Liste des personnes et fournisseurs
+}
 

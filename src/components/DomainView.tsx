@@ -3,6 +3,7 @@ import { useCockpitStore } from '../store/cockpitStore';
 import CategorySection from './CategorySection';
 import MapView from './MapView';
 import BackgroundView from './BackgroundView';
+import HoursTrackingView from './HoursTrackingView';
 import { MuiIcon } from './IconPicker';
 import { useState, useEffect } from 'react';
 import ElementTile from './ElementTile';
@@ -67,6 +68,15 @@ export default function DomainView({ domain, onElementClick, readOnly = false }:
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
         <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />
+      </div>
+    );
+  }
+
+  // Vue suivi des heures
+  if (domain.templateType === 'hours-tracking') {
+    return (
+      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
+        <HoursTrackingView domain={domain} readOnly={readOnly} />
       </div>
     );
   }
