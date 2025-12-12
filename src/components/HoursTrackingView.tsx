@@ -160,6 +160,25 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     return total;
   };
 
+  // Calculer le coût cumulé fournisseurs jusqu'à une date
+  const getCumulativeSupplierCost = (date: string): number => {
+    let total = 0;
+    const targetDate = new Date(date);
+
+    hoursData.resources.forEach(resource => {
+      if (resource.type === 'supplier' && resource.entries) {
+        resource.entries.forEach(entry => {
+          const entryDate = new Date(entry.date);
+          if (entryDate <= targetDate) {
+            total += entry.amount;
+          }
+        });
+      }
+    });
+
+    return total;
+  };
+
   // Générer les dates pour le graphique (3 mois depuis projectStartDate)
   const chartDates = useMemo(() => {
     const startDate = new Date(hoursData.projectStartDate);
@@ -187,25 +206,6 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     }));
   }, [chartDates, hoursData.resources, hoursData.projectStartDate]);
 
-  // Calculer le coût cumulé fournisseurs jusqu'à une date
-  const getCumulativeSupplierCost = (date: string): number => {
-    let total = 0;
-    const targetDate = new Date(date);
-    
-    hoursData.resources.forEach(resource => {
-      if (resource.type === 'supplier' && resource.entries) {
-        resource.entries.forEach(entry => {
-          const entryDate = new Date(entry.date);
-          if (entryDate <= targetDate) {
-            total += entry.amount;
-          }
-        });
-      }
-    });
-    
-    return total;
-  };
-
   // Trouver les valeurs max pour les échelles
   const maxDays = 365; // Maximum fixe à 365 jours
   
@@ -216,7 +216,6 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Calculer la marge
   const getMargin = (): number => {
     const globalCost = getGlobalCost();
-    const salePrice = hoursData.salePrice || 0;
     return salePrice - globalCost;
   };
 
@@ -987,7 +986,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       strokeWidth="2"
                     />
                   )}
-                  
+
                   {/* Points sur la courbe */}
                   {chartData.map((data, index) => {
                     const x = xScale(index);
@@ -1017,7 +1016,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       strokeDasharray="4,2"
                     />
                   )}
-                  
+
                   {/* Points sur la courbe fournisseurs */}
                   {chartData.map((data, index) => {
                     if (data.cumulativeSupplierCost === 0) return null;
