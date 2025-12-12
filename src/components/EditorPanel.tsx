@@ -17,7 +17,7 @@ interface EditorPanelProps {
 }
 
 export default function EditorPanel({ domain, element, selectedSubElementId }: EditorPanelProps) {
-  const { 
+  const {
     updateDomain,
     deleteDomain,
     updateCategory,
@@ -39,7 +39,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   } = useCockpitStore();
   const { token } = useAuthStore();
   const confirm = useConfirm();
-  
+
   const [activeSection, setActiveSection] = useState<string | null>('properties');
   const [newZoneName, setNewZoneName] = useState('');
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
@@ -47,17 +47,17 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const selectedSubElementIdRef = useRef<string | null>(null);
   const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | 'subElement' | null>(null);
   const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory'; id: string } | null>(null);
-  
+
   // Préférence pour l'affichage des tuiles vertes (ok)
   // Préférences d'affichage et d'espacement (indépendantes par domaine/élément)
   const domainStorageKey = domain ? `domain_${domain.id}` : 'global';
   const elementStorageKey = element ? `element_${element.id}` : 'global';
-  
+
   const [greenTilesAsColored, setGreenTilesAsColored] = useState(() => {
     const saved = domain ? localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`) : localStorage.getItem('greenTilesAsColored');
     return saved === 'true';
   });
-  
+
   // Préférence pour la position des catégories/sous-catégories horizontales
   const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
     const saved = domain ? localStorage.getItem(`horizontalCategoriesInline_${domainStorageKey}`) : localStorage.getItem('horizontalCategoriesInline');
@@ -69,7 +69,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = element ? localStorage.getItem(`horizontalSubCategoriesInline_${elementStorageKey}`) : localStorage.getItem('horizontalSubCategoriesInline');
     return saved === 'true';
   });
-  
+
   const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
     const saved = domain ? localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) : localStorage.getItem('horizontalSpacing');
     return saved ? parseInt(saved, 10) : 50;
@@ -94,7 +94,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const saved = element ? localStorage.getItem(`verticalSubCategoryWidth_${elementStorageKey}`) : localStorage.getItem('verticalSubCategoryWidth');
     return saved ? parseInt(saved, 10) : 200;
   });
-  
+
   // Synchroniser les valeurs depuis localStorage quand on ouvre les sections ou change de domaine/élément
   useEffect(() => {
     // Mettre à jour les préférences d'affichage quand le domaine change
@@ -104,7 +104,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       const savedHorizontalCategories = localStorage.getItem(`horizontalCategoriesInline_${domainStorageKey}`);
       setHorizontalCategoriesInline(savedHorizontalCategories === 'true');
     }
-    
+
     const handleDomainSpacingChange = () => {
       if (domain) {
         setHorizontalSpacing(parseInt(localStorage.getItem(`horizontalSpacing_${domainStorageKey}`) || '50', 10));
@@ -152,7 +152,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       }
     };
   }, [domain?.id, element?.id, domainStorageKey, elementStorageKey]);
-  
+
   // États pour la configuration de l'image de fond (MapView et BackgroundView)
   const [imageUrl, setImageUrl] = useState(domain?.backgroundImage || '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -168,7 +168,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     bottomRightLat: domain?.mapBounds?.bottomRight.lat?.toString() || '',
     bottomRightLng: domain?.mapBounds?.bottomRight.lng?.toString() || '',
   });
-  
+
   // Mettre à jour les états quand le domaine change
   useEffect(() => {
     if (domain) {
@@ -181,19 +181,19 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       });
     }
   }, [domain?.id, domain?.backgroundImage, domain?.mapBounds]);
-  
+
   // Fonction de validation d'image base64
-  
+
   // Analyser l'image avec l'IA pour détecter les coordonnées GPS (MapView uniquement)
   const analyzeMapImage = async () => {
     if (!domain || !imageUrl) return;
-    
+
     setIsAnalyzing(true);
     setAnalysisResult(null);
-    
+
     try {
       const isBase64 = imageUrl.startsWith('data:');
-      
+
       const response = await fetch('/api/ai/analyze-map', {
         method: 'POST',
         headers: {
@@ -201,18 +201,18 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(
-          isBase64 
+          isBase64
             ? { imageBase64: imageUrl }
             : { imageUrl: imageUrl }
         ),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'Erreur lors de l\'analyse');
       }
-      
+
       if (result.detected && result.topLeft && result.bottomRight) {
         setGpsForm({
           topLeftLat: result.topLeft.lat.toString(),
@@ -220,13 +220,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           bottomRightLat: result.bottomRight.lat.toString(),
           bottomRightLng: result.bottomRight.lng.toString(),
         });
-        
+
         const bounds: MapBounds = {
           topLeft: { lat: result.topLeft.lat, lng: result.topLeft.lng },
           bottomRight: { lat: result.bottomRight.lat, lng: result.bottomRight.lng },
         };
         updateMapBounds(domain.id, bounds);
-        
+
         setAnalysisResult({
           detected: true,
           region: result.region,
@@ -246,19 +246,19 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         description: error.message || 'Erreur lors de l\'analyse de l\'image',
       });
     }
-    
+
     setIsAnalyzing(false);
   };
-  
+
   // Sauvegarder les coordonnées GPS
   const saveGpsBounds = () => {
     if (!domain) return;
-    
+
     const lat1 = parseFloat(gpsForm.topLeftLat);
     const lng1 = parseFloat(gpsForm.topLeftLng);
     const lat2 = parseFloat(gpsForm.bottomRightLat);
     const lng2 = parseFloat(gpsForm.bottomRightLng);
-    
+
     if (!isNaN(lat1) && !isNaN(lng1) && !isNaN(lat2) && !isNaN(lng2)) {
       const bounds: MapBounds = {
         topLeft: { lat: lat1, lng: lng1 },
@@ -267,21 +267,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       updateMapBounds(domain.id, bounds);
     }
   };
-  
+
   const toggleSection = (section: string) => {
     setActiveSection(activeSection === section ? null : section);
   };
 
   // Trouver tous les sous-éléments de l'élément courant
   const allSubElements: SubElement[] = element?.subCategories?.flatMap(sc => sc.subElements) || [];
-  
+
   // Ouvrir automatiquement la section "Statut (couleur)" quand on sélectionne un sous-élément
   useEffect(() => {
     if (selectedSubElement && activeSection !== 'status') {
       setActiveSection('status');
     }
   }, [selectedSubElement]);
-  
+
   // Sélectionner automatiquement un sous-élément depuis l'extérieur (depuis un clic dans ElementView)
   useEffect(() => {
     if (selectedSubElementId && element) {
@@ -296,7 +296,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       }
     }
   }, [selectedSubElementId, element]);
-  
+
   // Synchroniser selectedSubElement avec les données du store après chaque mise à jour
   useEffect(() => {
     if (selectedSubElementIdRef.current && element) {
@@ -315,7 +315,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       }
     }
   }, [element]);
-  
+
   // Mettre à jour la référence et réinitialiser l'édition quand selectedSubElement change
   useEffect(() => {
     if (selectedSubElement) {
@@ -326,29 +326,29 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       setEditingSubElementName('');
     }
   }, [selectedSubElement?.id]);
-  
+
   // Édition d'un sous-élément
   if (selectedSubElement) {
     // Ouvrir automatiquement la section "Statut (couleur)" pour les sous-éléments
     const subElementActiveSection = activeSection || 'status';
-    
+
     return (
       <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg">
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
           <div className="flex items-start justify-between">
             <div>
-          <button
-            onClick={() => {
-              setSelectedSubElement(null);
-              setActiveSection(null);
-            }}
-            className="flex items-center gap-2 text-[#64748B] hover:text-[#1E3A5F] mb-2"
-          >
-            <div className="rotate-180"><MuiIcon name="ChevronRightIcon" size={16} /></div>
-            Retour
-          </button>
-          <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition sous-élément</h3>
-          <p className="text-sm text-[#64748B]">{selectedSubElement.name}</p>
+              <button
+                onClick={() => {
+                  setSelectedSubElement(null);
+                  setActiveSection(null);
+                }}
+                className="flex items-center gap-2 text-[#64748B] hover:text-[#1E3A5F] mb-2"
+              >
+                <div className="rotate-180"><MuiIcon name="ChevronRightIcon" size={16} /></div>
+                Retour
+              </button>
+              <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition sous-élément</h3>
+              <p className="text-sm text-[#64748B]">{selectedSubElement.name}</p>
             </div>
             <button
               onClick={async () => {
@@ -368,13 +368,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </button>
           </div>
         </div>
-        
+
         {/* Prévisualisation du sous-élément */}
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
           <h4 className="text-sm font-medium text-[#64748B] mb-3">Aperçu</h4>
           <div className="flex justify-center">
-            <SubElementTile 
-              subElement={selectedSubElement} 
+            <SubElementTile
+              subElement={selectedSubElement}
               breadcrumb={{
                 domain: domain?.name || '',
                 category: element?.name || '',
@@ -385,11 +385,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             />
           </div>
         </div>
-        
+
         {/* Propriétés du sous-élément */}
-        <Section 
-          title="Propriétés" 
-          iconName="SettingsIcon" 
+        <Section
+          title="Propriétés"
+          iconName="SettingsIcon"
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -413,7 +413,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm text-[#64748B] mb-1">Valeur</label>
@@ -442,7 +442,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 />
               </div>
             </div>
-            
+
             {/* Icône du sous-élément */}
             <div>
               <label className="block text-sm text-[#64748B] mb-2">Icône</label>
@@ -463,7 +463,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </button>
             </div>
           </div>
-          
+
           {/* Sélecteur d'icônes pour les sous-éléments */}
           {showIconPicker === 'subElement' && selectedSubElement && (
             <IconPicker
@@ -476,11 +476,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             />
           )}
         </Section>
-        
+
         {/* Statut / Couleur du sous-élément */}
-        <Section 
-          title="Statut (couleur)" 
-          iconName="Palette" 
+        <Section
+          title="Statut (couleur)"
+          iconName="Palette"
           isOpen={subElementActiveSection === 'status'}
           onToggle={() => toggleSection('status')}
         >
@@ -492,14 +492,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   updateSubElement(selectedSubElement.id, { status });
                   setSelectedSubElement({ ...selectedSubElement, status });
                 }}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  selectedSubElement.status === status 
-                    ? `${STATUS_COLORS[status].bg} text-white` 
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${selectedSubElement.status === status
+                    ? `${STATUS_COLORS[status].bg} text-white`
                     : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                }`}
+                  }`}
               >
-                <div 
-                  className="w-4 h-4 rounded" 
+                <div
+                  className="w-4 h-4 rounded"
                   style={{ backgroundColor: STATUS_COLORS[status].hex }}
                 />
                 <span>{STATUS_LABELS[status]}</span>
@@ -507,12 +506,12 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             ))}
           </div>
         </Section>
-        
+
         {/* Alerte (uniquement si Fatal, Critique ou Mineur) */}
         {['fatal', 'critique', 'mineur'].includes(selectedSubElement.status) && (
-          <Section 
-            title="Alerte" 
-            iconName="AlertTriangleIcon" 
+          <Section
+            title="Alerte"
+            iconName="AlertTriangleIcon"
             isOpen={activeSection === 'alert'}
             onToggle={() => toggleSection('alert')}
           >
@@ -520,7 +519,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <p className="text-xs text-[#94A3B8]">
                 Cette alerte s'affichera quand l'utilisateur clique sur le sous-élément.
               </p>
-              
+
               <div>
                 <label className="block text-sm text-[#64748B] mb-1">Description de l'alerte</label>
                 <textarea
@@ -543,7 +542,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F] resize-none"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm text-[#64748B] mb-1">Durée</label>
                 <input
@@ -566,7 +565,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm text-[#64748B] mb-1">Numéro de ticket</label>
                 <input
@@ -589,7 +588,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm text-[#64748B] mb-1">Actions suggérées</label>
                 <textarea
@@ -612,7 +611,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F] resize-none"
                 />
               </div>
-              
+
               {selectedSubElement.alert?.description && (
                 <button
                   onClick={() => {
@@ -627,11 +626,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </Section>
         )}
-        
+
         {/* Sources et calculs */}
-        <Section 
-          title="Sources et calculs" 
-          iconName="Database" 
+        <Section
+          title="Sources et calculs"
+          iconName="Database"
           isOpen={activeSection === 'sources-calculations'}
           onToggle={() => toggleSection('sources-calculations')}
         >
@@ -646,7 +645,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       </div>
     );
   }
-  
+
   // Édition d'un élément
   if (element) {
     return (
@@ -654,8 +653,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
           <div className="flex items-start justify-between">
             <div>
-          <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition élément</h3>
-          <p className="text-sm text-[#64748B]">{element.name}</p>
+              <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition élément</h3>
+              <p className="text-sm text-[#64748B]">{element.name}</p>
             </div>
             <button
               onClick={async () => {
@@ -675,23 +674,23 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </button>
           </div>
         </div>
-        
+
         {/* Prévisualisation de l'élément */}
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
           <h4 className="text-sm font-medium text-[#64748B] mb-3">Aperçu</h4>
           <div className="flex justify-center">
-            <ElementTile 
-              element={element} 
+            <ElementTile
+              element={element}
               mini={false}
               readOnly={true}
             />
           </div>
         </div>
-        
+
         {/* Propriétés */}
-        <Section 
-          title="Propriétés" 
-          iconName="SettingsIcon" 
+        <Section
+          title="Propriétés"
+          iconName="SettingsIcon"
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -705,7 +704,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm text-[#64748B] mb-1">Valeur</label>
@@ -728,7 +727,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 />
               </div>
             </div>
-            
+
             {/* Icônes - Sélection via Material Icons */}
             <div>
               <label className="block text-sm text-[#64748B] mb-2">Icône principale</label>
@@ -748,7 +747,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <span className="text-sm">{element.icon || 'Choisir une icône...'}</span>
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm text-[#64748B] mb-2">Icône 2</label>
@@ -779,7 +778,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </button>
               </div>
             </div>
-            
+
             {/* Sélecteur d'icônes */}
             {showIconPicker === 'icon' && (
               <IconPicker
@@ -804,11 +803,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             )}
           </div>
         </Section>
-        
+
         {/* Image de fond pour l'élément */}
-        <Section 
-          title="Image de fond" 
-          iconName="Image" 
+        <Section
+          title="Image de fond"
+          iconName="Image"
           isOpen={activeSection === 'element-background'}
           onToggle={() => toggleSection('element-background')}
         >
@@ -816,7 +815,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             {/* Zone de sélection de fichier */}
             <div>
               <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</label>
-              <label 
+              <label
                 htmlFor={`element-bg-upload-${element.id}`}
                 className="block p-4 border-2 border-dashed border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors cursor-pointer"
               >
@@ -835,7 +834,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         e.target.value = '';
                         return;
                       }
-                      
+
                       const reader = new FileReader();
                       reader.onload = (event) => {
                         const base64 = event.target?.result as string;
@@ -852,14 +851,14 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </div>
               </label>
             </div>
-            
+
             {/* Séparateur */}
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-[#E2E8F0]" />
               <span className="text-xs text-[#94A3B8]">ou</span>
               <div className="flex-1 h-px bg-[#E2E8F0]" />
             </div>
-            
+
             {/* URL alternative */}
             <div>
               <label className="block text-sm font-medium text-[#1E3A5F] mb-2">URL de l'image</label>
@@ -890,15 +889,15 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </button>
               )}
             </div>
-            
+
             {/* Aperçu et options */}
             {element.backgroundImage && (
               <div className="space-y-3">
                 <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                   <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
-                  <img 
-                    src={element.backgroundImage} 
-                    alt="Aperçu" 
+                  <img
+                    src={element.backgroundImage}
+                    alt="Aperçu"
                     className="max-h-32 rounded border border-[#E2E8F0] mx-auto w-full object-contain"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
@@ -911,7 +910,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     </p>
                   )}
                 </div>
-                
+
                 {/* Opacité de l'image */}
                 <div>
                   <label className="block text-sm text-[#64748B] mb-2">
@@ -933,39 +932,37 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     <span>100%</span>
                   </div>
                 </div>
-                
+
                 {/* Mode d'affichage */}
                 <div>
                   <p className="text-xs text-[#64748B] mb-2">Position de l'image</p>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => updateElement(element.id, { backgroundMode: 'behind' })}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        (!element.backgroundMode || element.backgroundMode === 'behind')
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${(!element.backgroundMode || element.backgroundMode === 'behind')
                           ? 'bg-[#1E3A5F] text-white'
                           : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                      }`}
+                        }`}
                     >
                       En dessous
                     </button>
                     <button
                       onClick={() => updateElement(element.id, { backgroundMode: 'overlay' })}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        element.backgroundMode === 'overlay'
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${element.backgroundMode === 'overlay'
                           ? 'bg-[#1E3A5F] text-white'
                           : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                      }`}
+                        }`}
                     >
                       Au dessus
                     </button>
                   </div>
                   <p className="text-[10px] text-[#94A3B8] mt-1">
-                    {(!element.backgroundMode || element.backgroundMode === 'behind') 
-                      ? 'L\'image sera derrière les sous-catégories' 
+                    {(!element.backgroundMode || element.backgroundMode === 'behind')
+                      ? 'L\'image sera derrière les sous-catégories'
                       : 'L\'image sera par-dessus (transparente, sans gêner les clics)'}
                   </p>
                 </div>
-                
+
                 <button
                   onClick={() => updateElement(element.id, { backgroundImage: undefined, backgroundMode: undefined, backgroundImageOpacity: undefined })}
                   className="w-full px-3 py-1.5 text-xs text-[#E57373] hover:bg-red-50 rounded-lg border border-[#E57373]/30 transition-colors flex items-center justify-center gap-1"
@@ -977,11 +974,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             )}
           </div>
         </Section>
-        
+
         {/* Couleur / Statut */}
-        <Section 
-          title="Statut (couleur)" 
-          iconName="Palette" 
+        <Section
+          title="Statut (couleur)"
+          iconName="Palette"
           isOpen={activeSection === 'status'}
           onToggle={() => toggleSection('status')}
         >
@@ -990,14 +987,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <button
                 key={status}
                 onClick={() => updateElement(element.id, { status })}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  element.status === status 
-                    ? `${STATUS_COLORS[status].bg} text-white` 
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${element.status === status
+                    ? `${STATUS_COLORS[status].bg} text-white`
                     : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                }`}
+                  }`}
               >
-                <div 
-                  className="w-4 h-4 rounded" 
+                <div
+                  className="w-4 h-4 rounded"
                   style={{ backgroundColor: STATUS_COLORS[status].hex }}
                 />
                 <span>{STATUS_LABELS[status]}</span>
@@ -1005,12 +1001,12 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             ))}
           </div>
         </Section>
-        
+
         {/* Édition des sous-catégories */}
         {element.subCategories && element.subCategories.length > 0 && (
-          <Section 
+          <Section
             title={`Sous-catégories (${element.subCategories.length})`}
-            iconName="FolderOpen" 
+            iconName="FolderOpen"
             isOpen={activeSection === 'subcategories'}
             onToggle={() => toggleSection('subcategories')}
           >
@@ -1061,16 +1057,16 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             )}
           </Section>
         )}
-        
+
         {/* Préférences d'affichage pour les sous-catégories */}
         {element.subCategories && element.subCategories.length > 0 && (() => {
           const horizontalSubCategories = element.subCategories.filter(sc => sc.orientation !== 'vertical');
           const verticalSubCategories = element.subCategories.filter(sc => sc.orientation === 'vertical');
-          
+
           return (
-            <Section 
-              title="Préférences d'affichage" 
-              iconName="Settings" 
+            <Section
+              title="Préférences d'affichage"
+              iconName="Settings"
               isOpen={activeSection === 'element-display-preferences'}
               onToggle={() => toggleSection('element-display-preferences')}
             >
@@ -1084,7 +1080,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           Sous-catégories horizontales
                         </label>
                         <p className="text-xs text-[#64748B]">
-                          {horizontalSubCategoriesInline 
+                          {horizontalSubCategoriesInline
                             ? 'Affichage en ligne (à gauche des sous-éléments)'
                             : 'Affichage au-dessus des sous-éléments (par défaut)'
                           }
@@ -1098,20 +1094,18 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           localStorage.setItem(key, String(newValue));
                           window.dispatchEvent(new Event(`horizontalSubCategoriesPreferenceChanged_${elementStorageKey}`));
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-                          horizontalSubCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${horizontalSubCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                          }`}
                         role="switch"
                         aria-checked={horizontalSubCategoriesInline}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                            horizontalSubCategoriesInline ? 'translate-x-6' : 'translate-x-1'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${horizontalSubCategoriesInline ? 'translate-x-6' : 'translate-x-1'
+                            }`}
                         />
                       </button>
                     </div>
-                    
+
                     {/* Slider espacement horizontal */}
                     <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                       <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
@@ -1136,7 +1130,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         <span>Espacé</span>
                       </div>
                     </div>
-                    
+
                     {/* Slider espacement entre sous-catégories horizontales */}
                     <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                       <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
@@ -1163,7 +1157,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     </div>
                   </>
                 )}
-                
+
                 {/* Sliders pour sous-catégories verticales */}
                 {verticalSubCategories.length > 0 && (
                   <>
@@ -1193,19 +1187,19 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         <span>500px</span>
                       </div>
                     </div>
-                    
+
                   </>
                 )}
               </div>
             </Section>
           );
         })()}
-        
+
         {/* Liste des sous-éléments à éditer */}
         {allSubElements.length > 0 && (
-          <Section 
+          <Section
             title={`Sous-éléments (${allSubElements.length})`}
-            iconName="Label" 
+            iconName="Label"
             isOpen={activeSection === 'subelements'}
             onToggle={() => toggleSection('subelements')}
           >
@@ -1219,8 +1213,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   onClick={() => setSelectedSubElement(se)}
                   className="w-full flex items-center gap-3 px-3 py-2 bg-[#F5F7FA] hover:bg-[#EEF2F7] rounded-lg transition-colors text-left border border-[#E2E8F0]"
                 >
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0" 
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: STATUS_COLORS[se.status].hex }}
                   />
                   <span className="text-sm text-[#1E3A5F] truncate flex-1">{se.name}</span>
@@ -1233,12 +1227,12 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </Section>
         )}
-        
+
         {/* Propriétés de position (pour BackgroundView/MapView) */}
         {element.positionX !== undefined && element.positionY !== undefined && (
-          <Section 
-            title="Position et taille" 
-            iconName="Move" 
+          <Section
+            title="Position et taille"
+            iconName="Move"
             isOpen={activeSection === 'position'}
             onToggle={() => toggleSection('position')}
           >
@@ -1257,7 +1251,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       const oldWidth = element.width || 5;
                       const oldCenterX = (element.positionX || 0) + oldWidth / 2;
                       const newX = oldCenterX - newWidth / 2;
-                      updateElement(element.id, { 
+                      updateElement(element.id, {
                         width: newWidth,
                         positionX: Math.max(0, newX)
                       });
@@ -1278,7 +1272,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       const oldHeight = element.height || 5;
                       const oldCenterY = (element.positionY || 0) + oldHeight / 2;
                       const newY = oldCenterY - newHeight / 2;
-                      updateElement(element.id, { 
+                      updateElement(element.id, {
                         height: newHeight,
                         positionY: Math.max(0, newY)
                       });
@@ -1287,7 +1281,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm text-[#64748B] mb-2">
                   Icône pour rectangle
@@ -1296,11 +1290,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <div className="flex flex-wrap gap-2 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] max-h-32 overflow-y-auto">
                   <button
                     onClick={() => updateElement(element.id, { icon: '' })}
-                    className={`p-2 rounded-lg border transition-all ${
-                      !element.icon
+                    className={`p-2 rounded-lg border transition-all ${!element.icon
                         ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
                         : 'border-transparent hover:bg-white'
-                    }`}
+                      }`}
                     title="Aucune icône (rectangle)"
                   >
                     <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[element.status].hex }} />
@@ -1315,11 +1308,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     <button
                       key={iconName}
                       onClick={() => updateElement(element.id, { icon: iconName })}
-                      className={`p-2 rounded-lg border transition-all ${
-                        element.icon === iconName
+                      className={`p-2 rounded-lg border transition-all ${element.icon === iconName
                           ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
                           : 'border-transparent hover:bg-white'
-                      }`}
+                        }`}
                       title={iconName}
                       style={{ color: STATUS_COLORS[element.status].hex }}
                     >
@@ -1334,14 +1326,14 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </Section>
         )}
-        
+
         {/* Point de carte GPS (si l'élément est lié à un MapElement) */}
         {domain && element && (() => {
           const mapElement = domain.mapElements?.find(me => me.elementId === element.id);
           return mapElement ? (
-            <Section 
-              title="Point de carte (GPS)" 
-              iconName="MapPinIcon" 
+            <Section
+              title="Point de carte (GPS)"
+              iconName="MapPinIcon"
               isOpen={activeSection === 'gps'}
               onToggle={() => toggleSection('gps')}
             >
@@ -1355,7 +1347,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm text-[#64748B] mb-1">Latitude</label>
@@ -1390,7 +1382,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm text-[#64748B] mb-2">Statut</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -1398,14 +1390,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       <button
                         key={status}
                         onClick={() => updateMapElement(mapElement.id, { status })}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                          mapElement.status === status 
-                            ? `${STATUS_COLORS[status].bg} text-white` 
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${mapElement.status === status
+                            ? `${STATUS_COLORS[status].bg} text-white`
                             : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                        }`}
+                          }`}
                       >
-                        <div 
-                          className="w-3 h-3 rounded-full" 
+                        <div
+                          className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: STATUS_COLORS[status].hex }}
                         />
                         <span className="text-sm">{STATUS_LABELS[status]}</span>
@@ -1413,7 +1404,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     ))}
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm text-[#64748B] mb-2">Icône du point</label>
                   <div className="flex flex-wrap gap-2 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] max-h-32 overflow-y-auto">
@@ -1427,11 +1418,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       <button
                         key={iconName}
                         onClick={() => updateMapElement(mapElement.id, { icon: iconName })}
-                        className={`p-2 rounded-lg border transition-all ${
-                          mapElement.icon === iconName
+                        className={`p-2 rounded-lg border transition-all ${mapElement.icon === iconName
                             ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
                             : 'border-transparent hover:bg-white'
-                        }`}
+                          }`}
                         title={iconName}
                         style={{ color: STATUS_COLORS[mapElement.status].hex }}
                       >
@@ -1440,7 +1430,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
                   <button
                     onClick={async () => {
@@ -1469,11 +1459,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </Section>
           ) : null;
         })()}
-        
+
         {/* Zone */}
-        <Section 
-          title="Zone" 
-          iconName="MapPinIcon" 
+        <Section
+          title="Zone"
+          iconName="MapPinIcon"
           isOpen={activeSection === 'zone'}
           onToggle={() => toggleSection('zone')}
         >
@@ -1488,7 +1478,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <option key={zone.id} value={zone.name}>{zone.name}</option>
               ))}
             </select>
-            
+
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -1509,7 +1499,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 +
               </button>
             </div>
-            
+
             {zones.length > 0 && (
               <div className="border-t border-[#E2E8F0] pt-3 mt-3">
                 <p className="text-xs text-[#94A3B8] mb-2">Zones existantes</p>
@@ -1533,7 +1523,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       </div>
     );
   }
-  
+
   // Édition d'un domaine
   if (domain) {
     return (
@@ -1563,11 +1553,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             )}
           </div>
         </div>
-        
+
         {/* Propriétés du domaine */}
-        <Section 
-          title="Propriétés" 
-          iconName="SettingsIcon" 
+        <Section
+          title="Propriétés"
+          iconName="SettingsIcon"
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
         >
@@ -1581,7 +1571,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm text-[#64748B] mb-1">Nom du template</label>
               <input
@@ -1594,11 +1584,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </div>
         </Section>
-        
+
         {/* Type de template */}
-        <Section 
-          title="Type de vue" 
-          iconName="Layers" 
+        <Section
+          title="Type de vue"
+          iconName="Layers"
           isOpen={activeSection === 'template'}
           onToggle={() => toggleSection('template')}
         >
@@ -1612,15 +1602,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <button
                 key={type}
                 onClick={() => updateDomain(domain.id, { templateType: type })}
-                className={`w-full flex items-start gap-3 px-3 py-3 rounded-lg transition-all text-left ${
-                  domain.templateType === type 
-                    ? 'bg-[#1E3A5F]/10 border border-[#1E3A5F]/30 text-[#1E3A5F]' 
+                className={`w-full flex items-start gap-3 px-3 py-3 rounded-lg transition-all text-left ${domain.templateType === type
+                    ? 'bg-[#1E3A5F]/10 border border-[#1E3A5F]/30 text-[#1E3A5F]'
                     : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                }`}
+                  }`}
               >
-                <div className={`w-4 h-4 rounded-full mt-0.5 ${
-                  domain.templateType === type ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                }`} />
+                <div className={`w-4 h-4 rounded-full mt-0.5 ${domain.templateType === type ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                  }`} />
                 <div>
                   <p className="font-medium">{label}</p>
                   <p className="text-xs text-[#94A3B8]">{desc}</p>
@@ -1629,11 +1617,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             ))}
           </div>
         </Section>
-        
+
         {/* Image de fond */}
-        <Section 
-          title="Image de fond" 
-          iconName="Image" 
+        <Section
+          title="Image de fond"
+          iconName="Image"
           isOpen={activeSection === 'background'}
           onToggle={() => toggleSection('background')}
         >
@@ -1641,7 +1629,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             {/* Zone de sélection de fichier */}
             <div>
               <label className="block text-sm font-medium text-[#1E3A5F] mb-2">Charger une image</label>
-              <label 
+              <label
                 htmlFor={`bg-upload-${domain.id}`}
                 className="block p-4 border-2 border-dashed border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors cursor-pointer"
               >
@@ -1660,7 +1648,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         e.target.value = '';
                         return;
                       }
-                      
+
                       const reader = new FileReader();
                       reader.onload = (event) => {
                         const base64 = event.target?.result as string;
@@ -1678,14 +1666,14 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </div>
               </label>
             </div>
-            
+
             {/* Séparateur */}
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-[#E2E8F0]" />
               <span className="text-xs text-[#94A3B8]">ou</span>
               <div className="flex-1 h-px bg-[#E2E8F0]" />
             </div>
-            
+
             {/* URL alternative */}
             <div>
               <label className="block text-sm font-medium text-[#1E3A5F] mb-2">URL de l'image</label>
@@ -1734,14 +1722,14 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </button>
               )}
             </div>
-            
+
             {/* Aperçu */}
             {imageUrl && (
               <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                 <p className="text-xs text-[#64748B] mb-2">Aperçu :</p>
-                <img 
-                  src={imageUrl} 
-                  alt="Aperçu" 
+                <img
+                  src={imageUrl}
+                  alt="Aperçu"
                   className="max-h-32 rounded border border-[#E2E8F0] mx-auto w-full object-contain"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
@@ -1755,14 +1743,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 )}
               </div>
             )}
-            
+
             {/* Résultat de l'analyse IA (MapView uniquement) */}
             {domain.templateType === 'map' && analysisResult && (
-              <div className={`p-3 rounded-lg text-sm ${
-                analysisResult.detected 
+              <div className={`p-3 rounded-lg text-sm ${analysisResult.detected
                   ? 'bg-green-50 border border-green-200 text-green-800'
                   : 'bg-amber-50 border border-amber-200 text-amber-800'
-              }`}>
+                }`}>
                 {analysisResult.detected ? (
                   <div className="flex items-start gap-2">
                     <MuiIcon name="CheckCircle" size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
@@ -1785,7 +1772,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 )}
               </div>
             )}
-            
+
             {/* Coordonnées GPS (MapView uniquement) */}
             {domain.templateType === 'map' && (
               <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
@@ -1796,7 +1783,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <p className="text-xs text-[#64748B] mb-3">
                   Ces coordonnées correspondent aux pixels des coins de l'image (pas à la zone géographique).
                 </p>
-                
+
                 {/* Coin haut-gauche */}
                 <div className="mb-3">
                   <label className="block text-xs text-[#64748B] mb-1">📍 Coin haut-gauche (Nord-Ouest)</label>
@@ -1825,7 +1812,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Coin bas-droite */}
                 <div className="mb-3">
                   <label className="block text-xs text-[#64748B] mb-1">📍 Coin bas-droite (Sud-Est)</label>
@@ -1854,7 +1841,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     </div>
                   </div>
                 </div>
-                
+
                 <button
                   onClick={saveGpsBounds}
                   className="w-full px-3 py-1.5 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] text-xs"
@@ -1863,53 +1850,51 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </button>
               </div>
             )}
-            
+
             {/* Options d'affichage */}
             {domain.backgroundImage && (
               <div className="space-y-3">
                 <div className="relative">
-                  <img 
-                    src={domain.backgroundImage} 
-                    alt="Aperçu" 
+                  <img
+                    src={domain.backgroundImage}
+                    alt="Aperçu"
                     className="w-full h-20 object-cover rounded-lg border border-[#E2E8F0]"
                   />
                   <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     <span className="text-white text-xs">Image de fond</span>
                   </div>
                 </div>
-                
+
                 {/* Mode d'affichage */}
                 <div>
                   <p className="text-xs text-[#64748B] mb-2">Position de l'image</p>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => updateDomain(domain.id, { backgroundMode: 'behind' })}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        (!domain.backgroundMode || domain.backgroundMode === 'behind')
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${(!domain.backgroundMode || domain.backgroundMode === 'behind')
                           ? 'bg-[#1E3A5F] text-white'
                           : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                      }`}
+                        }`}
                     >
                       En dessous
                     </button>
                     <button
                       onClick={() => updateDomain(domain.id, { backgroundMode: 'overlay' })}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        domain.backgroundMode === 'overlay'
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${domain.backgroundMode === 'overlay'
                           ? 'bg-[#1E3A5F] text-white'
                           : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
-                      }`}
+                        }`}
                     >
                       Au dessus
                     </button>
                   </div>
                   <p className="text-[10px] text-[#94A3B8] mt-1">
-                    {(!domain.backgroundMode || domain.backgroundMode === 'behind') 
-                      ? 'L\'image sera derrière les tuiles' 
+                    {(!domain.backgroundMode || domain.backgroundMode === 'behind')
+                      ? 'L\'image sera derrière les tuiles'
                       : 'L\'image sera par-dessus (transparente, sans gêner les clics)'}
                   </p>
                 </div>
-                
+
                 {/* Opacité de l'image (BackgroundView uniquement) */}
                 {domain.templateType === 'background' && (
                   <div>
@@ -1933,7 +1918,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     </div>
                   </div>
                 )}
-                
+
                 {/* Regroupement (clustering) */}
                 <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                   <div className="flex items-center justify-between">
@@ -1942,28 +1927,26 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         {domain.templateType === 'map' ? 'Regroupement des points' : 'Regroupement des éléments'}
                       </label>
                       <p className="text-xs text-[#64748B] mt-1">
-                        {domain.templateType === 'map' 
+                        {domain.templateType === 'map'
                           ? 'Regrouper les points proches en clusters pour améliorer la lisibilité'
                           : 'Regrouper les éléments proches en clusters pour améliorer la lisibilité'}
                       </p>
                     </div>
                     <button
                       onClick={() => updateDomain(domain.id, { enableClustering: !(domain.enableClustering !== false) })}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        domain.enableClustering !== false ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${domain.enableClustering !== false ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                        }`}
                       role="switch"
                       aria-checked={domain.enableClustering !== false}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          domain.enableClustering !== false ? 'translate-x-6' : 'translate-x-1'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${domain.enableClustering !== false ? 'translate-x-6' : 'translate-x-1'
+                          }`}
                       />
                     </button>
                   </div>
                 </div>
-                
+
                 <button
                   onClick={() => updateDomain(domain.id, { backgroundImage: undefined, backgroundMode: undefined, backgroundImageOpacity: undefined })}
                   className="w-full px-3 py-1.5 text-xs text-[#E57373] hover:bg-red-50 rounded-lg border border-[#E57373]/30 transition-colors flex items-center justify-center gap-1"
@@ -1975,12 +1958,12 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             )}
           </div>
         </Section>
-        
+
         {/* Édition des catégories */}
         {domain.categories && domain.categories.length > 0 && (
-          <Section 
+          <Section
             title={`Catégories (${domain.categories.length})`}
-            iconName="FolderOpen" 
+            iconName="FolderOpen"
             isOpen={activeSection === 'categories'}
             onToggle={() => toggleSection('categories')}
           >
@@ -2031,16 +2014,16 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             )}
           </Section>
         )}
-        
+
         {/* Préférences d'affichage - Masquées pour les vues Map et Background */}
         {domain && domain.templateType !== 'map' && domain.templateType !== 'background' && (() => {
           const horizontalCategories = domain.categories.filter(c => c.orientation === 'horizontal');
           const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
-          
+
           return (
-            <Section 
-              title="Préférences d'affichage" 
-              iconName="Settings" 
+            <Section
+              title="Préférences d'affichage"
+              iconName="Settings"
               isOpen={activeSection === 'display-preferences'}
               onToggle={() => toggleSection('display-preferences')}
             >
@@ -2051,7 +2034,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       Tuiles vertes (statut OK)
                     </label>
                     <p className="text-xs text-[#64748B]">
-                      {greenTilesAsColored 
+                      {greenTilesAsColored
                         ? 'Affichage avec couleur verte (comme les autres statuts)'
                         : 'Affichage avec fond blanc (par défaut)'
                       }
@@ -2066,20 +2049,18 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       // Forcer le re-render des tuiles dans la même fenêtre
                       window.dispatchEvent(new Event(`greenTilesPreferenceChanged_${domainStorageKey}`));
                     }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-                      greenTilesAsColored ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                    }`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${greenTilesAsColored ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                      }`}
                     role="switch"
                     aria-checked={greenTilesAsColored}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                        greenTilesAsColored ? 'translate-x-6' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${greenTilesAsColored ? 'translate-x-6' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                 </div>
-                
+
                 {/* Toggle et sliders pour catégories horizontales */}
                 {horizontalCategories.length > 0 && (
                   <>
@@ -2089,7 +2070,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           Catégories horizontales
                         </label>
                         <p className="text-xs text-[#64748B]">
-                          {horizontalCategoriesInline 
+                          {horizontalCategoriesInline
                             ? 'En-tête à gauche, tuiles à droite (en ligne)'
                             : 'En-tête au-dessus des tuiles (par défaut)'
                           }
@@ -2104,20 +2085,18 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           // Forcer le re-render des catégories
                           window.dispatchEvent(new Event(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`));
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-                          horizontalCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${horizontalCategoriesInline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                          }`}
                         role="switch"
                         aria-checked={horizontalCategoriesInline}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                            horizontalCategoriesInline ? 'translate-x-6' : 'translate-x-1'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${horizontalCategoriesInline ? 'translate-x-6' : 'translate-x-1'
+                            }`}
                         />
                       </button>
                     </div>
-                    
+
                     {/* Slider espacement horizontal */}
                     <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                       <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
@@ -2142,7 +2121,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         <span>Espacé</span>
                       </div>
                     </div>
-                    
+
                     {/* Slider espacement entre catégories horizontales */}
                     <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                       <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
@@ -2169,7 +2148,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     </div>
                   </>
                 )}
-                
+
                 {/* Slider pour catégories verticales */}
                 {verticalCategories.length > 0 && (
                   <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
@@ -2202,11 +2181,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </Section>
           );
         })()}
-        
+
         {/* Paramètres du cockpit */}
-        <Section 
-          title="Cockpit" 
-          iconName="Label" 
+        <Section
+          title="Cockpit"
+          iconName="Label"
           isOpen={activeSection === 'cockpit'}
           onToggle={() => toggleSection('cockpit')}
         >
@@ -2220,7 +2199,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm text-[#64748B] mb-1">Logo (URL)</label>
               <input
@@ -2231,7 +2210,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm text-[#64748B] mb-1">Bandeau défilant</label>
               <textarea
@@ -2247,7 +2226,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       </div>
     );
   }
-  
+
   // Aucune sélection
   return (
     <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] flex items-center justify-center shadow-lg">
@@ -2281,7 +2260,7 @@ function Section({ title, iconName, isOpen, onToggle, children }: SectionProps) 
           <MuiIcon name="ChevronRightIcon" size={16} className="text-[#94A3B8]" />
         )}
       </button>
-      
+
       {isOpen && (
         <div className="px-4 pb-4">
           {children}
