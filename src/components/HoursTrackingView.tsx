@@ -206,12 +206,20 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     }));
   }, [chartDates, hoursData.resources, hoursData.projectStartDate]);
 
-  // Trouver les valeurs max pour les échelles
-  const maxDays = 365; // Maximum fixe à 365 jours
-  
   const salePrice = hoursData.salePrice || 0;
-  
-  const maxCost = 999999; // Maximum fixe à 999999€
+
+  // Calculer les valeurs max réelles pour les échelles (avec limites de réserve d'espace)
+  const maxDays = useMemo(() => {
+    const realMax = Math.max(...chartData.map(d => d.days), 1);
+    // Utiliser le max réel mais réserver de l'espace jusqu'à 365
+    return Math.max(realMax * 1.1, 10); // Au moins 10% de marge, minimum 10 jours
+  }, [chartData]);
+
+  const maxCost = useMemo(() => {
+    const realMax = Math.max(...chartData.map(d => d.cumulativeCost), salePrice || 0, 1000);
+    // Utiliser le max réel mais réserver de l'espace jusqu'à 999999
+    return Math.max(realMax * 1.1, 1000); // Au moins 10% de marge, minimum 1000€
+  }, [chartData, salePrice]);
 
   // Calculer la marge
   const getMargin = (): number => {
@@ -796,7 +804,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
             {/* Zone de dessin */}
             {(() => {
-              const padding = { top: 30, right: 40, bottom: 30, left: 50 };
+              const padding = { top: 30, right: 60, bottom: 30, left: 70 }; // Plus d'espace pour les labels
               const width = 1000;
               const height = 240;
               const chartWidth = width - padding.left - padding.right;
@@ -833,10 +841,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                           strokeDasharray="2,2"
                         />
                         <text
-                          x={padding.left - 10}
+                          x={padding.left - 15}
                           y={y + 4}
-                          fontFamily="Arial, sans-serif"
-                          fontSize="10"
+                          fontFamily="system-ui, -apple-system, sans-serif"
+                          fontSize="11"
                           fill="#64748B"
                           textAnchor="end"
                         >
@@ -845,10 +853,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         {/* Label "J" au-dessus de la première valeur */}
                         {ratio === 1 && (
                           <text
-                            x={padding.left - 10}
-                            y={y - 5}
-                            fontFamily="Arial, sans-serif"
-                            fontSize="12"
+                            x={padding.left - 15}
+                            y={y - 8}
+                            fontFamily="system-ui, -apple-system, sans-serif"
+                            fontSize="13"
                             fontWeight="600"
                             fill="#1E3A5F"
                             textAnchor="end"
@@ -867,10 +875,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                     return (
                       <g key={`grid-cost-${ratio}`}>
                         <text
-                          x={width - padding.right + 10}
+                          x={width - padding.right + 15}
                           y={y + 4}
-                          fontFamily="Arial, sans-serif"
-                          fontSize="10"
+                          fontFamily="system-ui, -apple-system, sans-serif"
+                          fontSize="11"
                           fill="#64748B"
                           textAnchor="start"
                         >
@@ -879,10 +887,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         {/* Label "€" au-dessus de la première valeur */}
                         {ratio === 1 && (
                           <text
-                            x={width - padding.right + 10}
-                            y={y - 5}
-                            fontFamily="Arial, sans-serif"
-                            fontSize="12"
+                            x={width - padding.right + 15}
+                            y={y - 8}
+                            fontFamily="system-ui, -apple-system, sans-serif"
+                            fontSize="13"
                             fontWeight="600"
                             fill="#1E3A5F"
                             textAnchor="start"
@@ -1067,7 +1075,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         <text
                           x={x}
                           y={height - padding.bottom + 15}
-                          fontFamily="Arial, sans-serif"
+                          fontFamily="system-ui, -apple-system, sans-serif"
                           fontSize="10"
                           fill="#64748B"
                           textAnchor="middle"
@@ -1093,7 +1101,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                       <text
                         x={tooltipData.x}
                         y={tooltipData.y - 12}
-                        fontFamily="Arial, sans-serif"
+                        fontFamily="system-ui, -apple-system, sans-serif"
                         fontSize="11"
                         fill="white"
                         textAnchor="middle"
