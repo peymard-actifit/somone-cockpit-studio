@@ -72,17 +72,17 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   // Calculer le nombre de jours/hommes (JH) imputés pour une personne (passés et futurs séparément)
   const getPersonDays = (resource: Resource): { past: number; future: number } => {
     if (resource.type !== 'person' || !resource.timeEntries) return { past: 0, future: 0 };
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
-    
+
     let pastJH = 0;
     let futureJH = 0;
-    
+
     // Grouper les imputations par date
     const entriesByDate = new Map<string, { morning: boolean; afternoon: boolean }>();
-    
+
     resource.timeEntries.forEach(te => {
       const existing = entriesByDate.get(te.date) || { morning: false, afternoon: false };
       if (te.halfDay === 'morning') {
@@ -92,7 +92,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       }
       entriesByDate.set(te.date, existing);
     });
-    
+
     // Calculer les JH par date
     entriesByDate.forEach((entry, date) => {
       let jh = 0;
@@ -101,7 +101,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       } else if (entry.morning || entry.afternoon) {
         jh = 0.5; // Demi-journée = 0.5 JH
       }
-      
+
       if (date < todayStr) {
         pastJH += jh;
       } else if (date > todayStr) {
@@ -111,7 +111,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
         pastJH += jh;
       }
     });
-    
+
     return { past: pastJH, future: futureJH };
   };
 
@@ -206,6 +206,40 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       } else if (resource.type === 'supplier') {
         const totals = getSupplierTotal(resource);
         total += totals.past + totals.future;
+      }
+    });
+
+    return total;
+  };
+
+  // Calculer les coûts dépensés (passés)
+  const getSpentCost = (): number => {
+    let total = 0;
+
+    hoursData.resources.forEach(resource => {
+      if (resource.type === 'person') {
+        const totals = getPersonTotal(resource);
+        total += totals.past;
+      } else if (resource.type === 'supplier') {
+        const totals = getSupplierTotal(resource);
+        total += totals.past;
+      }
+    });
+
+    return total;
+  };
+
+  // Calculer les coûts prévus (futurs)
+  const getPlannedCost = (): number => {
+    let total = 0;
+
+    hoursData.resources.forEach(resource => {
+      if (resource.type === 'person') {
+        const totals = getPersonTotal(resource);
+        total += totals.future;
+      } else if (resource.type === 'supplier') {
+        const totals = getSupplierTotal(resource);
+        total += totals.future;
       }
     });
 
@@ -517,7 +551,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     });
   };
 
-  const globalCost = getGlobalCost();
+  const spentCost = getSpentCost();
+  const plannedCost = getPlannedCost();
   const margin = getMargin();
 
   // Gestion du redimensionnement
@@ -570,8 +605,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       <div className="bg-[#1E3A5F] text-white px-6 py-4 flex items-center justify-between border-b border-[#2C4A6E]">
         <div className="flex items-center gap-8">
           <div>
-            <div className="text-xs text-white/70 mb-1">Coût global</div>
-            <div className="text-2xl font-bold">{globalCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
+            <div className="text-xs text-white/70 mb-1">Coûts dépensé</div>
+            <div className="text-2xl font-bold">{spentCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
+          </div>
+          <div>
+            <div className="text-xs text-white/70 mb-1">Coûts prévu</div>
+            <div className="text-2xl font-bold text-green-300">{plannedCost.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
           </div>
           <div>
             <div className="text-xs text-white/70 mb-1">Prix de vente</div>
@@ -579,7 +618,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           </div>
           <div>
             <div className="text-xs text-white/70 mb-1">Marge</div>
-            <div className={`text-2xl font-bold ${margin >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+            <div className={`text-2xl font-bold ${margin >= 0 ? 'text-green-600' : 'text-red-300'}`}>
               {margin.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
             </div>
           </div>
