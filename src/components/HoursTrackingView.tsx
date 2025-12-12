@@ -235,6 +235,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
   const [editingResourceName, setEditingResourceName] = useState<string>('');
 
+  // État pour la sélection par zone
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<{ resourceId: string; date: string; halfDay: HalfDay } | null>(null);
+  const [selectionCurrent, setSelectionCurrent] = useState<{ date: string; halfDay: HalfDay } | null>(null);
+  const isSelectingRef = useRef(false);
+  const selectionStartRef = useRef<{ resourceId: string; date: string; halfDay: HalfDay } | null>(null);
+
   // Largeur de la première colonne (nom + infos)
   const storageKey = `hoursTracking_colWidth_${domain.id}`;
   const [columnWidth, setColumnWidth] = useState(() => {
@@ -608,7 +615,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
   };
 
   // Toggle une demi-journée pour une personne
-  const toggleHalfDay = (resourceId: string, date: string, halfDay: HalfDay) => {
+  const toggleHalfDay = (resourceId: string, date: string, halfDay: HalfDay, forceAdd?: boolean) => {
     if (readOnly) return;
 
     const resource = hoursData.resources.find(r => r.id === resourceId);
@@ -620,7 +627,14 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     );
 
     let updatedEntries: TimeEntry[];
-    if (existingIndex >= 0) {
+    if (forceAdd === true) {
+      // Forcer l'ajout (pour la sélection par zone)
+      if (existingIndex < 0) {
+        updatedEntries = [...timeEntries, { date, halfDay }];
+      } else {
+        updatedEntries = timeEntries; // Déjà présent
+      }
+    } else if (existingIndex >= 0) {
       // Retirer la demi-journée
       updatedEntries = timeEntries.filter((_, i) => i !== existingIndex);
     } else {
@@ -641,6 +655,127 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       }
     });
   };
+
+  // Démarrer la sélection par zone
+  const handleSelectionStart = (resourceId: string, date: string, halfDay: HalfDay) => {
+    if (readOnly) return;
+    const resource = hoursData.resources.find(r => r.id === resourceId);
+    if (!resource || resource.type !== 'person') return;
+
+    setIsSelecting(true);
+    isSelectingRef.current = true;
+    const start = { resourceId, date, halfDay };
+    setSelectionStart(start);
+    selectionStartRef.current = start;
+    setSelectionCurrent({ date, halfDay });
+  };
+
+  // Mettre à jour la sélection en cours
+  const handleSelectionMove = (date: string, halfDay: HalfDay) => {
+    if (!isSelectingRef.current || !selectionStartRef.current) return;
+    setSelectionCurrent({ date, halfDay });
+  };
+
+  // Finaliser la sélection par zone
+  const handleSelectionEnd = () => {
+    if (!isSelectingRef.current || !selectionStartRef.current) {
+      setIsSelecting(false);
+      isSelectingRef.current = false;
+      setSelectionStart(null);
+      selectionStartRef.current = null;
+      setSelectionCurrent(null);
+      return;
+    }
+
+    const start = selectionStartRef.current;
+    const current = selectionCurrent;
+    
+    if (!current) {
+      setIsSelecting(false);
+      isSelectingRef.current = false;
+      setSelectionStart(null);
+      selectionStartRef.current = null;
+      setSelectionCurrent(null);
+      return;
+    }
+
+    // Trouver toutes les dates entre start et current
+    const startDate = new Date(start.date);
+    const endDate = new Date(current.date);
+    const datesInRange: string[] = [];
+    
+    // Trier les dates pour gérer les cas où on sélectionne vers le passé
+    const sortedDates = [startDate, endDate].sort((a, b) => a.getTime() - b.getTime());
+    const minDate = sortedDates[0];
+    const maxDate = sortedDates[1];
+    
+    // Générer toutes les dates dans la plage
+    const currentDate = new Date(minDate);
+    while (currentDate <= maxDate) {
+      datesInRange.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Appliquer la sélection à toutes les demi-journées dans la plage
+    // Si on commence par "morning" et finit par "afternoon" (ou vice versa), on sélectionne les deux demi-journées
+    const halfDaysToSelect: HalfDay[] = [];
+    if (start.halfDay === 'morning' && current.halfDay === 'afternoon') {
+      halfDaysToSelect.push('morning', 'afternoon');
+    } else if (start.halfDay === 'afternoon' && current.halfDay === 'morning') {
+      halfDaysToSelect.push('morning', 'afternoon');
+    } else {
+      // Même type de demi-journée : sélectionner uniquement ce type
+      halfDaysToSelect.push(start.halfDay);
+    }
+
+    // Appliquer la sélection
+    datesInRange.forEach(date => {
+      halfDaysToSelect.forEach(halfDay => {
+        toggleHalfDay(start.resourceId, date, halfDay, true); // forceAdd = true
+      });
+    });
+
+    // Réinitialiser
+    setIsSelecting(false);
+    isSelectingRef.current = false;
+    setSelectionStart(null);
+    selectionStartRef.current = null;
+    setSelectionCurrent(null);
+  };
+
+  // Gérer les événements de souris globaux pour la sélection
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isSelectingRef.current) return;
+      
+      // Trouver l'élément sous le curseur
+      const target = e.target as HTMLElement;
+      const dateCell = target.closest('[data-date]') as HTMLElement;
+      if (!dateCell) return;
+      
+      const date = dateCell.getAttribute('data-date');
+      const halfDay = dateCell.getAttribute('data-halfday') as HalfDay;
+      if (date && halfDay) {
+        handleSelectionMove(date, halfDay);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isSelectingRef.current) {
+        handleSelectionEnd();
+      }
+    };
+
+    if (isSelecting) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isSelecting, selectionCurrent]);
 
   // Mettre à jour le TJM d'une personne
   // Mettre à jour le nom d'une ressource
@@ -1218,7 +1353,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                 return (
                   <div
                     key={date}
-                    className={`w-12 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-purple-200/60' : ''} ${isWeekendOrHoliday ? 'bg-gray-200/60' : ''}`}
+                    className={`w-12 border-r border-[#E2E8F0] p-1 text-center flex-shrink-0 flex flex-col justify-center ${isToday ? 'bg-purple-200/80' : ''} ${isWeekendOrHoliday ? 'bg-gray-200/80' : ''}`}
                     style={{ height: '60px' }}
                   >
                     <div className={`text-[10px] leading-tight ${isWeekendOrHoliday ? 'text-[#64748B]/80' : 'text-[#64748B]'}`}>{dayName}</div>
@@ -1279,33 +1414,92 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         const hasMorning = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'morning');
                         const hasAfternoon = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'afternoon');
 
+                        // Vérifier si cette demi-journée est dans la sélection en cours
+                        const checkIsInSelection = (halfDay: HalfDay) => {
+                          if (!isSelecting || !selectionStart || !selectionCurrent) return false;
+                          if (selectionStart.resourceId !== resource.id) return false;
+                          
+                          const startDate = new Date(selectionStart.date);
+                          const endDate = new Date(selectionCurrent.date);
+                          const currentDate = new Date(date);
+                          const sortedDates = [startDate, endDate].sort((a, b) => a.getTime() - b.getTime());
+                          const inDateRange = currentDate >= sortedDates[0] && currentDate <= sortedDates[1];
+                          
+                          if (!inDateRange) return false;
+                          
+                          // Vérifier le type de demi-journée
+                          if (selectionStart.halfDay === 'morning' && selectionCurrent.halfDay === 'afternoon') {
+                            return true; // Toutes les demi-journées
+                          }
+                          if (selectionStart.halfDay === 'afternoon' && selectionCurrent.halfDay === 'morning') {
+                            return true; // Toutes les demi-journées
+                          }
+                          
+                          // Même type : vérifier si c'est le bon type
+                          if (selectionStart.halfDay === 'morning' && selectionCurrent.halfDay === 'morning') {
+                            return halfDay === 'morning';
+                          }
+                          if (selectionStart.halfDay === 'afternoon' && selectionCurrent.halfDay === 'afternoon') {
+                            return halfDay === 'afternoon';
+                          }
+                          
+                          return false;
+                        };
+                        
+                        const isMorningInSelection = checkIsInSelection('morning');
+                        const isAfternoonInSelection = checkIsInSelection('afternoon');
+
                         return (
                           <div
                             key={date}
-                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-purple-200/60' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-purple-200/80' : ''}`}
                           >
                             <button
-                              onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'morning')}
+                              data-date={date}
+                              data-halfday="morning"
+                              onMouseDown={(e) => {
+                                if (!readOnly && e.button === 0) { // Clic gauche uniquement
+                                  handleSelectionStart(resource.id, date, 'morning');
+                                }
+                              }}
+                              onClick={() => {
+                                if (!isSelectingRef.current) {
+                                  // Seulement si on n'est pas en train de sélectionner
+                                  if (!readOnly) toggleHalfDay(resource.id, date, 'morning');
+                                }
+                              }}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasMorning
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasMorning || isMorningInSelection
                                 ? isFuture
                                   ? 'bg-green-600 text-white'
                                   : 'bg-[#1E3A5F] text-white'
                                 : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'} ${isMorningInSelection && !hasMorning ? 'bg-blue-300' : ''}`}
                               title="Matin"
                             >
                               M
                             </button>
                             <button
-                              onClick={() => !readOnly && toggleHalfDay(resource.id, date, 'afternoon')}
+                              data-date={date}
+                              data-halfday="afternoon"
+                              onMouseDown={(e) => {
+                                if (!readOnly && e.button === 0) { // Clic gauche uniquement
+                                  handleSelectionStart(resource.id, date, 'afternoon');
+                                }
+                              }}
+                              onClick={() => {
+                                if (!isSelectingRef.current) {
+                                  // Seulement si on n'est pas en train de sélectionner
+                                  if (!readOnly) toggleHalfDay(resource.id, date, 'afternoon');
+                                }
+                              }}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasAfternoon
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${hasAfternoon || isAfternoonInSelection
                                 ? isFuture
                                   ? 'bg-green-600 text-white'
                                   : 'bg-[#1E3A5F] text-white'
                                 : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
-                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                } ${readOnly ? 'cursor-default' : 'cursor-pointer'} ${isAfternoonInSelection && !hasAfternoon ? 'bg-blue-300' : ''}`}
                               title="Après-midi"
                             >
                               A
@@ -1322,7 +1516,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         return (
                           <div
                             key={date}
-                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-purple-200/60' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-purple-200/80' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
                           >
                             {readOnly ? (
                               <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
