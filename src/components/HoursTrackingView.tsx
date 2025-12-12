@@ -728,7 +728,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       halfDaysToSelect.push(start.halfDay);
     }
 
-    // Trouver la ressource et préparer les nouvelles entrées
+    // Trouver la ressource et préparer les modifications
     const resource = hoursData.resources.find(r => r.id === start.resourceId);
     if (!resource || resource.type !== 'person') {
       // Réinitialiser en cas d'erreur
@@ -741,31 +741,43 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     }
 
     const existingEntries = resource.timeEntries || [];
-    const newEntries: TimeEntry[] = [];
+    
+    // Déterminer l'action à effectuer en fonction de l'état de la première demi-journée
+    const firstDate = datesInRange[0];
+    const firstHalfDay = halfDaysToSelect[0];
+    const firstEntryExists = existingEntries.some(
+      te => te.date === firstDate && te.halfDay === firstHalfDay
+    );
+    
+    // Si la première demi-journée est sélectionnée, on désélectionne toute la zone
+    // Sinon, on sélectionne toute la zone
+    const shouldAdd = !firstEntryExists;
 
-    // Ajouter toutes les demi-journées sélectionnées
-    datesInRange.forEach(date => {
-      halfDaysToSelect.forEach(halfDay => {
-        // Vérifier si l'entrée n'existe pas déjà
-        const exists = existingEntries.some(te => te.date === date && te.halfDay === halfDay);
-        if (!exists) {
-          newEntries.push({ date, halfDay });
-        }
+    let updatedEntries: TimeEntry[];
+    
+    if (shouldAdd) {
+      // Ajouter toutes les demi-journées de la zone qui ne sont pas déjà sélectionnées
+      const entriesToAdd: TimeEntry[] = [];
+      datesInRange.forEach(date => {
+        halfDaysToSelect.forEach(halfDay => {
+          const exists = existingEntries.some(te => te.date === date && te.halfDay === halfDay);
+          if (!exists) {
+            entriesToAdd.push({ date, halfDay });
+          }
+        });
       });
-    });
-
-    // Si aucune nouvelle entrée, ne rien faire
-    if (newEntries.length === 0) {
-      setIsSelecting(false);
-      isSelectingRef.current = false;
-      setSelectionStart(null);
-      selectionStartRef.current = null;
-      setSelectionCurrent(null);
-      return;
+      updatedEntries = [...existingEntries, ...entriesToAdd];
+    } else {
+      // Retirer toutes les demi-journées de la zone qui sont sélectionnées
+      updatedEntries = existingEntries.filter(te => {
+        const isInRange = datesInRange.includes(te.date);
+        const isHalfDayToRemove = halfDaysToSelect.includes(te.halfDay);
+        // Garder l'entrée seulement si elle n'est pas dans la zone sélectionnée
+        return !(isInRange && isHalfDayToRemove);
+      });
     }
 
     // Appliquer toutes les modifications en une seule fois
-    const updatedEntries = [...existingEntries, ...newEntries];
     const updatedResources = hoursData.resources.map(r =>
       r.id === start.resourceId
         ? { ...r, timeEntries: updatedEntries }
