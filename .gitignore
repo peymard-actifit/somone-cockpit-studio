@@ -43,5 +43,5 @@ out/
 .vercel
 .env*.local
 
-.vercel
-.env*.local
+# Dossiers Git locaux
+somone-cockpit-studio.git/
