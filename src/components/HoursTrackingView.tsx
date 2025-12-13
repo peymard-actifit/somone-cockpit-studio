@@ -668,13 +668,13 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     setSelectionStart(start);
     selectionStartRef.current = start;
     setSelectionCurrent({ date, halfDay });
-    
+
     // Marquer qu'on a commencé une sélection pour éviter le toggle immédiat
     setTimeout(() => {
       // Si on n'a pas bougé après 100ms, c'est probablement un clic simple
-      if (isSelectingRef.current && selectionStartRef.current && 
-          selectionStartRef.current.date === date && 
-          selectionStartRef.current.halfDay === halfDay) {
+      if (isSelectingRef.current && selectionStartRef.current &&
+        selectionStartRef.current.date === date &&
+        selectionStartRef.current.halfDay === halfDay) {
         // Pas de mouvement, on peut considérer ça comme un clic simple
         // Mais on attend quand même le mouseup pour être sûr
       }
@@ -699,15 +699,15 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       setSelectionCurrent(null);
       return;
     }
-    
+
     // Vérifier si on a vraiment bougé (sélection par zone) ou juste cliqué (toggle simple)
     const selectionStartValue = selectionStartRef.current;
     const selectionCurrentValue = selectionCurrent;
-    
+
     // Si on est resté sur le même bouton, c'est un clic simple, pas une sélection
-    if (selectionCurrentValue && selectionStartValue && 
-        selectionStartValue.date === selectionCurrentValue.date && 
-        selectionStartValue.halfDay === selectionCurrentValue.halfDay) {
+    if (selectionCurrentValue && selectionStartValue &&
+      selectionStartValue.date === selectionCurrentValue.date &&
+      selectionStartValue.halfDay === selectionCurrentValue.halfDay) {
       setIsSelecting(false);
       isSelectingRef.current = false;
       setSelectionStart(null);
@@ -1022,7 +1022,11 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
   // Centrer sur aujourd'hui au chargement
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = (() => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString().split('T')[0];
+    })();
     const todayIndex = dates.findIndex(d => d === today);
     if (todayIndex >= 0) {
       // Attendre un peu pour que le DOM soit prêt
@@ -1404,7 +1408,11 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
             }}
             onDoubleClick={() => {
               // Centrer le scroll sur le jour en cours
-              const today = new Date().toISOString().split('T')[0];
+              const today = (() => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString().split('T')[0];
+    })();
               const todayIndex = dates.findIndex(d => d === today);
               if (todayIndex >= 0 && headerScrollRef.current) {
                 const scrollContainer = headerScrollRef.current;
@@ -1468,7 +1476,11 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
             }}
             onDoubleClick={() => {
               // Centrer le scroll sur le jour en cours
-              const today = new Date().toISOString().split('T')[0];
+              const today = (() => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString().split('T')[0];
+    })();
               const todayIndex = dates.findIndex(d => d === today);
               if (todayIndex >= 0 && contentScrollRef.current) {
                 const scrollContainer = contentScrollRef.current;
@@ -1539,7 +1551,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             key={date}
                             className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-purple-200/80' : ''}`}
                           >
-                                            <button
+                            <button
                               data-date={date}
                               data-halfday="morning"
                               onMouseDown={(e) => {
@@ -1561,8 +1573,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                                 e.stopPropagation();
                               }}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
-                                isMorningInSelection
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${isMorningInSelection
                                   ? hasMorning
                                     ? isFuture
                                       ? 'bg-green-500 text-white ring-2 ring-blue-400 ring-offset-1'
@@ -1600,8 +1611,7 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                                 e.stopPropagation();
                               }}
                               disabled={readOnly}
-                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
-                                isAfternoonInSelection
+                              className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${isAfternoonInSelection
                                   ? hasAfternoon
                                     ? isFuture
                                       ? 'bg-green-500 text-white ring-2 ring-blue-400 ring-offset-1'
@@ -1700,7 +1710,11 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               const yCostScale = (cost: number) => padding.top + chartHeight - (cost / maxCost) * chartHeight;
 
               // Date du jour en cours
-              const today = new Date().toISOString().split('T')[0];
+              const today = (() => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString().split('T')[0];
+    })();
               const todayIndex = chartData.findIndex(d => d.date === today);
 
               return (
