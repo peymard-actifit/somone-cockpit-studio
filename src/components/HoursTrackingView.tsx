@@ -11,6 +11,12 @@ interface HoursTrackingViewProps {
   readOnly?: boolean;
 }
 
+// Helper pour obtenir la date locale au format ISO (YYYY-MM-DD) sans problème de fuseau horaire
+function getLocalDateISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // Composant pour une ressource sortable
 function SortableResourceItem({
   resource,
@@ -1022,10 +1028,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
   // Centrer sur aujourd'hui au chargement
   useEffect(() => {
+    // Utiliser la date locale pour éviter les problèmes de fuseau horaire
     const today = (() => {
       const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      return d.toISOString().split('T')[0];
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     })();
     const todayIndex = dates.findIndex(d => d === today);
     if (todayIndex >= 0) {
@@ -1409,10 +1415,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
             onDoubleClick={() => {
               // Centrer le scroll sur le jour en cours
               const today = (() => {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      return d.toISOString().split('T')[0];
-    })();
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                return d.toISOString().split('T')[0];
+              })();
               const todayIndex = dates.findIndex(d => d === today);
               if (todayIndex >= 0 && headerScrollRef.current) {
                 const scrollContainer = headerScrollRef.current;
@@ -1435,10 +1441,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                 const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
                 const dayNumber = dateObj.getDate();
                 const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
-                // Utiliser la même logique que dans les lignes de données pour éviter les décalages
+                // Utiliser la date locale pour éviter les problèmes de fuseau horaire
                 const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const isToday = date === today.toISOString().split('T')[0];
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                const isToday = date === todayStr;
                 const isWeekendDay = isWeekend(dateObj);
                 const isHoliday = isPublicHoliday(dateObj);
                 const isWeekendOrHoliday = isWeekendDay || isHoliday;
@@ -1477,10 +1483,10 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
             onDoubleClick={() => {
               // Centrer le scroll sur le jour en cours
               const today = (() => {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      return d.toISOString().split('T')[0];
-    })();
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                return d.toISOString().split('T')[0];
+              })();
               const todayIndex = dates.findIndex(d => d === today);
               if (todayIndex >= 0 && contentScrollRef.current) {
                 const scrollContainer = contentScrollRef.current;
@@ -1502,10 +1508,12 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                   <div className="flex items-center flex-shrink-0" style={{ minWidth: 'max-content', height: '40px' }}>
                     {dates.map((date) => {
                       const dateObj = new Date(date);
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const isToday = date === today.toISOString().split('T')[0];
-                      const isFuture = dateObj > today;
+                      const todayStr = getLocalDateISO();
+                      const isToday = date === todayStr;
+                      // Pour isFuture, comparer avec la date locale à minuit
+                      const todayDate = new Date();
+                      todayDate.setHours(0, 0, 0, 0);
+                      const isFuture = dateObj > todayDate;
 
                       if (resource.type === 'person') {
                         const hasMorning = resource.timeEntries?.some(te => te.date === date && te.halfDay === 'morning');
@@ -1574,16 +1582,16 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                               }}
                               disabled={readOnly}
                               className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${isMorningInSelection
-                                  ? hasMorning
-                                    ? isFuture
-                                      ? 'bg-green-500 text-white ring-2 ring-blue-400 ring-offset-1'
-                                      : 'bg-blue-400 text-white ring-2 ring-blue-300 ring-offset-1'
-                                    : 'bg-blue-300 text-white'
-                                  : hasMorning
-                                    ? isFuture
-                                      ? 'bg-green-600 text-white'
-                                      : 'bg-[#1E3A5F] text-white'
-                                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                                ? hasMorning
+                                  ? isFuture
+                                    ? 'bg-green-500 text-white ring-2 ring-blue-400 ring-offset-1'
+                                    : 'bg-blue-400 text-white ring-2 ring-blue-300 ring-offset-1'
+                                  : 'bg-blue-300 text-white'
+                                : hasMorning
+                                  ? isFuture
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-[#1E3A5F] text-white'
+                                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
                                 } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Matin"
                             >
@@ -1612,16 +1620,16 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                               }}
                               disabled={readOnly}
                               className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${isAfternoonInSelection
-                                  ? hasAfternoon
-                                    ? isFuture
-                                      ? 'bg-green-500 text-white ring-2 ring-blue-400 ring-offset-1'
-                                      : 'bg-blue-400 text-white ring-2 ring-blue-300 ring-offset-1'
-                                    : 'bg-blue-300 text-white'
-                                  : hasAfternoon
-                                    ? isFuture
-                                      ? 'bg-green-600 text-white'
-                                      : 'bg-[#1E3A5F] text-white'
-                                    : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
+                                ? hasAfternoon
+                                  ? isFuture
+                                    ? 'bg-green-500 text-white ring-2 ring-blue-400 ring-offset-1'
+                                    : 'bg-blue-400 text-white ring-2 ring-blue-300 ring-offset-1'
+                                  : 'bg-blue-300 text-white'
+                                : hasAfternoon
+                                  ? isFuture
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-[#1E3A5F] text-white'
+                                  : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#E2E8F0]'
                                 } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
                               title="Après-midi"
                             >
@@ -1636,10 +1644,14 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                         const hasValue = amount > 0;
                         const hasValueAndFuture = hasValue && isFuture;
 
+                        // Calculer isToday pour les fournisseurs aussi
+                        const todayStrForSupplier = getLocalDateISO();
+                        const isTodayForSupplier = date === todayStrForSupplier;
+                        
                         return (
                           <div
                             key={date}
-                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isToday ? 'bg-purple-200/80' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
+                            className={`w-12 border-r border-[#E2E8F0] p-0.5 flex-shrink-0 ${isTodayForSupplier ? 'bg-purple-200/80' : ''} ${hasValueAndFuture ? 'bg-green-200/20' : ''}`}
                           >
                             {readOnly ? (
                               <div className="text-[10px] text-center text-[#1E3A5F] font-medium h-6 flex items-center justify-center">
@@ -1709,12 +1721,11 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
               // Échelle pour les coûts (droite)
               const yCostScale = (cost: number) => padding.top + chartHeight - (cost / maxCost) * chartHeight;
 
-              // Date du jour en cours
+              // Date du jour en cours (date locale)
               const today = (() => {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      return d.toISOString().split('T')[0];
-    })();
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              })();
               const todayIndex = chartData.findIndex(d => d.date === today);
 
               return (
