@@ -52,10 +52,10 @@ function SortableResourceItem({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB]">
+    <div ref={setNodeRef} style={{ ...style, height: '40px' }} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB] flex">
       <div
         ref={columnRef}
-        className="bg-white border-r border-[#E2E8F0] p-2 relative group flex items-center"
+        className="bg-white border-r border-[#E2E8F0] p-2 relative group flex items-center flex-shrink-0"
         style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, maxWidth: `${columnWidth}px`, height: '40px' }}
       >
         <div className="flex items-center w-full h-full relative">
@@ -668,6 +668,17 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
     setSelectionStart(start);
     selectionStartRef.current = start;
     setSelectionCurrent({ date, halfDay });
+    
+    // Marquer qu'on a commencé une sélection pour éviter le toggle immédiat
+    setTimeout(() => {
+      // Si on n'a pas bougé après 100ms, c'est probablement un clic simple
+      if (isSelectingRef.current && selectionStartRef.current && 
+          selectionStartRef.current.date === date && 
+          selectionStartRef.current.halfDay === halfDay) {
+        // Pas de mouvement, on peut considérer ça comme un clic simple
+        // Mais on attend quand même le mouseup pour être sûr
+      }
+    }, 100);
   };
 
   // Mettre à jour la sélection en cours
@@ -678,6 +689,8 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
 
   // Finaliser la sélection par zone
   const handleSelectionEnd = () => {
+    // Si on n'a pas vraiment fait de sélection (pas de mouvement), on ne fait rien
+    // Le onClick du bouton gérera le toggle simple
     if (!isSelectingRef.current || !selectionStartRef.current) {
       setIsSelecting(false);
       isSelectingRef.current = false;
@@ -685,6 +698,22 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
       selectionStartRef.current = null;
       setSelectionCurrent(null);
       return;
+    }
+    
+    // Vérifier si on a vraiment bougé (sélection par zone) ou juste cliqué (toggle simple)
+    const selectionStartValue = selectionStartRef.current;
+    const selectionCurrentValue = selectionCurrent;
+    
+    // Si on est resté sur le même bouton, c'est un clic simple, pas une sélection
+    if (selectionCurrentValue && selectionStartValue && 
+        selectionStartValue.date === selectionCurrentValue.date && 
+        selectionStartValue.halfDay === selectionCurrentValue.halfDay) {
+      setIsSelecting(false);
+      isSelectingRef.current = false;
+      setSelectionStart(null);
+      selectionStartRef.current = null;
+      setSelectionCurrent(null);
+      return; // Laisser le onClick gérer le toggle
     }
 
     const start = selectionStartRef.current;
@@ -1456,9 +1485,9 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
           >
             <div className="bg-white">
               {sortedResources.map((resource) => (
-                <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB] flex items-center" style={{ height: '40px' }}>
+                <div key={resource.id} className="border-b border-[#E2E8F0] hover:bg-[#F9FAFB] flex" style={{ height: '40px' }}>
                   {/* Cases pour chaque date */}
-                  <div className="flex items-center" style={{ minWidth: 'max-content', height: '40px' }}>
+                  <div className="flex items-center flex-shrink-0" style={{ minWidth: 'max-content', height: '40px' }}>
                     {dates.map((date) => {
                       const dateObj = new Date(date);
                       const today = new Date();
@@ -1510,19 +1539,26 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                             key={date}
                             className={`w-12 border-r border-[#E2E8F0] p-0.5 flex gap-0.5 items-center flex-shrink-0 ${isToday ? 'bg-purple-200/80' : ''}`}
                           >
-                            <button
+                                            <button
                               data-date={date}
                               data-halfday="morning"
                               onMouseDown={(e) => {
                                 if (!readOnly && e.button === 0) { // Clic gauche uniquement
+                                  e.preventDefault(); // Empêcher le focus et le comportement par défaut
                                   handleSelectionStart(resource.id, date, 'morning');
                                 }
                               }}
-                              onClick={() => {
-                                if (!isSelectingRef.current) {
-                                  // Seulement si on n'est pas en train de sélectionner
-                                  if (!readOnly) toggleHalfDay(resource.id, date, 'morning');
-                                }
+                              onClick={(e) => {
+                                // Ne toggle que si on n'a pas fait de sélection par zone
+                                // handleSelectionEnd sera appelé par le gestionnaire global mouseup
+                                // On utilise un petit délai pour laisser handleSelectionEnd s'exécuter d'abord
+                                setTimeout(() => {
+                                  if (!isSelectingRef.current && !readOnly) {
+                                    toggleHalfDay(resource.id, date, 'morning');
+                                  }
+                                }, 10);
+                                e.preventDefault();
+                                e.stopPropagation();
                               }}
                               disabled={readOnly}
                               className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
@@ -1547,14 +1583,21 @@ export default function HoursTrackingView({ domain, readOnly = false }: HoursTra
                               data-halfday="afternoon"
                               onMouseDown={(e) => {
                                 if (!readOnly && e.button === 0) { // Clic gauche uniquement
+                                  e.preventDefault(); // Empêcher le focus et le comportement par défaut
                                   handleSelectionStart(resource.id, date, 'afternoon');
                                 }
                               }}
-                              onClick={() => {
-                                if (!isSelectingRef.current) {
-                                  // Seulement si on n'est pas en train de sélectionner
-                                  if (!readOnly) toggleHalfDay(resource.id, date, 'afternoon');
-                                }
+                              onClick={(e) => {
+                                // Ne toggle que si on n'a pas fait de sélection par zone
+                                // handleSelectionEnd sera appelé par le gestionnaire global mouseup
+                                // On utilise un petit délai pour laisser handleSelectionEnd s'exécuter d'abord
+                                setTimeout(() => {
+                                  if (!isSelectingRef.current && !readOnly) {
+                                    toggleHalfDay(resource.id, date, 'afternoon');
+                                  }
+                                }, 10);
+                                e.preventDefault();
+                                e.stopPropagation();
                               }}
                               disabled={readOnly}
                               className={`flex-1 h-6 rounded text-[10px] font-medium transition-all flex items-center justify-center ${
