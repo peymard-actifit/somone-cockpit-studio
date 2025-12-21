@@ -1,0 +1,10 @@
+# Fichiers temporaires
+*.tmp
+*.temp
+
+# Build outputs
+dist/
+build/
+
+# Node modules
+node_modules/

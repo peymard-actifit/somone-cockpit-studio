@@ -1,0 +1,49 @@
+# Données locales
+data/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE et éditeurs
+.idea/
+.vscode/
+*.suo
+*.user
+*.sln.docstates
+
+# Dépendances
+node_modules/
+vendor/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+logs/
+
+# Fichiers temporaires
+*.tmp
+*.temp
+*.swp
+*~
+
+# Build et distribution
+dist/
+build/
+out/
+
+# Variables d'environnement
+.env
+.env.local
+.env.*.local
+
+
+.vercel
+.env*.local
+
+# Dossiers Git locaux
+somone-cockpit-studio.git/
+
+.env*.local

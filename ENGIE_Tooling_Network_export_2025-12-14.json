@@ -1,0 +1,1338 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-14T08:46:23.383Z",
+  "cockpit": {
+    "name": "ENGIE Tooling Network",
+    "domains": [
+      {
+        "id": "b592e6b0-c656-49e5-a5dc-6a56c410a8e8",
+        "cockpitId": "45c3-28b0-053c",
+        "name": "Vue CODIR",
+        "order": 0,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "aa99ae1a-6889-4cb7-b019-a184dc014a90",
+            "domainId": "b592e6b0-c656-49e5-a5dc-6a56c410a8e8",
+            "name": "Outils Opérationnels",
+            "orientation": "horizontal",
+            "order": 5,
+            "elements": [
+              {
+                "id": "868de498-e759-473b-bbe3-6c773a0cd57f",
+                "categoryId": "aa99ae1a-6889-4cb7-b019-a184dc014a90",
+                "name": "Spectrum",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "302f5146-65ef-45be-a87b-42180b16e078",
+                    "elementId": "868de498-e759-473b-bbe3-6c773a0cd57f",
+                    "name": "UP / DOWN",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "a707a4a9-cf3a-4607-9aaf-b0a4626341c3",
+                        "subCategoryId": "302f5146-65ef-45be-a87b-42180b16e078",
+                        "name": "Spectro Serveur",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "0f184e23-5fca-44b0-ad6e-60a98817d83e",
+                        "subCategoryId": "302f5146-65ef-45be-a87b-42180b16e078",
+                        "name": "One Click",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "17acb5cd-6a01-42c1-8351-0774ab4af37f",
+                        "subCategoryId": "302f5146-65ef-45be-a87b-42180b16e078",
+                        "name": "VNA (API)",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "d7bb5004-b802-4214-9b02-c2735a225ec2",
+                        "subCategoryId": "302f5146-65ef-45be-a87b-42180b16e078",
+                        "name": "Reporter",
+                        "status": "ok",
+                        "order": 3
+                      },
+                      {
+                        "id": "64f03961-dc88-42a2-b6ad-189c0206b160",
+                        "subCategoryId": "302f5146-65ef-45be-a87b-42180b16e078",
+                        "name": "PM (Performance Manager)",
+                        "status": "ok",
+                        "order": 4
+                      },
+                      {
+                        "id": "326803a5-eb57-4ea1-847d-c26569695a66",
+                        "subCategoryId": "302f5146-65ef-45be-a87b-42180b16e078",
+                        "name": "Poller",
+                        "status": "ok",
+                        "order": 5
+                      }
+                    ]
+                  },
+                  {
+                    "id": "7b50de98-5a09-4931-9142-1b33b17c848e",
+                    "elementId": "868de498-e759-473b-bbe3-6c773a0cd57f",
+                    "name": "Déviation dans l'usage",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "64e34878-515f-4fed-bcec-7a85ca91fcfa",
+                        "subCategoryId": "7b50de98-5a09-4931-9142-1b33b17c848e",
+                        "name": "Devices en mode maintenance",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "b7ab7fbf-0571-4446-87f5-07cef20f3f15",
+                        "subCategoryId": "7b50de98-5a09-4931-9142-1b33b17c848e",
+                        "name": "Devices qui font trop de bruit",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "ee46ee7e-a251-4a51-9e04-a1e4990984e8",
+                "categoryId": "aa99ae1a-6889-4cb7-b019-a184dc014a90",
+                "name": "Cacti",
+                "status": "herite",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "e30c7e09-8a2a-4e93-8371-45a3499c0989",
+                    "elementId": "ee46ee7e-a251-4a51-9e04-a1e4990984e8",
+                    "name": "UP / DOWN",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "2575509d-f062-43f8-bc16-825a823c00d4",
+                        "subCategoryId": "e30c7e09-8a2a-4e93-8371-45a3499c0989",
+                        "name": "GraphAna",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "95a5e95f-3d4e-48f7-85ae-165046162dfd",
+                        "subCategoryId": "e30c7e09-8a2a-4e93-8371-45a3499c0989",
+                        "name": "KafkaBus",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "90acdd5d-dcfe-4e3a-a734-d95f1cccff83",
+                        "subCategoryId": "e30c7e09-8a2a-4e93-8371-45a3499c0989",
+                        "name": "Poller",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "1215771b-9752-404e-a58b-7dfb2510f701",
+                        "subCategoryId": "e30c7e09-8a2a-4e93-8371-45a3499c0989",
+                        "name": "Events DataBase",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  },
+                  {
+                    "id": "961c4b40-ac1f-4415-8ed9-536d27517785",
+                    "elementId": "ee46ee7e-a251-4a51-9e04-a1e4990984e8",
+                    "name": "Devices mal configurés",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "b7d93818-b9d6-4e68-a5bb-21e38cebc0e0",
+                        "subCategoryId": "961c4b40-ac1f-4415-8ed9-536d27517785",
+                        "name": "Devices Gris",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "484133e2-8ecc-45cc-b198-b13384d96941",
+                        "subCategoryId": "961c4b40-ac1f-4415-8ed9-536d27517785",
+                        "name": "Devices Rouge",
+                        "status": "mineur",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "7019b176-5d45-4a4c-900a-4efc4b5fb694",
+                "categoryId": "aa99ae1a-6889-4cb7-b019-a184dc014a90",
+                "name": "ITSI",
+                "status": "ok",
+                "order": 2,
+                "subCategories": [
+                  {
+                    "id": "b2aa22e9-78cf-4a4d-9b85-0ecd502d20c1",
+                    "elementId": "7019b176-5d45-4a4c-900a-4efc4b5fb694",
+                    "name": "UP / DOWN",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "65a81b59-27ab-4732-b093-0d9cb3627aa5",
+                        "subCategoryId": "b2aa22e9-78cf-4a4d-9b85-0ecd502d20c1",
+                        "name": "ITSI",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "7c3398ed-5705-4422-a257-f699279f9c85",
+                        "subCategoryId": "b2aa22e9-78cf-4a4d-9b85-0ecd502d20c1",
+                        "name": "Collecteur",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "b78fb891-7720-418c-b64c-3e25369014d8",
+                        "subCategoryId": "b2aa22e9-78cf-4a4d-9b85-0ecd502d20c1",
+                        "name": "Indexeur",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "b134d8dd-72f2-404f-ae1f-57312f30336f",
+                        "subCategoryId": "b2aa22e9-78cf-4a4d-9b85-0ecd502d20c1",
+                        "name": "Ce qui alimente ITSI",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "a8e9b33a-e117-47e0-97ee-89a3d847729c",
+                "categoryId": "aa99ae1a-6889-4cb7-b019-a184dc014a90",
+                "name": "CMDB",
+                "status": "ok",
+                "order": 3,
+                "subCategories": [
+                  {
+                    "id": "7f1ea556-6cc5-4426-9dfd-c383b54f3ca8",
+                    "elementId": "a8e9b33a-e117-47e0-97ee-89a3d847729c",
+                    "name": "Définition des CI",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "3dfb4931-1b77-4bdc-85da-0cadae5f3073",
+                        "subCategoryId": "7f1ea556-6cc5-4426-9dfd-c383b54f3ca8",
+                        "name": "Bornes Wifi",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "df2bbc51-1cd1-4f63-bc39-d6bdeef2afdd",
+                        "subCategoryId": "7f1ea556-6cc5-4426-9dfd-c383b54f3ca8",
+                        "name": "Switches",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "ea311ff1-d2c1-433c-a86f-deea1a7826d4",
+                        "subCategoryId": "7f1ea556-6cc5-4426-9dfd-c383b54f3ca8",
+                        "name": "Routeurs",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "8871f263-457f-41ad-9e1d-777ef85366d4",
+                        "subCategoryId": "7f1ea556-6cc5-4426-9dfd-c383b54f3ca8",
+                        "name": "Firewall",
+                        "status": "ok",
+                        "order": 3
+                      },
+                      {
+                        "id": "ddd24292-6e6a-4ca7-a8fe-9ec9dc1b757e",
+                        "subCategoryId": "7f1ea556-6cc5-4426-9dfd-c383b54f3ca8",
+                        "name": "Lignes",
+                        "status": "ok",
+                        "order": 4
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "265f8609-d7d0-48b2-90ba-4c42e798961f",
+            "domainId": "b592e6b0-c656-49e5-a5dc-6a56c410a8e8",
+            "name": "Activités liées aux Outils",
+            "orientation": "horizontal",
+            "order": 3,
+            "elements": [
+              {
+                "id": "69528d23-40aa-452d-a156-1a15c9e36c8a",
+                "categoryId": "265f8609-d7d0-48b2-90ba-4c42e798961f",
+                "name": "Kanban Jira",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "284fcdc1-9be4-467b-815d-f0fe0866aa6d",
+                    "elementId": "69528d23-40aa-452d-a156-1a15c9e36c8a",
+                    "name": "Ratios Kanban",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "dcaba66d-1a0c-48f6-bc34-244429c2aa6f",
+                        "subCategoryId": "284fcdc1-9be4-467b-815d-f0fe0866aa6d",
+                        "name": "Bande passante",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "6d80c58f-2a92-4f59-9be3-f75810a292a2",
+                        "subCategoryId": "284fcdc1-9be4-467b-815d-f0fe0866aa6d",
+                        "name": "Ratio d'activités ouvertes",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "d4e8c524-2c59-4eb6-82aa-cb445379005e",
+                        "subCategoryId": "284fcdc1-9be4-467b-815d-f0fe0866aa6d",
+                        "name": "Ratio d'activités en attente",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "399cdb41-6aba-40d7-b6cf-c1c0161ba811",
+                        "subCategoryId": "284fcdc1-9be4-467b-815d-f0fe0866aa6d",
+                        "name": "Clôturés / Dernier mois",
+                        "status": "ok",
+                        "order": 3
+                      },
+                      {
+                        "id": "9a9fbff5-4941-4f06-9c1e-b76f0559cceb",
+                        "subCategoryId": "284fcdc1-9be4-467b-815d-f0fe0866aa6d",
+                        "name": "Immobilisme",
+                        "status": "ok",
+                        "order": 4
+                      },
+                      {
+                        "id": "fd50db55-1f5d-403c-874d-387416bdff3a",
+                        "subCategoryId": "284fcdc1-9be4-467b-815d-f0fe0866aa6d",
+                        "name": "Autres ratios théoriques",
+                        "status": "ok",
+                        "order": 5
+                      }
+                    ]
+                  },
+                  {
+                    "id": "99fe6a7a-bcd4-40d1-b410-39ff7f3bf21a",
+                    "elementId": "69528d23-40aa-452d-a156-1a15c9e36c8a",
+                    "name": "Périmètres servis",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "4aaa3580-0ad5-41e7-8fe2-6f008806e715",
+                        "subCategoryId": "99fe6a7a-bcd4-40d1-b410-39ff7f3bf21a",
+                        "name": "Alerting",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "a1d224f5-8a51-4881-aaa1-c8b2d577a9c8",
+                        "subCategoryId": "99fe6a7a-bcd4-40d1-b410-39ff7f3bf21a",
+                        "name": "Synthetic (Dynatrace)",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "a0f271b0-3bef-41fd-91d8-4d77e2497f53",
+                        "subCategoryId": "99fe6a7a-bcd4-40d1-b410-39ff7f3bf21a",
+                        "name": "New Technology",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "4f4c18ff-60a6-4ae9-8018-679c7b377aef",
+                        "subCategoryId": "99fe6a7a-bcd4-40d1-b410-39ff7f3bf21a",
+                        "name": "Maps Cacti",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  },
+                  {
+                    "id": "18faca7e-1213-4948-bcfc-93f317d757c0",
+                    "elementId": "69528d23-40aa-452d-a156-1a15c9e36c8a",
+                    "name": "Suivi des équipes",
+                    "orientation": "horizontal",
+                    "order": 2,
+                    "subElements": [
+                      {
+                        "id": "0b85b75e-a909-4ea8-95d4-538d22e6dee0",
+                        "subCategoryId": "18faca7e-1213-4948-bcfc-93f317d757c0",
+                        "name": "SOMONE",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "5581cedf-2174-4c15-8c73-dce519a07cdb",
+                        "subCategoryId": "18faca7e-1213-4948-bcfc-93f317d757c0",
+                        "name": "SIMAC",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "c24f1e19-7ce9-40df-856a-7105ddfeb4af",
+                        "subCategoryId": "18faca7e-1213-4948-bcfc-93f317d757c0",
+                        "name": "Direction",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "d4817840-a4cd-4f0b-8c8a-f1525c6553ee",
+                "categoryId": "265f8609-d7d0-48b2-90ba-4c42e798961f",
+                "name": "Changements",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "417594b5-4589-4a39-8d4d-3a6b5c4745cb",
+                    "elementId": "d4817840-a4cd-4f0b-8c8a-f1525c6553ee",
+                    "name": "Visibilité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "99528b91-bfc1-48e0-aa5b-a0c811d21d46",
+                        "subCategoryId": "417594b5-4589-4a39-8d4d-3a6b5c4745cb",
+                        "name": "Réalisés / Année",
+                        "status": "information",
+                        "order": 0
+                      },
+                      {
+                        "id": "1a8d4683-d830-4f97-8a7d-0e6104d97eda",
+                        "subCategoryId": "417594b5-4589-4a39-8d4d-3a6b5c4745cb",
+                        "name": "Réalisés / Mois",
+                        "status": "information",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "6293d586-b27d-424e-a884-ccea908500ec",
+                    "elementId": "d4817840-a4cd-4f0b-8c8a-f1525c6553ee",
+                    "name": "Changements à Impacts",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "4032798b-876b-44fc-ba3b-83211d7f7050",
+                        "subCategoryId": "6293d586-b27d-424e-a884-ccea908500ec",
+                        "name": "Dans l'année",
+                        "status": "information",
+                        "order": 0
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "40ebcb97-0fa6-4540-a399-fd11aaf7f647",
+                "categoryId": "265f8609-d7d0-48b2-90ba-4c42e798961f",
+                "name": "Incidents",
+                "status": "ok",
+                "order": 2,
+                "subCategories": [
+                  {
+                    "id": "5a5a680f-4250-470a-b767-7f11b596a30d",
+                    "elementId": "40ebcb97-0fa6-4540-a399-fd11aaf7f647",
+                    "name": "Visibilité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "6b00053d-388c-4446-909d-88639070fbfc",
+            "domainId": "b592e6b0-c656-49e5-a5dc-6a56c410a8e8",
+            "name": "Finances",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "353ddf63-210a-4a6f-8264-51cc82a0d899",
+                "categoryId": "6b00053d-388c-4446-909d-88639070fbfc",
+                "name": "Budget annuel",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "91bde451-f87b-401d-b879-9de6262b8d7e",
+                "categoryId": "6b00053d-388c-4446-909d-88639070fbfc",
+                "name": "Suivi des palettes",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "7a9c26c5-8569-41b4-af65-ca554293ff20",
+            "domainId": "b592e6b0-c656-49e5-a5dc-6a56c410a8e8",
+            "name": "Equipe",
+            "orientation": "horizontal",
+            "order": 3,
+            "elements": [
+              {
+                "id": "ed08a60a-8807-49a8-8b35-be3fdff89e1e",
+                "categoryId": "7a9c26c5-8569-41b4-af65-ca554293ff20",
+                "name": "Personnes Clefs",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "362e224e-8e25-412c-b965-45000c4740dc",
+        "cockpitId": "45c3-28b0-053c",
+        "name": "Opérabilité",
+        "order": 1,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "d44df39f-9d38-43ad-a1cb-33a600b97faf",
+            "domainId": "362e224e-8e25-412c-b965-45000c4740dc",
+            "name": "Bornes Wifi",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "a262d8c5-f37e-4234-ad89-e5cb649480b1",
+                "categoryId": "d44df39f-9d38-43ad-a1cb-33a600b97faf",
+                "name": "UP / DOWN (Corrélation)",
+                "status": "critique",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "b37a3256-d54d-4136-b302-5b3db00e71fa",
+                    "elementId": "a262d8c5-f37e-4234-ad89-e5cb649480b1",
+                    "name": "Sites",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "0f69c2bc-b673-4984-a4a5-90d2a1679f7a",
+                        "subCategoryId": "b37a3256-d54d-4136-b302-5b3db00e71fa",
+                        "name": "Parc Global",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "dec3f8de-439d-402c-96df-231915d9c621",
+                        "subCategoryId": "b37a3256-d54d-4136-b302-5b3db00e71fa",
+                        "name": "LGC (La Garenne Colombes)",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "0be21e31-bc3d-4bd8-a345-633099d8994f",
+                        "subCategoryId": "b37a3256-d54d-4136-b302-5b3db00e71fa",
+                        "name": "St Ouen",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "258feed6-7ce2-40b8-88b8-5cadae1e158b",
+                        "subCategoryId": "b37a3256-d54d-4136-b302-5b3db00e71fa",
+                        "name": "T1",
+                        "status": "ok",
+                        "order": 5
+                      },
+                      {
+                        "id": "af7e0189-4231-48a0-8f1f-9157cbb9f31b",
+                        "subCategoryId": "b37a3256-d54d-4136-b302-5b3db00e71fa",
+                        "name": "Inconnu",
+                        "status": "deconnecte",
+                        "order": 6
+                      }
+                    ]
+                  },
+                  {
+                    "id": "42bf8640-d7d2-4931-ad17-81dba60fee99",
+                    "elementId": "a262d8c5-f37e-4234-ad89-e5cb649480b1",
+                    "name": "Fournisseur",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "5cda43ab-2f6c-406f-bf00-faed0898d978",
+                        "subCategoryId": "42bf8640-d7d2-4931-ad17-81dba60fee99",
+                        "name": "Econocom",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "4ea71a21-7ec4-494c-9717-45e87caf30e1",
+                        "subCategoryId": "42bf8640-d7d2-4931-ad17-81dba60fee99",
+                        "name": "SCC",
+                        "status": "mineur",
+                        "order": 1
+                      },
+                      {
+                        "id": "4db618df-e8cd-4c51-9637-ac78e043e30c",
+                        "subCategoryId": "42bf8640-d7d2-4931-ad17-81dba60fee99",
+                        "name": "TechData",
+                        "status": "mineur",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "7cec5ebb-3057-47e6-90db-f76285de2c8a",
+                "categoryId": "d44df39f-9d38-43ad-a1cb-33a600b97faf",
+                "name": "CMDB",
+                "status": "herite",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "87370255-725e-403d-8a39-295df52901e7",
+                    "elementId": "7cec5ebb-3057-47e6-90db-f76285de2c8a",
+                    "name": "Bornes Auto-administrables",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "547a7c11-25bf-456d-8ba4-34a29791fb4b",
+                        "subCategoryId": "87370255-725e-403d-8a39-295df52901e7",
+                        "name": "Nombre de CI",
+                        "status": "ok",
+                        "order": 0,
+                        "sources": [
+                          {
+                            "id": "52855510-511e-474a-88f7-81f9978b510e",
+                            "subElementId": "547a7c11-25bf-456d-8ba4-34a29791fb4b",
+                            "name": "Source 1",
+                            "type": "excel",
+                            "location": "",
+                            "fields": "",
+                            "description": ""
+                          }
+                        ],
+                        "calculations": [
+                          {
+                            "id": "be89b13a-d10c-46f2-a8cb-9aba5ef6b5ff",
+                            "subElementId": "547a7c11-25bf-456d-8ba4-34a29791fb4b",
+                            "name": "Calcul 1",
+                            "description": "zfzeafzef",
+                            "definition": "zfzef",
+                            "sources": [
+                              "52855510-511e-474a-88f7-81f9978b510e"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "9e36a347-8015-4c47-af0c-5d1c19732cba",
+                        "subCategoryId": "87370255-725e-403d-8a39-295df52901e7",
+                        "name": "Complétude",
+                        "status": "mineur",
+                        "order": 1
+                      },
+                      {
+                        "id": "dfcc5dca-15c4-48ee-8653-394212d89206",
+                        "subCategoryId": "87370255-725e-403d-8a39-295df52901e7",
+                        "name": "_",
+                        "status": "mineur",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "98c21c36-85c9-4ba8-be5c-4576f3fa8ab1",
+                    "elementId": "7cec5ebb-3057-47e6-90db-f76285de2c8a",
+                    "name": "Bornes Passives",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "ecdd66a8-0421-438c-b575-4e53fd941550",
+                        "subCategoryId": "98c21c36-85c9-4ba8-be5c-4576f3fa8ab1",
+                        "name": "Nombre de CI",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "1923c21f-c8d5-4526-b8eb-882ad23a870f",
+                        "subCategoryId": "98c21c36-85c9-4ba8-be5c-4576f3fa8ab1",
+                        "name": "Complétude",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "f3696aa6-1b11-49f4-82c6-caffe150f403",
+                        "subCategoryId": "98c21c36-85c9-4ba8-be5c-4576f3fa8ab1",
+                        "name": "Remontées ITSI",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ],
+                "icon": "Security"
+              },
+              {
+                "id": "c8895240-92dc-4927-a2e0-b0a3e913b8d7",
+                "categoryId": "d44df39f-9d38-43ad-a1cb-33a600b97faf",
+                "name": "Spectrum",
+                "status": "herite",
+                "order": 2,
+                "subCategories": [
+                  {
+                    "id": "28d34766-7924-4b43-9e66-4a2b35553bf7",
+                    "elementId": "c8895240-92dc-4927-a2e0-b0a3e913b8d7",
+                    "name": "Sous Catégorie 01",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "5b6a04f3-292e-4b52-b2da-2549cc5624da",
+                        "subCategoryId": "28d34766-7924-4b43-9e66-4a2b35553bf7",
+                        "name": "Sous Elément 01",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "7a4cbbf8-4496-41c0-b720-4bee22bc8c07",
+                        "subCategoryId": "28d34766-7924-4b43-9e66-4a2b35553bf7",
+                        "name": "Sous Elément 02",
+                        "status": "mineur",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "e044aef6-1320-4f12-852f-283a886b822f",
+                    "elementId": "c8895240-92dc-4927-a2e0-b0a3e913b8d7",
+                    "name": "Sous Catégorie 02",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "fa17f61d-e446-4a85-9632-548e42385928",
+                        "subCategoryId": "e044aef6-1320-4f12-852f-283a886b822f",
+                        "name": "Sous Elément 01",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "9ccdfb5e-6f44-468c-89d8-f34bc1d45eff",
+                        "subCategoryId": "e044aef6-1320-4f12-852f-283a886b822f",
+                        "name": "Sous Elément 02",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "a72e820f-fbfb-4768-ade9-bb195fa2b7b6",
+                        "subCategoryId": "e044aef6-1320-4f12-852f-283a886b822f",
+                        "name": "Sous Elément 03",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "8f3e7e50-4891-4b1a-bf8e-a9dcce1545b0",
+                "categoryId": "d44df39f-9d38-43ad-a1cb-33a600b97faf",
+                "name": "CISCO",
+                "status": "deconnecte",
+                "order": 3,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "e70c0880-7bb4-47b9-a815-093324452e12",
+            "domainId": "362e224e-8e25-412c-b965-45000c4740dc",
+            "name": "Switches / Routeurs",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "1ce493c4-c91f-4d25-9ae6-416d70211d13",
+                "categoryId": "e70c0880-7bb4-47b9-a815-093324452e12",
+                "name": "UP / DOWN (Corrélation)",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "37e91a3b-1770-4ad4-9656-d7a8ed699d5a",
+                "categoryId": "e70c0880-7bb4-47b9-a815-093324452e12",
+                "name": "CMDB",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "9c923209-0acc-4237-ac00-9e2bbe063cb6",
+                "categoryId": "e70c0880-7bb4-47b9-a815-093324452e12",
+                "name": "Spectrum",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "51890a53-9ff4-493c-812c-3073f82c2c2c",
+                "categoryId": "e70c0880-7bb4-47b9-a815-093324452e12",
+                "name": "CISCO / Meraki",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "40544ce6-b92b-4dd7-9696-374eb1eba456",
+                "categoryId": "e70c0880-7bb4-47b9-a815-093324452e12",
+                "name": "Hirshman",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              },
+              {
+                "id": "d01a67f9-f303-479d-9330-ca942828239a",
+                "categoryId": "e70c0880-7bb4-47b9-a815-093324452e12",
+                "name": "Radius",
+                "status": "ok",
+                "order": 5,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "756dbdaa-7f64-4604-8053-68ddb7909dc8",
+            "domainId": "362e224e-8e25-412c-b965-45000c4740dc",
+            "name": "Firewall",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "e4a8ab86-33e3-4227-8ccf-e3eb2e2bca6a",
+                "categoryId": "756dbdaa-7f64-4604-8053-68ddb7909dc8",
+                "name": "UP / DOWN (Corrélation)",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "0a9933d2-f92a-486e-a06a-6a927b013cf0",
+                "categoryId": "756dbdaa-7f64-4604-8053-68ddb7909dc8",
+                "name": "CMDB",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "8ed72e43-6337-42f2-80f1-e2a47fb1ae49",
+                "categoryId": "756dbdaa-7f64-4604-8053-68ddb7909dc8",
+                "name": "Spectrum",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "6f21fbaa-719c-4406-a692-170f82e547c2",
+                "categoryId": "756dbdaa-7f64-4604-8053-68ddb7909dc8",
+                "name": "Forti Manager",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "2167b5c3-efd4-41f6-ac9e-cc2e421aa775",
+                "categoryId": "756dbdaa-7f64-4604-8053-68ddb7909dc8",
+                "name": "Panorama",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              },
+              {
+                "id": "558aba09-a5c9-4d3a-87d4-54ff218628be",
+                "categoryId": "756dbdaa-7f64-4604-8053-68ddb7909dc8",
+                "name": "Radius",
+                "status": "ok",
+                "order": 5,
+                "subCategories": []
+              },
+              {
+                "id": "5e4f762f-11ba-4488-94bd-bebdd46a189d",
+                "categoryId": "756dbdaa-7f64-4604-8053-68ddb7909dc8",
+                "name": "BackBox",
+                "status": "ok",
+                "order": 6,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "1ea3cd7f-8846-4508-8401-6c4edf4dc130",
+            "domainId": "362e224e-8e25-412c-b965-45000c4740dc",
+            "name": "Lignes",
+            "orientation": "horizontal",
+            "order": 3,
+            "elements": [
+              {
+                "id": "a4c397c4-9c42-482f-9f7f-2c77d9d76f5e",
+                "categoryId": "1ea3cd7f-8846-4508-8401-6c4edf4dc130",
+                "name": "UP / DOWN (Corrélation)",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "b3059e64-1671-4231-9bfc-d56e5d755232",
+                "categoryId": "1ea3cd7f-8846-4508-8401-6c4edf4dc130",
+                "name": "CMDB",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "5f9f8d9f-599a-420d-b1cd-6653fe4ce6d5",
+                "categoryId": "1ea3cd7f-8846-4508-8401-6c4edf4dc130",
+                "name": "Spectrum",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "70147e7f-38ab-4ed3-bce7-05a2c5645e54",
+        "cockpitId": "45c3-28b0-053c",
+        "name": "Services",
+        "order": 2,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "49677cd9-7126-4c23-849f-0cc1618de788",
+            "domainId": "70147e7f-38ab-4ed3-bce7-05a2c5645e54",
+            "name": "DX NetOPS (Spectrum)",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "333333ed-754d-4ef7-bf2b-d75fa2296b70",
+                "categoryId": "49677cd9-7126-4c23-849f-0cc1618de788",
+                "name": "Spectrum",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "317584a4-7ec0-40e6-9c73-cac85ac11814",
+                "categoryId": "49677cd9-7126-4c23-849f-0cc1618de788",
+                "name": "Spectrum Performance Manager",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "5c60d6d2-dfa4-4f30-8d80-e3cb6fec010a",
+                "categoryId": "49677cd9-7126-4c23-849f-0cc1618de788",
+                "name": "VNA (Interface API)",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "3d50292d-4451-4aef-83c8-41f8d841faa8",
+                "categoryId": "49677cd9-7126-4c23-849f-0cc1618de788",
+                "name": "Spectrum Poller",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "8cca8e5a-61d4-4c8f-8467-7eeadd0b294e",
+            "domainId": "70147e7f-38ab-4ed3-bce7-05a2c5645e54",
+            "name": "Cacti V2",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "cc66ab28-224e-412d-a97e-1266f26bf06b",
+                "categoryId": "8cca8e5a-61d4-4c8f-8467-7eeadd0b294e",
+                "name": "GraphAna",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "accedcc0-a1c5-4b16-a113-ddee88183027",
+                "categoryId": "8cca8e5a-61d4-4c8f-8467-7eeadd0b294e",
+                "name": "KafkaBus",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "c5c1cc64-e3d6-4d11-a34a-7059f4c46b3f",
+                "categoryId": "8cca8e5a-61d4-4c8f-8467-7eeadd0b294e",
+                "name": "Database (?)",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "dfc12dd9-3954-46f9-abc1-520a38044888",
+                "categoryId": "8cca8e5a-61d4-4c8f-8467-7eeadd0b294e",
+                "name": "Poller",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "ce0eb803-6f87-4257-b813-ebfa04f78677",
+            "domainId": "70147e7f-38ab-4ed3-bce7-05a2c5645e54",
+            "name": "Splunk / ITSI",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "3225b529-b97d-4788-8fd6-0d8cc3bfe777",
+                "categoryId": "ce0eb803-6f87-4257-b813-ebfa04f78677",
+                "name": "ITSI",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "082fbb8c-7245-4c4d-ad49-b6bc2d879917",
+                "categoryId": "ce0eb803-6f87-4257-b813-ebfa04f78677",
+                "name": "Collecteur (?)",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "64689105-573a-4f4e-afc2-2e5707d21e03",
+                "categoryId": "ce0eb803-6f87-4257-b813-ebfa04f78677",
+                "name": "Indexeur (?)",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "015ce645-b1eb-440f-9ae3-dfbeccad3456",
+                "categoryId": "ce0eb803-6f87-4257-b813-ebfa04f78677",
+                "name": "Ce qui alimente ITSI",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "27aaf909-2ea1-47be-85de-4580aa1d768e",
+            "domainId": "70147e7f-38ab-4ed3-bce7-05a2c5645e54",
+            "name": "BackBox",
+            "orientation": "horizontal",
+            "order": 3,
+            "elements": [
+              {
+                "id": "73744e14-5bc2-4985-92cd-66e48bde6f23",
+                "categoryId": "27aaf909-2ea1-47be-85de-4580aa1d768e",
+                "name": "BackBox",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "cfa272d3-7ea9-4b2c-9094-49ae839e1511",
+            "domainId": "70147e7f-38ab-4ed3-bce7-05a2c5645e54",
+            "name": "Observium",
+            "orientation": "horizontal",
+            "order": 4,
+            "elements": [
+              {
+                "id": "1427ac3e-3f54-4c89-bf6c-e6294bd231df",
+                "categoryId": "cfa272d3-7ea9-4b2c-9094-49ae839e1511",
+                "name": "Système Central (Manager)",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "68c72a7a-6f4c-4fe2-8f74-2cef3c65c3a4",
+                "categoryId": "cfa272d3-7ea9-4b2c-9094-49ae839e1511",
+                "name": "Poller",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "ff7853b1-a2a0-4d31-b4f4-fb0484541845",
+            "domainId": "70147e7f-38ab-4ed3-bce7-05a2c5645e54",
+            "name": "Tacacs",
+            "orientation": "horizontal",
+            "order": 5,
+            "elements": [
+              {
+                "id": "77e035fe-7327-4eb4-9c32-c62adee3a9ce",
+                "categoryId": "ff7853b1-a2a0-4d31-b4f4-fb0484541845",
+                "name": "Aruba Clearpass",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "161ba5bf-7272-4dee-b357-50110aacb6bf",
+                "categoryId": "ff7853b1-a2a0-4d31-b4f4-fb0484541845",
+                "name": "OpenOTP",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "ea47a2cf-a21e-400a-9dd4-1236c115d442",
+            "domainId": "70147e7f-38ab-4ed3-bce7-05a2c5645e54",
+            "name": "Collecteur Syslog",
+            "orientation": "horizontal",
+            "order": 6,
+            "elements": [
+              {
+                "id": "7cab5582-333e-4173-8835-972015089c73",
+                "categoryId": "ea47a2cf-a21e-400a-9dd4-1236c115d442",
+                "name": "Syslog-NG",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "659e0214-9885-49d8-92a0-5c3c304b5502",
+        "cockpitId": "45c3-28b0-053c",
+        "name": "Activités",
+        "order": 3,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "c24ce208-8408-48ee-bfe0-43df8e9e3369",
+            "domainId": "659e0214-9885-49d8-92a0-5c3c304b5502",
+            "name": "OpenOTP",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "4a926a88-7119-4cbd-a4be-3493473bb3f7",
+                "categoryId": "c24ce208-8408-48ee-bfe0-43df8e9e3369",
+                "name": "UP / DOWN",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "7f26ef33-5313-4865-a75c-d0f033dcf647",
+                    "elementId": "4a926a88-7119-4cbd-a4be-3493473bb3f7",
+                    "name": "Processus",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "d67f8f27-5865-4f4f-ad9d-04a028b3dcbd",
+                        "subCategoryId": "7f26ef33-5313-4865-a75c-d0f033dcf647",
+                        "name": "Processus 01",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "27b7982c-d24c-4586-b676-2eaa21068c66",
+                        "subCategoryId": "7f26ef33-5313-4865-a75c-d0f033dcf647",
+                        "name": "Processus 02",
+                        "status": "deconnecte",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ],
+                "icon": "Build"
+              },
+              {
+                "id": "5dbe8a48-36a1-4e13-acb9-73f2407e8d63",
+                "categoryId": "c24ce208-8408-48ee-bfe0-43df8e9e3369",
+                "name": "Activités",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "077c8431-8b39-45fe-94b1-002d5973008d",
+                "categoryId": "c24ce208-8408-48ee-bfe0-43df8e9e3369",
+                "name": "Kanban Jira",
+                "status": "ok",
+                "order": 2,
+                "subCategories": [
+                  {
+                    "id": "fd00ef64-4bbb-475f-b7d2-a96b2ef9aa62",
+                    "elementId": "077c8431-8b39-45fe-94b1-002d5973008d",
+                    "name": "TO DO",
+                    "orientation": "vertical",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "5ae6afb4-ea74-4c53-9968-fa122e834fa6",
+                        "subCategoryId": "fd00ef64-4bbb-475f-b7d2-a96b2ef9aa62",
+                        "name": "Standard",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "434db60c-2c2e-41c7-a7c4-530dcbe7a4c2",
+                        "subCategoryId": "fd00ef64-4bbb-475f-b7d2-a96b2ef9aa62",
+                        "name": "Prioritaire",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "1645c8d7-5352-43a2-be55-ea442fa2212a",
+                        "subCategoryId": "fd00ef64-4bbb-475f-b7d2-a96b2ef9aa62",
+                        "name": "La Garenne Colombes",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "1235ef18-31f3-439c-bbad-4aaa479f944e",
+                        "subCategoryId": "fd00ef64-4bbb-475f-b7d2-a96b2ef9aa62",
+                        "name": "OT",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  },
+                  {
+                    "id": "da411e66-671a-4cda-a759-3ed3a832bd68",
+                    "elementId": "077c8431-8b39-45fe-94b1-002d5973008d",
+                    "name": "En cours",
+                    "orientation": "vertical",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "dab73f22-ee41-44a8-b3b2-8082adb294a3",
+                        "subCategoryId": "da411e66-671a-4cda-a759-3ed3a832bd68",
+                        "name": "Standard",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "df153bc2-2e5f-4649-9c0b-874d6d9de2c5",
+                        "subCategoryId": "da411e66-671a-4cda-a759-3ed3a832bd68",
+                        "name": "Prioritaire",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "3e92a45c-f4c8-49a5-8843-edf0c63e88e4",
+                        "subCategoryId": "da411e66-671a-4cda-a759-3ed3a832bd68",
+                        "name": "La Garenne Colombes",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "5b9a184f-7add-4444-b811-b3cba5f76e87",
+                        "subCategoryId": "da411e66-671a-4cda-a759-3ed3a832bd68",
+                        "name": "OT",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  },
+                  {
+                    "id": "e56a2e99-bf31-420a-bea7-1c7bdd1c0737",
+                    "elementId": "077c8431-8b39-45fe-94b1-002d5973008d",
+                    "name": "Bloqué",
+                    "orientation": "vertical",
+                    "order": 2,
+                    "subElements": [
+                      {
+                        "id": "a94972b8-582f-4784-8311-bbd9b2671397",
+                        "subCategoryId": "e56a2e99-bf31-420a-bea7-1c7bdd1c0737",
+                        "name": "Standard",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "54ac055a-3896-4a92-a390-1b5c56c6514a",
+                        "subCategoryId": "e56a2e99-bf31-420a-bea7-1c7bdd1c0737",
+                        "name": "Prioritaire",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "c8da550d-4e81-4f15-978b-27f2ad364040",
+                        "subCategoryId": "e56a2e99-bf31-420a-bea7-1c7bdd1c0737",
+                        "name": "La Garenne Colombes",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "5af964b0-cdf6-4232-96d3-688699c23617",
+                        "subCategoryId": "e56a2e99-bf31-420a-bea7-1c7bdd1c0737",
+                        "name": "OT",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "zones": [],
+    "logo": null,
+    "scrollingBanner": null
+  }
+}

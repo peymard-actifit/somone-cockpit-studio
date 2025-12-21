@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-14T08:46:15.316Z",
+  "cockpit": {
+    "name": "GS2E Cockpit Dev",
+    "domains": [
+      {
+        "id": "9df6b971-07f1-44e7-b8c6-3502a2e743a5",
+        "cockpitId": "e84f-1d78-998e",
+        "name": "IOT de GS2E",
+        "order": 0,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "e6e0e873-a081-4821-8a7d-7a0637bbcdb5",
+            "domainId": "9df6b971-07f1-44e7-b8c6-3502a2e743a5",
+            "name": "IOT CIE",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "81d4cda8-8ce6-4fc6-b846-0c18bade1161",
+                "categoryId": "e6e0e873-a081-4821-8a7d-7a0637bbcdb5",
+                "name": "CDU",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "a3c060d2-b818-4156-8275-d260de50f346",
+                    "elementId": "81d4cda8-8ce6-4fc6-b846-0c18bade1161",
+                    "name": "Compteurs",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "f6bbc083-b135-49cc-9c33-f4feca4e561b",
+                        "subCategoryId": "a3c060d2-b818-4156-8275-d260de50f346",
+                        "name": "Modèle 01",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "4f16e9de-1923-401a-a79e-55c39df454d7",
+                        "subCategoryId": "a3c060d2-b818-4156-8275-d260de50f346",
+                        "name": "Modèle 02",
+                        "status": "critique",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "0d60ff50-7bba-4f77-aba3-5d22e20bf46f",
+            "domainId": "9df6b971-07f1-44e7-b8c6-3502a2e743a5",
+            "name": "IOT SODECI",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": []
+          },
+          {
+            "id": "f793ba28-15de-4ada-aab6-12499e48abf9",
+            "domainId": "9df6b971-07f1-44e7-b8c6-3502a2e743a5",
+            "name": "Fraude",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": []
+          }
+        ]
+      }
+    ],
+    "zones": [],
+    "logo": null,
+    "scrollingBanner": null
+  }
+}

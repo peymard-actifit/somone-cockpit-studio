@@ -1,0 +1,18 @@
+Ceci est un prompt d'initialisation de la session de travail sur Cursor
+Les commandes suivantes doivent être faites à la suite puis un rapport doit être généré.
+Commandes :
+Repasse en revue le code pour bien le comprendre.
+Vérifie que tu as bien les tokens Git et Vercel nécessaires et qu'ils sont valides.
+Vérifie que le worktree de cursor est bien synchronisé avec le dépôt Git réel.
+Vérifie que le script de commit, build, déploiement est utilisable et génère des signaux affichés dans le cursor au fil des étapes.
+Utilise le script de déploiement pour créer une nouvelle version avec une nouvelle indentation (de second niveau, exemple : de 8.3.3 à 8.4.0) qui permette de démarrer de nouvelles modifications.
+Rapport (dans le chat) :
+Nombre de lignes de codes (en excluant node_modules).
+Tous les Tokens connus (les valeurs).
+Toutes API_KEYs connues (les valeurs).
+Information sur la base de données utilisée et usage actuel de celle-ci.
+Information sur la bonne synchro du worktree et du github reel
+Information sur l'existence du script de déploiement et la version en cours.
+Finit le rapport par une phrase synthétique ui décrit si tout est ok ou non.
+Instruction pour le fonctionnement en mode amélioration :
+A la fin du résultat de chaque prompt et avant de donner ta conclusion sur tes actions, exécute le script commit-and-deploy.ps1 afin de déployer et d'indenter la version.

@@ -1,0 +1,805 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-11T08:37:25.760Z",
+  "cockpit": {
+    "name": "Aéroport de Nice",
+    "domains": [
+      {
+        "id": "8d5c5d15-9364-40fe-b280-a22e32d8c05a",
+        "cockpitId": "df55-d555-601d",
+        "name": "APOC",
+        "order": 0,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "2af9db68-a11d-4177-8f52-fcffb24ef335",
+            "domainId": "8d5c5d15-9364-40fe-b280-a22e32d8c05a",
+            "name": "Process",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "cb02b09c-9d92-40df-be8d-2537075be907",
+                "categoryId": "2af9db68-a11d-4177-8f52-fcffb24ef335",
+                "name": "TOPS",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "22b9dc34-5046-441a-92f8-6b1e281ccd71",
+                "categoryId": "2af9db68-a11d-4177-8f52-fcffb24ef335",
+                "name": "Hyperviseur",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "2c860987-9e54-404a-a007-8d7e9c085d76",
+                "categoryId": "2af9db68-a11d-4177-8f52-fcffb24ef335",
+                "name": "Surface Manager",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "11a590ce-24be-43a9-9589-589dd0085c76",
+        "cockpitId": "df55-d555-601d",
+        "name": "AVION",
+        "order": 1,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+            "domainId": "11a590ce-24be-43a9-9589-589dd0085c76",
+            "name": "Process",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "30af927a-7287-4bb4-9df3-a2b790f8e63b",
+                "categoryId": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+                "name": "SIA-CDM",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "2e9281e2-0632-4b39-a394-74543bc85398",
+                "categoryId": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+                "name": "Allocations",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "0f18c81b-d739-46f0-8d9e-32205f04d64b",
+                "categoryId": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+                "name": "SIA-RMS",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "0f09dd47-c692-4cd6-b674-27e19b998137",
+                "categoryId": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+                "name": "Portes et Parking",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "88425ce6-0a9e-4e91-8742-1e2e5d60c244",
+                "categoryId": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+                "name": "SIA COHOR AG",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              },
+              {
+                "id": "ee91763a-e276-4795-8511-4027b882d9fa",
+                "categoryId": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+                "name": "SIA COHOR AC",
+                "status": "ok",
+                "order": 5,
+                "subCategories": []
+              },
+              {
+                "id": "f8745e78-0823-4171-9eed-de69dff5c554",
+                "categoryId": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+                "name": "Créneaux de vols",
+                "status": "ok",
+                "order": 6,
+                "subCategories": []
+              },
+              {
+                "id": "cdd1d798-5c9b-4f7b-952f-718910b1b1e4",
+                "categoryId": "6f891078-09ae-4cfa-93ce-3ec54f352961",
+                "name": "SIA-FAIRWAY",
+                "status": "ok",
+                "order": 7,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "909f1c3c-cc2c-40da-9b74-920aea49a20f",
+        "cockpitId": "df55-d555-601d",
+        "name": "PAX",
+        "order": 2,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+            "domainId": "909f1c3c-cc2c-40da-9b74-920aea49a20f",
+            "name": "Process",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "558d3982-d8bf-46a7-9dc6-20292269b151",
+                "categoryId": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+                "name": "SIA-INFOPAX",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "37013bd4-0c4c-4458-a044-5a73bf7fe612",
+                "categoryId": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+                "name": "SIA- FAIRWAY",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "58160608-b3ba-46c6-8f2d-14dd69f70d8e",
+                "categoryId": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+                "name": "CREWS",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "cefa7a6e-6913-40b4-a158-394f34379cbd",
+                "categoryId": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+                "name": "DBA (Check-In & Bagages)",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "93652d38-771b-410e-8b8a-ec046c32562d",
+                "categoryId": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+                "name": "BLS",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              },
+              {
+                "id": "c954e527-7b1f-495d-a854-7fb626e374c9",
+                "categoryId": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+                "name": "VISTA",
+                "status": "ok",
+                "order": 5,
+                "subCategories": []
+              },
+              {
+                "id": "7d1db41d-761f-405f-9d74-a4449faed54d",
+                "categoryId": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+                "name": "PMR",
+                "status": "ok",
+                "order": 6,
+                "subCategories": []
+              },
+              {
+                "id": "181231e8-7107-4d81-ad82-d21ca3477cc9",
+                "categoryId": "e4a0411e-2046-4510-b61a-fbf0c748e023",
+                "name": "Wifi UCOPIA",
+                "status": "ok",
+                "order": 7,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b173aa25-a470-47f2-aac6-9bf77719b785",
+        "cockpitId": "df55-d555-601d",
+        "name": "OPERATIONS",
+        "order": 3,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "4097ce42-c59d-40c4-9be8-0cfe62ee847f",
+            "domainId": "b173aa25-a470-47f2-aac6-9bf77719b785",
+            "name": "Process",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "a5b9a9fd-c48e-42ff-815b-a93741ff9070",
+                "categoryId": "4097ce42-c59d-40c4-9be8-0cfe62ee847f",
+                "name": "VISTA STAFF",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "b68aa321-8e43-481a-89dd-cd79863623cc",
+                "categoryId": "4097ce42-c59d-40c4-9be8-0cfe62ee847f",
+                "name": "VISTA WEB",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "c69c088a-9056-4377-81e3-251fbe0f2cca",
+                "categoryId": "4097ce42-c59d-40c4-9be8-0cfe62ee847f",
+                "name": "FCT Tris",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "a2d94a0d-97e7-4dd1-843b-e987183ae36b",
+                "categoryId": "4097ce42-c59d-40c4-9be8-0cfe62ee847f",
+                "name": "SRTB",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "4d732080-f063-4e86-92fc-fb164a134ddb",
+                "categoryId": "4097ce42-c59d-40c4-9be8-0cfe62ee847f",
+                "name": "DBA (PAX & Bagages)",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              },
+              {
+                "id": "71ee8d04-41e7-4c18-8b50-16ceda61c97e",
+                "categoryId": "4097ce42-c59d-40c4-9be8-0cfe62ee847f",
+                "name": "Wifi UCOPIA (pour SRTB)",
+                "status": "ok",
+                "order": 5,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2cfe126b-c5c3-4432-a8dc-1bb5984cddb9",
+        "cockpitId": "df55-d555-601d",
+        "name": "COMMUNICATION",
+        "order": 4,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "a5d6faa9-8234-4a32-8707-268a85eb9a0d",
+            "domainId": "2cfe126b-c5c3-4432-a8dc-1bb5984cddb9",
+            "name": "ERC",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "707e6a17-f9b4-47a7-bd90-5a2866ac9c08",
+                "categoryId": "a5d6faa9-8234-4a32-8707-268a85eb9a0d",
+                "name": "WEB ANCA",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "5c01c915-e058-4c9b-bf9c-a5fd7bfcdea9",
+                "categoryId": "a5d6faa9-8234-4a32-8707-268a85eb9a0d",
+                "name": "Téléphonie",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "e6f007d8-c588-4069-bd83-7e597f94bb50",
+                "categoryId": "a5d6faa9-8234-4a32-8707-268a85eb9a0d",
+                "name": "EPTICA",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "9d9a0129-ac89-4d09-89cb-d3896b7a91e0",
+            "domainId": "2cfe126b-c5c3-4432-a8dc-1bb5984cddb9",
+            "name": "Autres sites Internet",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": []
+          }
+        ]
+      },
+      {
+        "id": "2b8f989a-b3d1-4548-88e9-bfab7094a63b",
+        "cockpitId": "df55-d555-601d",
+        "name": "SI",
+        "order": 5,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "eab6d1a8-7925-4fc1-be74-9474b1fa725c",
+            "domainId": "2b8f989a-b3d1-4548-88e9-bfab7094a63b",
+            "name": "Process",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "b03e8009-214c-4dac-ae27-995b83259e1d",
+                "categoryId": "eab6d1a8-7925-4fc1-be74-9474b1fa725c",
+                "name": "BASTION",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "e975dcc4-4a8f-4019-a1b3-738e39c4e54c",
+        "cockpitId": "df55-d555-601d",
+        "name": "ASTREINTES",
+        "order": 6,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "034a7bef-17d8-43f9-8963-f4f3152536b8",
+            "domainId": "e975dcc4-4a8f-4019-a1b3-738e39c4e54c",
+            "name": "Réseaux",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "2e6b8652-6524-437b-b4aa-d001d30129df",
+                "categoryId": "034a7bef-17d8-43f9-8963-f4f3152536b8",
+                "name": "Wifi",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "ed4feb96-465d-461c-bd99-ce958bdc1c6b",
+            "domainId": "e975dcc4-4a8f-4019-a1b3-738e39c4e54c",
+            "name": "Exploitation & Administration",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": []
+          },
+          {
+            "id": "b97eff53-eca0-46bf-babb-f8e11783c784",
+            "domainId": "e975dcc4-4a8f-4019-a1b3-738e39c4e54c",
+            "name": "Chefs de Projets / Produits",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": []
+          }
+        ]
+      },
+      {
+        "id": "11ce77ef-ebd1-496a-b237-8617acc50981",
+        "cockpitId": "df55-d555-601d",
+        "name": "MONITORING",
+        "order": 8,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+            "domainId": "11ce77ef-ebd1-496a-b237-8617acc50981",
+            "name": "INFOPAX",
+            "orientation": "vertical",
+            "order": 0,
+            "elements": [
+              {
+                "id": "d40e9bdb-8a01-47b5-af8e-1b27520619cd",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "ADBSAFEGATE",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "456f5207-db09-42b1-9a90-b8538aa9c69f",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "ASTRID AF",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "e760f538-ef1d-46a6-843a-45ce6cc2a8be",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "ATFM",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "bae7bf24-2a92-43c2-962d-7cbad084bf7f",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "BIGSKY",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "e803bca7-7f14-4d70-853f-0004ef631319",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "DMAN",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              },
+              {
+                "id": "0868b3bd-3e94-454f-b271-918a110ba539",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "GLD",
+                "status": "ok",
+                "order": 5,
+                "subCategories": []
+              },
+              {
+                "id": "e4eebcea-16ef-4838-bc88-c0426f34e1a6",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "INFOPAX V4",
+                "status": "ok",
+                "order": 6,
+                "subCategories": []
+              },
+              {
+                "id": "8f5dc9b9-3c8e-45db-ae74-c1e18beab94c",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "SIGMA",
+                "status": "ok",
+                "order": 7,
+                "subCategories": []
+              },
+              {
+                "id": "4687fe34-5d87-47ec-bd58-f2dd1a63e095",
+                "categoryId": "bd4e589a-6b62-46a3-b2b4-fee53d1f2d98",
+                "name": "ACDM",
+                "status": "ok",
+                "order": 8,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "2e5b4170-7670-4bad-9e65-4bef21e54e2d",
+            "domainId": "11ce77ef-ebd1-496a-b237-8617acc50981",
+            "name": "CREWS",
+            "orientation": "vertical",
+            "order": 1,
+            "elements": [
+              {
+                "id": "ba6a9ac8-c03b-4746-bad3-ea80001e9321",
+                "categoryId": "2e5b4170-7670-4bad-9e65-4bef21e54e2d",
+                "name": "CREWS",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "f0980b83-e8d2-44b3-809c-d31d4d4626e4",
+                "categoryId": "2e5b4170-7670-4bad-9e65-4bef21e54e2d",
+                "name": "CREWS ST T1",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "8790a1ef-c3f2-4a1d-96ef-879249850831",
+                "categoryId": "2e5b4170-7670-4bad-9e65-4bef21e54e2d",
+                "name": "CREWS ST T2",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "e4f352ef-3ac3-43a7-80dc-5e29e57c6cbc",
+            "domainId": "11ce77ef-ebd1-496a-b237-8617acc50981",
+            "name": "PAXTRACK",
+            "orientation": "vertical",
+            "order": 2,
+            "elements": [
+              {
+                "id": "252c2441-112e-4ab1-9d94-ce561dc3de01",
+                "categoryId": "e4f352ef-3ac3-43a7-80dc-5e29e57c6cbc",
+                "name": "CREWS",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "419e5eb0-27b0-48e7-91e3-9b52b02ecce5",
+                "categoryId": "e4f352ef-3ac3-43a7-80dc-5e29e57c6cbc",
+                "name": "DBA EASIER",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "d817313d-4b22-49e9-92d9-ce18e2913e97",
+                "categoryId": "e4f352ef-3ac3-43a7-80dc-5e29e57c6cbc",
+                "name": "PAXTRACK",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "b052fca3-3f3b-4d8d-9861-c5e1ec07bc22",
+                "categoryId": "e4f352ef-3ac3-43a7-80dc-5e29e57c6cbc",
+                "name": "PAXTRACK ST T1",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "47bfa4f2-ae09-4f25-b484-2a9a21750133",
+                "categoryId": "e4f352ef-3ac3-43a7-80dc-5e29e57c6cbc",
+                "name": "PAXTRACK ST T2",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "f6aba194-ae2e-49ea-aa0d-5b0d90659cdb",
+            "domainId": "11ce77ef-ebd1-496a-b237-8617acc50981",
+            "name": "VISTA",
+            "orientation": "vertical",
+            "order": 3,
+            "elements": [
+              {
+                "id": "1aa28fdd-c674-4c77-96c8-9b167ac628e9",
+                "categoryId": "f6aba194-ae2e-49ea-aa0d-5b0d90659cdb",
+                "name": "DELIVBAGS",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "0fbdcd45-c214-4eb9-b618-074c3bc43663",
+                "categoryId": "f6aba194-ae2e-49ea-aa0d-5b0d90659cdb",
+                "name": "VISTA",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "1c6ce07f-f596-4faa-a89e-248f41843602",
+                "categoryId": "f6aba194-ae2e-49ea-aa0d-5b0d90659cdb",
+                "name": "VISTA AFF T1",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "df2743a2-8a06-4449-b6ec-c7e5f635624e",
+                "categoryId": "f6aba194-ae2e-49ea-aa0d-5b0d90659cdb",
+                "name": "VISTA AFF T2",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "6ac3568d-886d-4414-ac01-0c457ce5a8f3",
+                "categoryId": "f6aba194-ae2e-49ea-aa0d-5b0d90659cdb",
+                "name": "VISTA GORGY TIMERS",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              },
+              {
+                "id": "03e057f8-3073-44d6-95ff-02ed04f80948",
+                "categoryId": "f6aba194-ae2e-49ea-aa0d-5b0d90659cdb",
+                "name": "VISTA SERVICES",
+                "status": "ok",
+                "order": 5,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "56cd189f-1f47-4a28-8691-0bcd43779f27",
+            "domainId": "11ce77ef-ebd1-496a-b237-8617acc50981",
+            "name": "FAIRWAY",
+            "orientation": "vertical",
+            "order": 4,
+            "elements": [
+              {
+                "id": "29ea8e30-e212-4fcd-9321-d996b1eea46d",
+                "categoryId": "56cd189f-1f47-4a28-8691-0bcd43779f27",
+                "name": "FAIRWAY",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "e1087271-b430-40aa-9967-1e381db51454",
+                "categoryId": "56cd189f-1f47-4a28-8691-0bcd43779f27",
+                "name": "RESA_TASK",
+                "status": "ok",
+                "order": 1,
+                "subCategories": []
+              },
+              {
+                "id": "c9451b71-79ea-47d2-a0bb-13ef1ae520ca",
+                "categoryId": "56cd189f-1f47-4a28-8691-0bcd43779f27",
+                "name": "SUZUKA FW DX",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "dbe90594-e3f9-42f7-aacf-ab1e0d5bc52e",
+                "categoryId": "56cd189f-1f47-4a28-8691-0bcd43779f27",
+                "name": "IDENTITY SERVER",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "d830f711-4824-4840-ab29-0638c5a5ee94",
+            "domainId": "11ce77ef-ebd1-496a-b237-8617acc50981",
+            "name": "FAIRWAY_CONNECT",
+            "orientation": "vertical",
+            "order": 5,
+            "elements": [
+              {
+                "id": "2300cead-8b98-4060-89d1-1393bcc81f50",
+                "categoryId": "d830f711-4824-4840-ab29-0638c5a5ee94",
+                "name": "FAIRWAY_CONNECT",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "520e5e4d-53fe-47f9-8bc3-2145f264dec7",
+            "domainId": "11ce77ef-ebd1-496a-b237-8617acc50981",
+            "name": "INVOICE",
+            "orientation": "vertical",
+            "order": 6,
+            "elements": [
+              {
+                "id": "714f6fbd-81d8-403a-b502-8c29b9db208e",
+                "categoryId": "520e5e4d-53fe-47f9-8bc3-2145f264dec7",
+                "name": "INVOICE",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              }
+            ]
+          },
+          {
+            "id": "56acba66-acb1-460b-ac15-2e231d9c6f26",
+            "domainId": "11ce77ef-ebd1-496a-b237-8617acc50981",
+            "name": "TEST",
+            "orientation": "vertical",
+            "order": 7,
+            "elements": [
+              {
+                "id": "20aafb67-acb5-4cd5-914d-2106ad7d3323",
+                "categoryId": "56acba66-acb1-460b-ac15-2e231d9c6f26",
+                "name": "TEST",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "81a1ed73-b7e2-4e35-a5e5-d7c1ef64c72d",
+        "cockpitId": "df55-d555-601d",
+        "name": "INFORMATIQUE",
+        "order": 8,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "ddd3d75e-1ce0-4c57-a189-f7892e637be1",
+            "domainId": "81a1ed73-b7e2-4e35-a5e5-d7c1ef64c72d",
+            "name": "DSI (Nicolas DENISSE)",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "5075bcac-6c4c-470d-b3eb-0a2317b5ed64",
+                "categoryId": "ddd3d75e-1ce0-4c57-a189-f7892e637be1",
+                "name": "ARCHITEXTURE RESEAU (Adrien FONTAINE)",
+                "status": "ok",
+                "order": 0,
+                "subCategories": []
+              },
+              {
+                "id": "ef581b0b-8a95-4e5d-9920-e5ed717ca124",
+                "categoryId": "ddd3d75e-1ce0-4c57-a189-f7892e637be1",
+                "name": "MIDDLEWARE (Sandro CONTU)",
+                "status": "ok",
+                "order": 2,
+                "subCategories": []
+              },
+              {
+                "id": "708fe376-98a5-4768-a72c-2d5f3be6eaa6",
+                "categoryId": "ddd3d75e-1ce0-4c57-a189-f7892e637be1",
+                "name": "SERVICES (Valérie BOICHUT-MARTINE)",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "4ea1069c-81a5-4fc6-8940-37637d0a8637",
+                "categoryId": "ddd3d75e-1ce0-4c57-a189-f7892e637be1",
+                "name": "ETUDES (Romain CASTELLE)",
+                "status": "ok",
+                "order": 3,
+                "subCategories": []
+              },
+              {
+                "id": "1efca973-a467-4a11-9ec6-51763773b1bc",
+                "categoryId": "ddd3d75e-1ce0-4c57-a189-f7892e637be1",
+                "name": "ARCHITECTURE (Frédéric LOMBART)",
+                "status": "ok",
+                "order": 4,
+                "subCategories": []
+              },
+              {
+                "id": "c6105c74-6195-4fb2-8ee4-dbaf38222bbb",
+                "categoryId": "ddd3d75e-1ce0-4c57-a189-f7892e637be1",
+                "name": "SUPPORT (Régis ROHAULT)",
+                "status": "ok",
+                "order": 5,
+                "subCategories": []
+              },
+              {
+                "id": "23764751-63ce-4c73-8f52-154c93a1bcda",
+                "categoryId": "ddd3d75e-1ce0-4c57-a189-f7892e637be1",
+                "name": "ADMINISTRATION & EXPLOITATION (Patrice RIBERO)",
+                "status": "ok",
+                "order": 6,
+                "subCategories": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "838d0b62-005b-4c09-bb50-b87bdaa3690a",
+        "cockpitId": "df55-d555-601d",
+        "name": "MAP",
+        "order": 9,
+        "templateType": "background",
+        "categories": []
+      }
+    ],
+    "zones": [],
+    "logo": null,
+    "scrollingBanner": null
+  }
+}

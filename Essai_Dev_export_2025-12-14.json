@@ -1,0 +1,412 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-14T08:46:13.127Z",
+  "cockpit": {
+    "name": "Essai Dev",
+    "domains": [
+      {
+        "id": "01b82fe3-f7ef-443a-a4e8-3232039958f0",
+        "cockpitId": "7c6e-d006-b26a",
+        "name": "Suivi projet X",
+        "order": 0,
+        "templateType": "hours-tracking",
+        "categories": [],
+        "hoursTracking": {
+          "projectStartDate": "2025-10-01",
+          "salePrice": 61000,
+          "resources": [
+            {
+              "id": "7745b2dd-33a9-4ddc-8d7b-7c0323c991c9",
+              "type": "person",
+              "name": "Patrick Eymard",
+              "order": 0,
+              "dailyRate": 850,
+              "timeEntries": [
+                {
+                  "date": "2025-10-14",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-10-14",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-15",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-22",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-28",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-07",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-13",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-18",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-24",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-16",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-18",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-18",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-17",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-17",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-16",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-15",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-14",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-14",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-15",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-19",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-19",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-20",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-20",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-21",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-21",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-16",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-21",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-24",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-25",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-27",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-10-30",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-01",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-02",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-04",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-10",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-12",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-14",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-17",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-20",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-26",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-11-27",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-04",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-05",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-23",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-23",
+                  "halfDay": "afternoon"
+                }
+              ]
+            },
+            {
+              "id": "2eae1807-44ed-4e12-b638-be13c94e8c53",
+              "type": "person",
+              "name": "Développeur Zabbix",
+              "order": 1,
+              "dailyRate": 700,
+              "timeEntries": [
+                {
+                  "date": "2025-12-14",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-14",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-15",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-15",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-16",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-16",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-23",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-23",
+                  "halfDay": "morning"
+                }
+              ]
+            },
+            {
+              "id": "7602c5d1-04d6-497c-a3f2-4d325a2a6990",
+              "type": "supplier",
+              "name": "TED",
+              "order": 2,
+              "entries": [
+                {
+                  "date": "2025-12-15",
+                  "amount": 11000
+                },
+                {
+                  "date": "2026-01-02",
+                  "amount": 11000
+                }
+              ]
+            },
+            {
+              "id": "9fcb3413-f7af-40ff-9bfc-f0ed53ba2b6a",
+              "type": "person",
+              "name": "Romain Gille",
+              "order": 3,
+              "dailyRate": 700,
+              "timeEntries": [
+                {
+                  "date": "2025-12-14",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-14",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-15",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-15",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-16",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-16",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-17",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-17",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-18",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-19",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-18",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-19",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-20",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-20",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-21",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-21",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-22",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-22",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-23",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-23",
+                  "halfDay": "afternoon"
+                }
+              ]
+            },
+            {
+              "id": "f5e42b2e-d7f1-49cf-b634-f434d54efb6f",
+              "type": "person",
+              "name": "Carine Amani",
+              "order": 4,
+              "dailyRate": 700,
+              "timeEntries": [
+                {
+                  "date": "2025-11-10",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-11-10",
+                  "halfDay": "afternoon"
+                }
+              ]
+            },
+            {
+              "id": "9c5756d6-4d88-4038-9d37-05ed490d8b61",
+              "type": "person",
+              "name": "Mohamed Akli Tiza",
+              "order": 5,
+              "dailyRate": 700,
+              "timeEntries": [
+                {
+                  "date": "2025-12-20",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-20",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-21",
+                  "halfDay": "afternoon"
+                },
+                {
+                  "date": "2025-12-21",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-22",
+                  "halfDay": "morning"
+                },
+                {
+                  "date": "2025-12-22",
+                  "halfDay": "afternoon"
+                }
+              ]
+            }
+          ],
+          "projectEndDate": "2026-01-31"
+        }
+      }
+    ],
+    "zones": [],
+    "logo": null,
+    "scrollingBanner": null
+  }
+}

@@ -1,0 +1,3141 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-14T08:46:19.684Z",
+  "cockpit": {
+    "name": "ADP Meteo des Services",
+    "domains": [
+      {
+        "id": "1831adfa-7b91-4f13-8be4-bb5a18f5b7b0",
+        "cockpitId": "956f-9613-3499",
+        "name": "COMEX / DSI",
+        "order": 0,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "ff4f6802-afc2-4ac2-a89a-1249d045f70b",
+            "domainId": "1831adfa-7b91-4f13-8be4-bb5a18f5b7b0",
+            "name": "Vision globle du SI (douleur principale du DSI)",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "f8a049eb-7a52-4892-bbcd-cb5ae5ff4a55",
+                "categoryId": "ff4f6802-afc2-4ac2-a89a-1249d045f70b",
+                "name": "Vision consolidée du fonctionnement du SI",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "2daf5bf0-ea4b-43b4-9d6a-025c00c4862b",
+                    "elementId": "f8a049eb-7a52-4892-bbcd-cb5ae5ff4a55",
+                    "name": "Disponibilité globale",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "5544b0d7-ef7e-48bb-b755-7a18e38007be",
+                        "subCategoryId": "2daf5bf0-ea4b-43b4-9d6a-025c00c4862b",
+                        "name": "Services critiques en panne",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "ddf872e2-0c5a-4a55-bdbd-86e1f0c760b0",
+                        "subCategoryId": "2daf5bf0-ea4b-43b4-9d6a-025c00c4862b",
+                        "name": "Dégradations durables",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "118de34e-6c07-4a29-a42d-12d6523eabdb",
+                        "subCategoryId": "2daf5bf0-ea4b-43b4-9d6a-025c00c4862b",
+                        "name": "temps cumulé d'indisponibilité visible par les métiers",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "66f2504e-f43f-4864-bbb5-3831471d23f1",
+                    "elementId": "f8a049eb-7a52-4892-bbcd-cb5ae5ff4a55",
+                    "name": "Stabilité globale",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "25f543d0-64ef-4530-8079-2ec9ec971f99",
+                        "subCategoryId": "66f2504e-f43f-4864-bbb5-3831471d23f1",
+                        "name": "Evolutions erratiques",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "f670336c-62f9-4851-9f63-558b4fb04078",
+                        "subCategoryId": "66f2504e-f43f-4864-bbb5-3831471d23f1",
+                        "name": "Indisponibilités récurrentes non résolues",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "96d0923c-e329-4d07-963a-443675c153e4",
+                        "subCategoryId": "66f2504e-f43f-4864-bbb5-3831471d23f1",
+                        "name": "Incidents > 24h non stabilisés",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "0ccf8fca-bc99-405f-b5cb-ed4f25425406",
+                "categoryId": "ff4f6802-afc2-4ac2-a89a-1249d045f70b",
+                "name": "Capacité du DSI à \"voir\" le SI",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "37748de9-d7de-4cd3-96d1-ba836395a76b",
+                    "elementId": "0ccf8fca-bc99-405f-b5cb-ed4f25425406",
+                    "name": "Intégration des sources",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "844f2eee-0f7a-45c5-895f-8fced74d5b84",
+                        "subCategoryId": "37748de9-d7de-4cd3-96d1-ba836395a76b",
+                        "name": "Multiplicité outils (5 à 6 vues à réconcilier)",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "34a652a5-14eb-4cb5-8b26-49a9d617d3d9",
+                        "subCategoryId": "37748de9-d7de-4cd3-96d1-ba836395a76b",
+                        "name": "Absence de standardisation des dashboards",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "89fe9035-2a71-494b-8232-a2eb96244743",
+                        "subCategoryId": "37748de9-d7de-4cd3-96d1-ba836395a76b",
+                        "name": "Absence de tour de contrôle réelle",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "7a3ad53d-19cf-4cef-bf7d-d30c986e82f1",
+                    "elementId": "0ccf8fca-bc99-405f-b5cb-ed4f25425406",
+                    "name": "Complétude",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "b9f4a0d6-5238-412d-bb21-c897a4272674",
+                        "subCategoryId": "7a3ad53d-19cf-4cef-bf7d-d30c986e82f1",
+                        "name": "Zones du SI non supervisées",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "f97e6014-aef5-4b2c-b3f9-4c0c963c67b3",
+                        "subCategoryId": "7a3ad53d-19cf-4cef-bf7d-d30c986e82f1",
+                        "name": "Flux non tracés (notemment industriels)",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "6327de24-ecb0-4ffe-974d-49d9c980091a",
+                        "subCategoryId": "7a3ad53d-19cf-4cef-bf7d-d30c986e82f1",
+                        "name": "Composants inconnus faute de CMDB",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ],
+                "value": "",
+                "unit": ""
+              }
+            ]
+          },
+          {
+            "id": "a8ffc00a-53b4-4ad6-af85-6d5ed35f844e",
+            "domainId": "1831adfa-7b91-4f13-8be4-bb5a18f5b7b0",
+            "name": "Gouvernance & pilotage (soufrance majeure de l'organisation)",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "9264fe41-9e34-4cb8-b1a6-c00df9da2ec0",
+                "categoryId": "a8ffc00a-53b4-4ad6-af85-6d5ed35f844e",
+                "name": "Discipline des processus & responsabilités",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "b59ef844-cbbe-43ba-8a7b-6299b814a850",
+                    "elementId": "9264fe41-9e34-4cb8-b1a6-c00df9da2ec0",
+                    "name": "Respect des circuits incidents",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "1c9bd936-5e1d-444c-89c5-e090e3e8f726",
+                        "subCategoryId": "b59ef844-cbbe-43ba-8a7b-6299b814a850",
+                        "name": "Incidents envoyés directement au PCSSI",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "abf679c5-ba64-4ffd-a45c-d3f91a420de9",
+                        "subCategoryId": "b59ef844-cbbe-43ba-8a7b-6299b814a850",
+                        "name": "Controunements répétés du SVPARO",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "f6cc3557-d481-434e-aef7-a9450c23bf4c",
+                        "subCategoryId": "b59ef844-cbbe-43ba-8a7b-6299b814a850",
+                        "name": "Mélange des niveaux 1 / 2 / 3",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "dcc3127c-aa09-41dd-8f81-9979983fd6b1",
+                    "elementId": "9264fe41-9e34-4cb8-b1a6-c00df9da2ec0",
+                    "name": "Clarté des rôles",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "2de5b7b8-7472-4623-a67e-67af13217f27",
+                        "subCategoryId": "dcc3127c-aa09-41dd-8f81-9979983fd6b1",
+                        "name": "Activités déposées sur PCSSI hors périmètre",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "993a52d4-dbcb-4b77-8537-eaed6abf8522",
+                        "subCategoryId": "dcc3127c-aa09-41dd-8f81-9979983fd6b1",
+                        "name": "Dilution de la supervision",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "d016d719-0e86-4f3d-bd79-4d5a15178082",
+                        "subCategoryId": "dcc3127c-aa09-41dd-8f81-9979983fd6b1",
+                        "name": "Charges indues non anticipées",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "a175c826-1adc-404a-a494-02161ec73988",
+                "categoryId": "a8ffc00a-53b4-4ad6-af85-6d5ed35f844e",
+                "name": "Priorisation stratégique",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "842b9f82-4a8a-49f0-84bf-90e423d35761",
+                    "elementId": "a175c826-1adc-404a-a494-02161ec73988",
+                    "name": "Projets organisationnels critiques non priorisés",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "1441b870-2b84-453f-8bbc-bcbc58ee33a3",
+                        "subCategoryId": "842b9f82-4a8a-49f0-84bf-90e423d35761",
+                        "name": "PKI non modernisé",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "44d30c9f-c6d7-4ed9-b9bb-07c4d20dfbb5",
+                        "subCategoryId": "842b9f82-4a8a-49f0-84bf-90e423d35761",
+                        "name": "Proxys / reverse proxys non alignés",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "755b8d0e-e8b1-4083-ad46-566a213543ce",
+                        "subCategoryId": "842b9f82-4a8a-49f0-84bf-90e423d35761",
+                        "name": "Prérequis infrastructure pour workplace jamais traités",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "99fbd0b7-a84b-4aa2-8093-5b1b33c8412b",
+                    "elementId": "a175c826-1adc-404a-a494-02161ec73988",
+                    "name": "Dépendances métiers / JO non couvertes",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "952a1a62-d304-461b-a202-11c1f09c5794",
+                        "subCategoryId": "99fbd0b7-a84b-4aa2-8093-5b1b33c8412b",
+                        "name": "Contraintes APOC (Orly/CDG)",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "08be7c18-fe52-4519-82a0-f80914b9fb54",
+                        "subCategoryId": "99fbd0b7-a84b-4aa2-8093-5b1b33c8412b",
+                        "name": "Services opérationnels non sécurisés",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "2dd45782-d99a-4576-9034-c61107e90895",
+                        "subCategoryId": "99fbd0b7-a84b-4aa2-8093-5b1b33c8412b",
+                        "name": "Risques image / continuité non mesurés",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "04f02653-9598-4302-9d21-687e2d5867e4",
+            "domainId": "1831adfa-7b91-4f13-8be4-bb5a18f5b7b0",
+            "name": "Risques structurels & exposition du DSI",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "c1b580d0-3119-40b0-8be3-06ff8fceec39",
+                "categoryId": "04f02653-9598-4302-9d21-687e2d5867e4",
+                "name": "Fragilités structurelles du SI",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "2dfd18a4-56a9-4ee5-92bb-92712ae641c1",
+                    "elementId": "c1b580d0-3119-40b0-8be3-06ff8fceec39",
+                    "name": "Supervision défaillante",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "4400ea20-c3b2-4518-93b8-5400a04d8063",
+                        "subCategoryId": "2dfd18a4-56a9-4ee5-92bb-92712ae641c1",
+                        "name": "Systèmes non supervisés (cas du système invisible un an)",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "3468aae2-297e-49e7-8db9-e3cd1147a2a5",
+                        "subCategoryId": "2dfd18a4-56a9-4ee5-92bb-92712ae641c1",
+                        "name": "Tests e2e inexistants",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "e93917a0-090a-47ff-ba85-14e4be36b887",
+                        "subCategoryId": "2dfd18a4-56a9-4ee5-92bb-92712ae641c1",
+                        "name": "Metrics non collectées",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "b991b76d-09b9-4acf-83cc-538adaa97695",
+                    "elementId": "c1b580d0-3119-40b0-8be3-06ff8fceec39",
+                    "name": "Réseau & interconnexions instables",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "a871c032-745f-43ca-9acd-1226dfc4ff6f",
+                        "subCategoryId": "b991b76d-09b9-4acf-83cc-538adaa97695",
+                        "name": "Absence de standards flux",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "3fab093d-41ce-489a-9751-6032148ca30c",
+                        "subCategoryId": "b991b76d-09b9-4acf-83cc-538adaa97695",
+                        "name": "Ouverture \"tout puis on verra\"",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "172b40e5-0855-4bba-9d96-5efee909d4a7",
+                        "subCategoryId": "b991b76d-09b9-4acf-83cc-538adaa97695",
+                        "name": "Risque de coupure transversale",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "d346905a-901f-4212-8b1e-f7eed27367eb",
+                "categoryId": "04f02653-9598-4302-9d21-687e2d5867e4",
+                "name": "Risques métier visibles par le COMEX",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "4f6f6882-b543-41ea-89b7-63f11d284fff",
+                    "elementId": "d346905a-901f-4212-8b1e-f7eed27367eb",
+                    "name": "Risque impact passagers",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "92aebf6c-f0c1-4da8-880b-d5d149e772e0",
+                        "subCategoryId": "4f6f6882-b543-41ea-89b7-63f11d284fff",
+                        "name": "Arrivée bagaes",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "02658b85-12a6-46ed-995e-08b72c16ec56",
+                        "subCategoryId": "4f6f6882-b543-41ea-89b7-63f11d284fff",
+                        "name": "Informations vols",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "10b3ccdb-b302-45d3-a5f3-43c268a5ea09",
+                        "subCategoryId": "4f6f6882-b543-41ea-89b7-63f11d284fff",
+                        "name": "Contrôles sureté",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "8ebaaf35-79ae-4d63-afd7-7f7b8da7e317",
+                    "elementId": "d346905a-901f-4212-8b1e-f7eed27367eb",
+                    "name": "Risques réputationnels / JO",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "fe5b485f-d5b4-41c1-b8df-c4f6cb4983fa",
+                        "subCategoryId": "8ebaaf35-79ae-4d63-afd7-7f7b8da7e317",
+                        "name": "Elément non résilient",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "4e7e8dde-c0d9-40f1-bae2-cb1826d9e54f",
+                        "subCategoryId": "8ebaaf35-79ae-4d63-afd7-7f7b8da7e317",
+                        "name": "Temps mise en route après incident",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "b2234cf7-db9a-4f31-806a-57f887fecb4c",
+                        "subCategoryId": "8ebaaf35-79ae-4d63-afd7-7f7b8da7e317",
+                        "name": "Absence de RPA opérationnels",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "dc5bae53-67a3-4e23-ba01-340060f78ae0",
+            "domainId": "1831adfa-7b91-4f13-8be4-bb5a18f5b7b0",
+            "name": "Capacité du DSI à décider & piloter",
+            "orientation": "horizontal",
+            "order": 3,
+            "elements": [
+              {
+                "id": "e351566e-b02d-490a-8a0c-a61789a9eeb2",
+                "categoryId": "dc5bae53-67a3-4e23-ba01-340060f78ae0",
+                "name": "Synthèse décisionnelle",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "67cfdbd9-c5ce-4cd0-b37d-963694e998e3",
+                    "elementId": "e351566e-b02d-490a-8a0c-a61789a9eeb2",
+                    "name": "Indicateurs actionnables",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "ea9eff41-ca5b-4883-8db0-b2ba838fbeb1",
+                        "subCategoryId": "67cfdbd9-c5ce-4cd0-b37d-963694e998e3",
+                        "name": "Les 5 alertes critiques du jour",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "94f76928-fdd4-40e2-8993-df792ffcc9c0",
+                        "subCategoryId": "67cfdbd9-c5ce-4cd0-b37d-963694e998e3",
+                        "name": "Les 5 risques opérationnels",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "274e048d-39a5-41e1-bb0a-fe966e6fce5b",
+                        "subCategoryId": "67cfdbd9-c5ce-4cd0-b37d-963694e998e3",
+                        "name": "Les 5 blocages projets",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "088adb59-4ec4-41fe-a699-76a2a8679fbd",
+                    "elementId": "e351566e-b02d-490a-8a0c-a61789a9eeb2",
+                    "name": "Lisibilité des dépendances",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "dbfcaed4-6fd7-4ce0-a9f7-94885059ebdf",
+                        "subCategoryId": "088adb59-4ec4-41fe-a699-76a2a8679fbd",
+                        "name": "Réseau --> Workplace",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "b6b758ea-3694-4caa-ae73-0b15caee62e3",
+                        "subCategoryId": "088adb59-4ec4-41fe-a699-76a2a8679fbd",
+                        "name": "Infrastructure --> Digital factory",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "8be81a9b-5459-4e5c-a9b8-0fabe741fb00",
+                        "subCategoryId": "088adb59-4ec4-41fe-a699-76a2a8679fbd",
+                        "name": "RSSI --> Industriel",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "9b71d586-d9fb-4b70-a3a5-57f3a0deae5e",
+                "categoryId": "dc5bae53-67a3-4e23-ba01-340060f78ae0",
+                "name": "Capacité de pilotage à horizon COMEX",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "537f6314-2ccc-4fee-a442-129fb0836c79",
+                    "elementId": "9b71d586-d9fb-4b70-a3a5-57f3a0deae5e",
+                    "name": "Tendances 30/90 jours",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "728b6ae1-0885-48fc-bd0c-af53dc789634",
+                        "subCategoryId": "537f6314-2ccc-4fee-a442-129fb0836c79",
+                        "name": "Stabilité",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "a38e895f-4477-4922-a447-9fbf3ae021ae",
+                        "subCategoryId": "537f6314-2ccc-4fee-a442-129fb0836c79",
+                        "name": "Capacité",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "dcfb8eca-a0b1-4ff2-9e6d-20e4835868fc",
+                        "subCategoryId": "537f6314-2ccc-4fee-a442-129fb0836c79",
+                        "name": "Volume incidents",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "46589ddd-290a-4efe-9d1e-6428da4b3fab",
+                    "elementId": "9b71d586-d9fb-4b70-a3a5-57f3a0deae5e",
+                    "name": "Capacité de reconstruction",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "0265f761-1efe-4e18-af8c-5e35254ed619",
+                        "subCategoryId": "46589ddd-290a-4efe-9d1e-6428da4b3fab",
+                        "name": "Services PRA prêts",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "867f2021-7f33-43bc-adee-29a05e471860",
+                        "subCategoryId": "46589ddd-290a-4efe-9d1e-6428da4b3fab",
+                        "name": "Services à risque",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "76010c4e-0e52-4116-a2fa-4cf822f0c9d9",
+                        "subCategoryId": "46589ddd-290a-4efe-9d1e-6428da4b3fab",
+                        "name": "Goulots d'étranglement connus",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cf6863f8-a903-4453-8cf2-5581b9c4ee95",
+        "cockpitId": "956f-9613-3499",
+        "name": "Sécurité & Cyber",
+        "order": 1,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "90cd4485-f0ac-4cd9-ba3c-e86151a8eaab",
+            "domainId": "cf6863f8-a903-4453-8cf2-5581b9c4ee95",
+            "name": "Gouvernance & PSSI",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "a0f9011d-b945-4baa-96ac-0d11695cc4f8",
+                "categoryId": "90cd4485-f0ac-4cd9-ba3c-e86151a8eaab",
+                "name": "Conformité à la PSSI / NIST",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "365ea982-6fb9-434a-9d7d-e491f89b2682",
+                    "elementId": "a0f9011d-b945-4baa-96ac-0d11695cc4f8",
+                    "name": "Conformité documentaire",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "e342f405-4748-478d-9438-59392bfac841",
+                        "subCategoryId": "365ea982-6fb9-434a-9d7d-e491f89b2682",
+                        "name": "Procédures non rédigées ou non validées par le RSSI",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "063bcef0-4051-456d-af63-1cc9f9ae0b8c",
+                        "subCategoryId": "365ea982-6fb9-434a-9d7d-e491f89b2682",
+                        "name": "Règles NIST non appliqués dans certaines équipes",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "51595df4-2682-405a-887b-2b17164b8ab9",
+                        "subCategoryId": "365ea982-6fb9-434a-9d7d-e491f89b2682",
+                        "name": "Entités n'ayant pas décliné leurs règles locales",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "17bd4ca1-b244-4f06-94b1-520693d951d7",
+                    "elementId": "a0f9011d-b945-4baa-96ac-0d11695cc4f8",
+                    "name": "Application opérationnelle",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "bbdbc3b4-9160-4246-90db-e644efd43fd5",
+                        "subCategoryId": "17bd4ca1-b244-4f06-94b1-520693d951d7",
+                        "name": "Difficultés à faire appliquer certaines règles",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "4b928a10-7ef4-4a8a-9c03-2540f66fd022",
+                        "subCategoryId": "17bd4ca1-b244-4f06-94b1-520693d951d7",
+                        "name": "Cas ou la DSI doit imposer la règle",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "bfc8843d-0844-4b70-9fa4-c4e2a807eff8",
+                        "subCategoryId": "17bd4ca1-b244-4f06-94b1-520693d951d7",
+                        "name": "Non-respect récurrent des consignes de sécurité",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "36bd06fc-b0a8-4fc8-bcc7-ce23db58f799",
+                "categoryId": "90cd4485-f0ac-4cd9-ba3c-e86151a8eaab",
+                "name": "Gouvernance & communication sécurité",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "4eb99c36-55f7-4ce2-a5f8-5e4390908b13",
+                    "elementId": "36bd06fc-b0a8-4fc8-bcc7-ce23db58f799",
+                    "name": "Communication institutionnelle",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "da12119d-ca9d-4ab6-ac40-8de9b35b8b76",
+                        "subCategoryId": "4eb99c36-55f7-4ce2-a5f8-5e4390908b13",
+                        "name": "Notifications obligatoires vers autorité de tutelle / ministères",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "1e844f83-a5ff-40e5-94a6-63786b28a046",
+                        "subCategoryId": "4eb99c36-55f7-4ce2-a5f8-5e4390908b13",
+                        "name": "Mise à jour des documentations RSSI vers les équipes",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "c1eb51bf-f8f9-4a6d-920f-8268593be12c",
+                        "subCategoryId": "4eb99c36-55f7-4ce2-a5f8-5e4390908b13",
+                        "name": "Diffusion des règles de sécurité",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "95803ce0-ce97-4175-85da-97ea00382250",
+                    "elementId": "36bd06fc-b0a8-4fc8-bcc7-ce23db58f799",
+                    "name": "Gouvernance transverse",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "2bdf5222-b945-4a55-86bb-441ec7db73b5",
+                        "subCategoryId": "95803ce0-ce97-4175-85da-97ea00382250",
+                        "name": "Collaboration RSSI Groupe / RSSI ADP",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "e20db29e-5d09-47b4-af4b-e16f91cc5220",
+                        "subCategoryId": "95803ce0-ce97-4175-85da-97ea00382250",
+                        "name": "Participation aux audits",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "4450bde6-a734-4ec1-bf7e-b25d8ec64ac5",
+                        "subCategoryId": "95803ce0-ce97-4175-85da-97ea00382250",
+                        "name": "Gestion des contrats d'audit ouverts",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "e47716cd-5094-49c1-ac10-f8056200d3c9",
+            "domainId": "cf6863f8-a903-4453-8cf2-5581b9c4ee95",
+            "name": "Protection IT",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "944123e5-1fbb-4ccd-866b-d0954ec5582c",
+                "categoryId": "e47716cd-5094-49c1-ac10-f8056200d3c9",
+                "name": "Patrimoine & contrôle des environnements",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "9f75eefb-3a2e-4d52-b8d0-1364f3eb2c41",
+                    "elementId": "944123e5-1fbb-4ccd-866b-d0954ec5582c",
+                    "name": "Maitrise du patrimoine",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "b551028e-5054-4833-ae6e-194860b7d55b",
+                        "subCategoryId": "9f75eefb-3a2e-4d52-b8d0-1364f3eb2c41",
+                        "name": "Serveurs non identifiés / non suivis",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "d7f3e339-51c7-46fa-a102-120a6c381831",
+                        "subCategoryId": "9f75eefb-3a2e-4d52-b8d0-1364f3eb2c41",
+                        "name": "Absence de CMDB complète",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "d3a47e79-f70d-4fd9-8f05-2f56a9ab3586",
+                        "subCategoryId": "9f75eefb-3a2e-4d52-b8d0-1364f3eb2c41",
+                        "name": "Actifs sans repsonsable ou hors périmètre RSSI",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "08e1eef9-3197-4d4e-be8e-c581d819b85b",
+                    "elementId": "944123e5-1fbb-4ccd-866b-d0954ec5582c",
+                    "name": "Configuration & durcissement",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "aa4522d9-547e-4ec2-afcf-a80258d2b80a",
+                        "subCategoryId": "08e1eef9-3197-4d4e-be8e-c581d819b85b",
+                        "name": "Application incomplète des configurations de sécurité",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "7159687e-7d7c-41fd-b5d9-619f51041944",
+                        "subCategoryId": "08e1eef9-3197-4d4e-be8e-c581d819b85b",
+                        "name": "Versions obsolètes / non conformes",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "0b77fbc9-6eb4-47d9-8c22-dd1e2df88096",
+                        "subCategoryId": "08e1eef9-3197-4d4e-be8e-c581d819b85b",
+                        "name": "Absence d'antivirus / EDR cohérent sur certains périmètres",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "c4a93ad7-ee54-476f-843c-dbba56438853",
+                "categoryId": "e47716cd-5094-49c1-ac10-f8056200d3c9",
+                "name": "Processus & comportements sécurité",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "d97a83e8-1be3-4ac0-a86b-6e149b5ef44d",
+                    "elementId": "c4a93ad7-ee54-476f-843c-dbba56438853",
+                    "name": "Respect des consignes",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "ff79ea04-de0c-491d-b64c-5641ea234863",
+                        "subCategoryId": "d97a83e8-1be3-4ac0-a86b-6e149b5ef44d",
+                        "name": "Consignes non appliquées avant escalades",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "fb40e298-90c4-4bf5-b6de-57d7466193c2",
+                        "subCategoryId": "d97a83e8-1be3-4ac0-a86b-6e149b5ef44d",
+                        "name": "Equipes non réactives sur les demandes de sécurité",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "ada6bd30-ce64-401e-a5ba-b332d6855d63",
+                        "subCategoryId": "d97a83e8-1be3-4ac0-a86b-6e149b5ef44d",
+                        "name": "Procédures de sécurité non pleinement suivies",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "67aacd94-1d63-4b56-b795-24df5248a39b",
+                    "elementId": "c4a93ad7-ee54-476f-843c-dbba56438853",
+                    "name": "Formation & sensibilisation",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "b72e6080-e635-46e8-ac98-83b66db46b94",
+                        "subCategoryId": "67aacd94-1d63-4b56-b795-24df5248a39b",
+                        "name": "Besoin de formation continue des équipes",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "75d73d89-f569-4fcf-bdff-e27bff7384fc",
+                        "subCategoryId": "67aacd94-1d63-4b56-b795-24df5248a39b",
+                        "name": "Manque d'acculturation sécurité",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "eb1277ac-df8e-4c0e-bd9e-ad41e8af83d2",
+                        "subCategoryId": "67aacd94-1d63-4b56-b795-24df5248a39b",
+                        "name": "Faible appétence initiale à appliquer les règles",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "fe102fbe-8b8a-48df-ab24-f27b6600318e",
+            "domainId": "cf6863f8-a903-4453-8cf2-5581b9c4ee95",
+            "name": "Protection des Systèmes Industriels",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "55286e74-2869-4008-b716-c1fe8c06875e",
+                "categoryId": "fe102fbe-8b8a-48df-ab24-f27b6600318e",
+                "name": "Cloisonnement & Intégration",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "4abe3384-4def-4e1f-bb24-e6e0256ba5e5",
+                    "elementId": "55286e74-2869-4008-b716-c1fe8c06875e",
+                    "name": "Shadow IT historique",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "388ee065-a9a5-44ea-b97d-48a019b4d343",
+                        "subCategoryId": "4abe3384-4def-4e1f-bb24-e6e0256ba5e5",
+                        "name": "AD montés localement sans contrôle",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "404b2104-f60a-4c9d-b41b-0bddbc59f7b0",
+                        "subCategoryId": "4abe3384-4def-4e1f-bb24-e6e0256ba5e5",
+                        "name": "Serveurs montés sans expertise",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "bffcb750-77f5-435c-ad24-f59e55c0e88a",
+                        "subCategoryId": "4abe3384-4def-4e1f-bb24-e6e0256ba5e5",
+                        "name": "Données et flux non tracés (confirmé par l'équipe Workplace)",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "4ee58306-1118-46af-b96a-a51606cd096b",
+                    "elementId": "55286e74-2869-4008-b716-c1fe8c06875e",
+                    "name": "Alignement avec la DSI",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "0a94b6d7-02b0-4595-8f8d-4e7cc73d480a",
+                        "subCategoryId": "4ee58306-1118-46af-b96a-a51606cd096b",
+                        "name": "Manque de dialogue DSI / Indus (mieux que rien)",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "6449e7ab-c3e2-414e-ae5e-56f290309053",
+                        "subCategoryId": "4ee58306-1118-46af-b96a-a51606cd096b",
+                        "name": "Dépendance à des équipes non IT (automaticiens)",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "336a8a88-e4d9-44f3-87dc-aad50919102f",
+                        "subCategoryId": "4ee58306-1118-46af-b96a-a51606cd096b",
+                        "name": "Risques liés à des infrastructures non durcies",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "ffd128c5-f0ed-41aa-8ccb-bf6e14f54f8b",
+                "categoryId": "fe102fbe-8b8a-48df-ab24-f27b6600318e",
+                "name": "Normalisation des services industriels",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "b5e278d2-cc05-40b7-815f-a3d6e6b52407",
+                    "elementId": "ffd128c5-f0ed-41aa-8ccb-bf6e14f54f8b",
+                    "name": "Services IT mutualisés",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "7244f990-b342-45fd-8e36-bb4e07f9b39f",
+                        "subCategoryId": "b5e278d2-cc05-40b7-815f-a3d6e6b52407",
+                        "name": "Besoin d'AD sécurisé pour les industriels",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "52baccf6-36f0-4604-962f-16e01b32c34f",
+                        "subCategoryId": "b5e278d2-cc05-40b7-815f-a3d6e6b52407",
+                        "name": "Fourniture centralisée d'EDR / Antivirus",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "2a301cbb-7a54-49bf-b29f-4f2998412625",
+                        "subCategoryId": "b5e278d2-cc05-40b7-815f-a3d6e6b52407",
+                        "name": "Fourniture centralisée NTP, DNS, etc.",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cd0a0fb0-ffed-4464-b9ed-6c144e2e9e42",
+                    "elementId": "ffd128c5-f0ed-41aa-8ccb-bf6e14f54f8b",
+                    "name": "Plateforme d'acquisition de données industrielles",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "2c0be7e6-fa3c-458c-8499-9343e5475d85",
+                        "subCategoryId": "cd0a0fb0-ffed-4464-b9ed-6c144e2e9e42",
+                        "name": "Volume très important de messages (dizaines de millions/jour)",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "ba4e2c9b-5425-4c7b-9b32-4ede8fc1259a",
+                        "subCategoryId": "cd0a0fb0-ffed-4464-b9ed-6c144e2e9e42",
+                        "name": "Nécessite de supervision des flux",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "5f95a11f-ddd3-4fea-8f17-44c0e7dd52a3",
+                        "subCategoryId": "cd0a0fb0-ffed-4464-b9ed-6c144e2e9e42",
+                        "name": "Intégrité / sécurité des flux entre VSI et SI DSI",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "15f8117a-7d8b-4090-9ac2-ce322eff5dab",
+            "domainId": "cf6863f8-a903-4453-8cf2-5581b9c4ee95",
+            "name": "Détection & Réponse",
+            "orientation": "horizontal",
+            "order": 3,
+            "elements": [
+              {
+                "id": "9fad859a-d07a-44f1-8842-84f3a415b878",
+                "categoryId": "15f8117a-7d8b-4090-9ac2-ce322eff5dab",
+                "name": "Détection",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "a9db1a0b-53c6-4ea4-9890-7f1230e9af16",
+                    "elementId": "9fad859a-d07a-44f1-8842-84f3a415b878",
+                    "name": "Surveillance SOC",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "98564f54-e7f4-4163-a74f-d05a02b3fc78",
+                        "subCategoryId": "a9db1a0b-53c6-4ea4-9890-7f1230e9af16",
+                        "name": "Alertes critiques en cours",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "a31257fb-2cde-43d1-abac-144e07ce9571",
+                        "subCategoryId": "a9db1a0b-53c6-4ea4-9890-7f1230e9af16",
+                        "name": "Alertes non traitées dans les temps",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "3a31ad9b-5964-48df-b25c-96782fe2f025",
+                        "subCategoryId": "a9db1a0b-53c6-4ea4-9890-7f1230e9af16",
+                        "name": "Absence de visbilité sur certains périmètres (industriels)",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "9e947c7f-0518-4c6e-90d1-ece2e75d90d0",
+                    "elementId": "9fad859a-d07a-44f1-8842-84f3a415b878",
+                    "name": "SIEM",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "c760e823-377f-4d64-b060-4d67300c46a5",
+                        "subCategoryId": "9e947c7f-0518-4c6e-90d1-ece2e75d90d0",
+                        "name": "Qualité des logs collectés",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "ea8cb811-3118-48f0-9d8e-24a86a7675bf",
+                        "subCategoryId": "9e947c7f-0518-4c6e-90d1-ece2e75d90d0",
+                        "name": "Gaps de journeux",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "c826070d-40e1-4c20-abd1-46fc39e8a039",
+                        "subCategoryId": "9e947c7f-0518-4c6e-90d1-ece2e75d90d0",
+                        "name": "Retards de corrélation / ingestion",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "5057bccb-4fa8-45a8-93a6-d88a81bd8277",
+                "categoryId": "15f8117a-7d8b-4090-9ac2-ce322eff5dab",
+                "name": "Réponse aux incidents",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "a8f146d9-ca15-4a41-b706-a612ac5e61ff",
+                    "elementId": "5057bccb-4fa8-45a8-93a6-d88a81bd8277",
+                    "name": "Gestion fonctionnelle",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "a208af49-9449-4b5d-96c0-8ade70fed5d8",
+                        "subCategoryId": "a8f146d9-ca15-4a41-b706-a612ac5e61ff",
+                        "name": "Temps de réponse aux incidents sécurité",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "0d426fbf-bcd7-4867-8c02-5b02bd1756a8",
+                        "subCategoryId": "a8f146d9-ca15-4a41-b706-a612ac5e61ff",
+                        "name": "Plan d'action non suivi / non mis à jour",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "481a2335-50a6-403d-88fd-3d1ee3e2ecde",
+                        "subCategoryId": "a8f146d9-ca15-4a41-b706-a612ac5e61ff",
+                        "name": "Incidents récurrents non résolus",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "fdb1cadc-3a67-4f27-a386-3e44baae9e0c",
+                    "elementId": "5057bccb-4fa8-45a8-93a6-d88a81bd8277",
+                    "name": "Coordination",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "679bd81f-8322-4e25-9658-1ce2ae4d15a8",
+                        "subCategoryId": "fdb1cadc-3a67-4f27-a386-3e44baae9e0c",
+                        "name": "Collaboration DSI / Indus lors d'incidents",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "4433321c-f736-42ae-9de5-2b9118596116",
+                        "subCategoryId": "fdb1cadc-3a67-4f27-a386-3e44baae9e0c",
+                        "name": "Responsabilités mal réparties",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "9479bf35-8d54-4fa8-b74f-d3bc977144ba",
+                        "subCategoryId": "fdb1cadc-3a67-4f27-a386-3e44baae9e0c",
+                        "name": "Escalade tardive ou non maîtrisée",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "dffe9910-29ba-4161-9543-1222fd5ea561",
+            "domainId": "cf6863f8-a903-4453-8cf2-5581b9c4ee95",
+            "name": "Reconstruction / Continuité",
+            "orientation": "horizontal",
+            "order": 4,
+            "elements": [
+              {
+                "id": "f5f09ec1-61f4-4bc7-85d4-b8a092702267",
+                "categoryId": "dffe9910-29ba-4161-9543-1222fd5ea561",
+                "name": "Plans de reprise",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "685b38b9-a43d-406e-a29b-c252f7585fb6",
+                    "elementId": "f5f09ec1-61f4-4bc7-85d4-b8a092702267",
+                    "name": "Existence & qualité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "b30c8e92-e75e-4e49-ac38-f8340aa10168",
+                        "subCategoryId": "685b38b9-a43d-406e-a29b-c252f7585fb6",
+                        "name": "PRA existants mais non testés régulièrement",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "d4afcfcc-b47d-43b7-8770-eaa311471b53",
+                        "subCategoryId": "685b38b9-a43d-406e-a29b-c252f7585fb6",
+                        "name": "PCA incomplet ou partiel",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "957dde20-c712-476f-830d-3cec7b7c1d23",
+                        "subCategoryId": "685b38b9-a43d-406e-a29b-c252f7585fb6",
+                        "name": "Documentation PRA manquante",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "ab315651-984b-4874-a57e-33a47ab91a59",
+                    "elementId": "f5f09ec1-61f4-4bc7-85d4-b8a092702267",
+                    "name": "Tests & exercices",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "b08a06f7-70e2-43b2-b35f-e7dc404a2e95",
+                        "subCategoryId": "ab315651-984b-4874-a57e-33a47ab91a59",
+                        "name": "Tests PRA non réalisés",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "e7d8837c-dc82-4bd1-9dde-aabcf5500d60",
+                        "subCategoryId": "ab315651-984b-4874-a57e-33a47ab91a59",
+                        "name": "Echecs ou retard de reconstruction",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "0f12a2d3-e4d4-4ce6-9ddf-edcf0588e1a7",
+                        "subCategoryId": "ab315651-984b-4874-a57e-33a47ab91a59",
+                        "name": "Appétence limitée des équipes à participer",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "2bd2688a-a300-45c2-903c-c2dfb2aa98b9",
+                "categoryId": "dffe9910-29ba-4161-9543-1222fd5ea561",
+                "name": "Capacité de reconstruction globale",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "605f0fd4-29c3-405c-9b07-9f7ea0486f8d",
+                    "elementId": "2bd2688a-a300-45c2-903c-c2dfb2aa98b9",
+                    "name": "Préparation",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "67df7d56-27e3-422e-8006-a567fa6ea37c",
+                        "subCategoryId": "605f0fd4-29c3-405c-9b07-9f7ea0486f8d",
+                        "name": "Plans pour scénario rençongiciel global",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "17aedae9-1cc6-40cf-aa88-99bddfa65601",
+                        "subCategoryId": "605f0fd4-29c3-405c-9b07-9f7ea0486f8d",
+                        "name": "Sauvegardes isolées / immuables",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "ab1018c0-5c41-4498-8353-5c9c9cb67297",
+                        "subCategoryId": "605f0fd4-29c3-405c-9b07-9f7ea0486f8d",
+                        "name": "Inventaire des dépendances critiques",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "356b6553-31ca-48ac-9ad0-8d2438ee8bf9",
+                    "elementId": "2bd2688a-a300-45c2-903c-c2dfb2aa98b9",
+                    "name": "Résilience des services",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "2d9cb596-e3f4-4537-bc2b-1e874960c8a2",
+                        "subCategoryId": "356b6553-31ca-48ac-9ad0-8d2438ee8bf9",
+                        "name": "Redondances non fonctionnelles",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "0b3ee532-e88b-4457-a2d3-6cf4cf5e801d",
+                        "subCategoryId": "356b6553-31ca-48ac-9ad0-8d2438ee8bf9",
+                        "name": "Composants critiques à risque",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "005f093c-e432-4235-8b1d-90b96b70182f",
+                        "subCategoryId": "356b6553-31ca-48ac-9ad0-8d2438ee8bf9",
+                        "name": "Temps de reconstruction global estimé",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c8140895-f00c-4994-b8c9-56dc89b4f349",
+        "cockpitId": "956f-9613-3499",
+        "name": "Aéroportuaire",
+        "order": 2,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "02d8ddba-43d5-48fc-a1aa-a4b6c067f620",
+            "domainId": "c8140895-f00c-4994-b8c9-56dc89b4f349",
+            "name": "Information Passager",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "a7a1925b-b117-435e-b6b1-9ae48d009c56",
+                "categoryId": "02d8ddba-43d5-48fc-a1aa-a4b6c067f620",
+                "name": "FIDS / Affichage vols",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "ab5eeb5c-5423-4974-9d94-a0f7c5c4bd3d",
+                    "elementId": "a7a1925b-b117-435e-b6b1-9ae48d009c56",
+                    "name": "Qualité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "b31b8527-2a40-4c1d-a5c2-9fd61e9fa3f0",
+                        "subCategoryId": "ab5eeb5c-5423-4974-9d94-a0f7c5c4bd3d",
+                        "name": "Cohérence données vols",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "3147529e-fe83-49a8-a90c-455e23ccb0e0",
+                        "subCategoryId": "ab5eeb5c-5423-4974-9d94-a0f7c5c4bd3d",
+                        "name": "Restards synchronisation",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "0f80d483-f548-47a1-ae2d-62be4d831309",
+                        "subCategoryId": "ab5eeb5c-5423-4974-9d94-a0f7c5c4bd3d",
+                        "name": "Erreurs affichage",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "dc1a744d-36fb-4ebc-80e6-65b355af76a0",
+                    "elementId": "a7a1925b-b117-435e-b6b1-9ae48d009c56",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "7ba979e1-a854-47b9-92cb-536bb734a0ef",
+                        "subCategoryId": "dc1a744d-36fb-4ebc-80e6-65b355af76a0",
+                        "name": "Ecrans HS",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "3a522b4b-0485-4e3c-8e62-86fc1015c4a0",
+                        "subCategoryId": "dc1a744d-36fb-4ebc-80e6-65b355af76a0",
+                        "name": "Zones sans service",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "1f14d786-e300-4238-95e6-37512561bb7e",
+                        "subCategoryId": "dc1a744d-36fb-4ebc-80e6-65b355af76a0",
+                        "name": "Interruptions > SLA",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "6fd111a6-cda9-4295-b9ea-916101c02461",
+                "categoryId": "02d8ddba-43d5-48fc-a1aa-a4b6c067f620",
+                "name": "Annonces & diffusion",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "c5b87ca4-3ce8-417d-b4d1-9e89f341ab3e",
+                    "elementId": "6fd111a6-cda9-4295-b9ea-916101c02461",
+                    "name": "Diffusion audio",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "68d6d9e1-96c8-4be5-a147-eedc9e6098da",
+                        "subCategoryId": "c5b87ca4-3ce8-417d-b4d1-9e89f341ab3e",
+                        "name": "Zones muettes",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "4ca5f3dc-0378-420f-8e95-c10f04d34b9b",
+                        "subCategoryId": "c5b87ca4-3ce8-417d-b4d1-9e89f341ab3e",
+                        "name": "Messages non émis",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "714b19da-5a83-4bed-be07-29196fafb9df",
+                        "subCategoryId": "c5b87ca4-3ce8-417d-b4d1-9e89f341ab3e",
+                        "name": "Coupures",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "97c1cade-bd17-4644-8716-0c9a8542a6af",
+                    "elementId": "6fd111a6-cda9-4295-b9ea-916101c02461",
+                    "name": "Orchestration",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "eb1df37c-51d5-4f6b-80c3-7f5e0822014a",
+                        "subCategoryId": "97c1cade-bd17-4644-8716-0c9a8542a6af",
+                        "name": "Files saturées",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "c73c96b6-15ad-4cea-8d56-253a16f656e0",
+                        "subCategoryId": "97c1cade-bd17-4644-8716-0c9a8542a6af",
+                        "name": "Scripts en erreur",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "4ece34fc-6504-4881-9fc9-b732476197a7",
+                        "subCategoryId": "97c1cade-bd17-4644-8716-0c9a8542a6af",
+                        "name": "Annonce doublées",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "02a2169d-fd78-4431-9fea-ea7fc64f55f4",
+            "domainId": "c8140895-f00c-4994-b8c9-56dc89b4f349",
+            "name": "Flux & parcours passagers",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "479c4991-93d7-440a-8df1-1cecbe2a8977",
+                "categoryId": "02a2169d-fd78-4431-9fea-ea7fc64f55f4",
+                "name": "Traitement passagers",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "dacbd510-a57d-4621-952e-f1057c1f7902",
+                    "elementId": "479c4991-93d7-440a-8df1-1cecbe2a8977",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "fd0ffc1e-a619-4912-b8e4-f93cf59cf4b3",
+                        "subCategoryId": "dacbd510-a57d-4621-952e-f1057c1f7902",
+                        "name": "Enregistrement",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "9fa3bdcc-a226-4189-a512-6c664802368e",
+                        "subCategoryId": "dacbd510-a57d-4621-952e-f1057c1f7902",
+                        "name": "Embarquement",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "7cc811f3-c022-443c-8a41-bef58b9e1cb9",
+                    "elementId": "479c4991-93d7-440a-8df1-1cecbe2a8977",
+                    "name": "Intégrité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "aeb87fbd-5514-4994-8c10-34fccb83608e",
+                        "subCategoryId": "7cc811f3-c022-443c-8a41-bef58b9e1cb9",
+                        "name": "Pertes messages",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "21943fdd-01eb-44e2-a9fa-c36e1b3ec312",
+                        "subCategoryId": "7cc811f3-c022-443c-8a41-bef58b9e1cb9",
+                        "name": "Doublons",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "7f2a7f3f-ad52-4bc0-b595-3953aa359943",
+                        "subCategoryId": "7cc811f3-c022-443c-8a41-bef58b9e1cb9",
+                        "name": "Anomalies du flux",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cd0c2d3d-15cb-4467-b78c-185c31effde8",
+                "categoryId": "02a2169d-fd78-4431-9fea-ea7fc64f55f4",
+                "name": "Interconnexions",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "d2180591-aff7-4eb3-90e9-5b5ccfea74b1",
+                    "elementId": "cd0c2d3d-15cb-4467-b78c-185c31effde8",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "a13acc57-6aa8-4753-8668-14b3d1915f8b",
+                        "subCategoryId": "d2180591-aff7-4eb3-90e9-5b5ccfea74b1",
+                        "name": "Temps traitement",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "9dc6b60e-21b6-4d51-b2db-627757f94f36",
+                        "subCategoryId": "d2180591-aff7-4eb3-90e9-5b5ccfea74b1",
+                        "name": "Retard intégration",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "d4012393-85b3-4cd1-b1b1-2c5cfa8dc382",
+                        "subCategoryId": "d2180591-aff7-4eb3-90e9-5b5ccfea74b1",
+                        "name": "Surcharge",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "9fbc92b3-86c2-4891-86ca-50e52cc95e54",
+                    "elementId": "cd0c2d3d-15cb-4467-b78c-185c31effde8",
+                    "name": "Qualité données",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "f82a04d6-d050-45fb-8ad1-9aae4d88c696",
+                        "subCategoryId": "9fbc92b3-86c2-4891-86ca-50e52cc95e54",
+                        "name": "Erreurs format",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "6891b59b-d0c1-412a-ad7d-b54805dbafd9",
+                        "subCategoryId": "9fbc92b3-86c2-4891-86ca-50e52cc95e54",
+                        "name": "Rejets",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "b9245908-a791-4624-9f4e-74683c0b58d4",
+                        "subCategoryId": "9fbc92b3-86c2-4891-86ca-50e52cc95e54",
+                        "name": "Files en erreur",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "e3a7e1da-865e-47b0-b1f1-4feecdcfc4aa",
+        "cockpitId": "956f-9613-3499",
+        "name": "Digital factory",
+        "order": 3,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "4302cee8-2fcd-4a2f-a38b-2b5bbf1ed7ed",
+            "domainId": "e3a7e1da-865e-47b0-b1f1-4feecdcfc4aa",
+            "name": "Expérience passager",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "2aa7142c-7748-40b4-af51-27d236cda5db",
+                "categoryId": "4302cee8-2fcd-4a2f-a38b-2b5bbf1ed7ed",
+                "name": "Portails Web",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "d55a96fb-bb59-4aea-bef0-d76b7be60ee8",
+                    "elementId": "2aa7142c-7748-40b4-af51-27d236cda5db",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "68ed0130-964f-4520-9e1e-041d0952bfc5",
+                        "subCategoryId": "d55a96fb-bb59-4aea-bef0-d76b7be60ee8",
+                        "name": "Latence",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "c4e12726-7a39-4f6a-88af-9d8faf4f0952",
+                        "subCategoryId": "d55a96fb-bb59-4aea-bef0-d76b7be60ee8",
+                        "name": "Erreurs HTTP",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "c95b3cb8-32de-4428-bfa0-14c34bf35218",
+                        "subCategoryId": "d55a96fb-bb59-4aea-bef0-d76b7be60ee8",
+                        "name": "Lenteur CDN",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "af2014f7-17d8-4168-a77d-a3fee4e5bde6",
+                    "elementId": "2aa7142c-7748-40b4-af51-27d236cda5db",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "26464904-eab4-49a5-ba70-2b3d741a7290",
+                        "subCategoryId": "af2014f7-17d8-4168-a77d-a3fee4e5bde6",
+                        "name": "Uptime",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "6112c357-5bb5-4a15-a7ef-47b71c6fb29c",
+                        "subCategoryId": "af2014f7-17d8-4168-a77d-a3fee4e5bde6",
+                        "name": "Interruptions",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "2b6c015d-683c-4884-8c95-da7aefdd18b7",
+                        "subCategoryId": "af2014f7-17d8-4168-a77d-a3fee4e5bde6",
+                        "name": "Zones géographiques impactées",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "abcb74f5-00ef-46ed-b863-71c3bbb2c24c",
+                "categoryId": "4302cee8-2fcd-4a2f-a38b-2b5bbf1ed7ed",
+                "name": "Application mobile ADP",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "b509c3e7-eb26-4013-8317-6fbcccac500e",
+                    "elementId": "abcb74f5-00ef-46ed-b863-71c3bbb2c24c",
+                    "name": "Stabilité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "ea213247-5d83-465a-a45d-3af3d0d83072",
+                        "subCategoryId": "b509c3e7-eb26-4013-8317-6fbcccac500e",
+                        "name": "Crash rate",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "713180a8-eaf7-4bca-9c5b-a5b7f5dd4713",
+                        "subCategoryId": "b509c3e7-eb26-4013-8317-6fbcccac500e",
+                        "name": "Erreurs API",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "738ef8c9-56c5-45c4-8891-b94a5b3c6e9c",
+                        "subCategoryId": "b509c3e7-eb26-4013-8317-6fbcccac500e",
+                        "name": "Démarrages lents",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "a2957de0-6671-4b64-88d6-f3824a8d5127",
+                    "elementId": "abcb74f5-00ef-46ed-b863-71c3bbb2c24c",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "65482118-2ce6-49cc-8ebc-dae6ce64c504",
+                        "subCategoryId": "a2957de0-6671-4b64-88d6-f3824a8d5127",
+                        "name": "Temps chargement",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "05434a55-c723-44c9-8000-fe893661d925",
+                        "subCategoryId": "a2957de0-6671-4b64-88d6-f3824a8d5127",
+                        "name": "Transactions critiques KO",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "ad36f165-92d1-44d3-bd2f-a02390799a00",
+            "domainId": "e3a7e1da-865e-47b0-b1f1-4feecdcfc4aa",
+            "name": "APIs & intégrations",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "7d87f5d3-ff86-4364-b0ec-c83c4149fd22",
+                "categoryId": "ad36f165-92d1-44d3-bd2f-a02390799a00",
+                "name": "API Passagers",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "ae6882e5-814c-4371-b6b1-27c6502131f6",
+                    "elementId": "7d87f5d3-ff86-4364-b0ec-c83c4149fd22",
+                    "name": "Performance multi-zones",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "d2b03299-f956-4615-907f-e83725317dbd",
+                        "subCategoryId": "ae6882e5-814c-4371-b6b1-27c6502131f6",
+                        "name": "Latence Europe",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "bd63165e-3d92-4118-813c-f5d1b5a22a4d",
+                        "subCategoryId": "ae6882e5-814c-4371-b6b1-27c6502131f6",
+                        "name": "Latence US",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "7947e0cc-b5c4-4db0-b6b6-0cc9c0c64b27",
+                        "subCategoryId": "ae6882e5-814c-4371-b6b1-27c6502131f6",
+                        "name": "Latence Asie",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "72149619-1120-467f-92f9-ac0d160701ff",
+                        "subCategoryId": "ae6882e5-814c-4371-b6b1-27c6502131f6",
+                        "name": "Latence Afrique",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  },
+                  {
+                    "id": "9ced0e26-7f8e-47db-a056-a3f17a4de075",
+                    "elementId": "7d87f5d3-ff86-4364-b0ec-c83c4149fd22",
+                    "name": "Fiabilité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "567bc401-5b5b-4f0e-afa7-3c0e6f3ed5d5",
+                        "subCategoryId": "9ced0e26-7f8e-47db-a056-a3f17a4de075",
+                        "name": "Erreurs 5xx",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "68999e6c-f0c2-4b92-b1cf-ce5c6060c6bf",
+                        "subCategoryId": "9ced0e26-7f8e-47db-a056-a3f17a4de075",
+                        "name": "Timeouts",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "faf86409-900e-4c2e-8d57-8ff8980ef72b",
+                        "subCategoryId": "9ced0e26-7f8e-47db-a056-a3f17a4de075",
+                        "name": "Indisponibilités",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "6bf3418a-6ae5-4eb6-a777-4db6d9adc3ef",
+                "categoryId": "ad36f165-92d1-44d3-bd2f-a02390799a00",
+                "name": "API Opérations",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "8891aecd-d280-45a4-a974-f20886bc3e25",
+                    "elementId": "6bf3418a-6ae5-4eb6-a777-4db6d9adc3ef",
+                    "name": "Débit",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "71cc6914-ce1f-413d-84af-6b6681363b80",
+                        "subCategoryId": "8891aecd-d280-45a4-a974-f20886bc3e25",
+                        "name": "Saturation",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "972defec-7a7e-47ab-8747-b3597159b265",
+                        "subCategoryId": "8891aecd-d280-45a4-a974-f20886bc3e25",
+                        "name": "Throttling",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "94a1bf5e-d779-405b-87d5-358f5dc866ad",
+                        "subCategoryId": "8891aecd-d280-45a4-a974-f20886bc3e25",
+                        "name": "Files pleines",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "fb112398-cfad-4935-91af-962e23eac594",
+                    "elementId": "6bf3418a-6ae5-4eb6-a777-4db6d9adc3ef",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "ff73922c-f4b0-4fbf-aaf2-61164f68f6ff",
+                        "subCategoryId": "fb112398-cfad-4935-91af-962e23eac594",
+                        "name": "Erreurs backend",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "ecd32423-c78d-4bae-a631-77bfc0231439",
+                        "subCategoryId": "fb112398-cfad-4935-91af-962e23eac594",
+                        "name": "Coupures",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "13ad82be-c7c6-4af6-b8a9-6045853ccdee",
+                        "subCategoryId": "fb112398-cfad-4935-91af-962e23eac594",
+                        "name": "Lenteurs récurrentes",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "c93695f1-f5ba-4bfb-8b8b-fde92f8d2b4d",
+            "domainId": "e3a7e1da-865e-47b0-b1f1-4feecdcfc4aa",
+            "name": "Commerce & CRM",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "f3410abd-9a92-4c8b-a1be-7017b8431181",
+                "categoryId": "c93695f1-f5ba-4bfb-8b8b-fde92f8d2b4d",
+                "name": "Tunnel d'achat",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "4919fd31-47fd-42de-83d4-d73393c17564",
+                    "elementId": "f3410abd-9a92-4c8b-a1be-7017b8431181",
+                    "name": "Transaction",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "0a5a5b3f-cac4-43d9-bf4c-8b46c809e8ab",
+                        "subCategoryId": "4919fd31-47fd-42de-83d4-d73393c17564",
+                        "name": "Echec paiement",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "44cc08e3-35f6-4e2f-ae25-adc4b6351468",
+                        "subCategoryId": "4919fd31-47fd-42de-83d4-d73393c17564",
+                        "name": "Erreurs panier",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "b7f03a31-5da5-4996-94a8-0e42af242860",
+                        "subCategoryId": "4919fd31-47fd-42de-83d4-d73393c17564",
+                        "name": "Erreurs recherches",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "9b1cd5bc-a55e-4ef6-8ae2-cf2338381636",
+                    "elementId": "f3410abd-9a92-4c8b-a1be-7017b8431181",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "2ec1822c-cad1-4ebe-b47f-50a2b97ff96a",
+                        "subCategoryId": "9b1cd5bc-a55e-4ef6-8ae2-cf2338381636",
+                        "name": "Lenteur checkout",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "691534d2-1b7b-4fd0-a18b-637e81ddd11f",
+                        "subCategoryId": "9b1cd5bc-a55e-4ef6-8ae2-cf2338381636",
+                        "name": "Timeouts",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "9941a01b-8f9b-4c3f-b030-724eabc01040",
+                        "subCategoryId": "9b1cd5bc-a55e-4ef6-8ae2-cf2338381636",
+                        "name": "Erreurs retour",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "dbf9b82a-c087-40b1-b6fe-dea16879e1dc",
+                "categoryId": "c93695f1-f5ba-4bfb-8b8b-fde92f8d2b4d",
+                "name": "CRM",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "136af3a9-6a80-45e5-8477-ff1d9089cd64",
+                    "elementId": "dbf9b82a-c087-40b1-b6fe-dea16879e1dc",
+                    "name": "Intégration",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "f49ae238-6085-4083-8b32-2dd969f271ae",
+                        "subCategoryId": "136af3a9-6a80-45e5-8477-ff1d9089cd64",
+                        "name": "Synchro retardée",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "3c009632-98d4-4f3b-bbb9-092ef4ff4023",
+                        "subCategoryId": "136af3a9-6a80-45e5-8477-ff1d9089cd64",
+                        "name": "Erreurs API CRM",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "e206f67a-0f18-48f6-86d0-69fd69c500b3",
+                    "elementId": "dbf9b82a-c087-40b1-b6fe-dea16879e1dc",
+                    "name": "Qualité données",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "418ea43c-1c8a-4898-9c35-3fae43a18b4a",
+                        "subCategoryId": "e206f67a-0f18-48f6-86d0-69fd69c500b3",
+                        "name": "Doublons",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "d09bc725-7299-433d-97b3-7897a947116d",
+                        "subCategoryId": "e206f67a-0f18-48f6-86d0-69fd69c500b3",
+                        "name": "Données invalides",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "a5980a5a-be2c-4dc5-8054-2996265e74be",
+                        "subCategoryId": "e206f67a-0f18-48f6-86d0-69fd69c500b3",
+                        "name": "Segments incomplets",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "641b2f20-1303-4874-8c4f-edd5504b1a22",
+        "cockpitId": "956f-9613-3499",
+        "name": "Digital Workplace",
+        "order": 4,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "90ffa5ea-c01c-4d74-b624-fe336bbfb50b",
+            "domainId": "641b2f20-1303-4874-8c4f-edd5504b1a22",
+            "name": "Postes & Environnement de travail",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "f5eab9c7-4b1d-4c0d-9414-8908712c3835",
+                "categoryId": "90ffa5ea-c01c-4d74-b624-fe336bbfb50b",
+                "name": "Postes Utilisateurs",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "362c086d-0cbe-4c53-b524-a570a086dd52",
+                    "elementId": "f5eab9c7-4b1d-4c0d-9414-8908712c3835",
+                    "name": "Santé des postes",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "d71ee25c-87aa-4ed7-8570-6eb0f2743ae2",
+                        "subCategoryId": "362c086d-0cbe-4c53-b524-a570a086dd52",
+                        "name": "CPU saturée",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "072f2016-2d64-4113-8051-5ef54f204e87",
+                        "subCategoryId": "362c086d-0cbe-4c53-b524-a570a086dd52",
+                        "name": "RAM saturée",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "68eb9fb0-8c88-440c-ae0e-7f3af8e25173",
+                        "subCategoryId": "362c086d-0cbe-4c53-b524-a570a086dd52",
+                        "name": "Erreurs système",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "5d5fc4a5-822b-473b-beea-60518151389d",
+                        "subCategoryId": "362c086d-0cbe-4c53-b524-a570a086dd52",
+                        "name": "OS obsolète",
+                        "status": "ok",
+                        "order": 3
+                      },
+                      {
+                        "id": "36f8c18b-c834-48fc-9a49-f3f9f44f2384",
+                        "subCategoryId": "362c086d-0cbe-4c53-b524-a570a086dd52",
+                        "name": "Disque dur (HDD) saturé",
+                        "status": "ok",
+                        "order": 4
+                      }
+                    ]
+                  },
+                  {
+                    "id": "b7177baa-7def-45c0-b340-872db13f67be",
+                    "elementId": "f5eab9c7-4b1d-4c0d-9414-8908712c3835",
+                    "name": "Expérience",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "83e835dc-a1e9-46c7-990c-533a828744c5",
+                        "subCategoryId": "b7177baa-7def-45c0-b340-872db13f67be",
+                        "name": "Lenteurs login",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "037fa0f6-e31e-453f-ae9f-ced8620456b8",
+                        "subCategoryId": "b7177baa-7def-45c0-b340-872db13f67be",
+                        "name": "Incidents récurrents",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "c445c0aa-087d-4132-9398-bba6f8e40625",
+                "categoryId": "90ffa5ea-c01c-4d74-b624-fe336bbfb50b",
+                "name": "VDI",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "8047cfc1-5f96-49f0-9f74-7849b4758b26",
+                    "elementId": "c445c0aa-087d-4132-9398-bba6f8e40625",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "f5cb3e93-8439-48ae-a83e-a67f5bd3cd1c",
+                        "subCategoryId": "8047cfc1-5f96-49f0-9f74-7849b4758b26",
+                        "name": "Latence session",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "acb2bb11-30c1-444f-9862-976e15b60c19",
+                        "subCategoryId": "8047cfc1-5f96-49f0-9f74-7849b4758b26",
+                        "name": "Déconnexions",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "2e5ef7f8-24b6-4687-96bb-4c1853b7a461",
+                    "elementId": "c445c0aa-087d-4132-9398-bba6f8e40625",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "d4e9deea-5d10-4ae6-8dbe-2fae35087995",
+                        "subCategoryId": "2e5ef7f8-24b6-4687-96bb-4c1853b7a461",
+                        "name": "VMs KO",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "5504c2a5-2724-44c1-9fff-f14d746dac67",
+                        "subCategoryId": "2e5ef7f8-24b6-4687-96bb-4c1853b7a461",
+                        "name": "Pool insuffisant",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "c64e1455-5119-47e1-96db-333ca606e423",
+            "domainId": "641b2f20-1303-4874-8c4f-edd5504b1a22",
+            "name": "Collaboration & réunions",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "a7b9fb49-f94a-4621-ac2f-61d50777a507",
+                "categoryId": "c64e1455-5119-47e1-96db-333ca606e423",
+                "name": "Teams & M365",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "2432ce20-1388-44b8-b936-cd4bf89da859",
+                    "elementId": "a7b9fb49-f94a-4621-ac2f-61d50777a507",
+                    "name": "Réunions",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "2b190ee7-362e-4962-9375-7e05f77d7a6f",
+                        "subCategoryId": "2432ce20-1388-44b8-b936-cd4bf89da859",
+                        "name": "Audio dégradée",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "a87ea20e-244f-402d-a1e3-cb9d5ebc8a50",
+                        "subCategoryId": "2432ce20-1388-44b8-b936-cd4bf89da859",
+                        "name": "Vidéo dégradée",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "c9b3d968-1d8f-409c-9360-f3dc4b30ce70",
+                        "subCategoryId": "2432ce20-1388-44b8-b936-cd4bf89da859",
+                        "name": "Coupures",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "4f81fdf2-401f-46a5-a315-29afe008fbfe",
+                    "elementId": "a7b9fb49-f94a-4621-ac2f-61d50777a507",
+                    "name": "Service",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "9ed297bb-218b-43a9-841a-adf29dbb22aa",
+                        "subCategoryId": "4f81fdf2-401f-46a5-a315-29afe008fbfe",
+                        "name": "Incidents M365",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "25ec852b-7365-4073-8818-f370f8063455",
+                        "subCategoryId": "4f81fdf2-401f-46a5-a315-29afe008fbfe",
+                        "name": "Lenteurs globales",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "f2db2dcd-b455-4246-954e-e05e5dcd23fc",
+                "categoryId": "c64e1455-5119-47e1-96db-333ca606e423",
+                "name": "Salles de réunion",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "3cf1f8ab-3622-4f17-800f-6ea58ba6a146",
+                    "elementId": "f2db2dcd-b455-4246-954e-e05e5dcd23fc",
+                    "name": "Equipements",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "7a3e9cef-4345-4392-a600-604d8b2b7940",
+                        "subCategoryId": "3cf1f8ab-3622-4f17-800f-6ea58ba6a146",
+                        "name": "Caméras HS",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "25b6f131-e6ee-42d0-a0c5-3baf3e532867",
+                        "subCategoryId": "3cf1f8ab-3622-4f17-800f-6ea58ba6a146",
+                        "name": "Micro HS",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "e30e7bdd-0351-4956-b05a-2b4c33f6dd6b",
+                        "subCategoryId": "3cf1f8ab-3622-4f17-800f-6ea58ba6a146",
+                        "name": "Ecrans HS",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "c8b52d92-8854-44eb-90de-2563e0971be1",
+                    "elementId": "f2db2dcd-b455-4246-954e-e05e5dcd23fc",
+                    "name": "Connectivité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "ac5b1ee4-bf6b-4d0a-a7d5-d804e4b37897",
+                        "subCategoryId": "c8b52d92-8854-44eb-90de-2563e0971be1",
+                        "name": "Réseau",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "339b0241-3333-4ed4-87af-e231ff027f96",
+                        "subCategoryId": "c8b52d92-8854-44eb-90de-2563e0971be1",
+                        "name": "Erreurs HDMI",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "70b06046-7d01-4033-959f-18506f76d431",
+                        "subCategoryId": "c8b52d92-8854-44eb-90de-2563e0971be1",
+                        "name": "Incompatibilités",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "79752fd1-ee31-44a2-9d6b-e98bd9e76e85",
+        "cockpitId": "956f-9613-3499",
+        "name": "Infrastructure",
+        "order": 5,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "238eb626-e159-4b68-b306-7e100ced8801",
+            "domainId": "79752fd1-ee31-44a2-9d6b-e98bd9e76e85",
+            "name": "Réseau",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "08cd63a7-d8ad-4144-b8c1-46c9db399bd8",
+                "categoryId": "238eb626-e159-4b68-b306-7e100ced8801",
+                "name": "LAN / WAN",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "fa4ff981-912e-4bc9-8cbb-674fd17bd2ec",
+                    "elementId": "08cd63a7-d8ad-4144-b8c1-46c9db399bd8",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "a4e07727-5168-4c07-94a1-ac9768ee5209",
+                        "subCategoryId": "fa4ff981-912e-4bc9-8cbb-674fd17bd2ec",
+                        "name": "Latence",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "98772f5e-3759-42db-acf2-d93573de1fe1",
+                        "subCategoryId": "fa4ff981-912e-4bc9-8cbb-674fd17bd2ec",
+                        "name": "Perte paquets",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "2d27bcf9-0bd2-4806-bf97-5543c99af257",
+                        "subCategoryId": "fa4ff981-912e-4bc9-8cbb-674fd17bd2ec",
+                        "name": "Saturation",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "1afa220e-9c1a-4532-95fb-967f0da0d835",
+                    "elementId": "08cd63a7-d8ad-4144-b8c1-46c9db399bd8",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "8276cdb9-10f9-4d67-87da-3da6302a5483",
+                        "subCategoryId": "1afa220e-9c1a-4532-95fb-967f0da0d835",
+                        "name": "Coupures",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "953eec56-02c9-4415-9570-85d93373b1ea",
+                        "subCategoryId": "1afa220e-9c1a-4532-95fb-967f0da0d835",
+                        "name": "Equipements KO",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "55fc692c-57a7-4cb0-b8bb-d34112a6ce9f",
+                "categoryId": "238eb626-e159-4b68-b306-7e100ced8801",
+                "name": "Firewalls / Proxy",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "0e5f149c-86ff-4fed-820f-91bf5f8b1892",
+                    "elementId": "55fc692c-57a7-4cb0-b8bb-d34112a6ce9f",
+                    "name": "Sécurité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "cd257996-125b-4bb4-ba46-3f07ad47824a",
+                        "subCategoryId": "0e5f149c-86ff-4fed-820f-91bf5f8b1892",
+                        "name": "Ports trop ouverts",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "5f98b830-fa15-4b78-939d-23cb1a8a1224",
+                        "subCategoryId": "0e5f149c-86ff-4fed-820f-91bf5f8b1892",
+                        "name": "Règles laxistes",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "f43f5b7b-f397-473f-821d-ad559cc712a5",
+                    "elementId": "55fc692c-57a7-4cb0-b8bb-d34112a6ce9f",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "e514ef80-3b31-495c-9d81-8797edf99f1b",
+                        "subCategoryId": "f43f5b7b-f397-473f-821d-ad559cc712a5",
+                        "name": "Lenteurs proxy",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "9e6b595c-d6e5-43ca-880c-43ae5a55d00e",
+                        "subCategoryId": "f43f5b7b-f397-473f-821d-ad559cc712a5",
+                        "name": "Erreurs certificats",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "4f56451c-9e68-4041-8578-0bc179cd3cd7",
+                "categoryId": "238eb626-e159-4b68-b306-7e100ced8801",
+                "name": "Routeurs / Switches",
+                "status": "ok",
+                "order": 2,
+                "subCategories": [
+                  {
+                    "id": "bd801dca-c097-435a-b4aa-4143c525b438",
+                    "elementId": "4f56451c-9e68-4041-8578-0bc179cd3cd7",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "e7c5b049-3a6c-4722-b093-027a219134d5",
+                        "subCategoryId": "bd801dca-c097-435a-b4aa-4143c525b438",
+                        "name": "Coupures",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "735dca81-7e98-4e09-80fe-e3cabac93753",
+                        "subCategoryId": "bd801dca-c097-435a-b4aa-4143c525b438",
+                        "name": "Equipements KO",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "294bfefa-c5ff-4c96-9c0f-cf088c17d536",
+                    "elementId": "4f56451c-9e68-4041-8578-0bc179cd3cd7",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "f303b4f8-59b8-4fa4-95ee-d84863202f21",
+                        "subCategoryId": "294bfefa-c5ff-4c96-9c0f-cf088c17d536",
+                        "name": "Lenteurs",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "ccf9f394-4e4b-4b36-98c1-1bddcd4340d7",
+                        "subCategoryId": "294bfefa-c5ff-4c96-9c0f-cf088c17d536",
+                        "name": "Saturation",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "96fc4466-acd6-48b3-8040-f1c1aae9fd19",
+                        "subCategoryId": "294bfefa-c5ff-4c96-9c0f-cf088c17d536",
+                        "name": "pertes de paquets",
+                        "status": "ok",
+                        "order": 2
+                      },
+                      {
+                        "id": "47ea2c0c-363b-48e8-ac14-2b2e81ee4aa8",
+                        "subCategoryId": "294bfefa-c5ff-4c96-9c0f-cf088c17d536",
+                        "name": "Latence",
+                        "status": "ok",
+                        "order": 3
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "717e6f74-c24e-45d3-8a26-c4941176bbf1",
+                "categoryId": "238eb626-e159-4b68-b306-7e100ced8801",
+                "name": "Bornes Wifi",
+                "status": "ok",
+                "order": 3,
+                "subCategories": [
+                  {
+                    "id": "df12b9e8-f330-4fee-8493-e56a1a89b1b7",
+                    "elementId": "717e6f74-c24e-45d3-8a26-c4941176bbf1",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "fcae3a31-de8d-4447-bcbf-231b3f9ec20f",
+                        "subCategoryId": "df12b9e8-f330-4fee-8493-e56a1a89b1b7",
+                        "name": "Couverture",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "cd96871e-ec34-4bca-9913-05f2bfe969bd",
+                        "subCategoryId": "df12b9e8-f330-4fee-8493-e56a1a89b1b7",
+                        "name": "Equipements KO",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "85bb1360-8ef3-486d-9ea1-91fde362953d",
+                        "subCategoryId": "df12b9e8-f330-4fee-8493-e56a1a89b1b7",
+                        "name": "Saturation connexions",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "2c602229-b4b8-42e9-bb12-3a781daedbdd",
+                    "elementId": "717e6f74-c24e-45d3-8a26-c4941176bbf1",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "3d579f30-f32d-445b-92d8-e6ed44f3162e",
+                        "subCategoryId": "2c602229-b4b8-42e9-bb12-3a781daedbdd",
+                        "name": "Lenteurs",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "4e28752d-a5b4-4d9a-8b53-97ee92ed13a6",
+                        "subCategoryId": "2c602229-b4b8-42e9-bb12-3a781daedbdd",
+                        "name": "Lenteurs connexion",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "dd0e8dd7-beac-499f-9c72-4605d0326ab5",
+            "domainId": "79752fd1-ee31-44a2-9d6b-e98bd9e76e85",
+            "name": "Data centers",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "9a7b77c2-24a4-443d-8cac-6c9e5ae49dbf",
+                "categoryId": "dd0e8dd7-beac-499f-9c72-4605d0326ab5",
+                "name": "Serveurs",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "fb240fc9-6c7a-4575-a4ac-4b59bc997003",
+                    "elementId": "9a7b77c2-24a4-443d-8cac-6c9e5ae49dbf",
+                    "name": "Capacité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "c4b3b7c0-fd5c-4c8d-be76-137bcfcb717d",
+                        "subCategoryId": "fb240fc9-6c7a-4575-a4ac-4b59bc997003",
+                        "name": "CPU Haut",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "a758e891-8366-4deb-a69a-b6a3b9a8dd4f",
+                        "subCategoryId": "fb240fc9-6c7a-4575-a4ac-4b59bc997003",
+                        "name": "RAM Saturée",
+                        "status": "ok",
+                        "order": 1
+                      },
+                      {
+                        "id": "e18e19a7-d55d-442f-9e53-dbeef25d25cd",
+                        "subCategoryId": "fb240fc9-6c7a-4575-a4ac-4b59bc997003",
+                        "name": "Stockage",
+                        "status": "ok",
+                        "order": 2
+                      }
+                    ]
+                  },
+                  {
+                    "id": "404dad68-d109-4c3d-a5fb-e67e76e88c4a",
+                    "elementId": "9a7b77c2-24a4-443d-8cac-6c9e5ae49dbf",
+                    "name": "Santé",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "8ac062f0-6b3b-40cb-810a-43fcb2d8bb37",
+                        "subCategoryId": "404dad68-d109-4c3d-a5fb-e67e76e88c4a",
+                        "name": "Hôte en erreur",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "563ca678-a45b-42aa-9172-dd64ee98eb67",
+                        "subCategoryId": "404dad68-d109-4c3d-a5fb-e67e76e88c4a",
+                        "name": "VM KO",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "63e8cd26-c1fa-4f63-878d-2b0deb6fbb33",
+                "categoryId": "dd0e8dd7-beac-499f-9c72-4605d0326ab5",
+                "name": "Stockage",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "ead85ae4-5079-47a9-a5f7-cd506c6dda25",
+                    "elementId": "63e8cd26-c1fa-4f63-878d-2b0deb6fbb33",
+                    "name": "Utilisation",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "3dd59195-543f-4d64-a4a8-9dc87f6da139",
+                        "subCategoryId": "ead85ae4-5079-47a9-a5f7-cd506c6dda25",
+                        "name": "Saturation",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "96079886-920c-4265-aeac-5c8e453cfdaa",
+                        "subCategoryId": "ead85ae4-5079-47a9-a5f7-cd506c6dda25",
+                        "name": "Disques pleins",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "c0edf7c0-367e-4158-87ff-ef8ce67ea37f",
+                    "elementId": "63e8cd26-c1fa-4f63-878d-2b0deb6fbb33",
+                    "name": "Performance",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "3090d0f1-0623-4be0-bcc4-d73f8ba82eff",
+                        "subCategoryId": "c0edf7c0-367e-4158-87ff-ef8ce67ea37f",
+                        "name": "Latence IO",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "db4791fa-38c9-4874-887a-e97293d34f7d",
+                        "subCategoryId": "c0edf7c0-367e-4158-87ff-ef8ce67ea37f",
+                        "name": "Erreurs",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "05790812-3407-4169-8466-c0b91ae8978a",
+            "domainId": "79752fd1-ee31-44a2-9d6b-e98bd9e76e85",
+            "name": "Cloud & Saas",
+            "orientation": "horizontal",
+            "order": 2,
+            "elements": [
+              {
+                "id": "a9dbd90b-a85e-45f0-946f-7e1649c2a028",
+                "categoryId": "05790812-3407-4169-8466-c0b91ae8978a",
+                "name": "Azure",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "c49e021e-d182-4ec4-bf2f-175f39ad8c3e",
+                    "elementId": "a9dbd90b-a85e-45f0-946f-7e1649c2a028",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "9ffc39d5-c83c-419b-8283-3497e4dd1aff",
+                        "subCategoryId": "c49e021e-d182-4ec4-bf2f-175f39ad8c3e",
+                        "name": "Panne PaaS",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "8563cb85-b0fe-44cd-8b56-d5ed69cd3edd",
+                        "subCategoryId": "c49e021e-d182-4ec4-bf2f-175f39ad8c3e",
+                        "name": "Erreurs service",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "eb76c860-e19c-41b7-8634-ebe0cecc7957",
+                    "elementId": "a9dbd90b-a85e-45f0-946f-7e1649c2a028",
+                    "name": "Intégration",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "61d465ac-e2e2-4d60-8391-7a23baf19272",
+                        "subCategoryId": "eb76c860-e19c-41b7-8634-ebe0cecc7957",
+                        "name": "Timeout on-prem vs Cloud",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "e8fd49fb-28d2-45dc-bcd5-bf3b6f80a16d",
+                        "subCategoryId": "eb76c860-e19c-41b7-8634-ebe0cecc7957",
+                        "name": "Erreurs Gateway",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "48f315b6-4b27-49c7-b571-a65aecec81e0",
+                "categoryId": "05790812-3407-4169-8466-c0b91ae8978a",
+                "name": "Saas Métiers",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "28da68b6-fe6d-41e6-a779-020729e5133d",
+                    "elementId": "48f315b6-4b27-49c7-b571-a65aecec81e0",
+                    "name": "Disponibilité",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "c2ecb218-96ea-441f-99ff-3ddbd17da2c4",
+                        "subCategoryId": "28da68b6-fe6d-41e6-a779-020729e5133d",
+                        "name": "Panne éditeur",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "c1d18387-9293-49e6-869c-5830e5346dbe",
+                        "subCategoryId": "28da68b6-fe6d-41e6-a779-020729e5133d",
+                        "name": "AAPI indisponible",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "03007b25-715e-4aa4-b78d-a16484f93e66",
+                    "elementId": "48f315b6-4b27-49c7-b571-a65aecec81e0",
+                    "name": "Intégrité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "5153f41e-7b4d-42c0-8309-decaa8523002",
+                        "subCategoryId": "03007b25-715e-4aa4-b78d-a16484f93e66",
+                        "name": "Données non synchro",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "7698501c-046e-492c-8dec-e49d1d8ff6b7",
+                        "subCategoryId": "03007b25-715e-4aa4-b78d-a16484f93e66",
+                        "name": "Erreurs API",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "efd5c9f9-6170-4596-8885-ba92a1f487f4",
+        "cockpitId": "956f-9613-3499",
+        "name": "Support & Supervision",
+        "order": 6,
+        "templateType": "standard",
+        "categories": [
+          {
+            "id": "aba6faab-3d00-446e-8bdf-6bc65ac20bcf",
+            "domainId": "efd5c9f9-6170-4596-8885-ba92a1f487f4",
+            "name": "Supervision",
+            "orientation": "horizontal",
+            "order": 0,
+            "elements": [
+              {
+                "id": "4709d8eb-2637-4585-b99d-aaabc6a4e2d7",
+                "categoryId": "aba6faab-3d00-446e-8bdf-6bc65ac20bcf",
+                "name": "Couverture supervision",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "e80ee007-0cf9-4aa2-985c-80ba52321359",
+                    "elementId": "4709d8eb-2637-4585-b99d-aaabc6a4e2d7",
+                    "name": "Technique",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "73bb5334-3222-44c9-a620-d6ed4611c8ff",
+                        "subCategoryId": "e80ee007-0cf9-4aa2-985c-80ba52321359",
+                        "name": "métriques manquantes",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "58632103-bee8-4fcd-b6b2-4d88f4b861d1",
+                        "subCategoryId": "e80ee007-0cf9-4aa2-985c-80ba52321359",
+                        "name": "Sondes KO",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "f85ab2fa-39c5-4042-aa6a-fa09d7c265ea",
+                    "elementId": "4709d8eb-2637-4585-b99d-aaabc6a4e2d7",
+                    "name": "Fonctionnelle",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "6cba2871-8323-4684-a188-202ad6512f4e",
+                        "subCategoryId": "f85ab2fa-39c5-4042-aa6a-fa09d7c265ea",
+                        "name": "Tests e2e KO",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "f19ccec1-d544-4f60-b796-b85115fbd1c9",
+                        "subCategoryId": "f85ab2fa-39c5-4042-aa6a-fa09d7c265ea",
+                        "name": "Périmètre incomplet",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "be24ec33-cf10-408c-aa52-fad297ba3f96",
+                "categoryId": "aba6faab-3d00-446e-8bdf-6bc65ac20bcf",
+                "name": "Qualité des alertes",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "2b499e3a-b5cb-47c4-ae8c-7201a0d7beee",
+                    "elementId": "be24ec33-cf10-408c-aa52-fad297ba3f96",
+                    "name": "Pertinence",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "034e23e8-ded1-4984-ac05-26bb493d7868",
+                        "subCategoryId": "2b499e3a-b5cb-47c4-ae8c-7201a0d7beee",
+                        "name": "Bruit",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "15a9a7f7-2a02-42d7-9526-5ef19b266631",
+                        "subCategoryId": "2b499e3a-b5cb-47c4-ae8c-7201a0d7beee",
+                        "name": "Alertes inutiles",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "c62d5fe7-99d3-4874-a71b-79a1f8233cb7",
+                    "elementId": "be24ec33-cf10-408c-aa52-fad297ba3f96",
+                    "name": "Criticité",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "d444d2ce-bee5-47cf-9217-0592fb84f071",
+                        "subCategoryId": "c62d5fe7-99d3-4874-a71b-79a1f8233cb7",
+                        "name": "Alertes techniques non traitées",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "08544f94-eb02-4ec0-9d0e-b467d1f86828",
+                        "subCategoryId": "c62d5fe7-99d3-4874-a71b-79a1f8233cb7",
+                        "name": "Retard d'alerte",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "b8a04dc8-a26c-4ebd-add2-dffbc677438a",
+            "domainId": "efd5c9f9-6170-4596-8885-ba92a1f487f4",
+            "name": "Incidents & crises",
+            "orientation": "horizontal",
+            "order": 1,
+            "elements": [
+              {
+                "id": "cf500b5d-2a9f-45f9-8d5c-bfb4e4cd9194",
+                "categoryId": "b8a04dc8-a26c-4ebd-add2-dffbc677438a",
+                "name": "Incidents",
+                "status": "ok",
+                "order": 0,
+                "subCategories": [
+                  {
+                    "id": "4f9070fb-6734-43ee-af84-7d46f0aa5cae",
+                    "elementId": "cf500b5d-2a9f-45f9-8d5c-bfb4e4cd9194",
+                    "name": "Processus",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "b141af98-a550-4212-ac5d-b836cbbfae6b",
+                        "subCategoryId": "4f9070fb-6734-43ee-af84-7d46f0aa5cae",
+                        "name": "Incidents mal routés",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "af37a782-44ff-4f17-8b8c-ef8958726160",
+                        "subCategoryId": "4f9070fb-6734-43ee-af84-7d46f0aa5cae",
+                        "name": "RCA manquant",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "969e013d-cdbf-44b8-8ee9-8eaed395f6b7",
+                    "elementId": "cf500b5d-2a9f-45f9-8d5c-bfb4e4cd9194",
+                    "name": "Résolution",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "7bd4056c-133e-43e3-a496-c39e4d768d5f",
+                        "subCategoryId": "969e013d-cdbf-44b8-8ee9-8eaed395f6b7",
+                        "name": "MTTR",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "6b02ccd5-b0cd-486c-ad23-a68ad5a68aa6",
+                        "subCategoryId": "969e013d-cdbf-44b8-8ee9-8eaed395f6b7",
+                        "name": "Incidents récurrents",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "baa48e7e-e2eb-44b9-9818-fc103a72a8b4",
+                "categoryId": "b8a04dc8-a26c-4ebd-add2-dffbc677438a",
+                "name": "Gestion de crise",
+                "status": "ok",
+                "order": 1,
+                "subCategories": [
+                  {
+                    "id": "50de69c5-1ef7-4195-afd5-28196cf78924",
+                    "elementId": "baa48e7e-e2eb-44b9-9818-fc103a72a8b4",
+                    "name": "Activation",
+                    "orientation": "horizontal",
+                    "order": 0,
+                    "subElements": [
+                      {
+                        "id": "955180c0-5963-44a3-a985-37c92b5c0e89",
+                        "subCategoryId": "50de69c5-1ef7-4195-afd5-28196cf78924",
+                        "name": "Déclenchement tardif",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "75ad431c-5896-4893-a143-d2ca1b884cf5",
+                        "subCategoryId": "50de69c5-1ef7-4195-afd5-28196cf78924",
+                        "name": "Astreinte indisponible",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  },
+                  {
+                    "id": "d97e0c6e-f116-430c-8e8c-e187b50325a5",
+                    "elementId": "baa48e7e-e2eb-44b9-9818-fc103a72a8b4",
+                    "name": "Communication",
+                    "orientation": "horizontal",
+                    "order": 1,
+                    "subElements": [
+                      {
+                        "id": "06152be6-2489-43c6-aa72-8fb317b2b259",
+                        "subCategoryId": "d97e0c6e-f116-430c-8e8c-e187b50325a5",
+                        "name": "Info tardive",
+                        "status": "ok",
+                        "order": 0
+                      },
+                      {
+                        "id": "72a311df-ce9b-4e5e-95b3-1e79849039d6",
+                        "subCategoryId": "d97e0c6e-f116-430c-8e8c-e187b50325a5",
+                        "name": "Messages erronés",
+                        "status": "ok",
+                        "order": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "zones": [],
+    "logo": null,
+    "scrollingBanner": null
+  }
+}
