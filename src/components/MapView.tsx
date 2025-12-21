@@ -25,6 +25,7 @@ const STATUS_PRIORITY: Record<TileStatus, number> = {
   information: 2,
   deconnecte: 1,
   herite: 0,
+  herite_domaine: 0,
 };
 
 // Interface pour un cluster de points

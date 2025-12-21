@@ -135,6 +135,7 @@ const STATUS_PRIORITY: Record<TileStatus, number> = {
   'ok': 0,
   'information': 1,
   'herite': 2,
+  'herite_domaine': 2,
   'deconnecte': 3,
   'mineur': 4,
   'critique': 5,
