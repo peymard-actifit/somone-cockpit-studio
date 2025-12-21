@@ -84,34 +84,34 @@ function SortableCategoryItem({ category, onIconClick, onNameChange, onDelete, s
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1 p-2 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
       {/* Handle de drag */}
       <div
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 text-[#94A3B8] hover:text-[#1E3A5F]"
+        className="cursor-grab active:cursor-grabbing p-0.5 text-[#94A3B8] hover:text-[#1E3A5F] shrink-0"
         title="Glisser pour réorganiser"
       >
-        <MuiIcon name="DragIndicator" size={16} />
+        <MuiIcon name="DragIndicator" size={14} />
       </div>
       <button
         onClick={onIconClick}
-        className="flex items-center justify-center w-8 h-8 bg-white border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
+        className="flex items-center justify-center w-6 h-6 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors shrink-0"
         title="Choisir une icône"
       >
         {category.icon ? (
-          <MuiIcon name={category.icon} size={18} className="text-[#1E3A5F]" />
+          <MuiIcon name={category.icon} size={14} className="text-[#1E3A5F]" />
         ) : (
-          <MuiIcon name="Image" size={18} className="text-[#94A3B8]" />
+          <MuiIcon name="Image" size={14} className="text-[#94A3B8]" />
         )}
       </button>
-      <EditableInput value={category.name} onChange={onNameChange} className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]" />
-      <span className="text-xs text-[#94A3B8]">
-        {subElementsCount} élément{subElementsCount > 1 ? 's' : ''}
+      <EditableInput value={category.name} onChange={onNameChange} className="flex-1 min-w-0 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F] truncate" />
+      <span className="text-xs text-[#94A3B8] shrink-0 whitespace-nowrap">
+        {subElementsCount}
       </span>
       <button
         onClick={onDelete}
-        className="p-1 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+        className="p-1 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded transition-colors shrink-0"
         title="Supprimer la catégorie"
       >
         <MuiIcon name="Delete" size={16} />
