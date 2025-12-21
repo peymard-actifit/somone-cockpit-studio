@@ -1,0 +1,64 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Version: 14.7.1
+Date: 2025-12-21 18:41:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.7.1 (patch)
+Version precedente: 14.7.0
+Message de commit: Fix compilation erreur TypeScript sur navigation sous-element (v14.7.1)
+
+FONCTIONNALITES AJOUTEES (v14.7.0)
+----------------------------------
+
+1. AFFICHAGE DE LA LISTE DES ELEMENTS/SOUS-ELEMENTS LIES
+   Dans le menu d'edition (section Proprietes), sous la mention 
+   "Cet element est lie" ou "Ce sous-element est lie", 
+   on affiche maintenant :
+   - La liste complete des elements/sous-elements lies
+   - Le chemin complet (Domaine / Categorie / Element / ...)
+   - Le nom en gras pour identification rapide
+
+2. NAVIGATION VERS LES ELEMENTS LIES
+   En cliquant sur un element/sous-element dans la liste des liaisons,
+   on navigue directement vers son menu d'edition :
+   - Changement automatique de domaine si necessaire
+   - Selection de l'element ou sous-element
+   - Ouverture de son panneau d'edition
+
+3. DELIAISON INDIVIDUELLE
+   Chaque element/sous-element dans la liste possede un bouton 
+   de deliaison (icone LinkOff) visible au survol permettant de :
+   - Couper la liaison avec cet element specifique seulement
+   - Garder les autres liaisons intactes
+
+4. BOUTON DELIAISON GLOBALE
+   Le bouton "Delier cet element de tous" ou 
+   "Delier ce sous-element de tous" reste disponible pour 
+   couper toutes les liaisons en une seule action.
+
+NOUVELLES FONCTIONS DANS LE STORE
+---------------------------------
+- getLinkedElements(elementId): Retourne tous les elements lies
+- getLinkedSubElements(subElementId): Retourne tous les sous-elements lies
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.7.0 -> 14.7.1 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (10.23s)
+5. Deploiement Vercel: REUSSI (48s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+

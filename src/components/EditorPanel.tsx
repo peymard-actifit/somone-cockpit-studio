@@ -933,6 +933,30 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     );
                   })()}
                   
+                  {/* Ajouter une nouvelle liaison */}
+                  <div className="pt-2 border-t border-[#E2E8F0]">
+                    <select
+                      className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const targetId = e.target.value;
+                          linkSubElement(selectedSubElement.id, targetId);
+                          setSelectedSubElement({ ...selectedSubElement, linkedGroupId: targetId });
+                        }
+                      }}
+                    >
+                      <option value="">Lier à un autre sous-élément...</option>
+                      {getAllSubElements()
+                        .filter(item => item.subElement.id !== selectedSubElement.id && item.subElement.linkedGroupId !== selectedSubElement.linkedGroupId)
+                        .map(item => (
+                          <option key={item.subElement.id} value={item.subElement.linkedGroupId || item.subElement.id}>
+                            {item.domainName} / {item.categoryName} / {item.elementName} / {item.subCategoryName} / {item.subElement.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  
                   <button
                     onClick={() => {
                       unlinkSubElement(selectedSubElement.id);
@@ -1382,6 +1406,28 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       </div>
                     );
                   })()}
+                  
+                  {/* Ajouter une nouvelle liaison */}
+                  <div className="pt-2 border-t border-[#E2E8F0]">
+                    <select
+                      className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          linkElement(element.id, e.target.value);
+                        }
+                      }}
+                    >
+                      <option value="">Lier à un autre élément...</option>
+                      {getAllElements()
+                        .filter(item => item.element.id !== element.id && item.element.linkedGroupId !== element.linkedGroupId)
+                        .map(item => (
+                          <option key={item.element.id} value={item.element.linkedGroupId || item.element.id}>
+                            {item.domainName} / {item.categoryName} / {item.element.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                   
                   <button
                     onClick={() => unlinkElement(element.id)}
