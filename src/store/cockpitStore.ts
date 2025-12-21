@@ -130,15 +130,22 @@ const API_URL = '/api';
 
 const generateId = () => crypto.randomUUID();
 
+// Type TileStatus importé depuis types
+type TileStatus = 'fatal' | 'critique' | 'mineur' | 'ok' | 'deconnecte' | 'information' | 'herite';
+
 // Ordre de criticité des statuts (du moins critique au plus critique)
-const STATUS_PRIORITY: Record<string, number> = {
+const STATUS_PRIORITY: Record<TileStatus, number> = {
   'ok': 0,
-  'warning': 1,
-  'critical': 2,
+  'information': 1,
+  'herite': 2,
+  'deconnecte': 3,
+  'mineur': 4,
+  'critique': 5,
+  'fatal': 6,
 };
 
 // Fonction pour obtenir le statut le plus critique entre deux statuts
-const getMostCriticalStatus = (status1: string, status2: string): string => {
+const getMostCriticalStatus = (status1: TileStatus, status2: TileStatus): TileStatus => {
   const priority1 = STATUS_PRIORITY[status1] ?? 0;
   const priority2 = STATUS_PRIORITY[status2] ?? 0;
   return priority1 >= priority2 ? status1 : status2;
