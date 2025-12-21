@@ -130,6 +130,20 @@ const API_URL = '/api';
 
 const generateId = () => crypto.randomUUID();
 
+// Ordre de criticité des statuts (du moins critique au plus critique)
+const STATUS_PRIORITY: Record<string, number> = {
+  'ok': 0,
+  'warning': 1,
+  'critical': 2,
+};
+
+// Fonction pour obtenir le statut le plus critique entre deux statuts
+const getMostCriticalStatus = (status1: string, status2: string): string => {
+  const priority1 = STATUS_PRIORITY[status1] ?? 0;
+  const priority2 = STATUS_PRIORITY[status2] ?? 0;
+  return priority1 >= priority2 ? status1 : status2;
+};
+
 export const useCockpitStore = create<CockpitState>((set, get) => ({
   cockpits: [],
   currentCockpit: null,
@@ -2421,10 +2435,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     if (!sourceElement || !targetElement) return;
 
-    // Copier les propriétés de l'élément source vers le nouvel élément
+    // Prendre le statut le plus critique entre source et target
+    const mostCriticalStatus = getMostCriticalStatus(sourceElement.status, targetElement.status);
+
+    // Copier les propriétés de l'élément source vers le nouvel élément (avec le statut le plus critique)
     const updates: Partial<Element> = {
       linkedGroupId: linkedGroupId,
-      status: sourceElement.status,
+      status: mostCriticalStatus,
       icon: sourceElement.icon,
       icon2: sourceElement.icon2,
       icon3: sourceElement.icon3,
@@ -2433,11 +2450,15 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     };
 
     // Si la source n'a pas encore de linkedGroupId, on le lui assigne aussi
+    // Et on met à jour son statut avec le plus critique
     if (!sourceElement.linkedGroupId) {
-      get().updateElement(sourceElement.id, { linkedGroupId });
+      get().updateElement(sourceElement.id, { linkedGroupId, status: mostCriticalStatus }, true);
+    } else if (sourceElement.status !== mostCriticalStatus) {
+      // Mettre à jour le statut de la source si nécessaire
+      get().updateElement(sourceElement.id, { status: mostCriticalStatus }, true);
     }
 
-    get().updateElement(elementId, updates);
+    get().updateElement(elementId, updates, true);
 
     // Fusionner les sous-catégories : ajouter celles qui manquent dans chaque élément
     set((state) => {
@@ -2569,6 +2590,58 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         },
       };
     });
+
+    // Si linkSubElements est activé, lier les sous-éléments de même nom avec le statut le plus critique
+    if (linkSubElements) {
+      const updatedCockpit = get().currentCockpit;
+      if (updatedCockpit) {
+        // Trouver les éléments source et target mis à jour
+        let updatedSourceElement: Element | null = null;
+        let updatedTargetElement: Element | null = null;
+        
+        for (const d of updatedCockpit.domains) {
+          for (const c of d.categories) {
+            const foundSource = c.elements.find(e => e.id === sourceElement!.id);
+            if (foundSource) updatedSourceElement = foundSource;
+            const foundTarget = c.elements.find(e => e.id === targetElement!.id);
+            if (foundTarget) updatedTargetElement = foundTarget;
+          }
+        }
+
+        if (updatedSourceElement && updatedTargetElement) {
+          // Parcourir les sous-éléments de même nom et les lier
+          for (const sourceSc of updatedSourceElement.subCategories) {
+            for (const sourceSe of sourceSc.subElements) {
+              // Trouver le sous-élément de même nom dans target
+              for (const targetSc of updatedTargetElement.subCategories) {
+                const matchingSe = targetSc.subElements.find(
+                  se => se.name.toLowerCase() === sourceSe.name.toLowerCase()
+                );
+                if (matchingSe) {
+                  // Prendre le statut le plus critique
+                  const mostCriticalSubStatus = getMostCriticalStatus(sourceSe.status, matchingSe.status);
+                  const subLinkGroupId = sourceSe.linkedGroupId || sourceSe.id;
+                  
+                  // Mettre à jour le source avec le linkedGroupId et le statut le plus critique
+                  if (!sourceSe.linkedGroupId || sourceSe.status !== mostCriticalSubStatus) {
+                    get().updateSubElement(sourceSe.id, { 
+                      linkedGroupId: subLinkGroupId,
+                      status: mostCriticalSubStatus 
+                    }, true);
+                  }
+                  
+                  // Lier le target au même groupe avec le statut le plus critique
+                  get().updateSubElement(matchingSe.id, { 
+                    linkedGroupId: subLinkGroupId,
+                    status: mostCriticalSubStatus 
+                  }, true);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
     get().triggerAutoSave();
   },

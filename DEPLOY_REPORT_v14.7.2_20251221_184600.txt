@@ -1,0 +1,49 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Version: 14.7.2
+Date: 2025-12-21 18:46:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.7.2 (patch)
+Version precedente: 14.7.1
+Message de commit: Ajout selecteur liaison meme quand element deja lie (v14.7.2)
+
+AMELIORATION APPORTEE
+---------------------
+
+SELECTEUR DE LIAISON DISPONIBLE MEME QUAND DEJA LIE
+
+Dans le menu d'edition, la section "Liaison" affiche maintenant :
+- La liste des elements/sous-elements lies (avec navigation et deliaison individuelle)
+- UN NOUVEAU SELECTEUR "Lier a un autre element/sous-element..."
+- Le bouton "Delier cet element/sous-element de tous"
+
+Cela permet de :
+1. Voir les liaisons existantes
+2. Ajouter une nouvelle liaison vers un autre element/sous-element
+3. Delier individuellement ou globalement
+
+Le selecteur filtre automatiquement :
+- L'element/sous-element lui-meme
+- Les elements/sous-elements deja lies au meme groupe
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.7.1 -> 14.7.2 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (9.95s)
+5. Deploiement Vercel: REUSSI (42s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+
