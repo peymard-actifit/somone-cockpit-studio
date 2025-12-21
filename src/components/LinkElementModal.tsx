@@ -30,7 +30,7 @@ export default function LinkElementModal({
   onCancel,
 }: LinkElementModalProps) {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
-  const [linkSubElements, setLinkSubElements] = useState<boolean>(false);
+  const [linkSubElements, setLinkSubElements] = useState<boolean>(true); // Par défaut, lier les sous-éléments de même nom
 
   const typeLabel = type === 'element' ? 'élément' : 'sous-élément';
   const typeLabelPlural = type === 'element' ? 'éléments' : 'sous-éléments';
