@@ -103,9 +103,25 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   });
   const [showIconPicker, setShowIconPicker] = useState(false);
 
-  // États pour le filtre de catégories
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  // États pour le filtre de catégories - toutes les catégories sélectionnées par défaut
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => 
+    domain.categories?.map(c => c.id) || []
+  );
   const [showCategoryFilter, setShowCategoryFilter] = useState(true);
+
+  // Mettre à jour les catégories sélectionnées si les catégories du domaine changent
+  useEffect(() => {
+    const currentCategoryIds = domain.categories?.map(c => c.id) || [];
+    // Ajouter les nouvelles catégories qui n'existent pas encore dans la sélection
+    setSelectedCategories(prev => {
+      const newCategories = currentCategoryIds.filter(id => !prev.includes(id));
+      if (newCategories.length > 0) {
+        return [...prev, ...newCategories];
+      }
+      // Retirer les catégories qui n'existent plus
+      return prev.filter(id => currentCategoryIds.includes(id));
+    });
+  }, [domain.categories]);
 
   // États pour le modal de liaison d'éléments
   const [showLinkModal, setShowLinkModal] = useState(false);
