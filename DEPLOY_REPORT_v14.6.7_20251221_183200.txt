@@ -1,0 +1,48 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Version: 14.6.7
+Date: 2025-12-21 18:32:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.6.7 (patch)
+Version precedente: 14.6.6
+Message de commit: Liaison sous-elements de meme nom activee par defaut (v14.6.7)
+
+MODIFICATION APPORTEE
+---------------------
+La checkbox "Lier egalement les sous-elements" dans le modal 
+de liaison d'elements est maintenant cochee par defaut.
+
+Comportement:
+- Avant: La checkbox etait decochee par defaut (linkSubElements = false)
+- Apres: La checkbox est cochee par defaut (linkSubElements = true)
+
+Cela signifie que lors de la liaison de deux elements, les 
+sous-elements de meme nom seront automatiquement lies entre eux,
+sauf si l'utilisateur decoche manuellement cette option.
+
+FICHIER MODIFIE
+---------------
+src/components/LinkElementModal.tsx
+- Ligne 33: useState<boolean>(false) -> useState<boolean>(true)
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.6.6 -> 14.6.7 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (9.79s)
+5. Deploiement Vercel: REUSSI (42s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+

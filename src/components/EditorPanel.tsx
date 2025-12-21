@@ -194,6 +194,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     addZone,
     deleteZone,
     setCurrentElement,
+    setCurrentDomain,
     updateMapElement,
     deleteMapElement,
     cloneMapElement,
@@ -212,7 +213,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     linkSubElement,
     moveElementToCategory,
     moveSubElementToSubCategory,
-    addCategory
+    addCategory,
+    getLinkedElements,
+    getLinkedSubElements
   } = useCockpitStore();
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
@@ -878,11 +881,59 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             <div className="border-t border-[#E2E8F0] pt-4 mt-4">
               <label className="block text-sm text-[#64748B] mb-2">Liaison</label>
               {selectedSubElement.linkedGroupId ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                     <MuiIcon name="Link" size={16} className="text-blue-600" />
                     <span className="text-sm text-blue-800">Ce sous-élément est lié</span>
                   </div>
+                  
+                  {/* Liste des sous-éléments liés */}
+                  {(() => {
+                    const linkedSubElements = getLinkedSubElements(selectedSubElement.id);
+                    if (linkedSubElements.length === 0) return null;
+                    
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-xs text-[#64748B] font-medium">Lié avec :</p>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                          {linkedSubElements.map(item => (
+                            <div 
+                              key={item.subElement.id} 
+                              className="flex items-center justify-between gap-2 p-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg group hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                            >
+                              <button
+                                onClick={() => {
+                                  // Naviguer vers ce sous-élément
+                                  setCurrentDomain(item.domainId);
+                                  setCurrentElement(item.elementId);
+                                  setSelectedSubElement({
+                                    ...item.subElement,
+                                    elementId: item.elementId,
+                                    subCategoryId: item.subCategoryId
+                                  });
+                                }}
+                                className="flex-1 text-left text-xs text-[#1E3A5F] hover:text-blue-600 truncate"
+                                title={`${item.domainName} / ${item.categoryName} / ${item.elementName} / ${item.subCategoryName} / ${item.subElement.name}`}
+                              >
+                                <span className="text-[#64748B]">{item.domainName} / {item.categoryName} / {item.elementName} / </span>
+                                <span className="font-medium">{item.subElement.name}</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  unlinkSubElement(item.subElement.id);
+                                }}
+                                className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                title="Délier ce sous-élément"
+                              >
+                                <MuiIcon name="LinkOff" size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  
                   <button
                     onClick={() => {
                       unlinkSubElement(selectedSubElement.id);
@@ -891,7 +942,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
                   >
                     <MuiIcon name="LinkOff" size={16} />
-                    <span className="text-sm">Délier ce sous-élément</span>
+                    <span className="text-sm">Délier ce sous-élément de tous</span>
                   </button>
                 </div>
               ) : (
@@ -1285,17 +1336,60 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             <div className="border-t border-[#E2E8F0] pt-4 mt-4">
               <label className="block text-sm text-[#64748B] mb-2">Liaison</label>
               {element.linkedGroupId ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                     <MuiIcon name="Link" size={16} className="text-blue-600" />
                     <span className="text-sm text-blue-800">Cet élément est lié</span>
                   </div>
+                  
+                  {/* Liste des éléments liés */}
+                  {(() => {
+                    const linkedElements = getLinkedElements(element.id);
+                    if (linkedElements.length === 0) return null;
+                    
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-xs text-[#64748B] font-medium">Lié avec :</p>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                          {linkedElements.map(item => (
+                            <div 
+                              key={item.element.id} 
+                              className="flex items-center justify-between gap-2 p-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg group hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                            >
+                              <button
+                                onClick={() => {
+                                  // Naviguer vers cet élément
+                                  setCurrentDomain(item.domainId);
+                                  setCurrentElement(item.element.id);
+                                }}
+                                className="flex-1 text-left text-xs text-[#1E3A5F] hover:text-blue-600 truncate"
+                                title={`${item.domainName} / ${item.categoryName} / ${item.element.name}`}
+                              >
+                                <span className="text-[#64748B]">{item.domainName} / {item.categoryName} / </span>
+                                <span className="font-medium">{item.element.name}</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  unlinkElement(item.element.id);
+                                }}
+                                className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                title="Délier cet élément"
+                              >
+                                <MuiIcon name="LinkOff" size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  
                   <button
                     onClick={() => unlinkElement(element.id)}
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
                   >
                     <MuiIcon name="LinkOff" size={16} />
-                    <span className="text-sm">Délier cet élément</span>
+                    <span className="text-sm">Délier cet élément de tous</span>
                   </button>
                 </div>
               ) : (

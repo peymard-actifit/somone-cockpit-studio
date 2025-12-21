@@ -109,6 +109,8 @@ interface CockpitState {
   findSubElementsByName: (name: string) => Array<{ subElement: SubElement; domainName: string; categoryName: string; elementName: string; subCategoryName: string }>;
   getAllElements: () => Array<{ element: Element; domainId: string; domainName: string; categoryId: string; categoryName: string }>;
   getAllSubElements: () => Array<{ subElement: SubElement; domainId: string; domainName: string; categoryId: string; categoryName: string; elementId: string; elementName: string; subCategoryId: string; subCategoryName: string }>;
+  getLinkedElements: (elementId: string) => Array<{ element: Element; domainId: string; domainName: string; categoryId: string; categoryName: string }>;
+  getLinkedSubElements: (subElementId: string) => Array<{ subElement: SubElement; domainId: string; domainName: string; categoryId: string; categoryName: string; elementId: string; elementName: string; subCategoryId: string; subCategoryName: string }>;
   linkElement: (elementId: string, linkedGroupId: string, linkSubElements?: boolean) => void;
   linkSubElement: (subElementId: string, linkedGroupId: string) => void;
   unlinkElement: (elementId: string) => void;
@@ -2711,6 +2713,104 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                 subCategoryId: subCategory.id,
                 subCategoryName: subCategory.name,
               });
+            }
+          }
+        }
+      }
+    }
+
+    return results;
+  },
+
+  // Obtenir tous les éléments liés à un élément donné
+  getLinkedElements: (elementId: string) => {
+    const cockpit = get().currentCockpit;
+    if (!cockpit) return [];
+
+    // Trouver l'élément et son linkedGroupId
+    let targetElement: Element | null = null;
+    for (const domain of cockpit.domains) {
+      for (const category of domain.categories) {
+        const el = category.elements.find(e => e.id === elementId);
+        if (el) {
+          targetElement = el;
+          break;
+        }
+      }
+      if (targetElement) break;
+    }
+
+    if (!targetElement || !targetElement.linkedGroupId) return [];
+
+    // Trouver tous les éléments avec le même linkedGroupId (sauf l'élément lui-même)
+    const results: Array<{ element: Element; domainId: string; domainName: string; categoryId: string; categoryName: string }> = [];
+
+    for (const domain of cockpit.domains) {
+      for (const category of domain.categories) {
+        for (const element of category.elements) {
+          if (element.linkedGroupId === targetElement.linkedGroupId && element.id !== elementId) {
+            results.push({
+              element,
+              domainId: domain.id,
+              domainName: domain.name,
+              categoryId: category.id,
+              categoryName: category.name,
+            });
+          }
+        }
+      }
+    }
+
+    return results;
+  },
+
+  // Obtenir tous les sous-éléments liés à un sous-élément donné
+  getLinkedSubElements: (subElementId: string) => {
+    const cockpit = get().currentCockpit;
+    if (!cockpit) return [];
+
+    // Trouver le sous-élément et son linkedGroupId
+    let targetSubElement: SubElement | null = null;
+    for (const domain of cockpit.domains) {
+      for (const category of domain.categories) {
+        for (const element of category.elements) {
+          for (const subCategory of element.subCategories) {
+            const subEl = subCategory.subElements.find(se => se.id === subElementId);
+            if (subEl) {
+              targetSubElement = subEl;
+              break;
+            }
+          }
+          if (targetSubElement) break;
+        }
+        if (targetSubElement) break;
+      }
+      if (targetSubElement) break;
+    }
+
+    if (!targetSubElement || !targetSubElement.linkedGroupId) return [];
+
+    // Trouver tous les sous-éléments avec le même linkedGroupId (sauf le sous-élément lui-même)
+    const results: Array<{ subElement: SubElement; domainId: string; domainName: string; categoryId: string; categoryName: string; elementId: string; elementName: string; subCategoryId: string; subCategoryName: string }> = [];
+
+    for (const domain of cockpit.domains) {
+      for (const category of domain.categories) {
+        for (const element of category.elements) {
+          for (const subCategory of element.subCategories) {
+            for (const subElement of subCategory.subElements) {
+              if (subElement.linkedGroupId === targetSubElement.linkedGroupId && subElement.id !== subElementId) {
+                results.push({
+                  subElement,
+                  domainId: domain.id,
+                  domainName: domain.name,
+                  categoryId: category.id,
+                  categoryName: category.name,
+                  elementId: element.id,
+                  elementName: element.name,
+                  subCategoryId: subCategory.id,
+                  subCategoryName: subCategory.name,
+                });
+              }
             }
           }
         }
