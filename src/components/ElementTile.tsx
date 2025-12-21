@@ -237,34 +237,36 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
           <h4 className="text-[#1E3A5F] font-semibold text-sm leading-snug line-clamp-3 flex-1">
             {element.name}
           </h4>
-          {/* Indicateur de liaison - visible au survol */}
-          {element.linkedGroupId && (
-            <div 
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 bg-blue-100 rounded-full p-1"
-              title="🔗 Cet élément est lié à d'autres éléments"
-            >
-              <MuiIcon name="Link" size={16} className="text-blue-600" />
-            </div>
-          )}
         </div>
 
         {/* Espace flexible */}
         <div className="flex-1" />
 
-        {/* Zone basse : Icône + Valeur sur la même ligne */}
+        {/* Zone basse : Icône + Liaison + Valeur sur la même ligne */}
         <div className="flex items-end justify-between gap-2">
-          {/* Icône principale - taille réduite */}
-          <div
-            className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${colors.hex}20`, color: colors.hex }}
-          >
-            {element.icon ? (
-              <MuiIcon name={element.icon} size={16} />
-            ) : (
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: colors.hex }}
-              />
+          {/* Icône principale + indicateur de liaison */}
+          <div className="flex items-center gap-1">
+            <div
+              className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${colors.hex}20`, color: colors.hex }}
+            >
+              {element.icon ? (
+                <MuiIcon name={element.icon} size={16} />
+              ) : (
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: colors.hex }}
+                />
+              )}
+            </div>
+            {/* Indicateur de liaison - visible au survol, à droite de l'icône */}
+            {element.linkedGroupId && (
+              <div 
+                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 bg-blue-500 rounded-full p-1"
+                title="🔗 Cet élément est lié à d'autres éléments"
+              >
+                <MuiIcon name="Link" size={14} className="text-white" />
+              </div>
             )}
           </div>
 

@@ -198,12 +198,23 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
       >
         {/* Contenu */}
         <div className={`flex items-center gap-3 ${isVertical ? 'px-2' : ''}`}>
-          {/* Icône (si présente) */}
-          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-            {subElement.icon ? (
-              <MuiIcon name={subElement.icon} size={18} className="text-white" />
-            ) : (
-              <MuiIcon name="Store" size={18} className="text-white" />
+          {/* Icône (si présente) + indicateur de liaison */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+              {subElement.icon ? (
+                <MuiIcon name={subElement.icon} size={18} className="text-white" />
+              ) : (
+                <MuiIcon name="Store" size={18} className="text-white" />
+              )}
+            </div>
+            {/* Indicateur de liaison - visible au survol, à droite de l'icône */}
+            {subElement.linkedGroupId && (
+              <div 
+                className="opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1"
+                title="🔗 Ce sous-élément est lié à d'autres sous-éléments"
+              >
+                <MuiIcon name="Link" size={12} style={{ color: colors.hex }} />
+              </div>
             )}
           </div>
 
@@ -211,16 +222,6 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
           <h4 className="text-white font-semibold text-sm leading-tight line-clamp-2 flex-1">
             {subElement.name}
           </h4>
-          
-          {/* Indicateur de liaison - visible au survol */}
-          {subElement.linkedGroupId && (
-            <div 
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 bg-white/40 rounded-full p-1"
-              title="🔗 Ce sous-élément est lié à d'autres sous-éléments"
-            >
-              <MuiIcon name="Link" size={14} className="text-white" />
-            </div>
-          )}
         </div>
 
         {/* Valeur et unité (si présent) */}
