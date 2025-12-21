@@ -906,11 +906,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                                   // Naviguer vers ce sous-élément
                                   setCurrentDomain(item.domainId);
                                   setCurrentElement(item.elementId);
-                                  setSelectedSubElement({
-                                    ...item.subElement,
-                                    elementId: item.elementId,
-                                    subCategoryId: item.subCategoryId
-                                  });
+                                  // Laisser le temps au changement de domaine/élément avant de sélectionner le sous-élément
+                                  setTimeout(() => {
+                                    setSelectedSubElement(item.subElement);
+                                  }, 50);
                                 }}
                                 className="flex-1 text-left text-xs text-[#1E3A5F] hover:text-blue-600 truncate"
                                 title={`${item.domainName} / ${item.categoryName} / ${item.elementName} / ${item.subCategoryName} / ${item.subElement.name}`}
