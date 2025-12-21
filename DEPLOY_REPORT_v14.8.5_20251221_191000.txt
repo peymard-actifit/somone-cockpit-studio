@@ -1,0 +1,58 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Version: 14.8.5
+Date: 2025-12-21 19:10:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.8.5 (patch)
+Version precedente: 14.8.4
+Message de commit: Delier sous-elements quand element parent change de nom (v14.8.5)
+
+CORRECTION APPORTEE
+-------------------
+
+DELIAISON DES SOUS-ELEMENTS LORS DU CHANGEMENT DE NOM DE L'ELEMENT
+
+Scenario problematique :
+1. Element "A" lie a un autre Element "A" dans un autre domaine
+2. Duplication de l'un des "A" (les 3 sont lies)
+3. Renommage de l'element duplique en "B" 
+   -> L'element est delie (comportement attendu)
+   -> MAIS les sous-elements gardaient leur ancienne liaison vers "A"
+4. Liaison du nouvel element "B" a un autre element "B" existant
+   -> Les sous-elements restaient lies a l'ancien groupe "A" au lieu de "B"
+
+Solution :
+Quand un element change de nom (ce qui le delie), tous ses sous-elements 
+sont maintenant AUSSI delies automatiquement.
+
+Ainsi, quand l'utilisateur lie ensuite le nouvel element a un autre groupe,
+les sous-elements peuvent etre correctement lies au nouveau groupe 
+(si l'option "Lier les sous-elements" est cochee).
+
+FICHIER MODIFIE
+---------------
+src/store/cockpitStore.ts
+- Modification de updateElement() pour delier les sous-elements 
+  quand l'element parent change de nom
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.8.4 -> 14.8.5 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (10.00s)
+5. Deploiement Vercel: REUSSI (43s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+

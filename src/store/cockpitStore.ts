@@ -2749,6 +2749,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   // Délier un élément de son groupe
   unlinkElement: (elementId: string) => {
+    // Délier l'élément ET tous ses sous-éléments
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -2759,7 +2760,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             categories: d.categories.map(c => ({
               ...c,
               elements: c.elements.map(e =>
-                e.id === elementId ? { ...e, linkedGroupId: undefined } : e
+                e.id === elementId 
+                  ? { 
+                      ...e, 
+                      linkedGroupId: undefined,
+                      // Délier aussi tous les sous-éléments
+                      subCategories: e.subCategories.map(sc => ({
+                        ...sc,
+                        subElements: sc.subElements.map(se => ({
+                          ...se,
+                          linkedGroupId: undefined
+                        }))
+                      }))
+                    } 
+                  : e
               ),
             })),
           })),
