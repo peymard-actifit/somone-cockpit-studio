@@ -74,6 +74,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const [showAddPointModal, setShowAddPointModal] = useState(false);
   // Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel
 
+  // États pour le filtre de catégories
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(true);
+
   // État pour le modal de liaison d'éléments
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [pendingElementData, setPendingElementData] = useState<{
@@ -697,7 +701,20 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 
   // Calculer les clusters de points en fonction du niveau de zoom
   const calculateClusters = (): { clusters: PointCluster[]; singlePoints: MapElement[] } => {
-    const points = domain.mapElements || [];
+    let points = domain.mapElements || [];
+    
+    // Filtrer les points selon les catégories sélectionnées
+    if (selectedCategories.length > 0) {
+      points = points.filter(point => {
+        if (!point.elementId) return false; // Si pas d'élément lié, ne pas afficher quand filtre actif
+        // Trouver la catégorie de l'élément lié
+        const elementCategory = domain.categories.find(c => 
+          c.elements.some(e => e.id === point.elementId)
+        );
+        return elementCategory && selectedCategories.includes(elementCategory.id);
+      });
+    }
+    
     if (points.length === 0) return { clusters: [], singlePoints: [] };
 
     // Vérifier si le clustering est activé
@@ -787,6 +804,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
           {(domain.mapElements?.length || 0)} point(s) sur la carte
+          {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
         </p>
         {!_readOnly && !hasMapBounds && mapImageUrl && (
           <p className="text-xs text-[#FFB74D] mt-1 flex items-center gap-1">
@@ -795,6 +813,73 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           </p>
         )}
       </div>
+
+      {/* Filtre de catégories */}
+      {domain.categories && domain.categories.length > 0 && (
+        <div className="absolute top-28 left-4 z-20 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+          <button
+            onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+            className="w-full px-4 py-2 flex items-center justify-between gap-2 hover:bg-[#F5F7FA] transition-colors"
+          >
+            <span className="text-sm font-medium text-[#1E3A5F] flex items-center gap-2">
+              <MuiIcon name="Filter" size={16} />
+              Catégories
+            </span>
+            <MuiIcon name={showCategoryFilter ? 'ChevronUp' : 'ChevronDown'} size={16} className="text-[#64748B]" />
+          </button>
+          
+          {showCategoryFilter && (
+            <div className="px-2 py-2 border-t border-[#E2E8F0] max-h-64 overflow-y-auto">
+              {/* Bouton tout sélectionner / désélectionner */}
+              <button
+                onClick={() => {
+                  if (selectedCategories.length === domain.categories.length) {
+                    setSelectedCategories([]);
+                  } else {
+                    setSelectedCategories(domain.categories.map(c => c.id));
+                  }
+                }}
+                className="w-full text-left px-2 py-1.5 text-xs text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded transition-colors mb-1"
+              >
+                {selectedCategories.length === domain.categories.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+              </button>
+              
+              {domain.categories.map(category => {
+                const isSelected = selectedCategories.includes(category.id);
+                // Compter les points liés à cette catégorie
+                const pointCount = (domain.mapElements || []).filter(p => {
+                  if (!p.elementId) return false;
+                  return category.elements.some(e => e.id === p.elementId);
+                }).length;
+                
+                return (
+                  <label
+                    key={category.id}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors ${
+                      isSelected ? 'bg-[#1E3A5F]/10' : 'hover:bg-[#F5F7FA]'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedCategories([...selectedCategories, category.id]);
+                        } else {
+                          setSelectedCategories(selectedCategories.filter(id => id !== category.id));
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-[#CBD5E1] text-[#1E3A5F] focus:ring-[#1E3A5F]"
+                    />
+                    <span className="text-sm text-[#1E3A5F] flex-1">{category.name}</span>
+                    <span className="text-xs text-[#64748B]">({pointCount})</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Contrôles de zoom */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">

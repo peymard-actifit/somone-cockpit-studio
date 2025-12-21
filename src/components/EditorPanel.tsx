@@ -211,7 +211,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     linkElement,
     linkSubElement,
     moveElementToCategory,
-    moveSubElementToSubCategory
+    moveSubElementToSubCategory,
+    addCategory
   } = useCockpitStore();
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
@@ -2652,48 +2653,70 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           </Section>
         )}
 
-        {/* Édition des catégories - Masquée pour hours-tracking et alerts */}
-        {domain.templateType !== 'hours-tracking' && domain.templateType !== 'alerts' && domain.categories && domain.categories.length > 0 && (
+        {/* Édition des catégories - Visible pour map, background et standard */}
+        {domain.templateType !== 'hours-tracking' && domain.templateType !== 'alerts' && domain.templateType !== 'stats' && (
           <Section
-            title={`Catégories (${domain.categories.length})`}
+            title={`Catégories (${domain.categories?.length || 0})`}
             iconName="FolderOpen"
             isOpen={activeSection === 'categories'}
             onToggle={() => toggleSection('categories')}
           >
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleCategoryDragEnd}
-            >
-              <SortableContext
-                items={domain.categories.map(c => c.id)}
-                strategy={verticalListSortingStrategy}
+            {/* Bouton d'ajout de catégorie */}
+            <div className="mb-3">
+              <button
+                onClick={() => {
+                  const name = prompt('Nom de la nouvelle catégorie :');
+                  if (name && name.trim()) {
+                    addCategory(domain.id, name.trim(), 'horizontal');
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-[#1E3A5F] bg-[#F5F7FA] hover:bg-[#E2E8F0] rounded-lg transition-colors border border-dashed border-[#CBD5E1]"
               >
-                <div className="space-y-2">
-                  {domain.categories.map((category) => (
-                    <SortableCategoryItem
-                      key={category.id}
-                      category={category}
-                      onIconClick={() => {
-                        setIconPickerContext({ type: 'category', id: category.id });
-                        setShowIconPicker('category');
-                      }}
-                      onNameChange={(name) => updateCategory(category.id, { name })}
-                      onDelete={async () => {
-                        const confirmed = await confirm({
-                          title: 'Supprimer la catégorie',
-                          message: `Voulez-vous supprimer la catégorie "${category.name}" ?`,
-                        });
-                        if (confirmed) {
-                          deleteCategory(category.id);
-                        }
-                      }}
-                      subElementsCount={category.elements.length}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+                <MuiIcon name="Plus" size={16} />
+                Ajouter une catégorie
+              </button>
+            </div>
+            
+            {domain.categories && domain.categories.length > 0 ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleCategoryDragEnd}
+              >
+                <SortableContext
+                  items={domain.categories.map(c => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-2">
+                    {domain.categories.map((category) => (
+                      <SortableCategoryItem
+                        key={category.id}
+                        category={category}
+                        onIconClick={() => {
+                          setIconPickerContext({ type: 'category', id: category.id });
+                          setShowIconPicker('category');
+                        }}
+                        onNameChange={(name) => updateCategory(category.id, { name })}
+                        onDelete={async () => {
+                          const confirmed = await confirm({
+                            title: 'Supprimer la catégorie',
+                            message: `Voulez-vous supprimer la catégorie "${category.name}" ?`,
+                          });
+                          if (confirmed) {
+                            deleteCategory(category.id);
+                          }
+                        }}
+                        subElementsCount={category.elements.length}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <p className="text-sm text-[#64748B] text-center py-2">
+                Aucune catégorie. Cliquez sur le bouton ci-dessus pour en ajouter.
+              </p>
+            )}
             {/* Sélecteur d'icônes pour les catégories */}
             {showIconPicker === 'category' && iconPickerContext && iconPickerContext.id && (
               <IconPicker

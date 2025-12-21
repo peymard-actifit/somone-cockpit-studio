@@ -103,6 +103,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   });
   const [showIconPicker, setShowIconPicker] = useState(false);
 
+  // États pour le filtre de catégories
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(true);
+
   // États pour le modal de liaison d'éléments
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [pendingElementData, setPendingElementData] = useState<{
@@ -139,11 +143,18 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     .flatMap(c => c.elements || [])
     .filter(e => e && typeof e === 'object' && e.id); // Vérifier que chaque élément est valide
 
-  const positionedElements = allElements.filter(e =>
-    e &&
-    e.positionX !== undefined && e.positionY !== undefined &&
-    e.width !== undefined && e.height !== undefined
-  );
+  // Filtrer les éléments positionnés selon les catégories sélectionnées
+  const positionedElements = allElements.filter(e => {
+    if (!e || e.positionX === undefined || e.positionY === undefined ||
+        e.width === undefined || e.height === undefined) {
+      return false;
+    }
+    // Si aucune catégorie sélectionnée, afficher tous les éléments
+    if (selectedCategories.length === 0) return true;
+    // Sinon, filtrer par catégorie
+    const elementCategory = domain.categories.find(c => c.elements.some(el => el.id === e.id));
+    return elementCategory && selectedCategories.includes(elementCategory.id);
+  });
 
   // Restaurer l'état sauvegardé quand on change de domaine (une seule fois au montage)
   useEffect(() => {
@@ -881,8 +892,74 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
           {positionedElements.length} élément(s) positionné(s)
+          {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
         </p>
       </div>
+
+      {/* Filtre de catégories */}
+      {domain.categories && domain.categories.length > 0 && (
+        <div className="absolute top-28 left-4 z-20 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+          <button
+            onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+            className="w-full px-4 py-2 flex items-center justify-between gap-2 hover:bg-[#F5F7FA] transition-colors"
+          >
+            <span className="text-sm font-medium text-[#1E3A5F] flex items-center gap-2">
+              <MuiIcon name="Filter" size={16} />
+              Catégories
+            </span>
+            <MuiIcon name={showCategoryFilter ? 'ChevronUp' : 'ChevronDown'} size={16} className="text-[#64748B]" />
+          </button>
+          
+          {showCategoryFilter && (
+            <div className="px-2 py-2 border-t border-[#E2E8F0] max-h-64 overflow-y-auto">
+              {/* Bouton tout sélectionner / désélectionner */}
+              <button
+                onClick={() => {
+                  if (selectedCategories.length === domain.categories.length) {
+                    setSelectedCategories([]);
+                  } else {
+                    setSelectedCategories(domain.categories.map(c => c.id));
+                  }
+                }}
+                className="w-full text-left px-2 py-1.5 text-xs text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded transition-colors mb-1"
+              >
+                {selectedCategories.length === domain.categories.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+              </button>
+              
+              {domain.categories.map(category => {
+                const isSelected = selectedCategories.includes(category.id);
+                const elementCount = category.elements.filter(e => 
+                  e.positionX !== undefined && e.positionY !== undefined
+                ).length;
+                
+                return (
+                  <label
+                    key={category.id}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors ${
+                      isSelected ? 'bg-[#1E3A5F]/10' : 'hover:bg-[#F5F7FA]'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedCategories([...selectedCategories, category.id]);
+                        } else {
+                          setSelectedCategories(selectedCategories.filter(id => id !== category.id));
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-[#CBD5E1] text-[#1E3A5F] focus:ring-[#1E3A5F]"
+                    />
+                    <span className="text-sm text-[#1E3A5F] flex-1">{category.name}</span>
+                    <span className="text-xs text-[#64748B]">({elementCount})</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Contrôles de zoom */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
