@@ -1395,14 +1395,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         // 2. Propager via l'élément parent lié (sous-éléments de même nom)
         // Trouver l'élément parent du sous-élément actuel
         let parentElement: Element | null = null;
-        let parentElementDomainId: string | null = null;
         for (const d of updatedCockpit.domains) {
           for (const c of d.categories) {
             for (const e of c.elements) {
               for (const sc of e.subCategories) {
                 if (sc.subElements.some(se => se.id === subElementId)) {
                   parentElement = e;
-                  parentElementDomainId = d.id;
                   break;
                 }
               }
