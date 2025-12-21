@@ -74,28 +74,28 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 [System.IO.File]::WriteAllText((Resolve-Path $packageJsonPath), $jsonContent, $utf8NoBom)
 Write-Host "Version incrementee : $currentVersion -> $newVersion" -ForegroundColor Green
 
-# 3. Build
-Write-Host "Etape 3/5 : Compilation du projet..." -ForegroundColor Yellow
-$ErrorActionPreference = "Continue"
-npm run build 2>&1 | ForEach-Object { Write-Host $_ }
-$buildExitCode = $LASTEXITCODE
-$ErrorActionPreference = "Stop"
-
-if ($buildExitCode -ne 0) {
-    Write-Host "Erreur lors de la compilation" -ForegroundColor Red
-    exit 1
-}
-Write-Host "Compilation reussie" -ForegroundColor Green
-
-# 4. Commit et Push
-Write-Host "Etape 4/5 : Commit et Push..." -ForegroundColor Yellow
+# 3. Commit et Push (GitHub = source de verite, AVANT le build)
+Write-Host "Etape 3/5 : Commit et Push sur GitHub..." -ForegroundColor Yellow
 git add .
 $fullCommitMessage = "$CommitMessage (v$newVersion)"
 git commit -m $fullCommitMessage
 # Pull avant push pour eviter les conflits
 git pull origin main --rebase
 git push origin main
-Write-Host "Commit et push reussis" -ForegroundColor Green
+Write-Host "Commit et push reussis - GitHub est a jour" -ForegroundColor Green
+
+# 4. Build
+Write-Host "Etape 4/5 : Compilation du projet..." -ForegroundColor Yellow
+$ErrorActionPreference = "Continue"
+npm run build 2>&1 | ForEach-Object { Write-Host $_ }
+$buildExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+
+if ($buildExitCode -ne 0) {
+    Write-Host "Erreur lors de la compilation (le code est deja sur GitHub)" -ForegroundColor Red
+    exit 1
+}
+Write-Host "Compilation reussie" -ForegroundColor Green
 
 # 5. Deploiement Vercel
 Write-Host "Etape 5/5 : Deploiement sur Vercel..." -ForegroundColor Yellow

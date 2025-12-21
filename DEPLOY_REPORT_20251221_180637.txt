@@ -1,0 +1,54 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Date: 2025-12-21 18:06:37
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.6.2 (patch - correctif)
+Version precedente: 14.6.1
+Message de commit: Utilisation React Portal pour modal liaison - affichage au-dessus de tout (v14.6.2)
+
+CORRECTIF APPLIQUE
+------------------
+- Utilisation de React createPortal pour rendre le modal directement dans document.body
+- Cela sort le modal de la hierarchie DOM des composants parents
+- Le modal s'affiche maintenant au-dessus de TOUS les elements, y compris l'EditorPanel
+- Le probleme etait que l'EditorPanel (position: fixed) creait un stacking context
+  qui empechait le modal de s'afficher au-dessus
+
+FICHIER MODIFIE
+---------------
+1. src/components/LinkElementModal.tsx
+   - Import de createPortal depuis react-dom
+   - Wrapping du contenu dans createPortal(... , document.body)
+
+EXPLICATION TECHNIQUE
+---------------------
+L'EditorPanel utilise position: fixed, ce qui cree un nouveau "stacking context".
+Meme avec un z-index tres eleve, un element enfant ne peut pas s'afficher
+au-dessus d'un element qui est dans un autre stacking context superieur.
+
+La solution: utiliser React Portal pour "teleporter" le modal directement
+dans document.body, le sortant ainsi de la hierarchie du stacking context.
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.6.1 -> 14.6.2 (patch)
+3. Compilation du projet: REUSSI
+   - 456 modules transformes
+   - Build time: 15.55s
+4. Commit et Push: REUSSI
+   - Commit SHA: b88f215
+   - Branch: main -> origin/main
+5. Deploiement Vercel: REUSSI
+   - URL Production: https://somone-cockpit-studio.vercel.app
+   - URL Preview: https://somone-cockpit-studio-1xsc8l0gn-patrick-eymards-projects.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+
