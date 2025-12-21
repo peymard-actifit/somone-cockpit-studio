@@ -233,9 +233,20 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
       {/* Contenu principal */}
       <div className="flex-1 p-3 flex flex-col min-h-0">
         {/* Nom de l'élément en haut - plus d'espace */}
-        <h4 className="text-[#1E3A5F] font-semibold text-sm leading-snug line-clamp-3 mb-2 pr-6">
-          {element.name}
-        </h4>
+        <div className="flex items-start gap-1 mb-2 pr-6">
+          <h4 className="text-[#1E3A5F] font-semibold text-sm leading-snug line-clamp-3 flex-1">
+            {element.name}
+          </h4>
+          {/* Indicateur de liaison */}
+          {element.linkedGroupId && (
+            <div 
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+              title="Cet élément est lié à d'autres éléments"
+            >
+              <MuiIcon name="Link" size={14} className="text-blue-500" />
+            </div>
+          )}
+        </div>
 
         {/* Espace flexible */}
         <div className="flex-1" />

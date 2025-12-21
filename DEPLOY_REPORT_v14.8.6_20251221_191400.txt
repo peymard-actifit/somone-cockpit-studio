@@ -1,0 +1,54 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Version: 14.8.6
+Date: 2025-12-21 19:14:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.8.6 (patch)
+Version precedente: 14.8.5
+Message de commit: unlinkElement delie aussi tous les sous-elements (v14.8.6)
+
+AMELIORATION APPORTEE
+---------------------
+
+DELIAISON COMPLETE LORS DU BOUTON "DELIER"
+
+Quand on clique sur le bouton "Delier cet element de tous" dans 
+le menu d'edition, l'element ET tous ses sous-elements sont 
+maintenant delies.
+
+Comportement :
+- Avant : Seul l'element etait delie, les sous-elements gardaient 
+  leur liaison
+- Apres : L'element ET tous ses sous-elements sont delies
+
+Cela permet de :
+1. Delier completement un element de son groupe
+2. Pouvoir ensuite le lier a un autre groupe avec de nouvelles 
+   liaisons de sous-elements
+
+FICHIER MODIFIE
+---------------
+src/store/cockpitStore.ts
+- Modification de unlinkElement() pour delier les sous-elements
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.8.5 -> 14.8.6 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (9.85s)
+5. Deploiement Vercel: REUSSI (43s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+
