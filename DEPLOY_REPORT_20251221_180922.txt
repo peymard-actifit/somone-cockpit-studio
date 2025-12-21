@@ -1,0 +1,61 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Date: 2025-12-21 18:09:22
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.6.3 (patch - correctif)
+Version precedente: 14.6.2
+Message de commit: Correction ordre script - GitHub commit AVANT build (source verite) (v14.6.3)
+
+MODIFICATION DU SCRIPT
+----------------------
+Le script commit-and-deploy.ps1 a ete corrige pour respecter l'ordre correct :
+
+ANCIEN ORDRE (incorrect) :
+  1. Verifier les changements
+  2. Incrementer la version
+  3. Build (AVANT commit - mauvais!)
+  4. Commit et Push
+  5. Deploiement Vercel
+
+NOUVEL ORDRE (correct) :
+  1. Verifier les changements
+  2. Incrementer la version
+  3. Commit et Push sur GitHub (SOURCE DE VERITE)
+  4. Build
+  5. Deploiement Vercel
+
+AVANTAGE :
+- GitHub est maintenant TOUJOURS la source de verite
+- Le code est pousse sur GitHub AVANT toute compilation
+- Meme si le build echoue, le code est deja sur GitHub
+
+FICHIER MODIFIE
+---------------
+1. scripts/commit-and-deploy.ps1
+   - Etape 3 devient "Commit et Push sur GitHub"
+   - Etape 4 devient "Compilation du projet"
+   - Message mis a jour pour indiquer "GitHub est a jour"
+
+ETAPES EXECUTEES (nouvel ordre)
+-------------------------------
+1. Verification des changements: OK
+2. Increment de la version: 14.6.2 -> 14.6.3 (patch)
+3. Commit et Push sur GitHub: REUSSI
+   - Commit SHA: 4d0f531
+   - Branch: main -> origin/main
+4. Compilation du projet: REUSSI
+   - 456 modules transformes
+   - Build time: 13.77s
+5. Deploiement Vercel: REUSSI
+   - URL Production: https://somone-cockpit-studio.vercel.app
+   - URL Preview: https://somone-cockpit-studio-lboc6u0a7-patrick-eymards-projects.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+

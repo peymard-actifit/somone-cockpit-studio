@@ -72,6 +72,13 @@ $packageJson.version = $newVersion
 $jsonContent = $packageJson | ConvertTo-Json -Depth 10
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 [System.IO.File]::WriteAllText((Resolve-Path $packageJsonPath), $jsonContent, $utf8NoBom)
+
+# Mettre a jour le fichier VERSION a la racine (visible sur GitHub)
+$versionFilePath = "VERSION"
+$versionDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+$versionContent = "v$newVersion`nDeploye le: $versionDate"
+[System.IO.File]::WriteAllText($versionFilePath, $versionContent, $utf8NoBom)
+
 Write-Host "Version incrementee : $currentVersion -> $newVersion" -ForegroundColor Green
 
 # 3. Commit et Push (GitHub = source de verite, AVANT le build)
