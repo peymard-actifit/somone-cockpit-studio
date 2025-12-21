@@ -18,10 +18,10 @@ interface ElementTileProps {
 }
 
 export default function ElementTile({ element, mini = false, onElementClick, readOnly = false, categoryId, index, totalElements, onReorder, domainId }: ElementTileProps) {
-  const { setCurrentElement, deleteElement, duplicateElementLinked } = useCockpitStore();
+  const { setCurrentElement, deleteElement, duplicateElementLinked, currentCockpit } = useCockpitStore();
   const confirm = useConfirm();
-  // Utiliser la couleur effective (gère le cas hérité)
-  const colors = getEffectiveColors(element);
+  // Utiliser la couleur effective (gère le cas hérité et héritage domaine)
+  const colors = getEffectiveColors(element, currentCockpit?.domains);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const isOkStatus = colors.hex === STATUS_COLORS.ok.hex;

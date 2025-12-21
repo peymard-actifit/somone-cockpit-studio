@@ -1,0 +1,59 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Version: 14.8.7
+Date: 2025-12-21 19:18:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.8.7 (patch)
+Version precedente: 14.8.6
+Message de commit: Icone liaison visible au survol sur tuiles elements et sous-elements (v14.8.7)
+
+FONCTIONNALITE AJOUTEE
+----------------------
+
+INDICATEUR VISUEL DE LIAISON SUR LES TUILES
+
+Quand un element ou sous-element est lie a d'autres, une petite 
+icone de liaison (🔗) apparait au survol a droite du nom.
+
+Pour les ELEMENTS :
+- Icone bleu qui apparait au hover
+- Position: a droite du nom de l'element
+- Tooltip: "Cet element est lie a d'autres elements"
+
+Pour les SOUS-ELEMENTS :
+- Icone blanc sur fond translucide (adapte au fond colore)
+- Position: a droite du nom du sous-element
+- Tooltip: "Ce sous-element est lie a d'autres sous-elements"
+
+L'icone est masque par defaut et apparait seulement au survol 
+de la souris (hover), avec une transition fluide.
+
+FICHIERS MODIFIES
+-----------------
+1. src/components/ElementTile.tsx
+   - Ajout de l'icone Link visible au hover
+
+2. src/components/SubElementTile.tsx
+   - Ajout de l'icone Link visible au hover (style adapte)
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.8.6 -> 14.8.7 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (10.04s)
+5. Deploiement Vercel: REUSSI (43s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+

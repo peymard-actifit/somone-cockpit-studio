@@ -1,7 +1,7 @@
 // Types pour le Cockpit Studio SOMONE
 
 // Statuts possibles pour les tuiles
-export type TileStatus = 'fatal' | 'critique' | 'mineur' | 'ok' | 'deconnecte' | 'information' | 'herite';
+export type TileStatus = 'fatal' | 'critique' | 'mineur' | 'ok' | 'deconnecte' | 'information' | 'herite' | 'herite_domaine';
 
 // Types de templates de vues
 export type TemplateType =
@@ -122,6 +122,8 @@ export interface Element {
   backgroundMode?: BackgroundMode;
   // Liaison entre éléments du même nom
   linkedGroupId?: string;  // ID du groupe de liaison (éléments synchronisés)
+  // Héritage de couleur depuis un domaine
+  inheritFromDomainId?: string;  // ID du domaine dont on hérite la couleur (pour status = 'herite_domaine')
 }
 
 // Sous-catégorie
@@ -262,6 +264,7 @@ export const STATUS_PRIORITY_MAP: Record<TileStatus, number> = {
   information: 2, // Moins prioritaire que OK pour que l'héritée affiche vert quand il n'y a que des informations
   deconnecte: 1,
   herite: 0, // Ne compte pas dans le calcul, sera calculé dynamiquement
+  herite_domaine: 0, // Ne compte pas dans le calcul, sera calculé dynamiquement selon le domaine
 };
 
 // Couleurs des statuts (exactement comme dans le PDF SOMONE - MODE CLAIR)
@@ -273,6 +276,7 @@ export const STATUS_COLORS: Record<TileStatus, { bg: string; text: string; borde
   ok: { bg: 'bg-[#9CCC65]', text: 'text-white', border: 'border-[#8BC34A]', hex: '#9CCC65' },        // Vert lime (PDF)
   deconnecte: { bg: 'bg-[#9E9E9E]', text: 'text-white', border: 'border-[#757575]', hex: '#9E9E9E' }, // Gris (PDF)
   herite: { bg: 'bg-[#9CCC65]', text: 'text-white', border: 'border-[#8BC34A]', hex: '#9CCC65' },     // Vert par défaut (sera calculé dynamiquement)
+  herite_domaine: { bg: 'bg-[#9CCC65]', text: 'text-white', border: 'border-[#8BC34A]', hex: '#9CCC65' }, // Vert par défaut (sera calculé dynamiquement selon le domaine)
 };
 
 // Labels des statuts
@@ -284,6 +288,7 @@ export const STATUS_LABELS: Record<TileStatus, string> = {
   ok: 'OK',
   deconnecte: 'Déconnecté',
   herite: 'Héritée',
+  herite_domaine: 'Héritage Domaine',
 };
 
 // Fonction pour calculer la couleur héritée selon les sous-éléments
@@ -308,17 +313,55 @@ export function getInheritedStatus(element: { subCategories: Array<{ subElements
   return worstStatus;
 }
 
-// Fonction pour obtenir la couleur effective d'un élément (gère le cas hérité)
-export function getEffectiveStatus(element: { status: TileStatus; subCategories: Array<{ subElements: Array<{ status: TileStatus }> }> }): TileStatus {
+// Type pour un élément avec les champs nécessaires au calcul du statut effectif
+export interface ElementForStatusCalc {
+  status: TileStatus;
+  subCategories: Array<{ subElements: Array<{ status: TileStatus }> }>;
+  inheritFromDomainId?: string;
+}
+
+// Fonction pour obtenir la couleur effective d'un élément (gère le cas hérité et héritage domaine)
+export function getEffectiveStatus(
+  element: ElementForStatusCalc,
+  domains?: Array<{
+    id: string;
+    categories: Array<{
+      elements: Array<{
+        status: TileStatus;
+        subCategories: Array<{ subElements: Array<{ status: TileStatus }> }>
+      }>
+    }>;
+    mapElements?: Array<{ status: TileStatus }>
+  }>
+): TileStatus {
   if (element.status === 'herite') {
     return getInheritedStatus(element);
+  }
+  if (element.status === 'herite_domaine' && element.inheritFromDomainId && domains) {
+    const targetDomain = domains.find(d => d.id === element.inheritFromDomainId);
+    if (targetDomain) {
+      return getDomainWorstStatus(targetDomain);
+    }
+    return 'ok'; // Par défaut si le domaine n'est pas trouvé
   }
   return element.status;
 }
 
-// Fonction pour obtenir les couleurs effectives (gère le cas hérité)
-export function getEffectiveColors(element: { status: TileStatus; subCategories: Array<{ subElements: Array<{ status: TileStatus }> }> }) {
-  const effectiveStatus = getEffectiveStatus(element) || element.status || 'ok';
+// Fonction pour obtenir les couleurs effectives (gère le cas hérité et héritage domaine)
+export function getEffectiveColors(
+  element: ElementForStatusCalc,
+  domains?: Array<{
+    id: string;
+    categories: Array<{
+      elements: Array<{
+        status: TileStatus;
+        subCategories: Array<{ subElements: Array<{ status: TileStatus }> }>
+      }>
+    }>;
+    mapElements?: Array<{ status: TileStatus }>
+  }>
+) {
+  const effectiveStatus = getEffectiveStatus(element, domains) || element.status || 'ok';
   return STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
 }
 

@@ -1697,10 +1697,23 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           onToggle={() => toggleSection('status')}
         >
           <div className="grid grid-cols-1 gap-2">
-            {(Object.keys(STATUS_COLORS) as TileStatus[]).filter(status => status !== 'herite' || element.subCategories.length > 0).map((status) => (
+            {(Object.keys(STATUS_COLORS) as TileStatus[]).filter(status => {
+              // 'herite' uniquement si l'élément a des sous-catégories
+              if (status === 'herite') return element.subCategories.length > 0;
+              // 'herite_domaine' uniquement s'il y a des domaines disponibles
+              if (status === 'herite_domaine') return currentCockpit && currentCockpit.domains.length > 0;
+              return true;
+            }).map((status) => (
               <button
                 key={status}
-                onClick={() => updateElement(element.id, { status })}
+                onClick={() => {
+                  if (status === 'herite_domaine' && !element.inheritFromDomainId && currentCockpit?.domains.length) {
+                    // Par défaut, sélectionner le premier domaine disponible
+                    updateElement(element.id, { status, inheritFromDomainId: currentCockpit.domains[0].id });
+                  } else {
+                    updateElement(element.id, { status });
+                  }
+                }}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${element.status === status
                   ? `${STATUS_COLORS[status].bg} text-white`
                   : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
@@ -1714,6 +1727,29 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </button>
             ))}
           </div>
+          {/* Sélecteur de domaine pour le statut "Héritage Domaine" */}
+          {element.status === 'herite_domaine' && currentCockpit && (
+            <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <label className="block text-xs font-medium text-purple-800 mb-2">
+                Domaine source de la couleur :
+              </label>
+              <select
+                value={element.inheritFromDomainId || ''}
+                onChange={(e) => updateElement(element.id, { inheritFromDomainId: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-purple-300 rounded-lg bg-white text-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-purple-400"
+              >
+                <option value="">Sélectionner un domaine...</option>
+                {currentCockpit.domains.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-purple-600 mt-2">
+                La couleur de cet élément sera synchronisée avec le statut le plus critique du domaine sélectionné.
+              </p>
+            </div>
+          )}
         </Section>
 
         {/* Édition des sous-catégories */}
