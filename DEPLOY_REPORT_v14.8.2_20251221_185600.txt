@@ -1,0 +1,63 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Version: 14.8.2
+Date: 2025-12-21 18:56:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.8.2 (patch)
+Version precedente: 14.8.1
+Message de commit: Fix import TileStatus conflit (v14.8.2)
+
+FONCTIONNALITES AJOUTEES (v14.8.0 - v14.8.2)
+--------------------------------------------
+
+1. CRITICITE LA PLUS ELEVEE LORS DE LA LIAISON
+   Quand on lie deux elements ou sous-elements :
+   - Le statut le plus critique est applique aux deux
+   - Ordre de criticite (du moins au plus critique) :
+     ok < information < herite < deconnecte < mineur < critique < fatal
+
+2. LIAISON AUTOMATIQUE DES SOUS-ELEMENTS DE MEME NOM
+   Quand on lie deux elements avec l'option "Lier les sous-elements" :
+   - Tous les sous-elements de meme nom deviennent lies
+   - Ils prennent automatiquement le statut le plus critique
+
+3. SYNCHRONISATION DES MODIFICATIONS
+   Toutes les modifications sur un element/sous-element lie sont propagees :
+   - Statut
+   - Icones (icon, icon2, icon3)
+   - Valeur et unite
+   - Publiable (pour les elements)
+   
+   EXCEPTIONS (non propagees) :
+   - Le nom (le changement de nom coupe la liaison)
+   - Le domaine (chaque element reste dans son domaine)
+   - La suppression (supprime uniquement l'element concerne, les autres restent lies)
+
+FICHIER MODIFIE
+---------------
+src/store/cockpitStore.ts
+- Ajout de STATUS_PRIORITY et getMostCriticalStatus()
+- Modification de linkElement() pour prendre le statut le plus critique
+- Ajout de la liaison automatique des sous-elements de meme nom
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.8.1 -> 14.8.2 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (9.88s)
+5. Deploiement Vercel: REUSSI (42s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+

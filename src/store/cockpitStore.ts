@@ -1360,10 +1360,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     }
 
     // Propager aux sous-éléments liés (sauf si c'est déjà une propagation)
-    if (!_propagating && currentSubElement?.linkedGroupId) {
-      const linkedGroupId = updates.linkedGroupId || currentSubElement.linkedGroupId;
+    if (!_propagating) {
       const updatedCockpit = get().currentCockpit;
-      if (updatedCockpit) {
+      if (updatedCockpit && currentSubElement) {
         // Propriétés à synchroniser (exclure name car le changement de nom sépare la liaison)
         const syncUpdates: Partial<SubElement> = {};
         if (updates.status !== undefined) syncUpdates.status = updates.status;
@@ -1375,15 +1374,60 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         // Si aucune propriété synchronisable n'est mise à jour, pas besoin de propager
         if (Object.keys(syncUpdates).length === 0) return;
 
-        // Trouver et mettre à jour tous les sous-éléments du même groupe
+        // 1. Propager via linkedGroupId du sous-élément (liaison directe)
+        if (currentSubElement.linkedGroupId) {
+          const linkedGroupId = updates.linkedGroupId || currentSubElement.linkedGroupId;
+          for (const d of updatedCockpit.domains) {
+            for (const c of d.categories) {
+              for (const e of c.elements) {
+                for (const sc of e.subCategories) {
+                  for (const se of sc.subElements) {
+                    if (se.id !== subElementId && se.linkedGroupId === linkedGroupId) {
+                      get().updateSubElement(se.id, syncUpdates, true);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 2. Propager via l'élément parent lié (sous-éléments de même nom)
+        // Trouver l'élément parent du sous-élément actuel
+        let parentElement: Element | null = null;
+        let parentElementDomainId: string | null = null;
         for (const d of updatedCockpit.domains) {
           for (const c of d.categories) {
             for (const e of c.elements) {
               for (const sc of e.subCategories) {
-                for (const se of sc.subElements) {
-                  if (se.id !== subElementId && se.linkedGroupId === linkedGroupId) {
-                    // Appeler updateSubElement avec _propagating = true
-                    get().updateSubElement(se.id, syncUpdates, true);
+                if (sc.subElements.some(se => se.id === subElementId)) {
+                  parentElement = e;
+                  parentElementDomainId = d.id;
+                  break;
+                }
+              }
+              if (parentElement) break;
+            }
+            if (parentElement) break;
+          }
+          if (parentElement) break;
+        }
+
+        // Si l'élément parent est lié, propager aux sous-éléments de même nom dans les éléments liés
+        if (parentElement?.linkedGroupId) {
+          const subElementName = currentSubElement.name.toLowerCase();
+          for (const d of updatedCockpit.domains) {
+            for (const c of d.categories) {
+              for (const e of c.elements) {
+                // Trouver les éléments liés au même groupe (mais pas le même élément)
+                if (e.id !== parentElement.id && e.linkedGroupId === parentElement.linkedGroupId) {
+                  for (const sc of e.subCategories) {
+                    for (const se of sc.subElements) {
+                      // Trouver le sous-élément de même nom et le mettre à jour
+                      if (se.name.toLowerCase() === subElementName && se.id !== subElementId) {
+                        get().updateSubElement(se.id, syncUpdates, true);
+                      }
+                    }
                   }
                 }
               }
