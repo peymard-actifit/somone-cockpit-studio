@@ -130,9 +130,6 @@ const API_URL = '/api';
 
 const generateId = () => crypto.randomUUID();
 
-// Type TileStatus importé depuis types
-type TileStatus = 'fatal' | 'critique' | 'mineur' | 'ok' | 'deconnecte' | 'information' | 'herite';
-
 // Ordre de criticité des statuts (du moins critique au plus critique)
 const STATUS_PRIORITY: Record<TileStatus, number> = {
   'ok': 0,
