@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MuiIcon } from './IconPicker';
 import { STATUS_COLORS } from '../types';
 
@@ -56,7 +57,9 @@ export default function LinkElementModal({
     }
   };
 
-  return (
+  // Utiliser un Portal pour rendre le modal directement dans le body
+  // Cela garantit qu'il sera au-dessus de tous les autres éléments
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999]">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden relative z-[99999]">
         {/* Header */}
@@ -187,7 +190,8 @@ export default function LinkElementModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

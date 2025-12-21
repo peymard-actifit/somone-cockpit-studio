@@ -1,0 +1,43 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Date: 2025-12-21 18:01:50
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.6.1 (patch - correctif)
+Version precedente: 14.6.0
+Message de commit: Fix z-index modal liaison pour affichage au-dessus de tous les elements (v14.6.1)
+
+CORRECTIF APPLIQUE
+------------------
+- Augmentation du z-index du modal de liaison de z-[9999] a z-[99999]
+- Ajout d'un z-index relatif sur le contenu du modal egalement
+- Le modal de liaison s'affiche maintenant au-dessus de tous les autres elements
+
+FICHIER MODIFIE
+---------------
+1. src/components/LinkElementModal.tsx
+   - z-index augmente a z-[99999] sur le conteneur
+   - z-index ajoute sur le modal lui-meme
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.6.0 -> 14.6.1 (patch)
+3. Compilation du projet: REUSSI
+   - 456 modules transformes
+   - Build time: 9.94s
+4. Commit et Push: REUSSI
+   - Commit SHA: 183ef36
+   - Branch: main -> origin/main
+5. Deploiement Vercel: REUSSI
+   - URL Production: https://somone-cockpit-studio.vercel.app
+   - URL Preview: https://somone-cockpit-studio-9o4bykm3c-patrick-eymards-projects.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+
