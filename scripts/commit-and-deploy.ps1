@@ -22,6 +22,9 @@ if (-not $VERCEL_TOKEN) {
     $VERCEL_TOKEN = "mgaJN94rRN8spxv4ATJ2t670"
 }
 
+# Token GitHub configure dans le remote Git (mis a jour le 2025-12-21)
+# Ne pas stocker le token en clair dans le script
+
 # 1. Verifier s'il y a des changements
 Write-Host "Etape 1/5 : Verification des changements..." -ForegroundColor Yellow
 $status = git status --porcelain

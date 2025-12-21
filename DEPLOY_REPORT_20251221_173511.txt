@@ -1,0 +1,68 @@
+================================================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Date: 2025-12-21 17:35:11
+================================================================================
+
+=== RESUME EXECUTION ===
+Version deployee: v14.4.0
+Statut: SUCCES
+URL Production: https://somone-cockpit-studio.vercel.app
+
+=== ETAPES EXECUTEES ===
+1. Verification des changements.............. OK
+2. Increment de la version (minor)........... OK (14.2.0 -> 14.4.0)
+3. Compilation du projet..................... OK (456 modules, 10.71s)
+4. Reparation du depot Git corrompu.......... OK (reinitialisation complete)
+5. Commit et Push vers GitHub................ OK (force push)
+6. Deploiement sur Vercel.................... OK
+
+=== DETAILS COMPILATION ===
+- Modules transformes: 456
+- Temps de build: 10.71 secondes
+- Fichiers generes:
+  * dist/index.html                     0.86 kB
+  * dist/assets/index-BoP1o2fG.css     56.09 kB
+  * dist/assets/pdf-CEWM7r6c.js       406.65 kB
+  * dist/assets/index-UT7QWC07.js     500.14 kB
+  * dist/assets/index-4pe8LkSP.js   3,766.81 kB
+
+=== STATISTIQUES CODE ===
+- Fichiers source: 61 fichiers (.ts, .tsx, .js, .jsx, .css)
+- Lignes de code totales: 42,801 lignes
+- Fichiers commites: 189 fichiers
+
+=== TOKENS ET API KEYS ===
+GitHub Token: ghp_***************************MaFU (nouveau - 2025-12-21)
+Vercel Token: mgaJN94rRN8spxv4ATJ2t670
+OPENAI_API_KEY: Configuree sur Vercel (encryptee)
+DEEPL_API_KEY: Configuree sur Vercel (encryptee)
+
+=== BASE DE DONNEES ===
+Type: Upstash Redis / Vercel KV
+Variables configurees:
+- KV_REST_API_URL: Configuree
+- KV_REST_API_TOKEN: Configuree
+- REDIS_URL: Configuree
+- PostgreSQL (Neon): 16 variables configurees (backup/migration)
+
+=== SYNCHRONISATION GIT ===
+Depot: https://github.com/peymard-actifit/somone-cockpit-studio.git
+Branche: main
+Commit: e6017bd
+Message: v14.4.0 - Init session - Vues Alertes et Stats completes
+Statut: Synchronise (working tree clean)
+
+=== ENVIRONNEMENTS VERCEL ===
+23 variables d'environnement configurees pour:
+- Production
+- Preview
+- Development
+
+=== NOTES ===
+- Le depot Git local etait corrompu (objets invalides)
+- Resolution: Reinitialisation complete du depot avec les fichiers locaux
+- Push force effectue pour synchroniser GitHub avec la version locale
+
+================================================================================
+FIN DU RAPPORT
+================================================================================
