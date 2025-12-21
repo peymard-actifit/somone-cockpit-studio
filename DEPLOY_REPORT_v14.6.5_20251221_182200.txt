@@ -1,0 +1,71 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Date: 2025-12-21 18:22:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.6.5 (patch)
+Version precedente: 14.6.4
+Message de commit: Ajout filtre categories Map/Background + ajout categories via menu edition (v14.6.5)
+
+FONCTIONNALITES AJOUTEES
+------------------------
+
+1. FILTRE DE CATEGORIES DANS BACKGROUNDVIEW
+   - Panneau de filtrage sur le cote gauche sous le header
+   - Selection/deselection individuelle des categories
+   - Bouton "Tout selectionner / Tout deselectionner"
+   - Affichage du nombre d'elements par categorie
+   - Indicateur de filtre actif dans le header
+
+2. FILTRE DE CATEGORIES DANS MAPVIEW
+   - Meme fonctionnalite que BackgroundView
+   - Filtrage des points de carte selon leur element lie
+   - Comptage des points par categorie
+
+3. AJOUT DE CATEGORIES VIA MENU D'EDITION
+   - Nouveau bouton "Ajouter une categorie" dans la section Categories
+   - Fonctionne pour tous les types de vues (standard, map, background)
+   - Section Categories maintenant visible meme sans categories existantes
+   - Message d'aide quand aucune categorie n'existe
+
+VERIFICATION DES FONCTIONNALITES EXISTANTES
+-------------------------------------------
+✅ Alignement sous-elements a gauche (mode inline) - Deja implemente
+✅ Delier elements/sous-elements - Deja implemente dans EditorPanel
+✅ Lier a un autre element/sous-element - Deja implemente dans EditorPanel
+✅ Modal liaison au-dessus de tout (React Portal) - Deja implemente
+✅ Changer categorie d'un element - Deja implemente (moveElementToCategory)
+✅ Changer sous-categorie d'un sous-element - Deja implemente (moveSubElementToSubCategory)
+✅ Fusion categories lors liaison - Deja implemente dans cockpitStore
+
+FICHIERS MODIFIES
+-----------------
+1. src/components/BackgroundView.tsx
+   - +70 lignes : Filtre de categories
+
+2. src/components/MapView.tsx
+   - +85 lignes : Filtre de categories
+
+3. src/components/EditorPanel.tsx
+   - +25 lignes : Import addCategory + bouton d'ajout
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.6.4 -> 14.6.5 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (9.72s)
+5. Deploiement Vercel: REUSSI (44s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+
