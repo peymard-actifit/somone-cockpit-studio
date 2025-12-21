@@ -23,7 +23,8 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
   // Calculer le statut le plus critique pour ce domaine
   const { currentCockpit } = useCockpitStore();
   const domainData = currentCockpit?.domains.find(d => d.id === domain.id);
-  const worstStatus = domainData ? getDomainWorstStatus(domainData) : 'ok';
+  // Passer tous les domaines pour le calcul récursif (éléments avec status herite_domaine)
+  const worstStatus = domainData ? getDomainWorstStatus(domainData, currentCockpit?.domains) : 'ok';
   const statusColor = STATUS_COLORS[worstStatus].hex;
   const hasAlert = worstStatus !== 'ok';
 

@@ -323,16 +323,7 @@ export interface ElementForStatusCalc {
 // Fonction pour obtenir la couleur effective d'un élément (gère le cas hérité et héritage domaine)
 export function getEffectiveStatus(
   element: ElementForStatusCalc,
-  domains?: Array<{
-    id: string;
-    categories: Array<{
-      elements: Array<{
-        status: TileStatus;
-        subCategories: Array<{ subElements: Array<{ status: TileStatus }> }>
-      }>
-    }>;
-    mapElements?: Array<{ status: TileStatus }>
-  }>
+  domains?: DomainForStatusCalc[]
 ): TileStatus {
   if (element.status === 'herite') {
     return getInheritedStatus(element);
@@ -340,7 +331,8 @@ export function getEffectiveStatus(
   if (element.status === 'herite_domaine' && element.inheritFromDomainId && domains) {
     const targetDomain = domains.find(d => d.id === element.inheritFromDomainId);
     if (targetDomain) {
-      return getDomainWorstStatus(targetDomain);
+      // Passer tous les domaines pour permettre le calcul récursif correct
+      return getDomainWorstStatus(targetDomain, domains);
     }
     return 'ok'; // Par défaut si le domaine n'est pas trouvé
   }
@@ -350,41 +342,40 @@ export function getEffectiveStatus(
 // Fonction pour obtenir les couleurs effectives (gère le cas hérité et héritage domaine)
 export function getEffectiveColors(
   element: ElementForStatusCalc,
-  domains?: Array<{
-    id: string;
-    categories: Array<{
-      elements: Array<{
-        status: TileStatus;
-        subCategories: Array<{ subElements: Array<{ status: TileStatus }> }>
-      }>
-    }>;
-    mapElements?: Array<{ status: TileStatus }>
-  }>
+  domains?: DomainForStatusCalc[]
 ) {
   const effectiveStatus = getEffectiveStatus(element, domains) || element.status || 'ok';
   return STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
 }
 
-// Fonction pour calculer le statut le plus critique d'un domaine
-export function getDomainWorstStatus(domain: {
+// Type pour un domaine utilisé dans le calcul du statut
+export type DomainForStatusCalc = {
+  id: string;
   categories: Array<{
     elements: Array<{
       status: TileStatus;
+      inheritFromDomainId?: string;
       subCategories: Array<{
         subElements: Array<{ status: TileStatus }>
       }>
     }>
   }>;
   mapElements?: Array<{ status: TileStatus }>
-}): TileStatus {
+};
+
+// Fonction pour calculer le statut le plus critique d'un domaine
+export function getDomainWorstStatus(
+  domain: DomainForStatusCalc,
+  allDomains?: DomainForStatusCalc[]
+): TileStatus {
   let worstStatus: TileStatus = 'ok';
   let worstPriority = STATUS_PRIORITY_MAP['ok'];
 
   // Parcourir tous les éléments dans toutes les catégories
   for (const category of domain.categories) {
     for (const element of category.elements) {
-      // Calculer le statut effectif de l'élément (gère l'héritage)
-      const effectiveStatus = getEffectiveStatus(element);
+      // Calculer le statut effectif de l'élément (gère l'héritage et l'héritage domaine)
+      const effectiveStatus = getEffectiveStatus(element, allDomains);
       const priority = STATUS_PRIORITY_MAP[effectiveStatus] || 0;
 
       if (priority > worstPriority) {
