@@ -1,0 +1,84 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Date: 2025-12-21 17:56:54
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.6.0 (minor - nouvelle fonctionnalite)
+Version precedente: 14.4.1
+Message de commit: Fusion categories/sous-elements lors liaison Elements + question liaison sous-elements (v14.6.0)
+
+FONCTIONNALITE AJOUTEE
+----------------------
+- Lors de la liaison de deux Elements, fusion automatique des categories
+  (les categories de chaque element sont ajoutees dans l'autre si non existantes)
+- Les sous-elements sont copies dans les deux elements dans les memes sous-categories
+- Ajout d'une option "Lier egalement les sous-elements" dans le modal de liaison
+- Si cette option est cochee, les sous-elements de meme nom sont synchronises
+- Sinon, ils sont crees de facon independante
+
+FICHIERS MODIFIES
+-----------------
+1. src/components/LinkElementModal.tsx
+   - Ajout de la checkbox pour lier les sous-elements
+   - Mise a jour des explications du modal
+
+2. src/store/cockpitStore.ts
+   - Modification de linkElement() pour fusionner categories/sous-elements
+   - Modification de copyElementContent() pour meme comportement
+   - Ajout du parametre linkSubElements
+
+3. src/components/EditorPanel.tsx
+   - Support du nouveau parametre linkSubElements
+
+4. src/components/MapView.tsx
+   - Support du nouveau parametre linkSubElements
+
+5. src/components/DomainView.tsx
+   - Support du nouveau parametre linkSubElements
+
+6. src/components/CategorySection.tsx
+   - Support du nouveau parametre linkSubElements
+
+7. src/components/BackgroundView.tsx
+   - Support du nouveau parametre linkSubElements
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.4.1 -> 14.6.0 (minor)
+3. Compilation du projet: REUSSI
+   - 456 modules transformes
+   - Build time: 10.72s
+4. Commit et Push: REUSSI
+   - Commit SHA: ba5fd5d
+   - Branch: main -> origin/main
+5. Deploiement Vercel: REUSSI
+   - URL Production: https://somone-cockpit-studio.vercel.app
+   - URL Preview: https://somone-cockpit-studio-moaf9tr4w-patrick-eymards-projects.vercel.app
+
+ARTEFACTS DE BUILD
+------------------
+- dist/index.html: 0.86 kB (gzip: 0.44 kB)
+- dist/assets/index-i4eu3NWe.css: 56.38 kB (gzip: 9.47 kB)
+- dist/assets/pdf-CEWM7r6c.js: 406.65 kB (gzip: 119.03 kB)
+- dist/assets/index-C35ezyjP.js: 500.14 kB (gzip: 130.19 kB)
+- dist/assets/index-CnTQPcI6.js: 3,770.78 kB (gzip: 837.36 kB)
+
+AVERTISSEMENTS
+--------------
+- Some chunks are larger than 500 kB after minification
+
+INFORMATIONS PROJET
+-------------------
+- Lignes de code: 42,741
+- Project ID Vercel: prj_Ptou4uYFaoHi4r9f5p7iYMvoLt1z
+- Build Region: Washington, D.C., USA (East) - iad1
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+

@@ -57,8 +57,8 @@ export default function LinkElementModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999]">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden relative z-[99999]">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#1E3A5F] to-[#2C4A6E] px-6 py-4">
           <div className="flex items-center gap-3">
