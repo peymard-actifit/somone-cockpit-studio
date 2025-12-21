@@ -876,6 +876,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     // Gérer le changement de nom : séparer la liaison si le nom change
     if (!_propagating && currentElement?.linkedGroupId && updates.name !== undefined && updates.name !== currentElement.name) {
       // Le nom change → séparer cet élément du groupe (supprimer le linkedGroupId)
+      // ET délier aussi tous les sous-éléments de cet élément
       set((state) => {
         if (!state.currentCockpit) return state;
         return {
@@ -886,7 +887,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
               categories: d.categories.map(c => ({
                 ...c,
                 elements: c.elements.map(e =>
-                  e.id === elementId ? { ...e, linkedGroupId: undefined } : e
+                  e.id === elementId 
+                    ? { 
+                        ...e, 
+                        linkedGroupId: undefined,
+                        // Délier aussi tous les sous-éléments
+                        subCategories: e.subCategories.map(sc => ({
+                          ...sc,
+                          subElements: sc.subElements.map(se => ({
+                            ...se,
+                            linkedGroupId: undefined
+                          }))
+                        }))
+                      } 
+                    : e
                 ),
               })),
             })),

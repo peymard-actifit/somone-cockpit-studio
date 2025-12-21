@@ -1,0 +1,56 @@
+=============================================================
+RAPPORT DE DEPLOIEMENT - SOMONE COCKPIT STUDIO
+Version: 14.8.4
+Date: 2025-12-21 19:05:00
+=============================================================
+
+RESULTAT DU DEPLOIEMENT
+-----------------------
+✅ DEPLOIEMENT REUSSI
+
+Version deployee: 14.8.4 (patch)
+Version precedente: 14.8.3
+Message de commit: Fix variable non utilisee (v14.8.4)
+
+CORRECTION APPORTEE (v14.8.3 - v14.8.4)
+---------------------------------------
+
+PROPAGATION DE LA COULEUR VIA L'ELEMENT PARENT LIE
+
+Probleme : Quand on modifiait la couleur (statut) d'un sous-element, 
+les sous-elements lies dans d'autres elements ne se mettaient pas a jour.
+
+Solution : La fonction updateSubElement() propage maintenant les modifications
+via DEUX mecanismes :
+
+1. LIAISON DIRECTE (linkedGroupId du sous-element)
+   - Si le sous-element a un linkedGroupId, on propage aux sous-elements 
+     qui partagent le meme linkedGroupId
+
+2. LIAISON VIA L'ELEMENT PARENT
+   - Si l'element parent est lie (a un linkedGroupId)
+   - On trouve tous les elements lies au meme groupe
+   - On cherche les sous-elements de MEME NOM dans ces elements
+   - On propage les modifications a ces sous-elements
+
+Cela garantit que meme si les sous-elements n'ont pas ete explicitement 
+lies (par exemple, donnees anciennes ou liaison sans cocher "Lier les 
+sous-elements"), les modifications sont propagees si leurs elements 
+parents sont lies ET s'ils ont le meme nom.
+
+ETAPES EXECUTEES
+----------------
+1. Verification des changements: OK
+2. Increment de la version: 14.8.3 -> 14.8.4 (patch)
+3. Commit et Push sur GitHub: REUSSI
+4. Compilation du projet: REUSSI (9.87s)
+5. Deploiement Vercel: REUSSI (42s)
+
+URL DE PRODUCTION
+-----------------
+https://somone-cockpit-studio.vercel.app
+
+=============================================================
+FIN DU RAPPORT
+=============================================================
+
