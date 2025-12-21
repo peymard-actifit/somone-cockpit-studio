@@ -213,7 +213,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
                 className="opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1"
                 title="🔗 Ce sous-élément est lié à d'autres sous-éléments"
               >
-                <MuiIcon name="Link" size={12} style={{ color: colors.hex }} />
+                <MuiIcon name="Link" size={12} color={colors.hex} />
               </div>
             )}
           </div>
