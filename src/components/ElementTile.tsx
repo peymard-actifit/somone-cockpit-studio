@@ -237,13 +237,13 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
           <h4 className="text-[#1E3A5F] font-semibold text-sm leading-snug line-clamp-3 flex-1">
             {element.name}
           </h4>
-          {/* Indicateur de liaison */}
+          {/* Indicateur de liaison - visible au survol */}
           {element.linkedGroupId && (
             <div 
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-              title="Cet élément est lié à d'autres éléments"
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 bg-blue-100 rounded-full p-1"
+              title="🔗 Cet élément est lié à d'autres éléments"
             >
-              <MuiIcon name="Link" size={14} className="text-blue-500" />
+              <MuiIcon name="Link" size={16} className="text-blue-600" />
             </div>
           )}
         </div>

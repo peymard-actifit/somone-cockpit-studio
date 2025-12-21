@@ -212,13 +212,13 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
             {subElement.name}
           </h4>
           
-          {/* Indicateur de liaison */}
+          {/* Indicateur de liaison - visible au survol */}
           {subElement.linkedGroupId && (
             <div 
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 bg-white/20 rounded p-0.5"
-              title="Ce sous-élément est lié à d'autres sous-éléments"
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 bg-white/40 rounded-full p-1"
+              title="🔗 Ce sous-élément est lié à d'autres sous-éléments"
             >
-              <MuiIcon name="Link" size={12} className="text-white" />
+              <MuiIcon name="Link" size={14} className="text-white" />
             </div>
           )}
         </div>
