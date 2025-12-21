@@ -644,7 +644,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     setExistingMatches([]);
   };
 
-  const handleCreateLinked = (linkedGroupId: string) => {
+  const handleCreateLinked = (linkedGroupId: string, linkSubElements?: boolean) => {
     if (!pendingNameChange) return;
 
     // Trouver l'élément/sous-élément source pour copier son contenu
@@ -654,9 +654,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     if (pendingNameChange.type === 'element') {
       // D'abord changer le nom
       updateElement(pendingNameChange.id, { name: pendingNameChange.newName });
-      // Puis copier tout le contenu de l'élément source
+      // Puis copier tout le contenu de l'élément source avec fusion des catégories/sous-éléments
       if (sourceId) {
-        copyElementContent(pendingNameChange.id, sourceId);
+        copyElementContent(pendingNameChange.id, sourceId, linkSubElements);
       }
     } else {
       // D'abord changer le nom

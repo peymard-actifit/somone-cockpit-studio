@@ -79,8 +79,8 @@ export default function CategorySection({ category, onElementClick, readOnly = f
     }
   };
 
-  // Créer l'élément et le lier à un groupe existant
-  const handleCreateLinked = (linkedGroupId: string) => {
+  // Créer l'élément et le lier à un groupe existant (avec fusion des catégories/sous-éléments)
+  const handleCreateLinked = (linkedGroupId: string, linkSubElements?: boolean) => {
     addElement(category.id, pendingElementName);
     // Trouver l'élément qu'on vient de créer (le dernier de la catégorie)
     setTimeout(() => {
@@ -91,7 +91,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
             if (c.id === category.id) {
               const lastElement = c.elements[c.elements.length - 1];
               if (lastElement && lastElement.name === pendingElementName) {
-                linkElement(lastElement.id, linkedGroupId);
+                linkElement(lastElement.id, linkedGroupId, linkSubElements);
               }
             }
           }

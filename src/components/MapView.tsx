@@ -559,7 +559,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   };
 
   // Effectuer la création de l'élément
-  const doCreateElement = (categoryId: string, point: MapElement, linkedGroupId: string | null) => {
+  const doCreateElement = (categoryId: string, point: MapElement, linkedGroupId: string | null, linkSubElements?: boolean) => {
     // Créer l'élément
     addElement(categoryId, point.name);
 
@@ -578,9 +578,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           icon: point.icon
         });
 
-        // Si on doit lier à un groupe existant
+        // Si on doit lier à un groupe existant (avec fusion des catégories/sous-éléments)
         if (linkedGroupId) {
-          linkElement(newElement.id, linkedGroupId);
+          linkElement(newElement.id, linkedGroupId, linkSubElements);
         }
 
         // Naviguer vers l'élément
@@ -599,9 +599,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   };
 
   // Créer l'élément et le lier à un groupe existant
-  const handleCreateLinked = (linkedGroupId: string) => {
+  const handleCreateLinked = (linkedGroupId: string, linkSubElements?: boolean) => {
     if (pendingElementData) {
-      doCreateElement(pendingElementData.categoryId, pendingElementData.point, linkedGroupId);
+      doCreateElement(pendingElementData.categoryId, pendingElementData.point, linkedGroupId, linkSubElements);
     }
     setShowLinkModal(false);
     setPendingElementData(null);

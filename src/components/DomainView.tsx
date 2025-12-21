@@ -218,8 +218,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     setShowLinkModal(false);
   };
 
-  // Créer l'élément et le lier à un groupe existant
-  const handleCreateLinked = (linkedGroupId: string) => {
+  // Créer l'élément et le lier à un groupe existant (avec fusion des catégories/sous-éléments)
+  const handleCreateLinked = (linkedGroupId: string, linkSubElements?: boolean) => {
     if (pendingCategoryId) {
       addElement(pendingCategoryId, pendingElementName);
       // Trouver l'élément qu'on vient de créer et le lier
@@ -231,7 +231,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
               if (c.id === pendingCategoryId) {
                 const lastElement = c.elements[c.elements.length - 1];
                 if (lastElement && lastElement.name === pendingElementName) {
-                  linkElement(lastElement.id, linkedGroupId);
+                  linkElement(lastElement.id, linkedGroupId, linkSubElements);
                 }
               }
             }

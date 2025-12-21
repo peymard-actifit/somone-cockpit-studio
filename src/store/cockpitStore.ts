@@ -109,11 +109,11 @@ interface CockpitState {
   findSubElementsByName: (name: string) => Array<{ subElement: SubElement; domainName: string; categoryName: string; elementName: string; subCategoryName: string }>;
   getAllElements: () => Array<{ element: Element; domainId: string; domainName: string; categoryId: string; categoryName: string }>;
   getAllSubElements: () => Array<{ subElement: SubElement; domainId: string; domainName: string; categoryId: string; categoryName: string; elementId: string; elementName: string; subCategoryId: string; subCategoryName: string }>;
-  linkElement: (elementId: string, linkedGroupId: string) => void;
+  linkElement: (elementId: string, linkedGroupId: string, linkSubElements?: boolean) => void;
   linkSubElement: (subElementId: string, linkedGroupId: string) => void;
   unlinkElement: (elementId: string) => void;
   unlinkSubElement: (subElementId: string) => void;
-  copyElementContent: (targetElementId: string, sourceElementId: string) => void;
+  copyElementContent: (targetElementId: string, sourceElementId: string, linkSubElements?: boolean) => void;
   copySubElementContent: (targetSubElementId: string, sourceSubElementId: string) => void;
   moveElementToCategory: (elementId: string, targetCategoryId: string) => void;
   moveSubElementToSubCategory: (subElementId: string, targetSubCategoryId: string) => void;
@@ -2395,46 +2395,180 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     return results;
   },
 
-  // Lier un élément à un groupe
-  linkElement: (elementId: string, linkedGroupId: string) => {
+  // Lier un élément à un groupe avec fusion des catégories et sous-éléments
+  linkElement: (elementId: string, linkedGroupId: string, linkSubElements: boolean = false) => {
     const cockpit = get().currentCockpit;
     if (!cockpit) return;
 
-    // Trouver l'élément source (celui avec le linkedGroupId)
+    // Trouver l'élément source (celui avec le linkedGroupId) et l'élément cible
     let sourceElement: Element | null = null;
+    let targetElement: Element | null = null;
+
     for (const d of cockpit.domains) {
       for (const c of d.categories) {
-        const found = c.elements.find(e => e.id === linkedGroupId || e.linkedGroupId === linkedGroupId);
-        if (found) {
-          sourceElement = found;
-          break;
+        const foundSource = c.elements.find(e => e.id === linkedGroupId || e.linkedGroupId === linkedGroupId);
+        if (foundSource) {
+          sourceElement = foundSource;
+        }
+        const foundTarget = c.elements.find(e => e.id === elementId);
+        if (foundTarget) {
+          targetElement = foundTarget;
         }
       }
-      if (sourceElement) break;
     }
+
+    if (!sourceElement || !targetElement) return;
 
     // Copier les propriétés de l'élément source vers le nouvel élément
     const updates: Partial<Element> = {
       linkedGroupId: linkedGroupId,
+      status: sourceElement.status,
+      icon: sourceElement.icon,
+      icon2: sourceElement.icon2,
+      icon3: sourceElement.icon3,
+      value: sourceElement.value,
+      unit: sourceElement.unit,
     };
 
-    if (sourceElement) {
-      // Copier les propriétés synchronisables
-      updates.status = sourceElement.status;
-      updates.icon = sourceElement.icon;
-      updates.icon2 = sourceElement.icon2;
-      updates.icon3 = sourceElement.icon3;
-      updates.value = sourceElement.value;
-      updates.unit = sourceElement.unit;
-      // Copier la structure des sous-catégories si le nouvel élément n'en a pas
-    }
-
     // Si la source n'a pas encore de linkedGroupId, on le lui assigne aussi
-    if (sourceElement && !sourceElement.linkedGroupId) {
+    if (!sourceElement.linkedGroupId) {
       get().updateElement(sourceElement.id, { linkedGroupId });
     }
 
     get().updateElement(elementId, updates);
+
+    // Fusionner les sous-catégories : ajouter celles qui manquent dans chaque élément
+    set((state) => {
+      if (!state.currentCockpit) return state;
+
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d => ({
+            ...d,
+            categories: d.categories.map(c => ({
+              ...c,
+              elements: c.elements.map(e => {
+                // Traiter l'élément source
+                if (e.id === sourceElement!.id) {
+                  // Ajouter les sous-catégories de target qui n'existent pas dans source
+                  const existingSubCatNames = e.subCategories.map(sc => sc.name.toLowerCase());
+                  const newSubCategories = targetElement!.subCategories
+                    .filter(sc => !existingSubCatNames.includes(sc.name.toLowerCase()))
+                    .map(sc => ({
+                      ...sc,
+                      id: generateId(),
+                      elementId: e.id,
+                      subElements: sc.subElements.map(se => ({
+                        ...se,
+                        id: generateId(),
+                        subCategoryId: '', // Sera mis à jour
+                        linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                      })),
+                    }));
+
+                  // Mettre à jour les subCategoryId des sous-éléments
+                  newSubCategories.forEach(sc => {
+                    sc.subElements = sc.subElements.map(se => ({
+                      ...se,
+                      subCategoryId: sc.id,
+                    }));
+                  });
+
+                  // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
+                  const mergedSubCategories = e.subCategories.map(sc => {
+                    const matchingTargetSubCat = targetElement!.subCategories.find(
+                      tsc => tsc.name.toLowerCase() === sc.name.toLowerCase()
+                    );
+                    if (matchingTargetSubCat) {
+                      const existingSubElNames = sc.subElements.map(se => se.name.toLowerCase());
+                      const newSubElements = matchingTargetSubCat.subElements
+                        .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
+                        .map(se => ({
+                          ...se,
+                          id: generateId(),
+                          subCategoryId: sc.id,
+                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                        }));
+                      return {
+                        ...sc,
+                        subElements: [...sc.subElements, ...newSubElements],
+                      };
+                    }
+                    return sc;
+                  });
+
+                  return {
+                    ...e,
+                    subCategories: [...mergedSubCategories, ...newSubCategories],
+                  };
+                }
+
+                // Traiter l'élément cible
+                if (e.id === targetElement!.id) {
+                  // Ajouter les sous-catégories de source qui n'existent pas dans target
+                  const existingSubCatNames = e.subCategories.map(sc => sc.name.toLowerCase());
+                  const newSubCategories = sourceElement!.subCategories
+                    .filter(sc => !existingSubCatNames.includes(sc.name.toLowerCase()))
+                    .map(sc => ({
+                      ...sc,
+                      id: generateId(),
+                      elementId: e.id,
+                      subElements: sc.subElements.map(se => ({
+                        ...se,
+                        id: generateId(),
+                        subCategoryId: '', // Sera mis à jour
+                        linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                      })),
+                    }));
+
+                  // Mettre à jour les subCategoryId des sous-éléments
+                  newSubCategories.forEach(sc => {
+                    sc.subElements = sc.subElements.map(se => ({
+                      ...se,
+                      subCategoryId: sc.id,
+                    }));
+                  });
+
+                  // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
+                  const mergedSubCategories = e.subCategories.map(sc => {
+                    const matchingSourceSubCat = sourceElement!.subCategories.find(
+                      ssc => ssc.name.toLowerCase() === sc.name.toLowerCase()
+                    );
+                    if (matchingSourceSubCat) {
+                      const existingSubElNames = sc.subElements.map(se => se.name.toLowerCase());
+                      const newSubElements = matchingSourceSubCat.subElements
+                        .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
+                        .map(se => ({
+                          ...se,
+                          id: generateId(),
+                          subCategoryId: sc.id,
+                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                        }));
+                      return {
+                        ...sc,
+                        subElements: [...sc.subElements, ...newSubElements],
+                      };
+                    }
+                    return sc;
+                  });
+
+                  return {
+                    ...e,
+                    subCategories: [...mergedSubCategories, ...newSubCategories],
+                  };
+                }
+
+                return e;
+              }),
+            })),
+          })),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+
+    get().triggerAutoSave();
   },
 
   // Lier un sous-élément à un groupe
@@ -2695,25 +2829,24 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     get().triggerAutoSave();
   },
 
-  // Copier le contenu complet d'un élément source vers un élément cible (sous-catégories et sous-éléments)
-  copyElementContent: (targetElementId: string, sourceElementId: string) => {
+  // Copier le contenu complet d'un élément source vers un élément cible avec fusion des sous-catégories
+  copyElementContent: (targetElementId: string, sourceElementId: string, linkSubElements: boolean = false) => {
     const cockpit = get().currentCockpit;
     if (!cockpit) return;
 
-    // Trouver l'élément source
+    // Trouver l'élément source et l'élément cible
     let sourceElement: Element | null = null;
+    let targetElement: Element | null = null;
     for (const d of cockpit.domains) {
       for (const c of d.categories) {
-        const found = c.elements.find(e => e.id === sourceElementId);
-        if (found) {
-          sourceElement = found;
-          break;
-        }
+        const foundSource = c.elements.find(e => e.id === sourceElementId);
+        if (foundSource) sourceElement = foundSource;
+        const foundTarget = c.elements.find(e => e.id === targetElementId);
+        if (foundTarget) targetElement = foundTarget;
       }
-      if (sourceElement) break;
     }
 
-    if (!sourceElement) return;
+    if (!sourceElement || !targetElement) return;
 
     // Copier les propriétés de l'élément
     const elementUpdates: Partial<Element> = {
@@ -2733,7 +2866,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       get().updateElement(sourceElementId, { linkedGroupId: sourceElementId }, true);
     }
 
-    // Copier les sous-catégories et leurs sous-éléments
+    // Fusionner les sous-catégories : dans target, ajouter celles de source qui n'existent pas
+    // Et aussi dans source, ajouter celles de target qui n'existent pas
     set((state) => {
       if (!state.currentCockpit) return state;
 
@@ -2745,29 +2879,109 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             categories: d.categories.map(c => ({
               ...c,
               elements: c.elements.map(e => {
-                if (e.id !== targetElementId) return e;
+                // Traiter l'élément cible
+                if (e.id === targetElementId) {
+                  const existingSubCatNames = e.subCategories.map(sc => sc.name.toLowerCase());
+                  
+                  // Créer les nouvelles sous-catégories (celles de source qui n'existent pas dans target)
+                  const newSubCategories = sourceElement!.subCategories
+                    .filter(sc => !existingSubCatNames.includes(sc.name.toLowerCase()))
+                    .map(sc => {
+                      const newSubCatId = generateId();
+                      return {
+                        ...sc,
+                        id: newSubCatId,
+                        elementId: targetElementId,
+                        subElements: sc.subElements.map(se => ({
+                          ...se,
+                          id: generateId(),
+                          subCategoryId: newSubCatId,
+                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                        })),
+                      };
+                    });
 
-                // Créer les sous-catégories copiées avec de nouveaux IDs
-                const newSubCategories = sourceElement!.subCategories.map(sc => {
-                  const newSubCatId = generateId();
+                  // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
+                  const mergedSubCategories = e.subCategories.map(sc => {
+                    const matchingSourceSubCat = sourceElement!.subCategories.find(
+                      ssc => ssc.name.toLowerCase() === sc.name.toLowerCase()
+                    );
+                    if (matchingSourceSubCat) {
+                      const existingSubElNames = sc.subElements.map(se => se.name.toLowerCase());
+                      const newSubElements = matchingSourceSubCat.subElements
+                        .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
+                        .map(se => ({
+                          ...se,
+                          id: generateId(),
+                          subCategoryId: sc.id,
+                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                        }));
+                      return {
+                        ...sc,
+                        subElements: [...sc.subElements, ...newSubElements],
+                      };
+                    }
+                    return sc;
+                  });
+
                   return {
-                    ...sc,
-                    id: newSubCatId,
-                    elementId: targetElementId,
-                    subElements: sc.subElements.map(se => ({
-                      ...se,
-                      id: generateId(),
-                      subCategoryId: newSubCatId,
-                      // Les sous-éléments copiés sont aussi liés
-                      linkedGroupId: se.linkedGroupId || se.id,
-                    })),
+                    ...e,
+                    subCategories: [...mergedSubCategories, ...newSubCategories],
                   };
-                });
+                }
 
-                return {
-                  ...e,
-                  subCategories: newSubCategories,
-                };
+                // Traiter l'élément source (y ajouter les sous-catégories de target qui n'existent pas)
+                if (e.id === sourceElementId) {
+                  const existingSubCatNames = e.subCategories.map(sc => sc.name.toLowerCase());
+                  
+                  // Créer les nouvelles sous-catégories (celles de target qui n'existent pas dans source)
+                  const newSubCategories = targetElement!.subCategories
+                    .filter(sc => !existingSubCatNames.includes(sc.name.toLowerCase()))
+                    .map(sc => {
+                      const newSubCatId = generateId();
+                      return {
+                        ...sc,
+                        id: newSubCatId,
+                        elementId: sourceElementId,
+                        subElements: sc.subElements.map(se => ({
+                          ...se,
+                          id: generateId(),
+                          subCategoryId: newSubCatId,
+                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                        })),
+                      };
+                    });
+
+                  // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
+                  const mergedSubCategories = e.subCategories.map(sc => {
+                    const matchingTargetSubCat = targetElement!.subCategories.find(
+                      tsc => tsc.name.toLowerCase() === sc.name.toLowerCase()
+                    );
+                    if (matchingTargetSubCat) {
+                      const existingSubElNames = sc.subElements.map(se => se.name.toLowerCase());
+                      const newSubElements = matchingTargetSubCat.subElements
+                        .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
+                        .map(se => ({
+                          ...se,
+                          id: generateId(),
+                          subCategoryId: sc.id,
+                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                        }));
+                      return {
+                        ...sc,
+                        subElements: [...sc.subElements, ...newSubElements],
+                      };
+                    }
+                    return sc;
+                  });
+
+                  return {
+                    ...e,
+                    subCategories: [...mergedSubCategories, ...newSubCategories],
+                  };
+                }
+
+                return e;
               }),
             })),
           })),

@@ -15,7 +15,7 @@ interface LinkElementModalProps {
   type: 'element' | 'subElement';
   newItemName: string;
   existingMatches: ExistingMatch[];
-  onLink: (linkedGroupId: string) => void;
+  onLink: (linkedGroupId: string, linkSubElements?: boolean) => void;
   onIndependent: () => void;
   onCancel: () => void;
 }
@@ -29,6 +29,7 @@ export default function LinkElementModal({
   onCancel,
 }: LinkElementModalProps) {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const [linkSubElements, setLinkSubElements] = useState<boolean>(false);
 
   const typeLabel = type === 'element' ? 'élément' : 'sous-élément';
   const typeLabelPlural = type === 'element' ? 'éléments' : 'sous-éléments';
@@ -49,7 +50,8 @@ export default function LinkElementModal({
       const match = existingMatches.find(m => m.id === selectedMatch);
       if (match) {
         // Utiliser le linkedGroupId existant ou l'id de l'élément comme nouveau groupe
-        onLink(match.linkedGroupId || match.id);
+        // Pour les éléments, transmettre aussi la préférence de liaison des sous-éléments
+        onLink(match.linkedGroupId || match.id, type === 'element' ? linkSubElements : undefined);
       }
     }
   };
@@ -128,13 +130,35 @@ export default function LinkElementModal({
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Que signifie "lier" ?</p>
                 <ul className="list-disc list-inside space-y-1 text-blue-700">
-                  <li>Les propriétés sont copiées et synchronisées</li>
-                  <li>Modifier l'un modifie automatiquement les autres</li>
+                  <li>Les catégories sont fusionnées dans les deux éléments</li>
+                  <li>Les sous-éléments sont copiés dans les deux éléments</li>
+                  <li>Les propriétés sont synchronisées (statut, icône, valeur)</li>
                   <li>Vous pouvez supprimer individuellement sans impact</li>
                 </ul>
               </div>
             </div>
           </div>
+
+          {/* Option de liaison des sous-éléments (uniquement pour les éléments) */}
+          {type === 'element' && selectedMatch && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={linkSubElements}
+                  onChange={(e) => setLinkSubElements(e.target.checked)}
+                  className="mt-1 w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">Lier également les sous-éléments</p>
+                  <p className="text-amber-700 mt-1">
+                    Si coché, les sous-éléments de même nom seront automatiquement synchronisés entre les deux éléments.
+                    Sinon, ils seront créés de façon indépendante.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

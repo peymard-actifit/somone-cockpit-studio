@@ -641,7 +641,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   };
 
   // Créer l'élément effectivement
-  const doCreateElement = (categoryId: string, elementName: string, linkedGroupId: string | null) => {
+  const doCreateElement = (categoryId: string, elementName: string, linkedGroupId: string | null, linkSubElements?: boolean) => {
     if (!drawnRect && !pendingElementData) return;
 
     const rect = drawnRect || pendingElementData?.rect;
@@ -668,9 +668,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           height: rect.height,
         });
 
-        // Si on doit lier à un groupe existant
+        // Si on doit lier à un groupe existant (avec fusion des catégories/sous-éléments)
         if (linkedGroupId) {
-          linkElement(newElement.id, linkedGroupId);
+          linkElement(newElement.id, linkedGroupId, linkSubElements);
         }
       }
 
@@ -690,10 +690,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setShowLinkModal(false);
   };
 
-  // Créer l'élément et le lier à un groupe existant
-  const handleCreateLinked = (linkedGroupId: string) => {
+  // Créer l'élément et le lier à un groupe existant (avec fusion des catégories/sous-éléments)
+  const handleCreateLinked = (linkedGroupId: string, linkSubElements?: boolean) => {
     if (pendingElementData) {
-      doCreateElement(pendingElementData.categoryId, pendingElementData.name, linkedGroupId);
+      doCreateElement(pendingElementData.categoryId, pendingElementData.name, linkedGroupId, linkSubElements);
     }
     setShowLinkModal(false);
   };
