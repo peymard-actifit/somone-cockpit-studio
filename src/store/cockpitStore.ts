@@ -334,6 +334,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           logo: currentCockpit.logo,
           scrollingBanner: currentCockpit.scrollingBanner,
           sharedWith: currentCockpit.sharedWith || [],
+          useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
         };
         // Ajouter zones si disponible (peut ne pas être dans le type Cockpit mais dans les données)
         if ((currentCockpit as any).zones) {
@@ -394,6 +395,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         logo: currentCockpit.logo,
         scrollingBanner: currentCockpit.scrollingBanner,
         sharedWith: currentCockpit.sharedWith || [],
+        useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
       };
       if ((currentCockpit as any).zones) {
         payload.zones = (currentCockpit as any).zones;
