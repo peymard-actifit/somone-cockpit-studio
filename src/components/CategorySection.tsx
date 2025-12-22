@@ -1,4 +1,4 @@
-import type { Category } from '../types';
+import type { Category, Domain } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import ElementTile from './ElementTile';
 import { MuiIcon } from './IconPicker';
@@ -13,11 +13,12 @@ interface CategorySectionProps {
   domainId?: string; // ID du domaine pour les préférences indépendantes
   horizontalSpacing?: number; // Espacement horizontal passé depuis DomainView
   categoryHeaderMinWidth?: number; // Largeur minimale de l'en-tête pour l'alignement
+  domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
 }
 
 // Ce composant gère uniquement les catégories HORIZONTALES
 // Les catégories VERTICALES sont gérées directement dans DomainView
-export default function CategorySection({ category, onElementClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth }: CategorySectionProps) {
+export default function CategorySection({ category, onElementClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth, domains }: CategorySectionProps) {
   const { addElement, deleteCategory, moveElement, reorderElement, findElementsByName, linkElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingElement, setIsAddingElement] = useState(false);
@@ -305,6 +306,7 @@ export default function CategorySection({ category, onElementClick, readOnly = f
                 }
               }}
               domainId={domainId}
+              domains={domains}
             />
           ))}
 

@@ -1,4 +1,4 @@
-import type { Element } from '../types';
+import type { Element, Domain } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, getEffectiveColors } from '../types';
 import { MuiIcon } from './IconPicker';
@@ -15,13 +15,16 @@ interface ElementTileProps {
   totalElements?: number; // Nombre total d'éléments dans la catégorie
   onReorder?: (draggedElementId: string, targetIndex: number) => void; // Callback pour réordonner
   domainId?: string; // ID du domaine pour les préférences indépendantes
+  domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
 }
 
-export default function ElementTile({ element, mini = false, onElementClick, readOnly = false, categoryId, index, totalElements, onReorder, domainId }: ElementTileProps) {
+export default function ElementTile({ element, mini = false, onElementClick, readOnly = false, categoryId, index, totalElements, onReorder, domainId, domains: domainsProp }: ElementTileProps) {
   const { setCurrentElement, deleteElement, duplicateElementLinked, currentCockpit } = useCockpitStore();
   const confirm = useConfirm();
+  // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
+  const domains = domainsProp || currentCockpit?.domains;
   // Utiliser la couleur effective (gère le cas hérité et héritage domaine)
-  const colors = getEffectiveColors(element, currentCockpit?.domains);
+  const colors = getEffectiveColors(element, domains);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const isOkStatus = colors.hex === STATUS_COLORS.ok.hex;

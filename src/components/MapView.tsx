@@ -41,9 +41,10 @@ interface MapViewProps {
   domain: Domain;
   onElementClick?: (elementId: string) => void;
   readOnly?: boolean;
+  domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
 }
 
-export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: MapViewProps) {
+export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: _domainsProp }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement } = useCockpitStore();

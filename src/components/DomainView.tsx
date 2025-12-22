@@ -115,7 +115,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'map') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />
+        <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} />
       </div>
     );
   }
@@ -124,7 +124,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'background') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} />
+        <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} />
       </div>
     );
   }
@@ -142,7 +142,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'grid') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <GridView domain={domain} onElementClick={onElementClick} readOnly={readOnly} viewMode={gridViewMode} />
+        <GridView domain={domain} onElementClick={onElementClick} readOnly={readOnly} viewMode={gridViewMode} domains={cockpit?.domains} />
       </div>
     );
   }
@@ -493,6 +493,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                   domainId={domain.id}
                   horizontalSpacing={horizontalSpacing}
                   categoryHeaderMinWidth={maxCategoryHeaderWidth}
+                  domains={cockpit?.domains}
                 />
               </div>
             );

@@ -31,9 +31,10 @@ interface BackgroundViewProps {
   domain: Domain;
   onElementClick?: (elementId: string) => void;
   readOnly?: boolean;
+  domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
 }
 
-export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false }: BackgroundViewProps) {
+export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: domainsProp }: BackgroundViewProps) {
   // ============================================================================
   // TOUS LES HOOKS DOIVENT ÊTRE DÉCLARÉS ICI, AVANT TOUT RETURN CONDITIONNEL
   // (Règle #300 de React : les hooks doivent être appelés dans le même ordre à chaque rendu)
@@ -43,6 +44,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, findElementsByName, linkElement, currentCockpit } = useCockpitStore();
+  // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
+  const domains = domainsProp || currentCockpit?.domains;
 
   // Ã‰tat pour stocker la position et taille réelle de l'image dans le conteneur
   const [imageBounds, setImageBounds] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
@@ -828,7 +831,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         let worstPriority = STATUS_PRIORITY['ok'];
         clusterElements.forEach(e => {
           if (!e || typeof e !== 'object') return; // Ignorer les éléments invalides
-          const effectiveStatus: TileStatus = getEffectiveStatus(e, currentCockpit?.domains) || e.status || 'ok';
+          const effectiveStatus: TileStatus = getEffectiveStatus(e, domains) || e.status || 'ok';
           const priority = STATUS_PRIORITY[effectiveStatus] || 0;
           if (priority > worstPriority) {
             worstPriority = priority;
@@ -1325,7 +1328,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
             if (!imageBounds) return null;
 
-            const colors = getEffectiveColors(element, currentCockpit?.domains);
+            const colors = getEffectiveColors(element, domains);
             if (!colors || !colors.hex) {
               console.warn('[BackgroundView] Couleurs invalides pour élément:', element.name, element);
               return null;
@@ -1338,7 +1341,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             let height = (element.height || 0) * imageBounds.height / 100;
 
             // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
-            const effectiveStatus = getEffectiveStatus(element, currentCockpit?.domains);
+            const effectiveStatus = getEffectiveStatus(element, domains);
             const isCritical = effectiveStatus === 'mineur' || effectiveStatus === 'critique' || effectiveStatus === 'fatal';
             const sizeMultiplier = isCritical ? 1.15 : 1.0;
             const originalWidth = width;

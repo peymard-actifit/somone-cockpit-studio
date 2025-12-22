@@ -13,6 +13,7 @@ interface GridViewProps {
   onElementClick?: (elementId: string) => void;
   readOnly?: boolean;
   viewMode?: 'expanded' | 'collapsed';
+  domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
 }
 
 // Composant draggable pour les sous-éléments
@@ -64,8 +65,10 @@ function DraggableSubElement({ subElement, isSelected, onSelect, readOnly }: Dra
   );
 }
 
-export default function GridView({ domain, onElementClick, readOnly = false, viewMode = 'expanded' }: GridViewProps) {
+export default function GridView({ domain, onElementClick, readOnly = false, viewMode = 'expanded', domains: domainsProp }: GridViewProps) {
   const { addCategory, addSubCategory, addSubElement, addElement, deleteElement, moveSubElement, findSubElementsByName, linkSubElement, currentCockpit } = useCockpitStore();
+  // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
+  const domains = domainsProp || currentCockpit?.domains;
 
   // Selection state
   const [selectedSubElements, setSelectedSubElements] = useState<Set<string>>(new Set());
@@ -903,7 +906,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                               <div className="w-px h-6 bg-[#E2E8F0] shrink-0" />
                               <div className="flex gap-1 flex-wrap items-center" style={{ gap: `${cellSpacing}px` }}>
                                 {category.elements.map((element) => {
-                                  const colors = getEffectiveColors(element, currentCockpit?.domains);
+                                  const colors = getEffectiveColors(element, domains);
                                   const hexToRgba = (hex: string, alpha: number) => {
                                     const r = parseInt(hex.slice(1, 3), 16);
                                     const g = parseInt(hex.slice(3, 5), 16);
@@ -1010,7 +1013,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
 
                           {/* Lignes des éléments de cette catégorie */}
                           {category.elements.map((element, elIndex) => {
-                            const colors = getEffectiveColors(element, currentCockpit?.domains);
+                            const colors = getEffectiveColors(element, domains);
                             const hexToRgba = (hex: string, alpha: number) => {
                               const r = parseInt(hex.slice(1, 3), 16);
                               const g = parseInt(hex.slice(3, 5), 16);
