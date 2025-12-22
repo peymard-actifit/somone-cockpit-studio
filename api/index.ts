@@ -1192,7 +1192,7 @@ INSTRUCTIONS:
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
-      const { name, domains, zones, logo, scrollingBanner, sharedWith } = req.body;
+      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView } = req.body;
       const now = new Date().toISOString();
 
       // LOG IMPORTANT : Vérifier ce qui arrive
@@ -1303,6 +1303,8 @@ INSTRUCTIONS:
         publishedAt: cockpit.data.publishedAt,
         // Partage
         sharedWith: sharedWith !== undefined ? sharedWith : cockpit.data.sharedWith || [],
+        // Vue originale
+        useOriginalView: useOriginalView !== undefined ? useOriginalView : cockpit.data.useOriginalView || false,
         // IMPORTANT: Toujours préserver les originaux sauvegardés
         originals: cockpit.data.originals,
       };

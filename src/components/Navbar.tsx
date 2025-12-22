@@ -15,7 +15,7 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
   domain: { id: string; name: string };
   isActive: boolean;
   onSelect: () => void;
-  colorMode: 'dot' | 'full' | 'border' | 'icon'; // 'dot' = pastille, 'full' = onglet coloré, 'border' = bordure 3 côtés, 'icon' = icône colorée
+  colorMode: 'dot' | 'full' | 'border' | 'icon' | 'corner'; // 'dot' = pastille gauche, 'full' = onglet coloré, 'border' = bordure 3 côtés, 'icon' = icône colorée, 'corner' = pastille haut-droite discrète
   statusIcon: string; // Icône à afficher pour le mode 'icon'
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: domain.id });
@@ -70,6 +70,15 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
         ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
       `}
     >
+      {/* Pastille discrète en haut à droite - mode 'corner' */}
+      {colorMode === 'corner' && hasAlert && (
+        <div
+          className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full shadow-sm border border-white/40"
+          style={{ backgroundColor: statusColor }}
+          title={`Statut le plus critique: ${worstStatus}`}
+        />
+      )}
+
       {/* Pastille à gauche - mode 'dot' uniquement */}
       {colorMode === 'dot' && hasAlert && (
         <div
@@ -115,9 +124,9 @@ export default function Navbar() {
   const [newDomainName, setNewDomainName] = useState('');
 
   // Préférence pour le mode de coloration des onglets
-  const [domainTabColorMode, setDomainTabColorMode] = useState<'dot' | 'full' | 'border' | 'icon'>(() => {
+  const [domainTabColorMode, setDomainTabColorMode] = useState<'dot' | 'full' | 'border' | 'icon' | 'corner'>(() => {
     const saved = localStorage.getItem(DOMAIN_TAB_COLOR_MODE_KEY);
-    if (saved === 'full' || saved === 'border' || saved === 'icon') return saved as 'dot' | 'full' | 'border' | 'icon';
+    if (saved === 'full' || saved === 'border' || saved === 'icon' || saved === 'corner') return saved as 'dot' | 'full' | 'border' | 'icon' | 'corner';
     return 'dot';
   });
 
@@ -130,8 +139,8 @@ export default function Navbar() {
   useEffect(() => {
     const handlePreferenceChange = () => {
       const saved = localStorage.getItem(DOMAIN_TAB_COLOR_MODE_KEY);
-      if (saved === 'full' || saved === 'border' || saved === 'icon') {
-        setDomainTabColorMode(saved as 'dot' | 'full' | 'border' | 'icon');
+      if (saved === 'full' || saved === 'border' || saved === 'icon' || saved === 'corner') {
+        setDomainTabColorMode(saved as 'dot' | 'full' | 'border' | 'icon' | 'corner');
       } else {
         setDomainTabColorMode('dot');
       }

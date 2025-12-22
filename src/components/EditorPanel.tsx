@@ -308,9 +308,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [newExcludedDate, setNewExcludedDate] = useState('');
 
   // Préférence pour le mode de coloration des onglets de domaine
-  const [domainTabColorMode, setDomainTabColorMode] = useState<'dot' | 'full' | 'border' | 'icon'>(() => {
+  const [domainTabColorMode, setDomainTabColorMode] = useState<'dot' | 'full' | 'border' | 'icon' | 'corner'>(() => {
     const saved = localStorage.getItem('domainTabColorMode');
-    if (saved === 'full' || saved === 'border' || saved === 'icon') return saved as 'dot' | 'full' | 'border' | 'icon';
+    if (saved === 'full' || saved === 'border' || saved === 'icon' || saved === 'corner') return saved as 'dot' | 'full' | 'border' | 'icon' | 'corner';
     return 'dot';
   });
 
@@ -3733,6 +3733,20 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       />
                       <span className="text-sm text-[#64748B]">Icône colorée</span>
                     </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="domainTabColorMode"
+                        checked={domainTabColorMode === 'corner'}
+                        onChange={() => {
+                          setDomainTabColorMode('corner');
+                          localStorage.setItem('domainTabColorMode', 'corner');
+                          window.dispatchEvent(new Event('domainTabColorModeChanged'));
+                        }}
+                        className="w-4 h-4 text-[#1E3A5F] border-[#CBD5E1] focus:ring-[#1E3A5F]"
+                      />
+                      <span className="text-sm text-[#64748B]">Pastille discrète (haut-droite)</span>
+                    </label>
                   </div>
 
                   {/* Sélecteur d'icône (visible uniquement en mode 'icon') */}
@@ -4081,6 +4095,24 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 rows={2}
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F] resize-none"
               />
+            </div>
+
+            {/* Option Vue Cockpit Original (préparation future fonctionnalité) */}
+            <div className="border-t border-[#E2E8F0] pt-4">
+              <label className="flex items-center gap-3 cursor-pointer p-3 bg-[#F5F7FA] rounded-lg hover:bg-[#E2E8F0] transition-colors">
+                <input
+                  type="checkbox"
+                  checked={currentCockpit?.useOriginalView || false}
+                  onChange={(e) => updateCockpit({ useOriginalView: e.target.checked })}
+                  className="w-5 h-5 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F] focus:ring-2"
+                />
+                <div>
+                  <span className="block text-sm font-medium text-[#1E3A5F]">Vue Cockpit Original</span>
+                  <span className="block text-xs text-[#94A3B8]">
+                    Active une vue alternative pour les cockpits publiés (bientôt disponible)
+                  </span>
+                </div>
+              </label>
             </div>
 
             {/* Partage avec d'autres utilisateurs */}

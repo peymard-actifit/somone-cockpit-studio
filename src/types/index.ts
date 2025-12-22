@@ -43,6 +43,8 @@ export interface Cockpit {
   order?: number;         // Ordre d'affichage pour le drag & drop
   // Partage
   sharedWith?: string[];  // Liste des IDs des utilisateurs avec qui la maquette est partagée
+  // Vue originale
+  useOriginalView?: boolean;  // Si true, utilise la vue "Cockpit Original" lors de la publication
 }
 
 // Coordonnées GPS
