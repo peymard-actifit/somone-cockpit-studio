@@ -381,6 +381,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           };
         }
         
+        // SECOURS ÉTENDU V2: Si l'utilisateur existe mais c'est le compte "peymard" sans cockpits,
+        // rediriger vers le compte principal "peymard@somone.fr"
+        if (currentUser && (currentUser.username === 'peymard' || decoded.id === '9346-29f2-1311')) {
+          console.log(`[AUTH] SECOURS V2: Redirecting user "peymard" to main account "peymard@somone.fr"`);
+          currentUser = {
+            id: '1dee-2b35-2e64',
+            username: 'peymard@somone.fr',
+            password: '',
+            isAdmin: true,
+            createdAt: new Date().toISOString()
+          };
+        }
+        
         // SECOURS ÉTENDU: Si toujours pas d'utilisateur mais token valide avec isAdmin, créer un user temporaire
         if (!currentUser && decoded.isAdmin) {
           console.log(`[AUTH] SECOURS ÉTENDU: Creating temp admin user for ID ${decoded.id}`);
