@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { Cockpit, Element, Category } from '../types';
+import type { Cockpit, Element, Category, Domain } from '../types';
 import { MuiIcon } from '../components/IconPicker';
 import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
 import PublicAIChat from '../components/PublicAIChat';
 import { VERSION_DISPLAY } from '../config/version';
+import { getDomainWorstStatus, STATUS_COLORS } from '../types';
 
 export default function PublicCockpitPage() {
   const { publicId } = useParams();
@@ -172,25 +173,47 @@ export default function PublicCockpitPage() {
           </div>
         </div>
 
-        {/* Navigation des domaines */}
+        {/* Navigation des domaines avec indicateurs de statut */}
         <div className="bg-slate-800/30 border-t border-slate-700/30">
           <div className="px-6">
             <div className="flex gap-1 overflow-x-auto py-1">
-              {cockpit.domains.map((domain) => (
-                <button
-                  key={domain.id}
-                  onClick={() => {
-                    setCurrentDomainId(domain.id);
-                    setCurrentElementId(null);
-                  }}
-                  className={`px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-colors ${currentDomainId === domain.id
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+              {cockpit.domains.map((domain) => {
+                // Calculer le statut le plus critique du domaine
+                const worstStatus = getDomainWorstStatus(domain as any, cockpit.domains as any);
+                const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
+                const hasAlert = worstStatus !== 'ok';
+                const isActive = currentDomainId === domain.id;
+                
+                return (
+                  <button
+                    key={domain.id}
+                    onClick={() => {
+                      setCurrentDomainId(domain.id);
+                      setCurrentElementId(null);
+                    }}
+                    style={hasAlert ? {
+                      borderLeft: `3px solid ${statusColor}`,
+                      borderTop: `3px solid ${statusColor}`,
+                      borderRight: `3px solid ${statusColor}`,
+                    } : undefined}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors ${
+                      isActive
+                        ? 'bg-white text-[#1E3A5F]'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                     }`}
-                >
-                  {domain.name}
-                </button>
-              ))}
+                  >
+                    {/* Pastille de statut */}
+                    {hasAlert && (
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0 border border-white/30"
+                        style={{ backgroundColor: statusColor }}
+                        title={`Statut: ${worstStatus}`}
+                      />
+                    )}
+                    {domain.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
