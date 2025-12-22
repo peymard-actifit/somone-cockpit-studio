@@ -357,7 +357,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log(`[AUTH] Token decoded: ${JSON.stringify(decoded)}`);
 
       if (decoded) {
+        // Vérifier si le token est expiré
+        if (decoded.exp && decoded.exp < Date.now()) {
+          console.log(`[AUTH] ⚠️ Token EXPIRÉ! exp=${decoded.exp}, now=${Date.now()}`);
+        }
+        
         const db = await getDb();
+        console.log(`[AUTH] Users in DB: ${db.users?.length || 0}, looking for ID: ${decoded.id}`);
+        console.log(`[AUTH] User IDs in DB: ${db.users?.map(u => u.id).join(', ') || 'NONE'}`);
+        
         currentUser = db.users.find(u => u.id === decoded.id) || null;
         console.log(`[AUTH] User found: ${currentUser ? currentUser.username : 'NULL'}`);
 
@@ -372,6 +380,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             createdAt: new Date().toISOString()
           };
         }
+        
+        // SECOURS ÉTENDU: Si toujours pas d'utilisateur mais token valide avec isAdmin, créer un user temporaire
+        if (!currentUser && decoded.isAdmin) {
+          console.log(`[AUTH] SECOURS ÉTENDU: Creating temp admin user for ID ${decoded.id}`);
+          currentUser = {
+            id: decoded.id,
+            username: 'admin-temp',
+            password: '',
+            isAdmin: true,
+            createdAt: new Date().toISOString()
+          };
+        }
+      } else {
+        console.log(`[AUTH] ⚠️ Token verification FAILED (null decoded)`);
       }
     } else {
       console.log(`[AUTH] No valid Authorization header`);
@@ -381,13 +403,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // DEBUG ROUTE (temporary)
     // =====================
 
-    // Route de diagnostic - retourne l'état de la base et de l'auth
+    // Route de diagnostic - retourne l'état de la base et de l'auth (SANS auth requise)
     if (path === '/debug/status' && method === 'GET') {
       const db = await getDb();
       return res.json({
+        timestamp: new Date().toISOString(),
         auth: {
           hasAuthHeader: !!authHeader,
+          tokenPrefix: authHeader ? authHeader.substring(0, 20) + '...' : null,
           currentUser: currentUser ? { id: currentUser.id, username: currentUser.username, isAdmin: currentUser.isAdmin } : null
+        },
+        redis: {
+          connected: !!(redisUrl && redisToken),
+          urlConfigured: !!redisUrl,
+          tokenConfigured: !!redisToken
         },
         db: {
           usersCount: db.users?.length || 0,
