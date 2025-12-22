@@ -2,12 +2,13 @@
 // Session init: 2025-12-22 - Verification complete
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
+import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
 
-// Upstash Redis client
+// Upstash Redis client (pour les donnees de travail)
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
 
@@ -18,6 +19,120 @@ const redis = new Redis({
   url: redisUrl,
   token: redisToken,
 });
+
+// Neon PostgreSQL client (pour les snapshots publies)
+const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+console.log('PostgreSQL URL configured:', databaseUrl ? 'YES' : 'NO');
+
+const sql = databaseUrl ? neon(databaseUrl) : null;
+
+// Initialiser la table des snapshots si elle n'existe pas
+let pgInitialized = false;
+async function initPostgres(): Promise<boolean> {
+  if (!sql || pgInitialized) return !!sql;
+  
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS published_cockpits (
+        id SERIAL PRIMARY KEY,
+        cockpit_id VARCHAR(50) NOT NULL,
+        public_id VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        snapshot_data JSONB NOT NULL,
+        snapshot_version INTEGER DEFAULT 1,
+        published_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_published_cockpits_public_id ON published_cockpits(public_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_published_cockpits_cockpit_id ON published_cockpits(cockpit_id)`;
+    pgInitialized = true;
+    console.log('[PostgreSQL] Table published_cockpits initialisee');
+    return true;
+  } catch (error: any) {
+    console.error('[PostgreSQL] Erreur initialisation:', error?.message);
+    return false;
+  }
+}
+
+// Sauvegarder un snapshot dans PostgreSQL
+async function saveSnapshot(cockpitId: string, publicId: string, name: string, snapshotData: any, version: number): Promise<boolean> {
+  if (!sql) {
+    console.error('[PostgreSQL] Non configure');
+    return false;
+  }
+  
+  await initPostgres();
+  
+  try {
+    // Upsert: update si existe, sinon insert
+    await sql`
+      INSERT INTO published_cockpits (cockpit_id, public_id, name, snapshot_data, snapshot_version, published_at, updated_at)
+      VALUES (${cockpitId}, ${publicId}, ${name}, ${JSON.stringify(snapshotData)}, ${version}, NOW(), NOW())
+      ON CONFLICT (public_id) 
+      DO UPDATE SET 
+        name = ${name},
+        snapshot_data = ${JSON.stringify(snapshotData)},
+        snapshot_version = ${version},
+        published_at = NOW(),
+        updated_at = NOW()
+    `;
+    console.log(`[PostgreSQL] Snapshot sauvegarde: ${name} (v${version})`);
+    return true;
+  } catch (error: any) {
+    console.error('[PostgreSQL] Erreur sauvegarde snapshot:', error?.message);
+    return false;
+  }
+}
+
+// Charger un snapshot depuis PostgreSQL
+async function loadSnapshot(publicId: string): Promise<any | null> {
+  if (!sql) return null;
+  
+  await initPostgres();
+  
+  try {
+    const result = await sql`
+      SELECT cockpit_id, public_id, name, snapshot_data, snapshot_version, published_at
+      FROM published_cockpits 
+      WHERE public_id = ${publicId}
+    `;
+    
+    if (result.length > 0) {
+      const row = result[0];
+      console.log(`[PostgreSQL] Snapshot charge: ${row.name} (v${row.snapshot_version})`);
+      return {
+        cockpitId: row.cockpit_id,
+        publicId: row.public_id,
+        name: row.name,
+        ...row.snapshot_data,
+        snapshotVersion: row.snapshot_version,
+        snapshotCreatedAt: row.published_at
+      };
+    }
+    return null;
+  } catch (error: any) {
+    console.error('[PostgreSQL] Erreur chargement snapshot:', error?.message);
+    return null;
+  }
+}
+
+// Supprimer un snapshot de PostgreSQL
+async function deleteSnapshot(publicId: string): Promise<boolean> {
+  if (!sql) return false;
+  
+  await initPostgres();
+  
+  try {
+    await sql`DELETE FROM published_cockpits WHERE public_id = ${publicId}`;
+    console.log(`[PostgreSQL] Snapshot supprime: ${publicId}`);
+    return true;
+  } catch (error: any) {
+    console.error('[PostgreSQL] Erreur suppression snapshot:', error?.message);
+    return false;
+  }
+}
 
 // Types
 interface User {
@@ -490,11 +605,98 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             name: c.name,
             publicId: c.data?.publicId,
             isPublished: c.data?.isPublished,
-            hasSnapshot: !!c.data?.publishedSnapshot,
-            snapshotVersion: c.data?.publishedSnapshot?.snapshotVersion
-          })) || []
+            hasSnapshot: c.data?.hasSnapshot || !!c.data?.publishedSnapshot,
+            snapshotVersion: c.data?.snapshotVersion || c.data?.publishedSnapshot?.snapshotVersion,
+            snapshotStorage: c.data?.snapshotStorage || 'redis'
+          })) || [],
+          postgresqlConfigured: !!sql
         }
       });
+    }
+
+    // Route de migration des snapshots Redis vers PostgreSQL
+    if (path === '/debug/migrate-snapshots' && method === 'POST') {
+      if (!sql) {
+        return res.status(500).json({ error: 'PostgreSQL non configure' });
+      }
+      
+      try {
+        const db = await getDb();
+        const published = db.cockpits.filter((c: any) => c.data?.isPublished && c.data?.publicId);
+        const results: any[] = [];
+        
+        for (const cockpit of published) {
+          const publicId = cockpit.data.publicId;
+          const snapshotKey = `snapshot-${publicId}`;
+          
+          try {
+            // Lire depuis Redis
+            const redisSnapshot = await redis.get<any>(snapshotKey);
+            
+            if (redisSnapshot) {
+              // Sauvegarder dans PostgreSQL
+              const success = await saveSnapshot(
+                cockpit.id,
+                publicId,
+                cockpit.name,
+                redisSnapshot,
+                redisSnapshot.snapshotVersion || 1
+              );
+              
+              if (success) {
+                // Mettre a jour le cockpit pour indiquer PostgreSQL
+                cockpit.data.snapshotStorage = 'postgresql';
+                results.push({ name: cockpit.name, publicId, status: 'migrated' });
+              } else {
+                results.push({ name: cockpit.name, publicId, status: 'pg_error' });
+              }
+            } else {
+              // Pas de snapshot Redis, creer depuis les donnees courantes
+              const newSnapshot = {
+                logo: cockpit.data.logo || null,
+                scrollingBanner: cockpit.data.scrollingBanner || null,
+                useOriginalView: cockpit.data.useOriginalView || false,
+                domains: (cockpit.data.domains || [])
+                  .filter((d: any) => d.publiable !== false)
+                  .map((d: any) => ({
+                    ...d,
+                    categories: (d.categories || []).map((cat: any) => ({
+                      ...cat,
+                      elements: (cat.elements || []).filter((el: any) => el.publiable !== false)
+                    }))
+                  })),
+                zones: cockpit.data.zones || [],
+              };
+              
+              const success = await saveSnapshot(cockpit.id, publicId, cockpit.name, newSnapshot, 1);
+              if (success) {
+                cockpit.data.snapshotVersion = 1;
+                cockpit.data.hasSnapshot = true;
+                cockpit.data.snapshotStorage = 'postgresql';
+                results.push({ name: cockpit.name, publicId, status: 'created' });
+              } else {
+                results.push({ name: cockpit.name, publicId, status: 'create_error' });
+              }
+            }
+          } catch (err: any) {
+            results.push({ name: cockpit.name, publicId, status: 'error', error: err?.message });
+          }
+        }
+        
+        // Sauvegarder les modifications
+        await saveDb(db);
+        
+        return res.json({
+          success: true,
+          migrated: results.filter(r => r.status === 'migrated').length,
+          created: results.filter(r => r.status === 'created').length,
+          errors: results.filter(r => r.status.includes('error')).length,
+          details: results
+        });
+      } catch (error: any) {
+        console.error('[Migration] Erreur:', error);
+        return res.status(500).json({ error: error?.message || 'Erreur migration' });
+      }
     }
 
     // Route simple pour créer/forcer la création d'un utilisateur (si n'existe pas) ou réinitialiser son mot de passe
@@ -704,38 +906,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // =====================================================
       // UTILISER LE SNAPSHOT SI DISPONIBLE (version figee)
       // =====================================================
-      // Le snapshot est une copie figee des donnees au moment de la publication
-      // Les modifications du cockpit en edition n'affectent pas le cockpit publie
-      const snapshot = data.publishedSnapshot;
-      
-      if (snapshot) {
-        console.log(`[Public API] Utilisation du SNAPSHOT v${snapshot.snapshotVersion} (cree le ${snapshot.snapshotCreatedAt})`);
-        console.log(`[Public API] Snapshot contient ${snapshot.domains?.length || 0} domaines`);
+      // Priorite: PostgreSQL > Redis > Donnees courantes
+      if (data.hasSnapshot && data.publicId) {
+        let snapshot = null;
         
-        // Utiliser directement les donnees du snapshot (deja filtrees lors de la publication)
-        const response = {
-          id: cockpit.id,
-          name: snapshot.name || cockpit.name,
-          createdAt: cockpit.createdAt,
-          updatedAt: cockpit.updatedAt,
-          domains: snapshot.domains || [],
-          zones: snapshot.zones || [],
-          logo: snapshot.logo || null,
-          scrollingBanner: snapshot.scrollingBanner || null,
-          publicId: data.publicId || null,
-          isPublished: data.isPublished || false,
-          publishedAt: data.publishedAt || null,
-          useOriginalView: snapshot.useOriginalView || false,
-          snapshotVersion: snapshot.snapshotVersion,
-          snapshotCreatedAt: snapshot.snapshotCreatedAt,
-        };
+        // 1. Essayer PostgreSQL d'abord
+        if (data.snapshotStorage === 'postgresql' || !data.snapshotStorage) {
+          snapshot = await loadSnapshot(data.publicId);
+          if (snapshot) {
+            console.log(`[Public API] Snapshot charge depuis PostgreSQL v${snapshot.snapshotVersion}`);
+          }
+        }
         
-        console.log(`[Public API] Envoi reponse SNAPSHOT avec ${response.domains.length} domaines`);
-        return res.json(response);
+        // 2. Fallback Redis si pas trouve dans PostgreSQL
+        if (!snapshot && (data.snapshotStorage === 'redis' || !data.snapshotStorage)) {
+          try {
+            const snapshotKey = `snapshot-${data.publicId}`;
+            snapshot = await redis.get<any>(snapshotKey);
+            if (snapshot) {
+              console.log(`[Public API] Snapshot charge depuis Redis v${snapshot.snapshotVersion}`);
+            }
+          } catch (redisError: any) {
+            console.error(`[Public API] Erreur Redis:`, redisError?.message);
+          }
+        }
+        
+        if (snapshot) {
+          console.log(`[Public API] Snapshot contient ${snapshot.domains?.length || 0} domaines`);
+
+          const response = {
+            id: cockpit.id,
+            name: snapshot.name || cockpit.name,
+            createdAt: cockpit.createdAt,
+            updatedAt: cockpit.updatedAt,
+            domains: snapshot.domains || [],
+            zones: snapshot.zones || [],
+            logo: snapshot.logo || null,
+            scrollingBanner: snapshot.scrollingBanner || null,
+            publicId: data.publicId || null,
+            isPublished: data.isPublished || false,
+            publishedAt: data.publishedAt || null,
+            useOriginalView: snapshot.useOriginalView || false,
+            snapshotVersion: snapshot.snapshotVersion,
+            snapshotCreatedAt: snapshot.snapshotCreatedAt,
+            snapshotStorage: data.snapshotStorage || 'unknown',
+          };
+
+          console.log(`[Public API] Envoi reponse SNAPSHOT avec ${response.domains.length} domaines`);
+          return res.json(response);
+        }
       }
-      
-      // FALLBACK: Si pas de snapshot (anciennes publications), utiliser les donnees courantes
-      console.log(`[Public API] ATTENTION: Pas de snapshot, utilisation des donnees courantes (ancien comportement)`);
+
+      // FALLBACK: Si pas de snapshot, utiliser les donnees courantes
+      console.log(`[Public API] Pas de snapshot disponible, utilisation des donnees courantes`);
 
       // Filtrer les domaines et elements non publiables pour l'acces public
       const filteredDomains = (data.domains || []).filter((domain: any) => domain.publiable !== false).map((domain: any) => {
@@ -1538,11 +1761,11 @@ INSTRUCTIONS:
       cockpit.data.publishedAt = publishedAt;
 
       // CREATION DU SNAPSHOT - Copie figee pour acces public
-      // Le snapshot est TOUJOURS cree pour isoler la version publiee des modifications
+      // Le snapshot est stocke dans PostgreSQL (Neon) pour eviter les limites Redis
       const dataSize = JSON.stringify(cockpit.data).length;
-      
+      const snapshotVersion = (cockpit.data.snapshotVersion || 0) + 1;
+
       const publishedSnapshot = {
-        name: cockpit.name,
         logo: cockpit.data.logo || null,
         scrollingBanner: cockpit.data.scrollingBanner || null,
         useOriginalView: cockpit.data.useOriginalView || false,
@@ -1558,11 +1781,40 @@ INSTRUCTIONS:
             }))
         )),
         zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
-        snapshotCreatedAt: publishedAt,
-        snapshotVersion: (cockpit.data.publishedSnapshot?.snapshotVersion || 0) + 1,
       };
-      cockpit.data.publishedSnapshot = publishedSnapshot;
-      console.log(`[PUBLISH] SNAPSHOT v${publishedSnapshot.snapshotVersion} cree (${Math.round(dataSize/1024)}KB)`);
+
+      // Stocker le snapshot dans PostgreSQL (Neon)
+      const pgSuccess = await saveSnapshot(
+        cockpit.id,
+        cockpit.data.publicId,
+        cockpit.name,
+        publishedSnapshot,
+        snapshotVersion
+      );
+      
+      if (pgSuccess) {
+        console.log(`[PUBLISH] SNAPSHOT v${snapshotVersion} sauvegarde dans PostgreSQL (${Math.round(dataSize/1024)}KB)`);
+        cockpit.data.snapshotVersion = snapshotVersion;
+        cockpit.data.hasSnapshot = true;
+        cockpit.data.snapshotStorage = 'postgresql';
+      } else {
+        console.error(`[PUBLISH] Erreur sauvegarde snapshot PostgreSQL, fallback Redis`);
+        // Fallback: essayer Redis si PostgreSQL echoue
+        try {
+          const snapshotKey = `snapshot-${cockpit.data.publicId}`;
+          await redis.set(snapshotKey, { ...publishedSnapshot, snapshotVersion, snapshotCreatedAt: publishedAt });
+          cockpit.data.snapshotVersion = snapshotVersion;
+          cockpit.data.hasSnapshot = true;
+          cockpit.data.snapshotStorage = 'redis';
+          console.log(`[PUBLISH] Fallback Redis OK`);
+        } catch (redisError: any) {
+          console.error(`[PUBLISH] Fallback Redis echoue:`, redisError?.message);
+          cockpit.data.hasSnapshot = false;
+        }
+      }
+
+      // Ne PAS stocker le snapshot dans la base principale Redis
+      delete cockpit.data.publishedSnapshot;
 
       // Sauvegarder
       console.log(`[PUBLISH] Sauvegarde en cours pour ${cockpit.name}...`);
@@ -1595,8 +1847,8 @@ INSTRUCTIONS:
         success: true,
         publicId: cockpit.data.publicId,
         publishedAt: cockpit.data.publishedAt,
-        hasSnapshot: !!cockpit.data.publishedSnapshot,
-        snapshotVersion: cockpit.data.publishedSnapshot?.snapshotVersion || null
+        hasSnapshot: cockpit.data.hasSnapshot || false,
+        snapshotVersion: cockpit.data.snapshotVersion || null
       });
     }
 
