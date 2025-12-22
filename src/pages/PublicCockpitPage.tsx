@@ -192,10 +192,10 @@ export default function PublicCockpitPage() {
                       }`}
                     >
                       {domain.name}
-                      {/* Pastille de statut en haut à droite */}
+                      {/* Pastille de statut en haut à droite - position ajustée pour rester dans l'onglet */}
                       {hasAlert && (
                         <div
-                          className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-[#1E3A5F]"
+                          className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border border-white/50"
                           style={{ backgroundColor: statusColor }}
                           title={`Statut: ${worstStatus}`}
                         />

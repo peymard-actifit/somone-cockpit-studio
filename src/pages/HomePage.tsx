@@ -16,7 +16,6 @@ function SortableCockpitCard({
   handleUnpublish,
   getPublicBaseUrl,
   handlePublish,
-  isLoading,
   setNewName,
   setShowDuplicateModal,
   handleExportClick,
@@ -28,13 +27,16 @@ function SortableCockpitCard({
   handleUnpublish: (id: string) => Promise<void>;
   getPublicBaseUrl: () => string;
   handlePublish: (id: string) => Promise<{ publicId: string } | null>;
-  isLoading: boolean;
   setNewName: (name: string) => void;
   setShowDuplicateModal: (id: string) => void;
   handleExportClick: (id: string) => void;
   setShowDeleteModal: (id: string) => void;
   formatDate: (dateString: string) => string;
 }) {
+  // État local pour le chargement de cette carte uniquement
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isUnpublishing, setIsUnpublishing] = useState(false);
+  
   const {
     attributes,
     listeners,
@@ -48,6 +50,25 @@ function SortableCockpitCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+  };
+  
+  // Handlers locaux pour gérer l'état de chargement par carte
+  const onPublish = async () => {
+    setIsPublishing(true);
+    try {
+      await handlePublish(cockpit.id);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+  
+  const onUnpublish = async () => {
+    setIsUnpublishing(true);
+    try {
+      await handleUnpublish(cockpit.id);
+    } finally {
+      setIsUnpublishing(false);
+    }
   };
 
   return (
@@ -116,14 +137,18 @@ function SortableCockpitCard({
           {cockpit.isPublished ? (
             <>
               <button
-                onClick={async () => {
-                  await handleUnpublish(cockpit.id);
-                }}
+                onClick={onUnpublish}
                 className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded transition-colors text-[10px] bg-red-500/20 hover:bg-red-500/30 text-red-400"
-                disabled={isLoading}
+                disabled={isUnpublishing}
               >
-                <MuiIcon name="Globe" size={12} />
-                Dépublier
+                {isUnpublishing ? (
+                  <div className="animate-spin"><MuiIcon name="Refresh" size={12} /></div>
+                ) : (
+                  <>
+                    <MuiIcon name="Globe" size={12} />
+                    Dépublier
+                  </>
+                )}
               </button>
               {cockpit.publicId && (
                 <button
@@ -139,14 +164,12 @@ function SortableCockpitCard({
             </>
           ) : (
             <button
-              onClick={async () => {
-                await handlePublish(cockpit.id);
-              }}
+              onClick={onPublish}
               className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded transition-colors text-[10px] bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
-              disabled={isLoading}
+              disabled={isPublishing}
             >
-              {isLoading ? (
-                <div className="animate-spin"><MuiIcon name="Loader2" size={12} /></div>
+              {isPublishing ? (
+                <div className="animate-spin"><MuiIcon name="Refresh" size={12} /></div>
               ) : (
                 <>
                   <MuiIcon name="Globe" size={12} />
@@ -663,7 +686,6 @@ export default function HomePage() {
                   handleUnpublish={handleUnpublish}
                   getPublicBaseUrl={getPublicBaseUrl}
                   handlePublish={handlePublish}
-                  isLoading={isLoading}
                   setNewName={setNewName}
                   setShowDuplicateModal={setShowDuplicateModal}
                   handleExportClick={handleExportClick}
