@@ -1462,23 +1462,48 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               )}
             </div>
 
-            {/* Changer la catégorie */}
-            {domain && domain.categories.length > 1 && (
+            {/* Changer ou créer une catégorie */}
+            {domain && domain.categories.length >= 1 && (
               <div className="border-t border-[#E2E8F0] pt-4 mt-4">
                 <label className="block text-sm text-[#64748B] mb-2">Catégorie</label>
-                <select
-                  className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-                  value={element.categoryId}
-                  onChange={(e) => {
-                    if (e.target.value && e.target.value !== element.categoryId) {
-                      moveElementToCategory(element.id, e.target.value);
-                    }
-                  }}
-                >
-                  {domain.categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                    value={element.categoryId}
+                    onChange={(e) => {
+                      if (e.target.value && e.target.value !== element.categoryId) {
+                        moveElementToCategory(element.id, e.target.value);
+                      }
+                    }}
+                  >
+                    {domain.categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => {
+                      const categoryName = prompt('Nom de la nouvelle catégorie:');
+                      if (categoryName && categoryName.trim()) {
+                        addCategory(domain.id, categoryName.trim(), 'horizontal');
+                        // Attendre la création puis déplacer l'élément
+                        setTimeout(() => {
+                          const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
+                          const newCategory = updatedDomain?.categories.find(c => c.name === categoryName.trim());
+                          if (newCategory) {
+                            moveElementToCategory(element.id, newCategory.id);
+                          }
+                        }, 100);
+                      }
+                    }}
+                    className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg text-sm hover:bg-[#2d5a8f] transition-colors flex items-center gap-1"
+                    title="Créer une nouvelle catégorie et y déplacer l'élément"
+                  >
+                    <MuiIcon name="Add" size={16} />
+                  </button>
+                </div>
+                <p className="text-xs text-[#94A3B8] mt-1">
+                  Déplacez l'élément vers une autre catégorie ou créez-en une nouvelle
+                </p>
               </div>
             )}
 
