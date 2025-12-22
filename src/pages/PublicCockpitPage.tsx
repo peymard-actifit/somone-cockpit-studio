@@ -117,6 +117,9 @@ export default function PublicCockpitPage() {
   if (!cockpit) return null;
 
   const currentDomain = cockpit.domains.find(d => d.id === currentDomainId);
+  
+  // Déterminer si on utilise la vue originale
+  const useOriginalView = cockpit.useOriginalView === true;
 
   // Trouver l'élément courant si on est en vue élément
   let currentElement: Element | null = null;
@@ -142,82 +145,179 @@ export default function PublicCockpitPage() {
     setCurrentElementId(null);
   };
 
-  return (
-    <div className="h-screen bg-cockpit-bg-dark flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="bg-cockpit-bg-card border-b border-slate-700/50 shadow-lg z-50">
-        <div className="px-6 py-3">
+  // =====================================================
+  // RENDU HEADER - Vue Originale ou Vue Standard
+  // =====================================================
+  
+  const renderOriginalHeader = () => {
+    // Extraire le nom du cockpit pour le styliser (ex: "RETAIL COCKPIT" -> "RETAIL" + "COCKPIT")
+    const nameParts = cockpit.name.toUpperCase().split(' ');
+    const firstPart = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0];
+    const lastPart = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+    
+    return (
+      <header className="bg-[#1E3A5F] shadow-lg z-50">
+        <div className="px-6 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {cockpit.logo && (
+            {/* Logo et nom stylisé */}
+            <div className="flex items-center gap-6">
+              {cockpit.logo ? (
                 <img src={cockpit.logo} alt="Logo" className="h-10 w-auto" />
+              ) : (
+                <div className="flex flex-col leading-tight">
+                  <span className="text-lg font-bold text-[#F5A623] tracking-wider">{firstPart}</span>
+                  {lastPart && <span className="text-lg font-bold text-white tracking-wider">{lastPart}</span>}
+                </div>
               )}
-              <div>
-                <h1 className="text-xl font-bold text-white">{cockpit.name}</h1>
-                <p className="text-xs text-slate-500">
-                  Mode consultation {VERSION_DISPLAY}
-                </p>
+              
+              {/* Onglets domaines - style original */}
+              <div className="flex items-center gap-1">
+                {cockpit.domains.map((domain) => {
+                  const worstStatus = getDomainWorstStatus(domain as any, cockpit.domains as any);
+                  const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
+                  const hasAlert = worstStatus !== 'ok';
+                  const isActive = currentDomainId === domain.id;
+                  
+                  return (
+                    <button
+                      key={domain.id}
+                      onClick={() => {
+                        setCurrentDomainId(domain.id);
+                        setCurrentElementId(null);
+                      }}
+                      className={`relative px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+                        isActive
+                          ? 'bg-[#4A6D8C] text-white'
+                          : 'bg-[#2D4A63] text-slate-300 hover:bg-[#3A5A75] hover:text-white'
+                      }`}
+                    >
+                      {domain.name}
+                      {/* Pastille de statut en haut à droite */}
+                      {hasAlert && (
+                        <div
+                          className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-[#1E3A5F]"
+                          style={{ backgroundColor: statusColor }}
+                          title={`Statut: ${worstStatus}`}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Assistant IA */}
+            
+            {/* Zone droite - Assistant IA et infos */}
+            <div className="flex items-center gap-4">
+              {/* Assistant IA stylisé */}
               {publicId && cockpit && (
                 <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
               )}
-
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-                <MuiIcon name="Visibility" size={16} className="text-blue-400" />
-                <span className="text-sm text-blue-400">Lecture seule</span>
+              
+              {/* Badge "A jour" */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2D4A63] rounded-lg border border-[#4A6D8C]">
+                <span className="text-sm text-green-400">A jour</span>
+                <MuiIcon name="Check" size={14} className="text-green-400" />
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation des domaines avec indicateurs de statut */}
-        <div className="bg-slate-800/30 border-t border-slate-700/30">
-          <div className="px-6">
-            <div className="flex gap-1 overflow-x-auto py-1">
-              {cockpit.domains.map((domain) => {
-                // Calculer le statut le plus critique du domaine
-                const worstStatus = getDomainWorstStatus(domain as any, cockpit.domains as any);
-                const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
-                const hasAlert = worstStatus !== 'ok';
-                const isActive = currentDomainId === domain.id;
-                
-                return (
-                  <button
-                    key={domain.id}
-                    onClick={() => {
-                      setCurrentDomainId(domain.id);
-                      setCurrentElementId(null);
-                    }}
-                    style={hasAlert ? {
-                      borderLeft: `3px solid ${statusColor}`,
-                      borderTop: `3px solid ${statusColor}`,
-                      borderRight: `3px solid ${statusColor}`,
-                    } : undefined}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors ${
-                      isActive
-                        ? 'bg-white text-[#1E3A5F]'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                    }`}
-                  >
-                    {/* Pastille de statut */}
-                    {hasAlert && (
-                      <div
-                        className="w-3 h-3 rounded-full flex-shrink-0 border border-white/30"
-                        style={{ backgroundColor: statusColor }}
-                        title={`Statut: ${worstStatus}`}
-                      />
-                    )}
-                    {domain.name}
-                  </button>
-                );
-              })}
+              
+              {/* Avatar utilisateur (placeholder) */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#2D4A63] flex items-center justify-center overflow-hidden">
+                  <MuiIcon name="Person" size={24} className="text-slate-400" />
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-white">Visiteur</p>
+                  <p className="text-xs text-slate-400">
+                    {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
+    );
+  };
+  
+  const renderStandardHeader = () => (
+    <header className="bg-cockpit-bg-card border-b border-slate-700/50 shadow-lg z-50">
+      <div className="px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {cockpit.logo && (
+              <img src={cockpit.logo} alt="Logo" className="h-10 w-auto" />
+            )}
+            <div>
+              <h1 className="text-xl font-bold text-white">{cockpit.name}</h1>
+              <p className="text-xs text-slate-500">
+                Mode consultation {VERSION_DISPLAY}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Assistant IA */}
+            {publicId && cockpit && (
+              <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
+            )}
+
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+              <MuiIcon name="Visibility" size={16} className="text-blue-400" />
+              <span className="text-sm text-blue-400">Lecture seule</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation des domaines avec indicateurs de statut */}
+      <div className="bg-slate-800/30 border-t border-slate-700/30">
+        <div className="px-6">
+          <div className="flex gap-1 overflow-x-auto py-1">
+            {cockpit.domains.map((domain) => {
+              // Calculer le statut le plus critique du domaine
+              const worstStatus = getDomainWorstStatus(domain as any, cockpit.domains as any);
+              const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
+              const hasAlert = worstStatus !== 'ok';
+              const isActive = currentDomainId === domain.id;
+              
+              return (
+                <button
+                  key={domain.id}
+                  onClick={() => {
+                    setCurrentDomainId(domain.id);
+                    setCurrentElementId(null);
+                  }}
+                  style={hasAlert ? {
+                    borderLeft: `3px solid ${statusColor}`,
+                    borderTop: `3px solid ${statusColor}`,
+                    borderRight: `3px solid ${statusColor}`,
+                  } : undefined}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors ${
+                    isActive
+                      ? 'bg-white text-[#1E3A5F]'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  {/* Pastille de statut */}
+                  {hasAlert && (
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0 border border-white/30"
+                      style={{ backgroundColor: statusColor }}
+                      title={`Statut: ${worstStatus}`}
+                    />
+                  )}
+                  {domain.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+
+  return (
+    <div className="h-screen bg-cockpit-bg-dark flex flex-col overflow-hidden">
+      {/* Header - conditionnel selon useOriginalView */}
+      {useOriginalView ? renderOriginalHeader() : renderStandardHeader()}
 
       {/* Contenu principal */}
       <main className="flex-1 overflow-auto flex flex-col" style={{ minHeight: 0 }}>
