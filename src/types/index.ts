@@ -26,6 +26,16 @@ export interface User {
   createdAt: string;
 }
 
+// Répertoire de maquettes
+export interface Folder {
+  id: string;
+  name: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  order?: number;         // Ordre d'affichage pour le drag & drop
+}
+
 // Maquette de cockpit
 export interface Cockpit {
   id: string;
@@ -41,6 +51,8 @@ export interface Cockpit {
   isPublished?: boolean;  // Si le cockpit est publié
   publishedAt?: string;   // Date de publication
   order?: number;         // Ordre d'affichage pour le drag & drop
+  // Organisation
+  folderId?: string;      // ID du répertoire parent (null = racine)
   // Partage
   sharedWith?: string[];  // Liste des IDs des utilisateurs avec qui la maquette est partagée
   // Vue originale

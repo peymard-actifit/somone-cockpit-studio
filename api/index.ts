@@ -153,9 +153,20 @@ interface CockpitData {
   updatedAt: string;
 }
 
+// Répertoire pour organiser les maquettes
+interface Folder {
+  id: string;
+  name: string;
+  userId: string;
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Database {
   users: User[];
   cockpits: CockpitData[];
+  folders?: Folder[]; // Répertoires de maquettes
   systemPrompt?: string; // Prompt système personnalisé pour l'IA
 }
 
@@ -1334,6 +1345,7 @@ INSTRUCTIONS:
         publishedAt: c.data?.publishedAt,
         order: c.data?.order, // Ordre pour le drag & drop
         sharedWith: c.data?.sharedWith || [], // Partage
+        folderId: c.data?.folderId || null, // Répertoire parent
       }));
 
       console.log(`[GET /cockpits] Returning ${result.length} cockpits`);
@@ -1377,6 +1389,186 @@ INSTRUCTIONS:
         ...data,
       });
     }
+
+    // =====================================================
+    // ROUTES RÉPERTOIRES (FOLDERS)
+    // =====================================================
+
+    // Get all folders for current user
+    if (path === '/folders' && method === 'GET') {
+      const db = await getDb();
+      if (!db.folders) db.folders = [];
+      
+      // Utilisateur normal: ses répertoires uniquement
+      // Admin: tous les répertoires (mais on les sépare côté frontend)
+      const folders = currentUser.isAdmin
+        ? db.folders
+        : db.folders.filter(f => f.userId === currentUser.id);
+      
+      return res.json(folders.sort((a, b) => (a.order || 0) - (b.order || 0)));
+    }
+
+    // Create folder
+    if (path === '/folders' && method === 'POST') {
+      const { name } = req.body;
+      
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: 'Nom du répertoire requis' });
+      }
+      
+      const db = await getDb();
+      if (!db.folders) db.folders = [];
+      
+      const id = generateId();
+      const now = new Date().toISOString();
+      
+      const newFolder: Folder = {
+        id,
+        name: name.trim(),
+        userId: currentUser.id,
+        order: db.folders.filter(f => f.userId === currentUser.id).length,
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      db.folders.push(newFolder);
+      await saveDb(db);
+      
+      return res.json(newFolder);
+    }
+
+    // Update folder
+    const folderIdMatch = path.match(/^\/folders\/([^/]+)$/);
+    if (folderIdMatch && method === 'PUT') {
+      const id = folderIdMatch[1];
+      const { name, order } = req.body;
+      
+      const db = await getDb();
+      if (!db.folders) db.folders = [];
+      
+      const folder = db.folders.find(f => f.id === id);
+      
+      if (!folder) {
+        return res.status(404).json({ error: 'Répertoire non trouvé' });
+      }
+      
+      if (!currentUser.isAdmin && folder.userId !== currentUser.id) {
+        return res.status(403).json({ error: 'Accès non autorisé' });
+      }
+      
+      if (name !== undefined) folder.name = name.trim();
+      if (order !== undefined) folder.order = order;
+      folder.updatedAt = new Date().toISOString();
+      
+      await saveDb(db);
+      
+      return res.json(folder);
+    }
+
+    // Delete folder (only if empty)
+    if (folderIdMatch && method === 'DELETE') {
+      const id = folderIdMatch[1];
+      
+      const db = await getDb();
+      if (!db.folders) db.folders = [];
+      
+      const folderIndex = db.folders.findIndex(f => f.id === id);
+      
+      if (folderIndex === -1) {
+        return res.status(404).json({ error: 'Répertoire non trouvé' });
+      }
+      
+      const folder = db.folders[folderIndex];
+      
+      if (!currentUser.isAdmin && folder.userId !== currentUser.id) {
+        return res.status(403).json({ error: 'Accès non autorisé' });
+      }
+      
+      // Vérifier que le répertoire est vide
+      const cockpitsInFolder = db.cockpits.filter(c => c.data?.folderId === id);
+      if (cockpitsInFolder.length > 0) {
+        return res.status(400).json({ 
+          error: 'Le répertoire n\'est pas vide',
+          cockpitsCount: cockpitsInFolder.length
+        });
+      }
+      
+      db.folders.splice(folderIndex, 1);
+      await saveDb(db);
+      
+      return res.json({ success: true });
+    }
+
+    // Reorder folders
+    if (path === '/folders/reorder' && method === 'POST') {
+      const { folderIds } = req.body;
+      
+      if (!Array.isArray(folderIds)) {
+        return res.status(400).json({ error: 'folderIds doit être un tableau' });
+      }
+      
+      const db = await getDb();
+      if (!db.folders) db.folders = [];
+      
+      // Mettre à jour l'ordre des répertoires de l'utilisateur
+      folderIds.forEach((id, index) => {
+        const folder = db.folders!.find(f => f.id === id && f.userId === currentUser.id);
+        if (folder) {
+          folder.order = index;
+          folder.updatedAt = new Date().toISOString();
+        }
+      });
+      
+      await saveDb(db);
+      
+      return res.json({ success: true });
+    }
+
+    // Move cockpit to folder (or to root if folderId is null)
+    if (path === '/cockpits/move' && method === 'POST') {
+      const { cockpitId, folderId } = req.body;
+      
+      if (!cockpitId) {
+        return res.status(400).json({ error: 'cockpitId requis' });
+      }
+      
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.id === cockpitId);
+      
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+      
+      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+        return res.status(403).json({ error: 'Accès non autorisé' });
+      }
+      
+      // Vérifier que le dossier existe (si spécifié)
+      if (folderId) {
+        if (!db.folders) db.folders = [];
+        const folder = db.folders.find(f => f.id === folderId);
+        if (!folder) {
+          return res.status(404).json({ error: 'Répertoire non trouvé' });
+        }
+        // Vérifier que le dossier appartient à l'utilisateur
+        if (!currentUser.isAdmin && folder.userId !== currentUser.id) {
+          return res.status(403).json({ error: 'Accès non autorisé au répertoire' });
+        }
+      }
+      
+      // Mettre à jour le folderId du cockpit
+      if (!cockpit.data) cockpit.data = {};
+      cockpit.data.folderId = folderId || null;
+      cockpit.updatedAt = new Date().toISOString();
+      
+      await saveDb(db);
+      
+      return res.json({ success: true, folderId: folderId || null });
+    }
+
+    // =====================================================
+    // FIN ROUTES RÉPERTOIRES
+    // =====================================================
 
     // Create cockpit
     if (path === '/cockpits' && method === 'POST') {

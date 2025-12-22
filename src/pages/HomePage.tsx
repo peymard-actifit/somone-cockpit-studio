@@ -4,10 +4,117 @@ import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY } from '../config/version';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Cockpit } from '../types';
+import type { Cockpit, Folder } from '../types';
+
+// Composant pour une carte de répertoire
+function FolderCard({
+  folder,
+  onClick,
+  onRename,
+  onDelete,
+  cockpitsCount,
+  isUserFolder = true, // true = répertoire de l'utilisateur, false = répertoire d'un autre compte (admin)
+}: {
+  folder: Folder;
+  onClick: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  cockpitsCount: number;
+  isUserFolder?: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `folder-${folder.id}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group border rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer ${
+        isUserFolder 
+          ? 'bg-amber-50 border-amber-200 hover:border-amber-400 hover:shadow-amber-200/30' 
+          : 'bg-purple-50 border-purple-200 hover:border-purple-400 hover:shadow-purple-200/30'
+      }`}
+      onClick={onClick}
+    >
+      {/* En-tête avec icône dossier et drag */}
+      <div className={`p-2.5 border-b ${isUserFolder ? 'border-amber-200' : 'border-purple-200'}`}>
+        <div className="flex items-center gap-2">
+          {/* Icône dossier */}
+          <div className={`p-1.5 rounded-lg ${isUserFolder ? 'bg-amber-100' : 'bg-purple-100'}`}>
+            <MuiIcon name="Folder" size={18} className={isUserFolder ? 'text-amber-600' : 'text-purple-600'} />
+          </div>
+          
+          {/* Nom du dossier */}
+          <h3 className={`flex-1 text-sm font-semibold truncate ${isUserFolder ? 'text-amber-900' : 'text-purple-900'}`}>
+            {folder.name}
+          </h3>
+
+          {/* Handle de drag (seulement pour les dossiers utilisateur) */}
+          {isUserFolder && (
+            <div
+              {...attributes}
+              {...listeners}
+              onClick={(e) => e.stopPropagation()}
+              className="p-1 bg-amber-100 hover:bg-amber-200 rounded cursor-grab active:cursor-grabbing transition-colors"
+              title="Glisser pour réorganiser"
+            >
+              <MuiIcon name="DragIndicator" size={12} className="text-amber-500" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Contenu */}
+      <div className="p-2.5">
+        {/* Nombre de maquettes */}
+        <div className={`flex items-center gap-1.5 text-[10px] mb-2 ${isUserFolder ? 'text-amber-600' : 'text-purple-600'}`}>
+          <MuiIcon name="Description" size={10} />
+          <span>{cockpitsCount} maquette{cockpitsCount !== 1 ? 's' : ''}</span>
+        </div>
+
+        {/* Actions (seulement pour les dossiers utilisateur) */}
+        {isUserFolder && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onRename(); }}
+              className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded transition-colors text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-700"
+            >
+              <MuiIcon name="Edit" size={12} />
+              Renommer
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className={`p-1 rounded transition-colors ${
+                cockpitsCount > 0 
+                  ? 'text-gray-300 cursor-not-allowed' 
+                  : 'text-red-400 hover:text-red-300 hover:bg-red-500/20'
+              }`}
+              title={cockpitsCount > 0 ? 'Le répertoire doit être vide pour être supprimé' : 'Supprimer'}
+              disabled={cockpitsCount > 0}
+            >
+              <MuiIcon name="Delete" size={12} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Composant pour une carte de maquette sortable
 function SortableCockpitCard({
@@ -211,7 +318,11 @@ function SortableCockpitCard({
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, changePassword, changeName, changeEmail, toggleAdmin, isLoading: authLoading, error: authError, clearError } = useAuthStore();
-  const { cockpits, fetchCockpits, createCockpit, duplicateCockpit, deleteCockpit, publishCockpit, unpublishCockpit, exportCockpit, importCockpit, reorderCockpits, isLoading } = useCockpitStore();
+  const { 
+    cockpits, fetchCockpits, createCockpit, duplicateCockpit, deleteCockpit, publishCockpit, unpublishCockpit, exportCockpit, importCockpit, reorderCockpits, 
+    folders, fetchFolders, createFolder, updateFolder, deleteFolder, reorderFolders, currentFolderId, setCurrentFolder, moveCockpitToFolder,
+    isLoading 
+  } = useCockpitStore();
 
   // Capteurs pour le drag & drop
   const sensors = useSensors(
@@ -221,31 +332,65 @@ export default function HomePage() {
     })
   );
 
-  // Trier les cockpits par ordre (si défini) ou par date de mise à jour
-  // Utiliser useMemo pour éviter les recalculs qui réinitialisent le drag & drop
-  const sortedCockpits = useMemo(() => {
-    return [...cockpits].sort((a, b) => {
-      if (a.order !== undefined && b.order !== undefined) {
-        return a.order - b.order;
-      }
-      if (a.order !== undefined) return -1;
-      if (b.order !== undefined) return 1;
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
-  }, [cockpits]);
+  // Handler pour le début du drag
+  const handleDragStart = (event: DragStartEvent) => {
+    const activeId = event.active.id as string;
+    // Si c'est un cockpit qui est draggé
+    if (!activeId.startsWith('folder-')) {
+      setDraggedCockpitId(activeId);
+    }
+  };
 
   // Handler pour la fin du drag
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+    setDraggedCockpitId(null);
 
-    if (over && active.id !== over.id) {
-      const oldIndex = sortedCockpits.findIndex(c => c.id === active.id);
-      const newIndex = sortedCockpits.findIndex(c => c.id === over.id);
+    if (!over) return;
+    
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    
+    // Si on dépose un cockpit sur un dossier
+    if (!activeId.startsWith('folder-') && overId.startsWith('folder-')) {
+      const folderId = overId.replace('folder-', '');
+      await moveCockpitToFolder(activeId, folderId);
+      return;
+    }
+    
+    // Si on dépose un cockpit sur "Mes maquettes" (breadcrumb), le remettre à la racine
+    if (!activeId.startsWith('folder-') && overId === 'breadcrumb-root') {
+      await moveCockpitToFolder(activeId, null);
+      return;
+    }
 
-      const newOrder = arrayMove(sortedCockpits, oldIndex, newIndex);
-      const cockpitIds = newOrder.map(c => c.id);
+    // Sinon, réorganisation normale
+    if (active.id !== over.id) {
+      // Réorganisation des cockpits
+      if (!activeId.startsWith('folder-') && !overId.startsWith('folder-')) {
+        const oldIndex = sortedCockpits.findIndex(c => c.id === activeId);
+        const newIndex = sortedCockpits.findIndex(c => c.id === overId);
 
-      await reorderCockpits(cockpitIds);
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newOrder = arrayMove(sortedCockpits, oldIndex, newIndex);
+          const cockpitIds = newOrder.map(c => c.id);
+          await reorderCockpits(cockpitIds);
+        }
+      }
+      
+      // Réorganisation des dossiers
+      if (activeId.startsWith('folder-') && overId.startsWith('folder-')) {
+        const folderId1 = activeId.replace('folder-', '');
+        const folderId2 = overId.replace('folder-', '');
+        const oldIndex = userFolders.findIndex(f => f.id === folderId1);
+        const newIndex = userFolders.findIndex(f => f.id === folderId2);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newOrder = arrayMove(userFolders, oldIndex, newIndex);
+          const folderIds = newOrder.map(f => f.id);
+          await reorderFolders(folderIds);
+        }
+      }
     }
   };
 
@@ -272,12 +417,67 @@ export default function HomePage() {
   const [showSystemPromptModal, setShowSystemPromptModal] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState('');
   const { token } = useAuthStore();
+  
+  // États pour les répertoires
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [showRenameFolderModal, setShowRenameFolderModal] = useState<string | null>(null);
+  const [renameFolderName, setRenameFolderName] = useState('');
+  const [draggedCockpitId, setDraggedCockpitId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCockpits();
+    fetchFolders();
     fetchSystemPrompt();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Ne pas inclure fetchCockpits dans les dépendances pour éviter les rechargements inutiles
+  }, []); // Ne pas inclure les fonctions dans les dépendances pour éviter les rechargements inutiles
+  
+  // Répertoire courant (pour la navigation)
+  const currentFolder = currentFolderId ? folders.find(f => f.id === currentFolderId) : null;
+  
+  // Filtrer les cockpits selon le répertoire courant
+  const filteredCockpits = useMemo(() => {
+    if (currentFolderId) {
+      // Dans un répertoire : afficher les maquettes de ce répertoire
+      return cockpits.filter(c => c.folderId === currentFolderId);
+    }
+    // À la racine : afficher les maquettes sans répertoire
+    return cockpits.filter(c => !c.folderId && c.userId === user?.id);
+  }, [cockpits, currentFolderId, user?.id]);
+
+  // Trier les cockpits filtrés par ordre (si défini) ou par date de mise à jour
+  const sortedCockpits = useMemo(() => {
+    return [...filteredCockpits].sort((a, b) => {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      if (a.order !== undefined) return -1;
+      if (b.order !== undefined) return 1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [filteredCockpits]);
+
+  // Répertoires de l'utilisateur (triés)
+  const userFolders = useMemo(() => {
+    return folders
+      .filter(f => f.userId === user?.id)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [folders, user?.id]);
+  
+  // Pour les admins : répertoires virtuels pour les autres comptes
+  const otherUsersFolders = useMemo(() => {
+    if (!user?.isAdmin) return [];
+    
+    // Récupérer les userIds des cockpits qui ne sont pas à nous
+    const otherUserIds = [...new Set(cockpits.filter(c => c.userId !== user?.id).map(c => c.userId))];
+    
+    return otherUserIds.map(userId => ({
+      id: `user-${userId}`,
+      userId,
+      name: `Compte ${userId.substring(0, 8)}...`,
+      cockpitsCount: cockpits.filter(c => c.userId === userId).length,
+    }));
+  }, [cockpits, user?.id, user?.isAdmin]);
 
   const fetchSystemPrompt = async () => {
     try {
@@ -596,16 +796,46 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Section Header */}
+        {/* Section Header avec Breadcrumb */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-[#1E3A5F] mb-1">Mes maquettes</h2>
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 mb-1">
+              <h2 
+                className={`text-2xl font-bold ${currentFolderId ? 'text-slate-500 cursor-pointer hover:text-[#1E3A5F]' : 'text-[#1E3A5F]'}`}
+                onClick={() => currentFolderId && setCurrentFolder(null)}
+              >
+                Mes maquettes
+              </h2>
+              {currentFolder && (
+                <>
+                  <MuiIcon name="ChevronRight" size={24} className="text-slate-400" />
+                  <h2 className="text-2xl font-bold text-[#1E3A5F]">{currentFolder.name}</h2>
+                </>
+              )}
+            </div>
             <p className="text-slate-400">
-              {cockpits.length} maquette{cockpits.length !== 1 ? 's' : ''} disponible{cockpits.length !== 1 ? 's' : ''}
+              {currentFolderId 
+                ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
+                : `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} disponible${filteredCockpits.length !== 1 ? 's' : ''}`
+              }
             </p>
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Bouton Nouveau répertoire (uniquement à la racine) */}
+            {!currentFolderId && (
+              <button
+                onClick={() => {
+                  setNewFolderName('');
+                  setShowNewFolderModal(true);
+                }}
+                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-amber-500/25"
+              >
+                <MuiIcon name="CreateNewFolder" size={20} />
+                Nouveau répertoire
+              </button>
+            )}
             <input
               type="file"
               accept=".json"
@@ -650,7 +880,7 @@ export default function HomePage() {
         )}
 
         {/* Empty State */}
-        {!isLoading && cockpits.length === 0 && (
+        {!isLoading && filteredCockpits.length === 0 && userFolders.length === 0 && !currentFolderId && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MuiIcon name="Dashboard" size={40} className="text-slate-600" />
@@ -667,17 +897,43 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Cockpits Grid avec Drag & Drop */}
+        {/* Grid avec Drag & Drop (Répertoires + Maquettes) */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={sortedCockpits.map(c => c.id)}
+            items={[
+              ...userFolders.map(f => `folder-${f.id}`),
+              ...sortedCockpits.map(c => c.id)
+            ]}
             strategy={verticalListSortingStrategy}
           >
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {/* Répertoires de l'utilisateur (uniquement à la racine) */}
+              {!currentFolderId && userFolders.map((folder) => (
+                <FolderCard
+                  key={folder.id}
+                  folder={folder}
+                  onClick={() => setCurrentFolder(folder.id)}
+                  onRename={() => {
+                    setRenameFolderName(folder.name);
+                    setShowRenameFolderModal(folder.id);
+                  }}
+                  onDelete={async () => {
+                    const success = await deleteFolder(folder.id);
+                    if (!success) {
+                      alert('Le répertoire doit être vide pour être supprimé');
+                    }
+                  }}
+                  cockpitsCount={cockpits.filter(c => c.folderId === folder.id).length}
+                  isUserFolder={true}
+                />
+              ))}
+              
+              {/* Maquettes */}
               {sortedCockpits.map((cockpit) => (
                 <SortableCockpitCard
                   key={cockpit.id}
@@ -693,10 +949,100 @@ export default function HomePage() {
                   formatDate={formatDate}
                 />
               ))}
+              
+              {/* Répertoires des autres comptes (pour admins, à la racine uniquement) */}
+              {!currentFolderId && user?.isAdmin && otherUsersFolders.map((userFolder) => (
+                <div
+                  key={userFolder.id}
+                  className="group bg-purple-50 border border-purple-200 rounded-xl overflow-hidden transition-all duration-300 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-200/30 cursor-pointer"
+                  onClick={() => {
+                    // TODO: Navigation vers les maquettes de ce compte
+                    alert(`Affichage des ${userFolder.cockpitsCount} maquettes du compte ${userFolder.userId}`);
+                  }}
+                >
+                  <div className="p-2.5 border-b border-purple-200">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-purple-100">
+                        <MuiIcon name="AccountCircle" size={18} className="text-purple-600" />
+                      </div>
+                      <h3 className="flex-1 text-sm font-semibold text-purple-900 truncate">
+                        {userFolder.name}
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="p-2.5">
+                    <div className="flex items-center gap-1.5 text-[10px] text-purple-600">
+                      <MuiIcon name="Description" size={10} />
+                      <span>{userFolder.cockpitsCount} maquette{userFolder.cockpitsCount !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </SortableContext>
+          
+          {/* Overlay de drag pour montrer qu'on peut déposer sur "Mes maquettes" */}
+          <DragOverlay>
+            {draggedCockpitId && currentFolderId && (
+              <div className="fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg shadow-lg">
+                Glissez sur "Mes maquettes" pour remettre à la racine
+              </div>
+            )}
+          </DragOverlay>
         </DndContext>
       </main>
+
+      {/* Modal: Nouveau répertoire */}
+      {showNewFolderModal && (
+        <Modal
+          title="Nouveau répertoire"
+          onClose={() => { setShowNewFolderModal(false); setNewFolderName(''); }}
+          onConfirm={async () => {
+            if (newFolderName.trim()) {
+              await createFolder(newFolderName.trim());
+              setShowNewFolderModal(false);
+              setNewFolderName('');
+            }
+          }}
+          confirmText="Créer"
+          isLoading={isLoading}
+        >
+          <input
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder="Nom du répertoire"
+            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            autoFocus
+          />
+        </Modal>
+      )}
+
+      {/* Modal: Renommer répertoire */}
+      {showRenameFolderModal && (
+        <Modal
+          title="Renommer le répertoire"
+          onClose={() => { setShowRenameFolderModal(null); setRenameFolderName(''); }}
+          onConfirm={async () => {
+            if (renameFolderName.trim() && showRenameFolderModal) {
+              await updateFolder(showRenameFolderModal, renameFolderName.trim());
+              setShowRenameFolderModal(null);
+              setRenameFolderName('');
+            }
+          }}
+          confirmText="Renommer"
+          isLoading={isLoading}
+        >
+          <input
+            type="text"
+            value={renameFolderName}
+            onChange={(e) => setRenameFolderName(e.target.value)}
+            placeholder="Nouveau nom"
+            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            autoFocus
+          />
+        </Modal>
+      )}
 
       {/* Modal: Nouvelle maquette */}
       {showNewModal && (

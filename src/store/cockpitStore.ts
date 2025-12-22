@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType, Incident } from '../types';
+import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType, Incident, Folder } from '../types';
 import { useAuthStore } from './authStore';
 
 // Interface pour tracker les modifications récentes
@@ -13,6 +13,8 @@ export interface RecentChange {
 
 interface CockpitState {
   cockpits: Cockpit[];
+  folders: Folder[];
+  currentFolderId: string | null; // Répertoire actuellement ouvert (null = racine)
   currentCockpit: Cockpit | null;
   currentDomainId: string | null;
   currentElementId: string | null;
@@ -26,12 +28,21 @@ interface CockpitState {
   fetchCockpits: () => Promise<void>;
   fetchCockpit: (id: string) => Promise<void>;
   fetchTemplates: () => Promise<void>;
+  fetchFolders: () => Promise<void>;
 
   // CRUD Cockpits
   createCockpit: (name: string) => Promise<Cockpit | null>;
   duplicateCockpit: (id: string, newName: string) => Promise<Cockpit | null>;
   deleteCockpit: (id: string) => Promise<boolean>;
   reorderCockpits: (cockpitIds: string[]) => Promise<void>;
+  moveCockpitToFolder: (cockpitId: string, folderId: string | null) => Promise<boolean>;
+
+  // CRUD Folders
+  createFolder: (name: string) => Promise<Folder | null>;
+  updateFolder: (id: string, name: string) => Promise<boolean>;
+  deleteFolder: (id: string) => Promise<boolean>;
+  reorderFolders: (folderIds: string[]) => Promise<void>;
+  setCurrentFolder: (folderId: string | null) => void;
 
   // Navigation
   setCurrentDomain: (domainId: string | null) => void;
@@ -151,6 +162,8 @@ const getMostCriticalStatus = (status1: TileStatus, status2: TileStatus): TileSt
 
 export const useCockpitStore = create<CockpitState>((set, get) => ({
   cockpits: [],
+  folders: [],
+  currentFolderId: null,
   currentCockpit: null,
   currentDomainId: null,
   currentElementId: null,
@@ -160,6 +173,154 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   error: null,
   autoSaveTimeout: null,
   recentChanges: [],
+
+  // =====================================================
+  // GESTION DES RÉPERTOIRES
+  // =====================================================
+
+  fetchFolders: async () => {
+    const token = useAuthStore.getState().token;
+    try {
+      const response = await fetch(`${API_URL}/folders`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const folders = await response.json();
+        set({ folders });
+      }
+    } catch (error) {
+      console.error('Erreur chargement folders:', error);
+    }
+  },
+
+  createFolder: async (name: string) => {
+    const token = useAuthStore.getState().token;
+    try {
+      const response = await fetch(`${API_URL}/folders`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+      });
+      if (response.ok) {
+        const folder = await response.json();
+        set((state) => ({ folders: [...state.folders, folder] }));
+        return folder;
+      }
+      return null;
+    } catch (error) {
+      console.error('Erreur création folder:', error);
+      return null;
+    }
+  },
+
+  updateFolder: async (id: string, name: string) => {
+    const token = useAuthStore.getState().token;
+    try {
+      const response = await fetch(`${API_URL}/folders/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+      });
+      if (response.ok) {
+        set((state) => ({
+          folders: state.folders.map(f => f.id === id ? { ...f, name } : f),
+        }));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erreur mise à jour folder:', error);
+      return false;
+    }
+  },
+
+  deleteFolder: async (id: string) => {
+    const token = useAuthStore.getState().token;
+    try {
+      const response = await fetch(`${API_URL}/folders/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        set((state) => ({
+          folders: state.folders.filter(f => f.id !== id),
+          currentFolderId: state.currentFolderId === id ? null : state.currentFolderId,
+        }));
+        return true;
+      }
+      const error = await response.json();
+      console.error('Erreur suppression folder:', error);
+      return false;
+    } catch (error) {
+      console.error('Erreur suppression folder:', error);
+      return false;
+    }
+  },
+
+  reorderFolders: async (folderIds: string[]) => {
+    const token = useAuthStore.getState().token;
+    // Mise à jour optimiste
+    set((state) => ({
+      folders: folderIds.map((id, index) => {
+        const folder = state.folders.find(f => f.id === id);
+        return folder ? { ...folder, order: index } : folder;
+      }).filter(Boolean) as Folder[],
+    }));
+    
+    try {
+      await fetch(`${API_URL}/folders/reorder`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ folderIds }),
+      });
+    } catch (error) {
+      console.error('Erreur réorganisation folders:', error);
+      await get().fetchFolders();
+    }
+  },
+
+  setCurrentFolder: (folderId: string | null) => {
+    set({ currentFolderId: folderId });
+  },
+
+  moveCockpitToFolder: async (cockpitId: string, folderId: string | null) => {
+    const token = useAuthStore.getState().token;
+    try {
+      const response = await fetch(`${API_URL}/cockpits/move`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cockpitId, folderId }),
+      });
+      if (response.ok) {
+        set((state) => ({
+          cockpits: state.cockpits.map(c => 
+            c.id === cockpitId ? { ...c, folderId: folderId || undefined } : c
+          ),
+        }));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erreur déplacement cockpit:', error);
+      return false;
+    }
+  },
+
+  // =====================================================
+  // FIN GESTION DES RÉPERTOIRES
+  // =====================================================
 
   fetchCockpits: async () => {
     const token = useAuthStore.getState().token;
@@ -2129,7 +2290,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       const cockpit = await response.json();
 
-      // Créer un objet d'export avec toutes les données
+      // Créer un objet d'export avec TOUTES les données du cockpit
       const exportData = {
         version: '1.0',
         exportedAt: new Date().toISOString(),
@@ -2139,7 +2300,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           zones: cockpit.zones || [],
           logo: cockpit.logo || null,
           scrollingBanner: cockpit.scrollingBanner || null,
-          // Ne pas exporter les infos de publication (sera créé comme nouvelle maquette)
+          useOriginalView: cockpit.useOriginalView || false,
+          // Note: sharedWith n'est pas exporté car dépend des utilisateurs du système cible
+          // Note: isPublished/publicId non exportés (sera une nouvelle maquette)
         }
       };
 
@@ -2213,6 +2376,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           zones: importedCockpit.zones || [],
           logo: importedCockpit.logo || null,
           scrollingBanner: importedCockpit.scrollingBanner || null,
+          useOriginalView: importedCockpit.useOriginalView || false,
         })
       });
 
