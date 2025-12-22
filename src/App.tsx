@@ -6,7 +6,7 @@ import HomePage from './pages/HomePage';
 import StudioPage from './pages/StudioPage';
 import PublicCockpitPage from './pages/PublicCockpitPage';
 import { ConfirmProvider } from './contexts/ConfirmContext';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 // Error Boundary pour attraper les erreurs React
 class ErrorBoundary extends React.Component<
@@ -60,7 +60,48 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { user } = useAuthStore();
+  const { user, token, logout } = useAuthStore();
+  const [isVerifying, setIsVerifying] = useState(true);
+  
+  // Vérifier le token au démarrage
+  useEffect(() => {
+    const verifyToken = async () => {
+      if (!token || !user) {
+        setIsVerifying(false);
+        return;
+      }
+      
+      try {
+        console.log('[App] Vérification du token au démarrage...');
+        const response = await fetch('/api/auth/verify', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        
+        if (!response.ok) {
+          console.error('[App] Token invalide - déconnexion forcée');
+          logout();
+        } else {
+          console.log('[App] Token valide');
+        }
+      } catch (error) {
+        console.error('[App] Erreur de vérification du token:', error);
+        // En cas d'erreur réseau, on garde l'utilisateur connecté
+      }
+      
+      setIsVerifying(false);
+    };
+    
+    verifyToken();
+  }, [token, user, logout]);
+  
+  // Afficher un loader pendant la vérification
+  if (isVerifying && user) {
+    return (
+      <div className="min-h-screen bg-cockpit-bg-dark flex items-center justify-center">
+        <div className="text-white text-lg">Vérification de la session...</div>
+      </div>
+    );
+  }
   
   return (
     <ErrorBoundary>
