@@ -73,7 +73,7 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
       {/* Pastille discrète en haut à droite - mode 'corner' */}
       {colorMode === 'corner' && hasAlert && (
         <div
-          className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full shadow-sm border border-white/40"
+          className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full shadow-sm border border-white/40"
           style={{ backgroundColor: statusColor }}
           title={`Statut le plus critique: ${worstStatus}`}
         />

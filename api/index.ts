@@ -86,18 +86,35 @@ const DB_KEY = 'somone-cockpit-db';
 async function getDb(): Promise<Database> {
   try {
     const db = await redis.get<Database>(DB_KEY);
+    if (db) {
+      console.log(`[getDb] Chargement OK: ${db.cockpits?.length || 0} cockpits`);
+    } else {
+      console.log(`[getDb] Base vide, creation nouvelle`);
+    }
     return db || { users: [], cockpits: [] };
-  } catch (error) {
-    console.error('Redis get error:', error);
+  } catch (error: any) {
+    console.error('[getDb] ERREUR Redis:', error?.message || error);
     return { users: [], cockpits: [] };
   }
 }
 
-async function saveDb(db: Database): Promise<void> {
+async function saveDb(db: Database): Promise<boolean> {
   try {
-    await redis.set(DB_KEY, db);
-  } catch (error) {
-    console.error('Redis set error:', error);
+    const dataStr = JSON.stringify(db);
+    const sizeKB = Math.round(dataStr.length / 1024);
+    console.log(`[saveDb] Sauvegarde en cours... ${db.cockpits?.length || 0} cockpits, taille: ${sizeKB}KB`);
+    
+    if (dataStr.length > 10000000) { // 10MB limite de securite
+      console.error(`[saveDb] ERREUR: Base trop grosse (${sizeKB}KB)`);
+      return false;
+    }
+    
+    const result = await redis.set(DB_KEY, db);
+    console.log(`[saveDb] Resultat Redis:`, result);
+    return true;
+  } catch (error: any) {
+    console.error('[saveDb] ERREUR Redis set:', error?.message || error);
+    return false;
   }
 }
 
@@ -464,10 +481,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           usersCount: db.users?.length || 0,
           cockpitsCount: db.cockpits?.length || 0,
           users: db.users?.map(u => ({ id: u.id, username: u.username, isAdmin: u.isAdmin })) || [],
-          cockpitsByUser: db.cockpits?.reduce((acc, c) => {
+          cockpitsByUser: db.cockpits?.reduce((acc: any, c: any) => {
             acc[c.userId] = (acc[c.userId] || 0) + 1;
             return acc;
-          }, {}) || {}
+          }, {}) || {},
+          publishedCockpits: db.cockpits?.filter((c: any) => c.data?.isPublished).map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            publicId: c.data?.publicId,
+            isPublished: c.data?.isPublished,
+            hasSnapshot: !!c.data?.publishedSnapshot,
+            snapshotVersion: c.data?.publishedSnapshot?.snapshotVersion
+          })) || []
         }
       });
     }
@@ -1508,8 +1533,14 @@ INSTRUCTIONS:
 
       const publishedAt = new Date().toISOString();
 
+      // Marquer comme publie
+      cockpit.data.isPublished = true;
+      cockpit.data.publishedAt = publishedAt;
+
       // CREATION DU SNAPSHOT - Copie figee pour acces public
-      // Les modifications du cockpit en edition n'affecteront PAS cette version publiee
+      // Le snapshot est TOUJOURS cree pour isoler la version publiee des modifications
+      const dataSize = JSON.stringify(cockpit.data).length;
+      
       const publishedSnapshot = {
         name: cockpit.name,
         logo: cockpit.data.logo || null,
@@ -1530,17 +1561,28 @@ INSTRUCTIONS:
         snapshotCreatedAt: publishedAt,
         snapshotVersion: (cockpit.data.publishedSnapshot?.snapshotVersion || 0) + 1,
       };
-
-      console.log(`[PUBLISH] SNAPSHOT v${publishedSnapshot.snapshotVersion} cree avec ${publishedSnapshot.domains.length} domaines`);
-
-      cockpit.data.isPublished = true;
-      cockpit.data.publishedAt = publishedAt;
       cockpit.data.publishedSnapshot = publishedSnapshot;
+      console.log(`[PUBLISH] SNAPSHOT v${publishedSnapshot.snapshotVersion} cree (${Math.round(dataSize/1024)}KB)`);
 
-      await saveDb(db);
+      // Sauvegarder
+      console.log(`[PUBLISH] Sauvegarde en cours pour ${cockpit.name}...`);
+      const saveSuccess = await saveDb(db);
+      if (!saveSuccess) {
+        console.error(`[PUBLISH] ERREUR sauvegarde Redis!`);
+        return res.status(500).json({ error: 'Erreur lors de la sauvegarde Redis' });
+      }
+      console.log(`[PUBLISH] Sauvegarde Redis OK`);
 
-      // Vérifier APRÃˆS sauvegarde que tout est bien là
-      const savedCockpit = db.cockpits.find(c => c.id === id);
+      // Relire depuis Redis pour verifier la persistance
+      const verifyDb = await getDb();
+      const savedCockpit = verifyDb.cockpits.find((c: any) => c.id === id);
+      
+      // Verifier que la publication est bien persistee
+      if (!savedCockpit?.data?.isPublished) {
+        console.error(`[PUBLISH] ERREUR: Cockpit non persiste! isPublished=${savedCockpit?.data?.isPublished}`);
+        return res.status(500).json({ error: 'Publication non persistee' });
+      }
+      
       if (savedCockpit && savedCockpit.data) {
         console.log(`[PUBLISH] âœ… Après sauvegarde - Cockpit publié avec ${(savedCockpit.data.domains || []).length} domaines`);
         (savedCockpit.data.domains || []).forEach((d: any, idx: number) => {
@@ -1553,7 +1595,8 @@ INSTRUCTIONS:
         success: true,
         publicId: cockpit.data.publicId,
         publishedAt: cockpit.data.publishedAt,
-        snapshotVersion: publishedSnapshot.snapshotVersion
+        hasSnapshot: !!cockpit.data.publishedSnapshot,
+        snapshotVersion: cockpit.data.publishedSnapshot?.snapshotVersion || null
       });
     }
 
