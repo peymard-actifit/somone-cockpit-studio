@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { Cockpit, Element, Category, Domain } from '../types';
+import type { Cockpit, Element, Category } from '../types';
 import { MuiIcon } from '../components/IconPicker';
 import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
