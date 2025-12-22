@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType, Incident, Folder } from '../types';
 import { useAuthStore } from './authStore';
+import { APP_VERSION } from '../config/version';
 
 // Interface pour tracker les modifications récentes
 export interface RecentChange {
@@ -2291,27 +2292,45 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const cockpit = await response.json();
 
       // Créer un objet d'export avec TOUTES les données du cockpit
+      // Liste exhaustive des propriétés exportables :
       const exportData = {
-        version: '1.0',
+        exportVersion: '2.0', // Version du format d'export
+        appVersion: APP_VERSION, // Version de l'application qui a exporté
         exportedAt: new Date().toISOString(),
         cockpit: {
+          // Identité
           name: cockpit.name,
-          domains: cockpit.domains || [],
-          zones: cockpit.zones || [],
-          logo: cockpit.logo || null,
-          scrollingBanner: cockpit.scrollingBanner || null,
-          useOriginalView: cockpit.useOriginalView || false,
-          // Note: sharedWith n'est pas exporté car dépend des utilisateurs du système cible
-          // Note: isPublished/publicId non exportés (sera une nouvelle maquette)
+          
+          // Contenu principal
+          domains: cockpit.domains || [], // Inclut toutes les catégories, éléments, sous-éléments, etc.
+          zones: cockpit.zones || [], // Zones pour le tri des éléments
+          
+          // Apparence
+          logo: cockpit.logo || null, // Logo en base64
+          scrollingBanner: cockpit.scrollingBanner || null, // Bandeau défilant
+          
+          // Options d'affichage
+          useOriginalView: cockpit.useOriginalView || false, // Vue "Cockpit Original"
+          
+          // Note: Les champs suivants ne sont PAS exportés car spécifiques à l'instance :
+          // - id, userId, createdAt, updatedAt (seront régénérés)
+          // - publicId, isPublished, publishedAt (publication locale uniquement)
+          // - folderId, order (organisation locale uniquement)
+          // - sharedWith (dépend des utilisateurs du système cible)
         }
       };
+
+      // Log pour debug
+      console.log(`[Export] Maquette "${cockpit.name}" - Domaines: ${(cockpit.domains || []).length}, Zones: ${(cockpit.zones || []).length}`);
 
       // Convertir en JSON
       const jsonStr = JSON.stringify(exportData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
 
-      // Utiliser le nom personnalisé ou générer un nom par défaut
-      const defaultFileName = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}`;
+      // Générer le nom du fichier avec la version de l'app
+      const sanitizedName = cockpit.name.replace(/[^a-z0-9]/gi, '_');
+      const dateStr = new Date().toISOString().split('T')[0];
+      const defaultFileName = `${sanitizedName}_v${APP_VERSION}_${dateStr}`;
       const finalFileName = fileName ? fileName.trim() : defaultFileName;
       // S'assurer que le nom se termine par .json
       const fileExtension = finalFileName.endsWith('.json') ? '' : '.json';
@@ -2355,14 +2374,18 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const text = await file.text();
       const importData = JSON.parse(text);
 
-      // Vérifier la structure
+      // Vérifier la structure (compatible v1.0 et v2.0)
       if (!importData.cockpit || !importData.cockpit.name) {
         throw new Error('Format de fichier invalide : structure de maquette manquante');
       }
 
       const importedCockpit = importData.cockpit;
+      
+      // Log des informations de version si disponibles
+      console.log(`[Import] Fichier exporté depuis version ${importData.appVersion || importData.version || 'inconnue'}`);
+      console.log(`[Import] Maquette "${importedCockpit.name}" - Domaines: ${(importedCockpit.domains || []).length}, Zones: ${(importedCockpit.zones || []).length}`);
 
-      // Créer une nouvelle maquette avec les données importées
+      // Créer une nouvelle maquette avec TOUTES les données importées
       // Les IDs seront régénérés automatiquement par le serveur
       const response = await fetch(`${API_URL}/cockpits`, {
         method: 'POST',
@@ -2371,11 +2394,18 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          // Identité
           name: importedCockpit.name || 'Maquette importée',
-          domains: importedCockpit.domains || [],
-          zones: importedCockpit.zones || [],
+          
+          // Contenu principal (avec toutes les données imbriquées)
+          domains: importedCockpit.domains || [], // Domaines avec catégories, éléments, sous-éléments, etc.
+          zones: importedCockpit.zones || [], // Zones pour le tri
+          
+          // Apparence
           logo: importedCockpit.logo || null,
           scrollingBanner: importedCockpit.scrollingBanner || null,
+          
+          // Options d'affichage
           useOriginalView: importedCockpit.useOriginalView || false,
         })
       });
@@ -2393,11 +2423,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         isLoading: false
       }));
 
+      console.log(`[Import] ✅ Maquette "${newCockpit.name}" importée avec succès (ID: ${newCockpit.id})`);
       return newCockpit;
     } catch (error: any) {
       const errorMessage = error.message || 'Erreur lors de l\'import de la maquette';
       set({ error: errorMessage, isLoading: false });
-      console.error('Import error:', error);
+      console.error('[Import] ❌ Erreur:', error);
       return null;
     }
   },

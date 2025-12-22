@@ -1572,7 +1572,7 @@ INSTRUCTIONS:
 
     // Create cockpit
     if (path === '/cockpits' && method === 'POST') {
-      const { name, domains, zones, logo, scrollingBanner } = req.body;
+      const { name, domains, zones, logo, scrollingBanner, useOriginalView } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: 'Nom requis' });
@@ -1632,6 +1632,7 @@ INSTRUCTIONS:
           zones: newZones.map((z: any) => ({ ...z, cockpitId: id })),
           logo: logo || null,
           scrollingBanner: scrollingBanner || null,
+          useOriginalView: useOriginalView || false,
         },
         createdAt: now,
         updatedAt: now
@@ -1650,6 +1651,7 @@ INSTRUCTIONS:
         zones: newZones,
         logo: logo || null,
         scrollingBanner: scrollingBanner || null,
+        useOriginalView: useOriginalView || false,
       });
     }
 
