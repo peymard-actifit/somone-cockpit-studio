@@ -675,10 +675,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Found cockpit:', cockpit.name);
 
       const data = cockpit.data || {};
+      
+      // =====================================================
+      // UTILISER LE SNAPSHOT SI DISPONIBLE (version figee)
+      // =====================================================
+      // Le snapshot est une copie figee des donnees au moment de la publication
+      // Les modifications du cockpit en edition n'affectent pas le cockpit publie
+      const snapshot = data.publishedSnapshot;
+      
+      if (snapshot) {
+        console.log(`[Public API] Utilisation du SNAPSHOT v${snapshot.snapshotVersion} (cree le ${snapshot.snapshotCreatedAt})`);
+        console.log(`[Public API] Snapshot contient ${snapshot.domains?.length || 0} domaines`);
+        
+        // Utiliser directement les donnees du snapshot (deja filtrees lors de la publication)
+        const response = {
+          id: cockpit.id,
+          name: snapshot.name || cockpit.name,
+          createdAt: cockpit.createdAt,
+          updatedAt: cockpit.updatedAt,
+          domains: snapshot.domains || [],
+          zones: snapshot.zones || [],
+          logo: snapshot.logo || null,
+          scrollingBanner: snapshot.scrollingBanner || null,
+          publicId: data.publicId || null,
+          isPublished: data.isPublished || false,
+          publishedAt: data.publishedAt || null,
+          useOriginalView: snapshot.useOriginalView || false,
+          snapshotVersion: snapshot.snapshotVersion,
+          snapshotCreatedAt: snapshot.snapshotCreatedAt,
+        };
+        
+        console.log(`[Public API] Envoi reponse SNAPSHOT avec ${response.domains.length} domaines`);
+        return res.json(response);
+      }
+      
+      // FALLBACK: Si pas de snapshot (anciennes publications), utiliser les donnees courantes
+      console.log(`[Public API] ATTENTION: Pas de snapshot, utilisation des donnees courantes (ancien comportement)`);
 
-      // Filtrer les domaines et éléments non publiables pour l'accès public
+      // Filtrer les domaines et elements non publiables pour l'acces public
       const filteredDomains = (data.domains || []).filter((domain: any) => domain.publiable !== false).map((domain: any) => {
-        // Filtrer les catégories et leurs éléments selon publiable
+        // Filtrer les categories et leurs elements selon publiable
         const filteredCategories = (domain.categories || []).map((category: any) => {
           const filteredElements = (category.elements || []).filter((el: any) => el.publiable !== false);
           return { ...category, elements: filteredElements };
@@ -1470,8 +1506,36 @@ INSTRUCTIONS:
         cockpit.data.publicId = generateId().replace(/-/g, '').substring(0, 12);
       }
 
+      const publishedAt = new Date().toISOString();
+
+      // CREATION DU SNAPSHOT - Copie figee pour acces public
+      // Les modifications du cockpit en edition n'affecteront PAS cette version publiee
+      const publishedSnapshot = {
+        name: cockpit.name,
+        logo: cockpit.data.logo || null,
+        scrollingBanner: cockpit.data.scrollingBanner || null,
+        useOriginalView: cockpit.data.useOriginalView || false,
+        domains: JSON.parse(JSON.stringify(
+          (cockpit.data.domains || [])
+            .filter((domain: any) => domain.publiable !== false)
+            .map((domain: any) => ({
+              ...domain,
+              categories: (domain.categories || []).map((category: any) => ({
+                ...category,
+                elements: (category.elements || []).filter((el: any) => el.publiable !== false)
+              }))
+            }))
+        )),
+        zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
+        snapshotCreatedAt: publishedAt,
+        snapshotVersion: (cockpit.data.publishedSnapshot?.snapshotVersion || 0) + 1,
+      };
+
+      console.log(`[PUBLISH] SNAPSHOT v${publishedSnapshot.snapshotVersion} cree avec ${publishedSnapshot.domains.length} domaines`);
+
       cockpit.data.isPublished = true;
-      cockpit.data.publishedAt = new Date().toISOString();
+      cockpit.data.publishedAt = publishedAt;
+      cockpit.data.publishedSnapshot = publishedSnapshot;
 
       await saveDb(db);
 
@@ -1488,7 +1552,8 @@ INSTRUCTIONS:
       return res.json({
         success: true,
         publicId: cockpit.data.publicId,
-        publishedAt: cockpit.data.publishedAt
+        publishedAt: cockpit.data.publishedAt,
+        snapshotVersion: publishedSnapshot.snapshotVersion
       });
     }
 
