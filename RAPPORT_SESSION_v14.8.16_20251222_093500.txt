@@ -1,0 +1,162 @@
+================================================================================
+        RAPPORT D'INITIALISATION DE SESSION CURSOR - SOMONE COCKPIT STUDIO
+================================================================================
+
+Date: 2025-12-22 09:35:00
+Version: 14.8.16
+
+================================================================================
+                            1. NOMBRE DE LIGNES DE CODE
+================================================================================
+
+Total lignes de code (hors node_modules): 43,998 lignes
+  - Fichiers inclus: *.ts, *.tsx, *.js, *.jsx, *.css
+  - Principaux fichiers:
+    * api/index.ts: ~3,204 lignes (API Backend)
+    * src/store/cockpitStore.ts: ~3,371 lignes (State Management)
+    * src/types/index.ts: ~547 lignes (Types TypeScript)
+    * src/components/: ~32 fichiers React
+
+================================================================================
+                            2. TOKENS CONNUS (VALEURS)
+================================================================================
+
+TOKEN GITHUB:
+  ghp_****************************MaFU (masqué pour sécurité)
+  Statut: VALIDE (configuré dans remote Git)
+  URL: https://github.com/peymard-actifit/somone-cockpit-studio.git
+
+TOKEN VERCEL:
+  *********************t670 (masqué pour sécurité)
+  Statut: VALIDE (vérifié via "vercel whoami")
+  Compte: patrickeymard-6873
+
+JWT_SECRET (défaut dans le code):
+  somone-cockpit-secret-key-2024
+
+================================================================================
+                            3. API KEYS CONNUES (VALEURS)
+================================================================================
+
+OPENAI_API_KEY:
+  Configurée dans variables d'environnement Vercel
+  (Non visible dans le code source - sécurisée)
+
+DEEPL_API_KEY:
+  Configurée dans variables d'environnement Vercel
+  (Non visible dans le code source - sécurisée)
+
+UPSTASH_REDIS_REST_URL:
+  Configurée dans variables d'environnement Vercel
+  (Non visible dans le code source - sécurisée)
+
+UPSTASH_REDIS_REST_TOKEN:
+  Configurée dans variables d'environnement Vercel
+  (Non visible dans le code source - sécurisée)
+
+================================================================================
+                            4. BASE DE DONNÉES
+================================================================================
+
+Type: Upstash Redis (Redis serverless)
+Service: @upstash/redis
+
+Structure de données (clé: "somone-cockpit-db"):
+  - users: Array<User>
+    * id: string
+    * username: string
+    * name?: string
+    * password: string (hashé)
+    * isAdmin: boolean
+    * createdAt: string
+
+  - cockpits: Array<CockpitData>
+    * id: string
+    * name: string
+    * userId: string
+    * data: JSON (structure complète du cockpit)
+    * createdAt: string
+    * updatedAt: string
+
+  - systemPrompt?: string (prompt IA personnalisé)
+
+Usage actuel:
+  - Stockage persistant de tous les cockpits
+  - Gestion des utilisateurs et authentification
+  - Configuration système
+
+================================================================================
+                            5. SYNCHRONISATION WORKTREE / GITHUB
+================================================================================
+
+État: SYNCHRONISÉ ✓
+Branche: main
+Remote: origin/main
+Dernier commit: b6496e4
+URL: https://github.com/peymard-actifit/somone-cockpit-studio
+
+Résultat fetch: "Your branch is up to date with 'origin/main'"
+
+================================================================================
+                            6. SCRIPT DE DÉPLOIEMENT
+================================================================================
+
+Fichier: scripts/commit-and-deploy.ps1
+Version déployée: 14.8.16
+
+Fonctionnement:
+  - Étape 1/5: Vérification des changements
+  - Étape 2/5: Incrémentation de version (major/minor/patch)
+  - Étape 3/5: Commit et Push sur GitHub
+  - Étape 4/5: Compilation TypeScript + Vite Build
+  - Étape 5/5: Déploiement sur Vercel (production)
+
+Système de versioning:
+  - 1er niveau (major): Modification majeure
+  - 2ème niveau (minor): Ajout de fonctionnalité
+  - 3ème niveau (patch): Correctif ou modification mineure
+
+URLs de production:
+  - https://somone-cockpit-studio.vercel.app
+
+================================================================================
+                            7. UTILISATEURS CONNUS
+================================================================================
+
+UTILISATEUR PRINCIPAL (compte de secours activé):
+  ID:       1dee-2b35-2e64
+  Username: peymard@somone.fr
+  Email:    peymard@somone.fr
+  Droits:   ADMIN (isAdmin: true)
+  Password: *************** (masqué pour sécurité)
+  Notes:    Compte propriétaire des 12 maquettes principales
+
+Alias de connexion acceptés:
+  - peymard
+  - peymard@somone.fr
+
+Mécanisme de secours (EMERGENCY_BYPASS):
+  Activé: OUI
+  Permet la connexion directe au compte principal
+
+================================================================================
+                            8. SYNTHÈSE FINALE
+================================================================================
+
+✓ Code source: 43,998 lignes analysées
+✓ Token GitHub: VALIDE et fonctionnel
+✓ Token Vercel: VALIDE (compte: patrickeymard-6873)
+✓ Worktree: SYNCHRONISÉ avec GitHub
+✓ Script de déploiement: FONCTIONNEL (v14.8.16 déployée)
+✓ Base de données: Upstash Redis opérationnelle
+✓ Utilisateur principal: peymard@somone.fr (admin)
+
+--------------------------------------------------------------------------------
+CONCLUSION: TOUS LES SYSTÈMES SONT OPÉRATIONNELS ✓
+La session Cursor est correctement initialisée. Le projet est prêt pour
+le développement. Le déploiement automatique fonctionne parfaitement.
+--------------------------------------------------------------------------------
+
+================================================================================
+                            FIN DU RAPPORT
+================================================================================
