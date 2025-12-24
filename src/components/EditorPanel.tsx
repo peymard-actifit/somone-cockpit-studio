@@ -2361,25 +2361,6 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 +
               </button>
             </div>
-
-            {zones.length > 0 && (
-              <div className="border-t border-[#E2E8F0] pt-3 mt-3">
-                <p className="text-xs text-[#94A3B8] mb-2">Zones existantes</p>
-                <div className="space-y-1">
-                  {zones.map((zone) => (
-                    <div key={zone.id} className="flex items-center justify-between px-2 py-1 bg-[#F5F7FA] rounded border border-[#E2E8F0]">
-                      <span className="text-sm text-[#1E3A5F]">{zone.name}</span>
-                      <button
-                        onClick={() => deleteZone(zone.id)}
-                        className="p-1 text-[#94A3B8] hover:text-[#E57373]"
-                      >
-                        <MuiIcon name="Delete" size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </Section>
 
