@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.11.13';
+const APP_VERSION = '14.11.14';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2505,6 +2505,7 @@ INSTRUCTIONS:
               'Id': e.id,
               'Domain': d.name, // Label du domaine au lieu de l'ID
               'Order': elemOrderCounter++, // Ordres séquentiels (1, 2, 3...)
+              'Zone': e.zone || '', // Zone de l'élément
               'Icon': e.icon || '',
               'Icon2': e.icon2 || '',
               'Icon3': e.icon3 || '',
@@ -2513,7 +2514,7 @@ INSTRUCTIONS:
         });
       });
       if (elementsData.length === 0) {
-        elementsData = [{ 'Template': '', 'Label': '', 'Category': '', 'Id': '', 'Domain': '', 'Order': '', 'Icon': '', 'Icon2': '', 'Icon3': '' }];
+        elementsData = [{ 'Template': '', 'Label': '', 'Category': '', 'Id': '', 'Domain': '', 'Order': '', 'Zone': '', 'Icon': '', 'Icon2': '', 'Icon3': '' }];
       }
       const wsElements = XLSX.utils.json_to_sheet(elementsData);
       XLSX.utils.book_append_sheet(wb, wsElements, 'Elements');

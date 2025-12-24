@@ -490,6 +490,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       try {
         // IMPORTANT : Sauvegarder TOUTES les données (y compris non publiables)
         // L'auto-save doit préserver toutes les données du studio
+        // Récupérer les zones depuis le state (pas depuis currentCockpit)
+        const zones = get().zones;
+        
         const payload: any = {
           name: currentCockpit.name,
           domains: currentCockpit.domains || [], // TOUS les domaines, y compris non publiables
@@ -497,11 +500,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           scrollingBanner: currentCockpit.scrollingBanner,
           sharedWith: currentCockpit.sharedWith || [],
           useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
+          zones: zones || [], // Inclure les zones depuis le state
         };
-        // Ajouter zones si disponible (peut ne pas être dans le type Cockpit mais dans les données)
-        if ((currentCockpit as any).zones) {
-          payload.zones = (currentCockpit as any).zones;
-        }
 
         console.log('[Auto-save] Envoi de TOUTES les données (y compris non publiables):', {
           name: payload.name,
