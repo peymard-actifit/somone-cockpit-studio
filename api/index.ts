@@ -2353,7 +2353,7 @@ INSTRUCTIONS:
       });
     };
 
-    // Export Excel
+    // Export Excel - Format compatible générateur Zabbix
     const exportMatch = path.match(/^\/cockpits\/([^/]+)\/export(?:\/([^/]+))?$/);
     if (exportMatch && method === 'GET') {
       const id = exportMatch[1];
@@ -2382,261 +2382,186 @@ INSTRUCTIONS:
       // Créer le workbook Excel
       const wb = XLSX.utils.book_new();
 
-      // Onglet Domaines
-      let domainsData = (dataToExport.domains || []).map((d: any) => ({
-        'ID': d.id,
-        'Nom': d.name,
-        'Type': d.templateType,
-        'Template': d.templateName || '',
-        'Ordre': d.order,
+      // ========== 1. ONGLET ZONES ==========
+      let zonesData = (dataToExport.zones || []).map((z: any, idx: number) => ({
+        'Label': z.name,
+        'Id': z.id,
+        'Icon': '',
+        'Order': idx + 1,
+      }));
+      if (zonesData.length === 0) {
+        zonesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '' }];
+      }
+      const wsZones = XLSX.utils.json_to_sheet(zonesData);
+      XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
+
+      // ========== 2. ONGLET TEMPLATES ==========
+      const templatesMap = new Map<string, any>();
+      (dataToExport.domains || []).forEach((d: any, idx: number) => {
+        if (d.templateName && !templatesMap.has(d.templateName)) {
+          templatesMap.set(d.templateName, {
+            'Label': d.templateName,
+            'Id': d.templateName.toLowerCase().replace(/\s+/g, '-'),
+            'Icon': '',
+            'Order': idx + 1,
+            'Zone': '',
+          });
+        }
+      });
+      let templatesData = Array.from(templatesMap.values());
+      if (templatesData.length === 0) {
+        templatesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Zone': '' }];
+      }
+      const wsTemplates = XLSX.utils.json_to_sheet(templatesData);
+      XLSX.utils.book_append_sheet(wb, wsTemplates, 'Templates');
+
+      // ========== 3. ONGLET DOMAINS ==========
+      let domainsData = (dataToExport.domains || []).map((d: any, idx: number) => ({
+        'Label': d.name,
+        'Id': d.id,
+        'Order': d.order !== undefined ? d.order : idx + 1,
+        'Icon': '',
       }));
       if (domainsData.length === 0) {
-        domainsData = [{ 'ID': '', 'Nom': '', 'Type': '', 'Template': '', 'Ordre': '' }];
+        domainsData = [{ 'Label': '', 'Id': '', 'Order': '', 'Icon': '' }];
       }
-      const translatedDomainsData = await translateObjectsKeys(domainsData, requestedLang);
-      const wsDomainsData = XLSX.utils.json_to_sheet(translatedDomainsData);
-      const translatedDomainsSheetName = await translateSheetName('Domaines', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsDomainsData, translatedDomainsSheetName);
+      const wsDomainsData = XLSX.utils.json_to_sheet(domainsData);
+      XLSX.utils.book_append_sheet(wb, wsDomainsData, 'Domains');
 
-      // Onglet Catégories
+      // ========== 4. ONGLET CATEGORIES ==========
       let categoriesData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
-        (d.categories || []).forEach((c: any) => {
+        (d.categories || []).forEach((c: any, idx: number) => {
           categoriesData.push({
-            'ID': c.id,
-            'Domaine': d.name,
-            'Nom': c.name,
-            'Icône': c.icon || '',
-            'Orientation': c.orientation,
-            'Ordre': c.order,
+            'Label': c.name,
+            'Id': c.id,
+            'Icon': c.icon || '',
+            'Order': c.order !== undefined ? c.order : idx + 1,
+            'Domain': d.id,
           });
         });
       });
       if (categoriesData.length === 0) {
-        categoriesData = [{ 'ID': '', 'Domaine': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }];
+        categoriesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Domain': '' }];
       }
-      const translatedCategoriesData = await translateObjectsKeys(categoriesData, requestedLang);
-      const wsCategoriesData = XLSX.utils.json_to_sheet(translatedCategoriesData);
-      const translatedCategoriesSheetName = await translateSheetName('Catégories', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsCategoriesData, translatedCategoriesSheetName);
+      const wsCategoriesData = XLSX.utils.json_to_sheet(categoriesData);
+      XLSX.utils.book_append_sheet(wb, wsCategoriesData, 'Categories');
 
-      // Onglet Éléments
+      // ========== 5. ONGLET ELEMENT DISCOVERIES (vide) ==========
+      const wsElementDiscoveries = XLSX.utils.json_to_sheet([{
+        'Template': '',
+        'Label': '',
+        'Category': '',
+        'Id': '',
+        'Domain': '',
+        'Order': '',
+        'Discovery Template Id': '',
+        'File': '',
+        'Discovery Rule Id': '',
+        'CSV Column': '',
+      }]);
+      XLSX.utils.book_append_sheet(wb, wsElementDiscoveries, 'Element Discoveries');
+
+      // ========== 6. ONGLET ELEMENTS ==========
       let elementsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
-          (c.elements || []).forEach((e: any) => {
+          (c.elements || []).forEach((e: any, idx: number) => {
             elementsData.push({
-              'ID': e.id,
-              'Domaine': d.name,
-              'Catégorie': c.name,
-              'Nom': e.name,
-              'Valeur': e.value || '',
-              'Unité': e.unit || '',
-              'Icône': e.icon || '',
-              'Icône 2': e.icon2 || '',
-              'Icône 3': e.icon3 || '',
-              'Statut': e.status,
-              'Zone': e.zone || '',
-              'Ordre': e.order,
+              'Template': d.templateName || '',
+              'Label': e.name,
+              'Category': c.id,
+              'Id': e.id,
+              'Domain': d.id,
+              'Order': e.order !== undefined ? e.order : idx + 1,
             });
           });
         });
       });
       if (elementsData.length === 0) {
-        elementsData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Icône': '', 'Icône 2': '', 'Icône 3': '', 'Statut': '', 'Zone': '', 'Ordre': '' }];
+        elementsData = [{ 'Template': '', 'Label': '', 'Category': '', 'Id': '', 'Domain': '', 'Order': '' }];
       }
-      const translatedElementsData = await translateObjectsKeys(elementsData, requestedLang);
-      const wsElements = XLSX.utils.json_to_sheet(translatedElementsData);
-      const translatedElementsSheetName = await translateSheetName('Éléments', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsElements, translatedElementsSheetName);
+      const wsElements = XLSX.utils.json_to_sheet(elementsData);
+      XLSX.utils.book_append_sheet(wb, wsElements, 'Elements');
 
-      // Onglet Sous-catégories
+      // ========== 7. ONGLET SUBCATEGORIES ==========
       let subCategoriesData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
-            (e.subCategories || []).forEach((sc: any) => {
+            (e.subCategories || []).forEach((sc: any, idx: number) => {
               subCategoriesData.push({
-                'ID': sc.id,
-                'Domaine': d.name,
-                'Catégorie': c.name,
-                'Élément': e.name,
-                'Nom': sc.name,
-                'Icône': sc.icon || '',
-                'Orientation': sc.orientation,
-                'Ordre': sc.order,
+                'Label': sc.name,
+                'Id': sc.id,
+                'Icon': sc.icon || '',
+                'Order': sc.order !== undefined ? sc.order : idx + 1,
+                'Domain': d.id,
               });
             });
           });
         });
       });
       if (subCategoriesData.length === 0) {
-        subCategoriesData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }];
+        subCategoriesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Domain': '' }];
       }
-      const translatedSubCategoriesData = await translateObjectsKeys(subCategoriesData, requestedLang);
-      const wsSubCategories = XLSX.utils.json_to_sheet(translatedSubCategoriesData);
-      const translatedSubCategoriesSheetName = await translateSheetName('Sous-catégories', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsSubCategories, translatedSubCategoriesSheetName);
+      const wsSubCategories = XLSX.utils.json_to_sheet(subCategoriesData);
+      XLSX.utils.book_append_sheet(wb, wsSubCategories, 'SubCategories');
 
-      // Onglet Sous-éléments
-      let subElementsData: any[] = [];
+      // ========== 8. ONGLET ITEMS (= Sous-éléments) ==========
+      let itemsData: any[] = [];
       (dataToExport.domains || []).forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
-              (sc.subElements || []).forEach((se: any) => {
-                subElementsData.push({
-                  'ID': se.id,
-                  'Domaine': d.name,
-                  'Catégorie': c.name,
-                  'Élément': e.name,
-                  'Sous-catégorie': sc.name,
-                  'Nom': se.name,
-                  'Valeur': se.value || '',
-                  'Unité': se.unit || '',
-                  'Statut': se.status,
-                  'Ordre': se.order,
+              (sc.subElements || []).forEach((se: any, idx: number) => {
+                itemsData.push({
+                  'Id': se.id,
+                  'Key': '',
+                  'Label': se.name,
+                  'Order': se.order !== undefined ? se.order : idx + 1,
+                  'Template': d.templateName || '',
+                  'Subcategory': sc.id,
+                  'Type': '',
+                  'Formula': '',
+                  'Preprocessing': '',
+                  'Donnée': '',
+                  'Fichier': '',
+                  'Avancement POC': '',
                 });
               });
             });
           });
         });
       });
-      if (subElementsData.length === 0) {
-        subElementsData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Statut': '', 'Ordre': '' }];
+      if (itemsData.length === 0) {
+        itemsData = [{ 'Id': '', 'Key': '', 'Label': '', 'Order': '', 'Template': '', 'Subcategory': '', 'Type': '', 'Formula': '', 'Preprocessing': '', 'Donnée': '', 'Fichier': '', 'Avancement POC': '' }];
       }
-      const translatedSubElementsData = await translateObjectsKeys(subElementsData, requestedLang);
-      const wsSubElements = XLSX.utils.json_to_sheet(translatedSubElementsData);
-      const translatedSubElementsSheetName = await translateSheetName('Sous-éléments', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsSubElements, translatedSubElementsSheetName);
+      const wsItems = XLSX.utils.json_to_sheet(itemsData);
+      XLSX.utils.book_append_sheet(wb, wsItems, 'Items');
 
-      // Onglet Alertes
-      let alertsData: any[] = [];
-      (dataToExport.domains || []).forEach((d: any) => {
-        (d.categories || []).forEach((c: any) => {
-          (c.elements || []).forEach((e: any) => {
-            (e.subCategories || []).forEach((sc: any) => {
-              (sc.subElements || []).forEach((se: any) => {
-                if (se.alert) {
-                  alertsData.push({
-                    'ID': se.alert.id,
-                    'Domaine': d.name,
-                    'Catégorie': c.name,
-                    'Élément': e.name,
-                    'Sous-catégorie': sc.name,
-                    'Sous-élément': se.name,
-                    'Date': se.alert.date,
-                    'Description': se.alert.description,
-                    'Durée': se.alert.duration || '',
-                    'Ticket': se.alert.ticketNumber || '',
-                    'Actions': se.alert.actions || '',
-                  });
-                }
-              });
-            });
-          });
-        });
-      });
-      if (alertsData.length === 0) {
-        alertsData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Date': '', 'Description': '', 'Durée': '', 'Ticket': '', 'Actions': '' }];
-      }
-      const translatedAlertsData = await translateObjectsKeys(alertsData, requestedLang);
-      const wsAlerts = XLSX.utils.json_to_sheet(translatedAlertsData);
-      const translatedAlertsSheetName = await translateSheetName('Alertes', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsAlerts, translatedAlertsSheetName);
+      // ========== 9. ONGLET TRIGGERS (vide) ==========
+      const wsTriggers = XLSX.utils.json_to_sheet([{
+        'Template': '',
+        'texte': '',
+        'statut': '',
+        'valeur': '',
+        'condition': '',
+      }]);
+      XLSX.utils.book_append_sheet(wb, wsTriggers, 'Triggers');
 
-      // Onglet Zones
-      let zonesData = (dataToExport.zones || []).map((z: any) => ({
-        'ID': z.id,
-        'Nom': z.name,
-      }));
-      if (zonesData.length === 0) {
-        zonesData = [{ 'ID': '', 'Nom': '' }];
-      }
-      const translatedZonesData = await translateObjectsKeys(zonesData, requestedLang);
-      const wsZones = XLSX.utils.json_to_sheet(translatedZonesData);
-      const translatedZonesSheetName = await translateSheetName('Zones', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsZones, translatedZonesSheetName);
-
-      // Onglet Sources de données
-      let sourcesData: any[] = [];
-      (dataToExport.domains || []).forEach((d: any) => {
-        (d.categories || []).forEach((c: any) => {
-          (c.elements || []).forEach((e: any) => {
-            (e.subCategories || []).forEach((sc: any) => {
-              (sc.subElements || []).forEach((se: any) => {
-                if (se.sources && Array.isArray(se.sources)) {
-                  se.sources.forEach((source: any) => {
-                    sourcesData.push({
-                      'ID': source.id,
-                      'Domaine': d.name,
-                      'Catégorie': c.name,
-                      'Élément': e.name,
-                      'Sous-catégorie': sc.name,
-                      'Sous-élément': se.name,
-                      'Nom': source.name,
-                      'Type': source.type,
-                      'Emplacement': source.location || '',
-                      'Connexion': source.connection || '',
-                      'Champs': source.fields || '',
-                      'Description': source.description || '',
-                    });
-                  });
-                }
-              });
-            });
-          });
-        });
-      });
-      if (sourcesData.length === 0) {
-        sourcesData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Nom': '', 'Type': '', 'Emplacement': '', 'Connexion': '', 'Champs': '', 'Description': '' }];
-      }
-      const translatedSourcesData = await translateObjectsKeys(sourcesData, requestedLang);
-      const wsSources = XLSX.utils.json_to_sheet(translatedSourcesData);
-      const translatedSourcesSheetName = await translateSheetName('Sources', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsSources, translatedSourcesSheetName);
-
-      // Onglet Calculs
-      let calculationsData: any[] = [];
-      (dataToExport.domains || []).forEach((d: any) => {
-        (d.categories || []).forEach((c: any) => {
-          (c.elements || []).forEach((e: any) => {
-            (e.subCategories || []).forEach((sc: any) => {
-              (sc.subElements || []).forEach((se: any) => {
-                if (se.calculations && Array.isArray(se.calculations)) {
-                  se.calculations.forEach((calc: any) => {
-                    // Trouver les noms des sources utilisées
-                    const sourceNames = (se.sources || [])
-                      .filter((s: any) => calc.sources && calc.sources.includes(s.id))
-                      .map((s: any) => s.name)
-                      .join(', ');
-
-                    calculationsData.push({
-                      'ID': calc.id,
-                      'Domaine': d.name,
-                      'Catégorie': c.name,
-                      'Élément': e.name,
-                      'Sous-catégorie': sc.name,
-                      'Sous-élément': se.name,
-                      'Nom': calc.name,
-                      'Description': calc.description || '',
-                      'Sources utilisées': sourceNames || '',
-                      'Définition': calc.definition,
-                    });
-                  });
-                }
-              });
-            });
-          });
-        });
-      });
-      if (calculationsData.length === 0) {
-        calculationsData = [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Nom': '', 'Description': '', 'Sources utilisées': '', 'Définition': '' }];
-      }
-      const translatedCalculationsData = await translateObjectsKeys(calculationsData, requestedLang);
-      const wsCalculations = XLSX.utils.json_to_sheet(translatedCalculationsData);
-      const translatedCalculationsSheetName = await translateSheetName('Calculs', requestedLang);
-      XLSX.utils.book_append_sheet(wb, wsCalculations, translatedCalculationsSheetName);
+      // ========== 10. ONGLET ALERT LIST (vide) ==========
+      const wsAlertList = XLSX.utils.json_to_sheet([{
+        'type': '',
+        'Id (item)': '',
+        "nom de l'indicateur (label)": '',
+        "lieu d'incidence": '',
+        'localisation (host)': '',
+        "valeur de l'indicateur": '',
+        'statut': '',
+        'valeur': '',
+        "message d'alerte": '',
+      }]);
+      XLSX.utils.book_append_sheet(wb, wsAlertList, 'alert list');
 
       // Onglets pour les domaines "Suivi des heures" (un onglet par domaine)
       for (const d of (dataToExport.domains || [])) {
