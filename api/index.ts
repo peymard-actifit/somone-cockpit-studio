@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.12.1';
+const APP_VERSION = '14.12.2';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1674,7 +1674,7 @@ INSTRUCTIONS:
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
-      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView } = req.body;
+      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView, templateIcons } = req.body;
       const now = new Date().toISOString();
 
       // LOG IMPORTANT : Vérifier ce qui arrive
@@ -1787,6 +1787,8 @@ INSTRUCTIONS:
         sharedWith: sharedWith !== undefined ? sharedWith : cockpit.data.sharedWith || [],
         // Vue originale
         useOriginalView: useOriginalView !== undefined ? useOriginalView : cockpit.data.useOriginalView || false,
+        // Icônes des templates
+        templateIcons: templateIcons !== undefined ? templateIcons : cockpit.data.templateIcons || {},
         // IMPORTANT: Toujours préserver les originaux sauvegardés
         originals: cockpit.data.originals,
       };

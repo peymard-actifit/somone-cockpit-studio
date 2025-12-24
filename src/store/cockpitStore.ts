@@ -505,6 +505,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           sharedWith: currentCockpit.sharedWith || [],
           useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
           zones: zones || [], // Inclure les zones depuis le state
+          templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
         };
 
         console.log('[Auto-save] Envoi de TOUTES les données (y compris non publiables):', {
@@ -562,6 +563,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         scrollingBanner: currentCockpit.scrollingBanner,
         sharedWith: currentCockpit.sharedWith || [],
         useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
+        templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
       };
       if ((currentCockpit as any).zones) {
         payload.zones = (currentCockpit as any).zones;
@@ -2345,6 +2347,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           logo: cockpit.logo || null, // Logo en base64
           scrollingBanner: cockpit.scrollingBanner || null, // Bandeau défilant
           
+          // Icônes des templates
+          templateIcons: cockpit.templateIcons || {},
+          
           // Options d'affichage
           useOriginalView: cockpit.useOriginalView || false, // Vue "Cockpit Original"
           
@@ -2451,6 +2456,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           logo: importedCockpit.logo || null,
           scrollingBanner: importedCockpit.scrollingBanner || null,
           
+          // Icônes des templates
+          templateIcons: importedCockpit.templateIcons || {},
+          
           // Options d'affichage
           useOriginalView: importedCockpit.useOriginalView || false,
         })
@@ -2503,6 +2511,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           logo: currentCockpit.logo,
           scrollingBanner: currentCockpit.scrollingBanner,
           sharedWith: currentCockpit.sharedWith || [],
+          templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
         };
         if ((currentCockpit as any).zones) {
           payload.zones = (currentCockpit as any).zones;
