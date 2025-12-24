@@ -266,8 +266,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
   const [editingSubElementName, setEditingSubElementName] = useState<string>('');
   const selectedSubElementIdRef = useRef<string | null>(null);
-  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | 'subElement' | 'backgroundIcon' | 'domainTabIcon' | null>(null);
-  const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory' | 'domainTabIcon'; id?: string } | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | 'subElement' | 'backgroundIcon' | 'domainTabIcon' | 'zone' | 'template' | null>(null);
+  const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory' | 'domainTabIcon' | 'zone' | 'template'; id?: string } | null>(null);
 
   // États pour le modal de liaison lors du changement de nom
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -1585,28 +1585,48 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         const templateIcon = currentCockpit?.templateIcons?.[templateName];
                         return (
                           <div key={templateName} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg">
-                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0]">
+                            <button
+                              onClick={() => {
+                                setIconPickerContext({ type: 'template', id: templateName });
+                                setShowIconPicker('template');
+                              }}
+                              className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0] hover:border-[#1E3A5F] transition-colors cursor-pointer"
+                              title="Choisir une icône"
+                            >
                               {templateIcon ? (
                                 <MuiIcon name={templateIcon} size={18} className="text-[#1E3A5F]" />
                               ) : (
-                                <MuiIcon name="HelpOutline" size={18} className="text-[#94A3B8]" />
+                                <MuiIcon name="Add" size={18} className="text-[#94A3B8]" />
                               )}
-                            </div>
+                            </button>
                             <span className="flex-1 text-sm text-[#1E3A5F] truncate">{templateName}</span>
-                            <select
-                              value={templateIcon || ''}
-                              onChange={(e) => updateTemplateIcon(templateName, e.target.value || undefined)}
-                              className="w-24 px-2 py-1 text-xs bg-white border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                            >
-                              <option value="">Aucune</option>
-                              {['Store', 'Business', 'Apartment', 'Factory', 'Warehouse', 'Home', 'Cottage', 'House', 'Villa', 'Domain', 'Public', 'Category', 'Folder', 'Inventory', 'ListAlt', 'ViewModule', 'Widgets', 'Extension', 'Layers', 'Dashboard'].map((iconName) => (
-                                <option key={iconName} value={iconName}>{iconName}</option>
-                              ))}
-                            </select>
+                            {templateIcon && (
+                              <button
+                                onClick={() => updateTemplateIcon(templateName, undefined)}
+                                className="p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
+                                title="Supprimer l'icône"
+                              >
+                                <MuiIcon name="Close" size={14} />
+                              </button>
+                            )}
                           </div>
                         );
                       })}
                     </div>
+
+                    {/* Sélecteur d'icônes pour les templates */}
+                    {showIconPicker === 'template' && iconPickerContext?.type === 'template' && iconPickerContext.id && (
+                      <IconPicker
+                        value={currentCockpit?.templateIcons?.[iconPickerContext.id]}
+                        onChange={(iconName) => {
+                          updateTemplateIcon(iconPickerContext.id!, iconName);
+                        }}
+                        onClose={() => {
+                          setShowIconPicker(null);
+                          setIconPickerContext(null);
+                        }}
+                      />
+                    )}
                   </div>
                 );
               })()}
@@ -2415,28 +2435,48 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {zones.map((zone) => (
                     <div key={zone.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg">
-                      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0]">
+                      <button
+                        onClick={() => {
+                          setIconPickerContext({ type: 'zone', id: zone.id });
+                          setShowIconPicker('zone');
+                        }}
+                        className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0] hover:border-[#1E3A5F] transition-colors cursor-pointer"
+                        title="Choisir une icône"
+                      >
                         {zone.icon ? (
                           <MuiIcon name={zone.icon} size={18} className="text-[#1E3A5F]" />
                         ) : (
-                          <MuiIcon name="HelpOutline" size={18} className="text-[#94A3B8]" />
+                          <MuiIcon name="Add" size={18} className="text-[#94A3B8]" />
                         )}
-                      </div>
+                      </button>
                       <span className="flex-1 text-sm text-[#1E3A5F] truncate">{zone.name}</span>
-                      <select
-                        value={zone.icon || ''}
-                        onChange={(e) => updateZone(zone.id, { icon: e.target.value || undefined })}
-                        className="w-24 px-2 py-1 text-xs bg-white border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
-                      >
-                        <option value="">Aucune</option>
-                        {['Place', 'Home', 'Business', 'Store', 'Factory', 'Warehouse', 'LocationCity', 'Public', 'Domain', 'Language', 'Map', 'MyLocation', 'NearMe', 'Navigation', 'PinDrop', 'Room', 'TravelExplore', 'Apartment', 'Cottage', 'House', 'Villa', 'Workspaces'].map((iconName) => (
-                          <option key={iconName} value={iconName}>{iconName}</option>
-                        ))}
-                      </select>
+                      {zone.icon && (
+                        <button
+                          onClick={() => updateZone(zone.id, { icon: undefined })}
+                          className="p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
+                          title="Supprimer l'icône"
+                        >
+                          <MuiIcon name="Close" size={14} />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Sélecteur d'icônes pour les zones */}
+            {showIconPicker === 'zone' && iconPickerContext?.type === 'zone' && iconPickerContext.id && (
+              <IconPicker
+                value={zones.find(z => z.id === iconPickerContext.id)?.icon}
+                onChange={(iconName) => {
+                  updateZone(iconPickerContext.id!, { icon: iconName });
+                }}
+                onClose={() => {
+                  setShowIconPicker(null);
+                  setIconPickerContext(null);
+                }}
+              />
             )}
           </div>
         </Section>
