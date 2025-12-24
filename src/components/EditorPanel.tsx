@@ -192,7 +192,6 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     currentCockpit,
     zones,
     addZone,
-    deleteZone,
     setCurrentElement,
     setCurrentDomain,
     updateMapElement,
