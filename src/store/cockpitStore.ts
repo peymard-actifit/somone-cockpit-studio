@@ -1093,6 +1093,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         if (updates.unit !== undefined) syncUpdates.unit = updates.unit;
         if (updates.publiable !== undefined) syncUpdates.publiable = updates.publiable;
         if (updates.template !== undefined) syncUpdates.template = updates.template;
+        if (updates.zone !== undefined) syncUpdates.zone = updates.zone;
         // Note: name n'est PAS propagé - le changement de nom sépare la liaison
 
         // Si aucune propriété synchronisable n'est mise à jour, pas besoin de propager

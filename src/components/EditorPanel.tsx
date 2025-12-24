@@ -1510,75 +1510,60 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             {/* Template */}
             <div className="border-t border-[#E2E8F0] pt-4 mt-4">
               <label className="block text-sm text-[#64748B] mb-2">Template</label>
-              <div className="flex gap-2">
-                <EditableInput
-                  value={element.template || ""}
-                  onChange={(v) => {
-                    const newTemplate = v.trim();
-                    const oldTemplate = element.template;
-                    
-                    // Mettre à jour le template
-                    updateElement(element.id, { template: newTemplate || undefined });
-                    
-                    // Si on définit un nouveau template (pas vide), copier la structure d'un élément ayant le même template
-                    if (newTemplate && newTemplate !== oldTemplate) {
-                      // Trouver un élément avec le même template (pour copier sa structure)
-                      const allElements = getAllElements();
-                      const sourceElement = allElements.find(
-                        item => item.element.id !== element.id && item.element.template === newTemplate
-                      );
-                      
-                      if (sourceElement) {
-                        // Copier les sous-catégories/sous-éléments depuis l'élément source
-                        copyElementContent(element.id, sourceElement.element.id, false);
-                      }
-                    }
-                  }}
-                  placeholder="Ex: Template Standard"
-                  allowEmpty={true}
-                  className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-                />
-              </div>
-              <p className="text-xs text-[#94A3B8] mt-1">
-                Associer un template copie les sous-catégories et sous-éléments d'un élément existant avec le même template
-              </p>
-              {/* Liste des templates existants */}
               {(() => {
                 const allElements = getAllElements();
                 const existingTemplates = [...new Set(
                   allElements
                     .map(item => item.element.template)
-                    .filter((t): t is string => !!t && t !== element.template)
+                    .filter((t): t is string => !!t)
                 )].sort();
                 
-                if (existingTemplates.length === 0) return null;
-                
                 return (
-                  <div className="mt-2">
-                    <p className="text-xs text-[#64748B] mb-1">Templates existants :</p>
-                    <div className="flex flex-wrap gap-1">
+                  <div className="flex gap-2">
+                    <select
+                      value={element.template || ""}
+                      onChange={(e) => {
+                        const newTemplate = e.target.value;
+                        const oldTemplate = element.template;
+                        
+                        // Mettre à jour le template
+                        updateElement(element.id, { template: newTemplate || undefined });
+                        
+                        // Si on définit un nouveau template existant, copier la structure
+                        if (newTemplate && newTemplate !== oldTemplate) {
+                          const sourceElement = allElements.find(
+                            item => item.element.id !== element.id && item.element.template === newTemplate
+                          );
+                          if (sourceElement) {
+                            copyElementContent(element.id, sourceElement.element.id, false);
+                          }
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                    >
+                      <option value="">Aucun template</option>
                       {existingTemplates.map(t => (
-                        <button
-                          key={t}
-                          onClick={() => {
-                            updateElement(element.id, { template: t });
-                            // Copier la structure depuis un élément ayant ce template
-                            const sourceElement = allElements.find(
-                              item => item.element.id !== element.id && item.element.template === t
-                            );
-                            if (sourceElement) {
-                              copyElementContent(element.id, sourceElement.element.id, false);
-                            }
-                          }}
-                          className="px-2 py-1 text-xs bg-[#F5F7FA] border border-[#E2E8F0] rounded hover:bg-[#1E3A5F] hover:text-white hover:border-[#1E3A5F] transition-colors"
-                        >
-                          {t}
-                        </button>
+                        <option key={t} value={t}>{t}</option>
                       ))}
-                    </div>
+                    </select>
+                    <button
+                      onClick={() => {
+                        const newTemplate = prompt('Nom du nouveau template:');
+                        if (newTemplate && newTemplate.trim()) {
+                          updateElement(element.id, { template: newTemplate.trim() });
+                        }
+                      }}
+                      className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg text-sm hover:bg-[#2d5a8f] transition-colors flex items-center gap-1"
+                      title="Créer un nouveau template"
+                    >
+                      <MuiIcon name="Add" size={16} />
+                    </button>
                   </div>
                 );
               })()}
+              <p className="text-xs text-[#94A3B8] mt-1">
+                Associer un template copie les sous-catégories et sous-éléments d'un élément existant avec le même template
+              </p>
             </div>
 
             {/* Sélecteur d'icônes */}
