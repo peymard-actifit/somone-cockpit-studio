@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from '../components/IconPicker';
-import { VERSION_DISPLAY } from '../config/version';
+import { VERSION_DISPLAY, APP_VERSION } from '../config/version';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -530,8 +530,19 @@ export default function HomePage() {
   const handleExportClick = (id: string) => {
     const cockpit = cockpits.find(c => c.id === id);
     if (cockpit) {
-      // Nom par défaut basé sur le nom de la maquette et la date
-      const defaultName = `${cockpit.name.replace(/[^a-z0-9]/gi, '_')}_export_${new Date().toISOString().split('T')[0]}`;
+      // Nom par défaut : "YYYYMMDD SOMONE MAQ NomMaquette vX.Y.Z HHMMSS"
+      const now = new Date();
+      const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+      const year = parisTime.getFullYear();
+      const month = String(parisTime.getMonth() + 1).padStart(2, '0');
+      const day = String(parisTime.getDate()).padStart(2, '0');
+      const hours = String(parisTime.getHours()).padStart(2, '0');
+      const minutes = String(parisTime.getMinutes()).padStart(2, '0');
+      const seconds = String(parisTime.getSeconds()).padStart(2, '0');
+      const dateStamp = `${year}${month}${day}`;
+      const timeStamp = `${hours}${minutes}${seconds}`;
+      const sanitizedName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+      const defaultName = `${dateStamp} SOMONE MAQ ${sanitizedName} v${APP_VERSION} ${timeStamp}`;
       setExportFileName(defaultName);
       setShowExportModal(id);
       setSelectedDirectory(null);

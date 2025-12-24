@@ -2327,10 +2327,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const jsonStr = JSON.stringify(exportData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
 
-      // Générer le nom du fichier avec la version de l'app
-      const sanitizedName = cockpit.name.replace(/[^a-z0-9]/gi, '_');
-      const dateStr = new Date().toISOString().split('T')[0];
-      const defaultFileName = `${sanitizedName}_v${APP_VERSION}_${dateStr}`;
+      // Générer le nom du fichier avec le format "YYYYMMDD SOMONE MAQ NomMaquette vX.Y.Z HHMMSS"
+      const now = new Date();
+      // Convertir en heure de Paris
+      const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+      const year = parisTime.getFullYear();
+      const month = String(parisTime.getMonth() + 1).padStart(2, '0');
+      const day = String(parisTime.getDate()).padStart(2, '0');
+      const hours = String(parisTime.getHours()).padStart(2, '0');
+      const minutes = String(parisTime.getMinutes()).padStart(2, '0');
+      const seconds = String(parisTime.getSeconds()).padStart(2, '0');
+      const dateStamp = `${year}${month}${day}`;
+      const timeStamp = `${hours}${minutes}${seconds}`;
+      const sanitizedName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+      const defaultFileName = `${dateStamp} SOMONE MAQ ${sanitizedName} v${APP_VERSION} ${timeStamp}`;
       const finalFileName = fileName ? fileName.trim() : defaultFileName;
       // S'assurer que le nom se termine par .json
       const fileExtension = finalFileName.endsWith('.json') ? '' : '.json';
