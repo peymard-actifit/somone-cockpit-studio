@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.11.5';
+const APP_VERSION = '14.11.6';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2425,7 +2425,7 @@ INSTRUCTIONS:
       let domainsData = publishableDomains.map((d: any, idx: number) => ({
         'Label': d.name,
         'Id': d.id,
-        'Order': d.order !== undefined ? d.order : idx + 1,
+        'Order': (d.order !== undefined ? d.order : idx) + 1, // Ordres commencent à 1 (0-based → 1-based)
         'Icon': '',
       }));
       if (domainsData.length === 0) {
@@ -2442,7 +2442,7 @@ INSTRUCTIONS:
             'Label': c.name,
             'Id': c.id,
             'Icon': c.icon || '',
-            'Order': c.order !== undefined ? c.order : idx + 1,
+            'Order': (c.order !== undefined ? c.order : idx) + 1, // Ordres commencent à 1
             'Domain': d.name, // Label du domaine au lieu de l'ID
           });
         });
@@ -2479,7 +2479,7 @@ INSTRUCTIONS:
               'Category': c.name, // Label de la catégorie au lieu de l'ID
               'Id': e.id,
               'Domain': d.name, // Label du domaine au lieu de l'ID
-              'Order': e.order !== undefined ? e.order : idx + 1,
+              'Order': (e.order !== undefined ? e.order : idx) + 1, // Ordres commencent à 1
             });
           });
         });
@@ -2500,7 +2500,7 @@ INSTRUCTIONS:
                 'Label': sc.name,
                 'Id': sc.id,
                 'Icon': sc.icon || '',
-                'Order': sc.order !== undefined ? sc.order : idx + 1,
+                'Order': (sc.order !== undefined ? sc.order : idx) + 1, // Ordres commencent à 1
                 'Domain': d.name, // Label du domaine au lieu de l'ID
               });
             });
@@ -2524,7 +2524,7 @@ INSTRUCTIONS:
                   'Id': se.id,
                   'Key': '',
                   'Label': se.name,
-                  'Order': se.order !== undefined ? se.order : idx + 1,
+                  'Order': (se.order !== undefined ? se.order : idx) + 1, // Ordres commencent à 1
                   'Template': d.templateName || '',
                   'Subcategory': sc.name, // Label de la sous-catégorie au lieu de l'ID
                   'Type': '',
