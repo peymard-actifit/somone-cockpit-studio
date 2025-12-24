@@ -81,7 +81,11 @@ interface CockpitState {
 
   // Zones
   addZone: (name: string) => void;
+  updateZone: (zoneId: string, updates: Partial<Zone>) => void;
   deleteZone: (zoneId: string) => void;
+  
+  // Template Icons
+  updateTemplateIcon: (templateName: string, icon: string | undefined) => void;
 
   // Map Elements (points sur la carte)
   addMapElement: (domainId: string, name: string, gps: GpsCoords, status?: TileStatus, icon?: string) => void;
@@ -1877,8 +1881,40 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     get().triggerAutoSave();
   },
 
+  updateZone: (zoneId: string, updates: Partial<Zone>) => {
+    set((state) => ({
+      zones: state.zones.map(z =>
+        z.id === zoneId ? { ...z, ...updates } : z
+      ),
+    }));
+    get().triggerAutoSave();
+  },
+
   deleteZone: (zoneId: string) => {
     set((state) => ({ zones: state.zones.filter(z => z.id !== zoneId) }));
+    get().triggerAutoSave();
+  },
+
+  updateTemplateIcon: (templateName: string, icon: string | undefined) => {
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      const currentIcons = state.currentCockpit.templateIcons || {};
+      const newIcons = { ...currentIcons };
+      
+      if (icon) {
+        newIcons[templateName] = icon;
+      } else {
+        delete newIcons[templateName];
+      }
+      
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          templateIcons: newIcons,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
     get().triggerAutoSave();
   },
 

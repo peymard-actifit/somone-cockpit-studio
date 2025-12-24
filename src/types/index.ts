@@ -57,6 +57,8 @@ export interface Cockpit {
   sharedWith?: string[];  // Liste des IDs des utilisateurs avec qui la maquette est partagée
   // Vue originale
   useOriginalView?: boolean;  // Si true, utilise la vue "Cockpit Original" lors de la publication
+  // Icônes des templates (associe un nom de template à une icône)
+  templateIcons?: TemplateIcons;
 }
 
 // Coordonnées GPS
@@ -257,7 +259,11 @@ export interface Zone {
   id: string;
   name: string;
   cockpitId: string;
+  icon?: string;  // Icône associée à la zone
 }
+
+// Icônes des templates (associe un nom de template à une icône)
+export type TemplateIcons = Record<string, string>;
 
 // État de l'application
 export interface AppState {

@@ -192,6 +192,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     currentCockpit,
     zones,
     addZone,
+    updateZone,
+    updateTemplateIcon,
     setCurrentElement,
     setCurrentDomain,
     updateMapElement,
@@ -1563,6 +1565,51 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <p className="text-xs text-[#94A3B8] mt-1">
                 Associer un template copie les sous-catégories et sous-éléments d'un élément existant avec le même template
               </p>
+
+              {/* Icônes des templates */}
+              {(() => {
+                const allElements = getAllElements();
+                const existingTemplates = [...new Set(
+                  allElements
+                    .map(item => item.element.template)
+                    .filter((t): t is string => !!t)
+                )].sort();
+                
+                if (existingTemplates.length === 0) return null;
+                
+                return (
+                  <div className="border-t border-[#E2E8F0] pt-3 mt-3">
+                    <p className="text-xs text-[#64748B] mb-2">Icônes des templates</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {existingTemplates.map((templateName) => {
+                        const templateIcon = currentCockpit?.templateIcons?.[templateName];
+                        return (
+                          <div key={templateName} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg">
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0]">
+                              {templateIcon ? (
+                                <MuiIcon name={templateIcon} size={18} className="text-[#1E3A5F]" />
+                              ) : (
+                                <MuiIcon name="HelpOutline" size={18} className="text-[#94A3B8]" />
+                              )}
+                            </div>
+                            <span className="flex-1 text-sm text-[#1E3A5F] truncate">{templateName}</span>
+                            <select
+                              value={templateIcon || ''}
+                              onChange={(e) => updateTemplateIcon(templateName, e.target.value || undefined)}
+                              className="w-24 px-2 py-1 text-xs bg-white border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                            >
+                              <option value="">Aucune</option>
+                              {['Store', 'Business', 'Apartment', 'Factory', 'Warehouse', 'Home', 'Cottage', 'House', 'Villa', 'Domain', 'Public', 'Category', 'Folder', 'Inventory', 'ListAlt', 'ViewModule', 'Widgets', 'Extension', 'Layers', 'Dashboard'].map((iconName) => (
+                                <option key={iconName} value={iconName}>{iconName}</option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Sélecteur d'icônes */}
@@ -2360,6 +2407,37 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 +
               </button>
             </div>
+
+            {/* Liste des zones avec icônes */}
+            {zones.length > 0 && (
+              <div className="border-t border-[#E2E8F0] pt-3 mt-3">
+                <p className="text-xs text-[#64748B] mb-2">Icônes des zones</p>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {zones.map((zone) => (
+                    <div key={zone.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg">
+                      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0]">
+                        {zone.icon ? (
+                          <MuiIcon name={zone.icon} size={18} className="text-[#1E3A5F]" />
+                        ) : (
+                          <MuiIcon name="HelpOutline" size={18} className="text-[#94A3B8]" />
+                        )}
+                      </div>
+                      <span className="flex-1 text-sm text-[#1E3A5F] truncate">{zone.name}</span>
+                      <select
+                        value={zone.icon || ''}
+                        onChange={(e) => updateZone(zone.id, { icon: e.target.value || undefined })}
+                        className="w-24 px-2 py-1 text-xs bg-white border border-[#E2E8F0] rounded text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      >
+                        <option value="">Aucune</option>
+                        {['Place', 'Home', 'Business', 'Store', 'Factory', 'Warehouse', 'LocationCity', 'Public', 'Domain', 'Language', 'Map', 'MyLocation', 'NearMe', 'Navigation', 'PinDrop', 'Room', 'TravelExplore', 'Apartment', 'Cottage', 'House', 'Villa', 'Workspaces'].map((iconName) => (
+                          <option key={iconName} value={iconName}>{iconName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Section>
 

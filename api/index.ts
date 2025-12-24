@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.11.19';
+const APP_VERSION = '14.12.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2390,10 +2390,11 @@ INSTRUCTIONS:
       const publishableDomains = (dataToExport.domains || []).filter((d: any) => d.publiable !== false);
 
       // ========== 1. ONGLET ZONES ==========
+      // Les zones ont maintenant une propriété icon
       let zonesData = (dataToExport.zones || []).map((z: any, idx: number) => ({
         'Label': z.name,
         'Id': z.id,
-        'Icon': '',
+        'Icon': z.icon || '',
         'Order': idx + 1,
       }));
       if (zonesData.length === 0) {
@@ -2404,6 +2405,8 @@ INSTRUCTIONS:
 
       // ========== 2. ONGLET TEMPLATES ==========
       // Collecter les templates depuis les éléments (e.template) ET depuis les domaines (d.templateName)
+      // Les icônes des templates sont stockées dans cockpit.templateIcons
+      const templateIcons = dataToExport.templateIcons || {};
       const templatesMap = new Map<string, any>();
       let templateOrderCounter = 1;
       
@@ -2413,7 +2416,7 @@ INSTRUCTIONS:
           templatesMap.set(d.templateName, {
             'Label': d.templateName,
             'Id': d.templateName.toLowerCase().replace(/\s+/g, '-'),
-            'Icon': '',
+            'Icon': templateIcons[d.templateName] || '',
             'Order': templateOrderCounter++,
             'Zone': '',
           });
@@ -2428,7 +2431,7 @@ INSTRUCTIONS:
               templatesMap.set(e.template, {
                 'Label': e.template,
                 'Id': e.template.toLowerCase().replace(/\s+/g, '-'),
-                'Icon': '',
+                'Icon': templateIcons[e.template] || '',
                 'Order': templateOrderCounter++,
                 'Zone': '',
               });
