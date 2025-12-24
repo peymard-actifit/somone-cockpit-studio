@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.11.10';
+const APP_VERSION = '14.11.11';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2426,7 +2426,7 @@ INSTRUCTIONS:
       let domainsData = publishableDomains.map((d: any, idx: number) => ({
         'Label': d.name,
         'Id': d.id,
-        'Order': (d.order !== undefined ? d.order : idx) + 1, // Ordres commencent à 1 (0-based → 1-based)
+        'Order': idx + 1, // Ordres séquentiels après filtrage (1, 2, 3...)
         'Icon': '',
       }));
       if (domainsData.length === 0) {
@@ -2437,13 +2437,14 @@ INSTRUCTIONS:
 
       // ========== 4. ONGLET CATEGORIES ==========
       let categoriesData: any[] = [];
+      let catOrderCounter = 1; // Compteur d'ordre global pour les catégories
       publishableDomains.forEach((d: any) => {
-        (d.categories || []).forEach((c: any, idx: number) => {
+        (d.categories || []).forEach((c: any) => {
           categoriesData.push({
             'Label': c.name,
             'Id': c.id,
             'Icon': c.icon || '',
-            'Order': (c.order !== undefined ? c.order : idx) + 1, // Ordres commencent à 1
+            'Order': catOrderCounter++, // Ordres séquentiels (1, 2, 3...)
             'Domain': d.name, // Label du domaine au lieu de l'ID
           });
         });
@@ -2471,16 +2472,17 @@ INSTRUCTIONS:
 
       // ========== 6. ONGLET ELEMENTS ==========
       let elementsData: any[] = [];
+      let elemOrderCounter = 1; // Compteur d'ordre global pour les éléments
       publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
-          (c.elements || []).forEach((e: any, idx: number) => {
+          (c.elements || []).forEach((e: any) => {
             elementsData.push({
               'Template': d.templateName || '',
               'Label': e.name,
               'Category': c.name, // Label de la catégorie au lieu de l'ID
               'Id': e.id,
               'Domain': d.name, // Label du domaine au lieu de l'ID
-              'Order': (e.order !== undefined ? e.order : idx) + 1, // Ordres commencent à 1
+              'Order': elemOrderCounter++, // Ordres séquentiels (1, 2, 3...)
             });
           });
         });
@@ -2493,15 +2495,16 @@ INSTRUCTIONS:
 
       // ========== 7. ONGLET SUBCATEGORIES ==========
       let subCategoriesData: any[] = [];
+      let subCatOrderCounter = 1; // Compteur d'ordre global pour les sous-catégories
       publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
-            (e.subCategories || []).forEach((sc: any, idx: number) => {
+            (e.subCategories || []).forEach((sc: any) => {
               subCategoriesData.push({
                 'Label': sc.name,
                 'Id': sc.id,
                 'Icon': sc.icon || '',
-                'Order': (sc.order !== undefined ? sc.order : idx) + 1, // Ordres commencent à 1
+                'Order': subCatOrderCounter++, // Ordres séquentiels (1, 2, 3...)
                 'Domain': d.name, // Label du domaine au lieu de l'ID
               });
             });
@@ -2516,16 +2519,17 @@ INSTRUCTIONS:
 
       // ========== 8. ONGLET ITEMS (= Sous-éléments) ==========
       let itemsData: any[] = [];
+      let itemOrderCounter = 1; // Compteur d'ordre global pour les items
       publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
-              (sc.subElements || []).forEach((se: any, idx: number) => {
+              (sc.subElements || []).forEach((se: any) => {
                 itemsData.push({
                   'Id': se.id,
                   'Key': '',
                   'Label': se.name,
-                  'Order': (se.order !== undefined ? se.order : idx) + 1, // Ordres commencent à 1
+                  'Order': itemOrderCounter++, // Ordres séquentiels (1, 2, 3...)
                   'Template': d.templateName || '',
                   'Subcategory': sc.name, // Label de la sous-catégorie au lieu de l'ID
                   'Type': '',
