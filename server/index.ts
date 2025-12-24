@@ -597,7 +597,7 @@ app.get('/api/public/cockpit/:publicId', (req, res) => {
   });
 });
 
-// Export Excel
+// Export Excel - Format compatible générateur Zabbix
 app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   const db = loadDb();
   const cockpit = db.cockpits.find(c => c.id === req.params.id);
@@ -615,148 +615,168 @@ app.get('/api/cockpits/:id/export', authMiddleware, (req: AuthRequest, res) => {
   // Créer le workbook Excel
   const wb = XLSX.utils.book_new();
 
-  // Onglet Domaines
-  const domainsData = (data.domains || []).map((d: any) => ({
-    'ID': d.id,
-    'Nom': d.name,
-    'Type': d.templateType,
-    'Template': d.templateName || '',
-    'Ordre': d.order,
+  // ========== 1. ONGLET ZONES ==========
+  const zonesData = (data.zones || []).map((z: any, idx: number) => ({
+    'Label': z.name,
+    'Id': z.id,
+    'Icon': '',
+    'Order': idx + 1,
   }));
-  const wsDomainsData = XLSX.utils.json_to_sheet(domainsData.length ? domainsData : [{ 'ID': '', 'Nom': '', 'Type': '', 'Template': '', 'Ordre': '' }]);
-  XLSX.utils.book_append_sheet(wb, wsDomainsData, 'Domaines');
+  const wsZones = XLSX.utils.json_to_sheet(zonesData.length ? zonesData : [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '' }]);
+  XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
 
-  // Onglet Catégories
+  // ========== 2. ONGLET TEMPLATES ==========
+  // Collecter les templates uniques (basés sur templateName et templateType des domaines)
+  const templatesMap = new Map<string, any>();
+  (data.domains || []).forEach((d: any, idx: number) => {
+    if (d.templateName && !templatesMap.has(d.templateName)) {
+      templatesMap.set(d.templateName, {
+        'Label': d.templateName,
+        'Id': d.templateName.toLowerCase().replace(/\s+/g, '-'),
+        'Icon': '',
+        'Order': idx + 1,
+        'Zone': '',
+      });
+    }
+  });
+  const templatesData = Array.from(templatesMap.values());
+  const wsTemplates = XLSX.utils.json_to_sheet(templatesData.length ? templatesData : [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Zone': '' }]);
+  XLSX.utils.book_append_sheet(wb, wsTemplates, 'Templates');
+
+  // ========== 3. ONGLET DOMAINS ==========
+  const domainsData = (data.domains || []).map((d: any, idx: number) => ({
+    'Label': d.name,
+    'Id': d.id,
+    'Order': d.order !== undefined ? d.order : idx + 1,
+    'Icon': '',
+  }));
+  const wsDomainsData = XLSX.utils.json_to_sheet(domainsData.length ? domainsData : [{ 'Label': '', 'Id': '', 'Order': '', 'Icon': '' }]);
+  XLSX.utils.book_append_sheet(wb, wsDomainsData, 'Domains');
+
+  // ========== 4. ONGLET CATEGORIES ==========
   const categoriesData: any[] = [];
   (data.domains || []).forEach((d: any) => {
-    (d.categories || []).forEach((c: any) => {
+    (d.categories || []).forEach((c: any, idx: number) => {
       categoriesData.push({
-        'ID': c.id,
-        'Domaine': d.name,
-        'Nom': c.name,
-        'Icône': c.icon || '',
-        'Orientation': c.orientation,
-        'Ordre': c.order,
+        'Label': c.name,
+        'Id': c.id,
+        'Icon': c.icon || '',
+        'Order': c.order !== undefined ? c.order : idx + 1,
+        'Domain': d.id,
       });
     });
   });
-  const wsCategoriesData = XLSX.utils.json_to_sheet(categoriesData.length ? categoriesData : [{ 'ID': '', 'Domaine': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }]);
-  XLSX.utils.book_append_sheet(wb, wsCategoriesData, 'Catégories');
+  const wsCategoriesData = XLSX.utils.json_to_sheet(categoriesData.length ? categoriesData : [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Domain': '' }]);
+  XLSX.utils.book_append_sheet(wb, wsCategoriesData, 'Categories');
 
-  // Onglet Éléments
+  // ========== 5. ONGLET ELEMENT DISCOVERIES (vide) ==========
+  const wsElementDiscoveries = XLSX.utils.json_to_sheet([{
+    'Template': '',
+    'Label': '',
+    'Category': '',
+    'Id': '',
+    'Domain': '',
+    'Order': '',
+    'Discovery Template Id': '',
+    'File': '',
+    'Discovery Rule Id': '',
+    'CSV Column': '',
+  }]);
+  XLSX.utils.book_append_sheet(wb, wsElementDiscoveries, 'Element Discoveries');
+
+  // ========== 6. ONGLET ELEMENTS ==========
   const elementsData: any[] = [];
   (data.domains || []).forEach((d: any) => {
     (d.categories || []).forEach((c: any) => {
-      (c.elements || []).forEach((e: any) => {
+      (c.elements || []).forEach((e: any, idx: number) => {
         elementsData.push({
-          'ID': e.id,
-          'Domaine': d.name,
-          'Catégorie': c.name,
-          'Nom': e.name,
-          'Valeur': e.value || '',
-          'Unité': e.unit || '',
-          'Icône': e.icon || '',
-          'Icône 2': e.icon2 || '',
-          'Icône 3': e.icon3 || '',
-          'Statut': e.status,
-          'Zone': e.zone || '',
-          'Ordre': e.order,
+          'Template': d.templateName || '',
+          'Label': e.name,
+          'Category': c.id,
+          'Id': e.id,
+          'Domain': d.id,
+          'Order': e.order !== undefined ? e.order : idx + 1,
         });
       });
     });
   });
-  const wsElements = XLSX.utils.json_to_sheet(elementsData.length ? elementsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Icône': '', 'Icône 2': '', 'Icône 3': '', 'Statut': '', 'Zone': '', 'Ordre': '' }]);
-  XLSX.utils.book_append_sheet(wb, wsElements, 'Éléments');
+  const wsElements = XLSX.utils.json_to_sheet(elementsData.length ? elementsData : [{ 'Template': '', 'Label': '', 'Category': '', 'Id': '', 'Domain': '', 'Order': '' }]);
+  XLSX.utils.book_append_sheet(wb, wsElements, 'Elements');
 
-  // Onglet Sous-catégories
+  // ========== 7. ONGLET SUBCATEGORIES ==========
   const subCategoriesData: any[] = [];
   (data.domains || []).forEach((d: any) => {
     (d.categories || []).forEach((c: any) => {
       (c.elements || []).forEach((e: any) => {
-        (e.subCategories || []).forEach((sc: any) => {
+        (e.subCategories || []).forEach((sc: any, idx: number) => {
           subCategoriesData.push({
-            'ID': sc.id,
-            'Domaine': d.name,
-            'Catégorie': c.name,
-            'Élément': e.name,
-            'Nom': sc.name,
-            'Icône': sc.icon || '',
-            'Orientation': sc.orientation,
-            'Ordre': sc.order,
+            'Label': sc.name,
+            'Id': sc.id,
+            'Icon': sc.icon || '',
+            'Order': sc.order !== undefined ? sc.order : idx + 1,
+            'Domain': d.id,
           });
         });
       });
     });
   });
-  const wsSubCategories = XLSX.utils.json_to_sheet(subCategoriesData.length ? subCategoriesData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Nom': '', 'Icône': '', 'Orientation': '', 'Ordre': '' }]);
-  XLSX.utils.book_append_sheet(wb, wsSubCategories, 'Sous-catégories');
+  const wsSubCategories = XLSX.utils.json_to_sheet(subCategoriesData.length ? subCategoriesData : [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Domain': '' }]);
+  XLSX.utils.book_append_sheet(wb, wsSubCategories, 'SubCategories');
 
-  // Onglet Sous-éléments
-  const subElementsData: any[] = [];
+  // ========== 8. ONGLET ITEMS (= Sous-éléments) ==========
+  const itemsData: any[] = [];
   (data.domains || []).forEach((d: any) => {
     (d.categories || []).forEach((c: any) => {
       (c.elements || []).forEach((e: any) => {
         (e.subCategories || []).forEach((sc: any) => {
-          (sc.subElements || []).forEach((se: any) => {
-            subElementsData.push({
-              'ID': se.id,
-              'Domaine': d.name,
-              'Catégorie': c.name,
-              'Élément': e.name,
-              'Sous-catégorie': sc.name,
-              'Nom': se.name,
-              'Valeur': se.value || '',
-              'Unité': se.unit || '',
-              'Statut': se.status,
-              'Ordre': se.order,
+          (sc.subElements || []).forEach((se: any, idx: number) => {
+            itemsData.push({
+              'Id': se.id,
+              'Key': '',
+              'Label': se.name,
+              'Order': se.order !== undefined ? se.order : idx + 1,
+              'Template': d.templateName || '',
+              'Subcategory': sc.id,
+              'Type': '',
+              'Formula': '',
+              'Preprocessing': '',
+              'Donnée': '',
+              'Fichier': '',
+              'Avancement POC': '',
             });
           });
         });
       });
     });
   });
-  const wsSubElements = XLSX.utils.json_to_sheet(subElementsData.length ? subElementsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Nom': '', 'Valeur': '', 'Unité': '', 'Statut': '', 'Ordre': '' }]);
-  XLSX.utils.book_append_sheet(wb, wsSubElements, 'Sous-éléments');
+  const wsItems = XLSX.utils.json_to_sheet(itemsData.length ? itemsData : [{ 'Id': '', 'Key': '', 'Label': '', 'Order': '', 'Template': '', 'Subcategory': '', 'Type': '', 'Formula': '', 'Preprocessing': '', 'Donnée': '', 'Fichier': '', 'Avancement POC': '' }]);
+  XLSX.utils.book_append_sheet(wb, wsItems, 'Items');
 
-  // Onglet Alertes
-  const alertsData: any[] = [];
-  (data.domains || []).forEach((d: any) => {
-    (d.categories || []).forEach((c: any) => {
-      (c.elements || []).forEach((e: any) => {
-        (e.subCategories || []).forEach((sc: any) => {
-          (sc.subElements || []).forEach((se: any) => {
-            if (se.alert) {
-              alertsData.push({
-                'ID': se.alert.id,
-                'Domaine': d.name,
-                'Catégorie': c.name,
-                'Élément': e.name,
-                'Sous-catégorie': sc.name,
-                'Sous-élément': se.name,
-                'Date': se.alert.date,
-                'Description': se.alert.description,
-                'Durée': se.alert.duration || '',
-                'Ticket': se.alert.ticketNumber || '',
-                'Actions': se.alert.actions || '',
-              });
-            }
-          });
-        });
-      });
-    });
-  });
-  const wsAlerts = XLSX.utils.json_to_sheet(alertsData.length ? alertsData : [{ 'ID': '', 'Domaine': '', 'Catégorie': '', 'Élément': '', 'Sous-catégorie': '', 'Sous-élément': '', 'Date': '', 'Description': '', 'Durée': '', 'Ticket': '', 'Actions': '' }]);
-  XLSX.utils.book_append_sheet(wb, wsAlerts, 'Alertes');
+  // ========== 9. ONGLET TRIGGERS (vide) ==========
+  const wsTriggers = XLSX.utils.json_to_sheet([{
+    'Template': '',
+    'texte': '',
+    'statut': '',
+    'valeur': '',
+    'condition': '',
+  }]);
+  XLSX.utils.book_append_sheet(wb, wsTriggers, 'Triggers');
 
-  // Onglet Zones
-  const zonesData = (data.zones || []).map((z: any) => ({
-    'ID': z.id,
-    'Nom': z.name,
-  }));
-  const wsZones = XLSX.utils.json_to_sheet(zonesData.length ? zonesData : [{ 'ID': '', 'Nom': '' }]);
-  XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
+  // ========== 10. ONGLET ALERT LIST (vide) ==========
+  const wsAlertList = XLSX.utils.json_to_sheet([{
+    'type': '',
+    'Id (item)': '',
+    "nom de l'indicateur (label)": '',
+    "lieu d'incidence": '',
+    'localisation (host)': '',
+    "valeur de l'indicateur": '',
+    'statut': '',
+    'valeur': '',
+    "message d'alerte": '',
+  }]);
+  XLSX.utils.book_append_sheet(wb, wsAlertList, 'alert list');
 
-  // Onglets pour les domaines "Suivi des heures" (un onglet par domaine)
+  // ========== ONGLETS SUIVI DES HEURES (si applicable) ==========
   (data.domains || []).forEach((d: any) => {
     if (d.templateType === 'hours-tracking' && d.hoursTracking) {
       const hoursData = d.hoursTracking;
