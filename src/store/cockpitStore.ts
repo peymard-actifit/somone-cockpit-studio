@@ -3285,6 +3285,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   // Copier le contenu complet d'un élément source vers un élément cible avec fusion des sous-catégories
+  // IMPORTANT: Cette fonction préserve les liaisons existantes (linkedGroupId) de l'élément cible
   copyElementContent: (targetElementId: string, sourceElementId: string, linkSubElements: boolean = false) => {
     const cockpit = get().currentCockpit;
     if (!cockpit) return;
@@ -3303,7 +3304,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     if (!sourceElement || !targetElement) return;
 
-    // Copier les propriétés de l'élément
+    // Copier les propriétés de l'élément SANS modifier le linkedGroupId existant
+    // Le choix d'un template ne doit pas affecter les liaisons
     const elementUpdates: Partial<Element> = {
       status: sourceElement.status,
       icon: sourceElement.icon,
@@ -3312,14 +3314,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       value: sourceElement.value,
       unit: sourceElement.unit,
       publiable: sourceElement.publiable,
-      linkedGroupId: sourceElement.linkedGroupId || sourceElementId,
+      // PRÉSERVER la liaison existante : ne pas écraser le linkedGroupId de l'élément cible
     };
     get().updateElement(targetElementId, elementUpdates, true);
-
-    // Assigner le linkedGroupId à la source si elle ne l'a pas
-    if (!sourceElement.linkedGroupId) {
-      get().updateElement(sourceElementId, { linkedGroupId: sourceElementId }, true);
-    }
 
     // Fusionner les sous-catégories : dans target, ajouter celles de source qui n'existent pas
     // Et aussi dans source, ajouter celles de target qui n'existent pas
