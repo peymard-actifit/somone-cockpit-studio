@@ -124,6 +124,7 @@ export interface Element {
   order: number;
   publiable?: boolean;  // Si l'élément doit être publié (défaut: true)
   zone?: string;
+  template?: string;  // Template associé à cet élément (partage la structure de sous-catégories/sous-éléments)
   subCategories: SubCategory[];
   // Pour les vues avec positionnement libre (background view)
   positionX?: number;  // Position X en % de l'image

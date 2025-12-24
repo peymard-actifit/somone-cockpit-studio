@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.11.12';
+const APP_VERSION = '14.11.13';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2403,18 +2403,40 @@ INSTRUCTIONS:
       XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
 
       // ========== 2. ONGLET TEMPLATES ==========
+      // Collecter les templates depuis les éléments (e.template) ET depuis les domaines (d.templateName)
       const templatesMap = new Map<string, any>();
-      publishableDomains.forEach((d: any, idx: number) => {
+      let templateOrderCounter = 1;
+      
+      // Templates depuis les domaines (ancien système)
+      publishableDomains.forEach((d: any) => {
         if (d.templateName && !templatesMap.has(d.templateName)) {
           templatesMap.set(d.templateName, {
             'Label': d.templateName,
             'Id': d.templateName.toLowerCase().replace(/\s+/g, '-'),
             'Icon': '',
-            'Order': idx + 1,
+            'Order': templateOrderCounter++,
             'Zone': '',
           });
         }
       });
+      
+      // Templates depuis les éléments (nouveau système)
+      publishableDomains.forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            if (e.template && !templatesMap.has(e.template)) {
+              templatesMap.set(e.template, {
+                'Label': e.template,
+                'Id': e.template.toLowerCase().replace(/\s+/g, '-'),
+                'Icon': '',
+                'Order': templateOrderCounter++,
+                'Zone': '',
+              });
+            }
+          });
+        });
+      });
+      
       let templatesData = Array.from(templatesMap.values());
       if (templatesData.length === 0) {
         templatesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Zone': '' }];
@@ -2477,7 +2499,7 @@ INSTRUCTIONS:
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             elementsData.push({
-              'Template': d.templateName || '',
+              'Template': e.template || d.templateName || '', // Priorité au template de l'élément
               'Label': e.name,
               'Category': c.name, // Label de la catégorie au lieu de l'ID
               'Id': e.id,
@@ -2533,7 +2555,7 @@ INSTRUCTIONS:
                   'Key': '',
                   'Label': se.name,
                   'Order': itemOrderCounter++, // Ordres séquentiels (1, 2, 3...)
-                  'Template': d.templateName || '',
+                  'Template': e.template || d.templateName || '', // Priorité au template de l'élément
                   'Subcategory': sc.name, // Label de la sous-catégorie au lieu de l'ID
                   'Icon': se.icon || '',
                   'Type': '',
