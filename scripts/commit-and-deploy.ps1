@@ -79,6 +79,15 @@ $versionDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $versionContent = "v$newVersion`nDeploye le: $versionDate"
 [System.IO.File]::WriteAllText($versionFilePath, $versionContent, $utf8NoBom)
 
+# Mettre a jour la constante APP_VERSION dans api/index.ts
+$apiIndexPath = "api/index.ts"
+if (Test-Path $apiIndexPath) {
+    $apiContent = Get-Content $apiIndexPath -Raw -Encoding UTF8
+    $apiContent = $apiContent -replace "const APP_VERSION = '[^']*';", "const APP_VERSION = '$newVersion';"
+    [System.IO.File]::WriteAllText((Resolve-Path $apiIndexPath), $apiContent, $utf8NoBom)
+    Write-Host "APP_VERSION mise a jour dans api/index.ts" -ForegroundColor Green
+}
+
 Write-Host "Version incrementee : $currentVersion -> $newVersion" -ForegroundColor Green
 
 # 3. Commit et Push (GitHub = source de verite, AVANT le build)

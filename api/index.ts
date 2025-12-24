@@ -5,6 +5,9 @@ import { Redis } from '@upstash/redis';
 import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
+// Version de l'application (mise à jour automatiquement par le script de déploiement)
+const APP_VERSION = '14.11.4';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
 
@@ -2803,9 +2806,20 @@ INSTRUCTIONS:
       try {
         const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-        // Encoder le nom du fichier pour éviter les problèmes avec les caractères spéciaux
-        const langSuffix = requestedLang === 'FR' ? '_FR' : `_${requestedLang}`;
-        const encodedFileName = encodeURIComponent(cockpit.name.replace(/[^\w\s-]/g, '') + langSuffix).replace(/'/g, '%27');
+        // Générer l'horodatage (format YYYYMMDD_HHMMSS)
+        const now = new Date();
+        const timestamp = now.toISOString()
+          .replace(/[-:]/g, '')
+          .replace('T', '_')
+          .substring(0, 15); // YYYYMMDD_HHMMSS
+
+        // Utiliser la version de l'application définie en haut du fichier
+        const appVersion = APP_VERSION;
+
+        // Encoder le nom du fichier : NomMaquette_LANG_YYYYMMDD_HHMMSS_vX.Y.Z.xlsx
+        const cleanName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+        const fileName = `${cleanName}_${requestedLang}_${timestamp}_v${appVersion}`;
+        const encodedFileName = encodeURIComponent(fileName).replace(/'/g, '%27');
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}.xlsx"; filename*=UTF-8''${encodedFileName}.xlsx`);
