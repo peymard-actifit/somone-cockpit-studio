@@ -266,8 +266,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [selectedSubElement, setSelectedSubElement] = useState<SubElement | null>(null);
   const [editingSubElementName, setEditingSubElementName] = useState<string>('');
   const selectedSubElementIdRef = useRef<string | null>(null);
-  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | 'subElement' | 'backgroundIcon' | 'domainTabIcon' | 'zone' | 'template' | null>(null);
-  const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory' | 'domainTabIcon' | 'zone' | 'template'; id?: string } | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState<'icon' | 'icon2' | 'icon3' | 'category' | 'subCategory' | 'subElement' | 'backgroundIcon' | 'domainTabIcon' | 'zone' | 'template' | 'domainIcon' | null>(null);
+  const [iconPickerContext, setIconPickerContext] = useState<{ type: 'category' | 'subCategory' | 'domainTabIcon' | 'zone' | 'template' | 'domainIcon'; id?: string } | null>(null);
 
   // États pour le modal de liaison lors du changement de nom
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -2586,6 +2586,54 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               />
             </div>
+
+            <div>
+              <label className="block text-sm text-[#64748B] mb-1">Icône</label>
+              <button
+                onClick={() => {
+                  setIconPickerContext({ type: 'domainIcon', id: domain.id });
+                  setShowIconPicker('domainIcon');
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] hover:border-[#1E3A5F] transition-colors"
+              >
+                {domain.icon ? (
+                  <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
+                    <MuiIcon name={domain.icon} size={20} className="text-white" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 bg-[#CBD5E1] rounded-lg flex items-center justify-center">
+                    <MuiIcon name="Add" size={20} className="text-white" />
+                  </div>
+                )}
+                <span className="text-sm">{domain.icon || 'Choisir une icône...'}</span>
+                {domain.icon && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateDomain(domain.id, { icon: undefined });
+                    }}
+                    className="ml-auto p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
+                    title="Supprimer l'icône"
+                  >
+                    <MuiIcon name="Close" size={16} />
+                  </button>
+                )}
+              </button>
+            </div>
+
+            {/* Sélecteur d'icônes pour le domaine */}
+            {showIconPicker === 'domainIcon' && iconPickerContext?.type === 'domainIcon' && (
+              <IconPicker
+                value={domain.icon}
+                onChange={(iconName) => {
+                  updateDomain(domain.id, { icon: iconName });
+                }}
+                onClose={() => {
+                  setShowIconPicker(null);
+                  setIconPickerContext(null);
+                }}
+              />
+            )}
 
             <div>
               <label className="block text-sm text-[#64748B] mb-1">Nom du template</label>

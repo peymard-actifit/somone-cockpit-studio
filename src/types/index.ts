@@ -81,6 +81,7 @@ export interface Domain {
   id: string;
   cockpitId: string;
   name: string;
+  icon?: string;  // Icône du domaine
   order: number;
   templateType: TemplateType;
   templateName?: string;

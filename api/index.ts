@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.12.2';
+const APP_VERSION = '14.13.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2450,11 +2450,12 @@ INSTRUCTIONS:
       XLSX.utils.book_append_sheet(wb, wsTemplates, 'Templates');
 
       // ========== 3. ONGLET DOMAINS ==========
+      // Les domaines ont maintenant une propriété icon
       let domainsData = publishableDomains.map((d: any, idx: number) => ({
         'Label': d.name,
         'Id': d.id,
         'Order': idx + 1, // Ordres séquentiels après filtrage (1, 2, 3...)
-        'Icon': '',
+        'Icon': d.icon || '',
       }));
       if (domainsData.length === 0) {
         domainsData = [{ 'Label': '', 'Id': '', 'Order': '', 'Icon': '' }];
