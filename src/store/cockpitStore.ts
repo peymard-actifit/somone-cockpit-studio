@@ -2239,21 +2239,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         const a = document.createElement('a');
         a.href = url;
 
-        // Extraire le nom du fichier depuis Content-Disposition
-        const contentDisposition = response.headers.get('Content-Disposition');
-        let fileName = `${currentCockpit.name}_${lang}.xlsx`;
-        if (contentDisposition) {
-          const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-          if (fileNameMatch && fileNameMatch[1]) {
-            fileName = fileNameMatch[1].replace(/['"]/g, '');
-            // Décoder le nom de fichier
-            try {
-              fileName = decodeURIComponent(fileName);
-            } catch (e) {
-              // Si échec du décodage, utiliser tel quel
-            }
-          }
-        }
+        // Générer le nom du fichier côté client (format: YYYYMMDD SOMONE COCKPITS NomMaquette LANG HHMMSS vX.Y.Z.xlsx)
+        const now = new Date();
+        const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+        const year = parisTime.getFullYear();
+        const month = String(parisTime.getMonth() + 1).padStart(2, '0');
+        const day = String(parisTime.getDate()).padStart(2, '0');
+        const hours = String(parisTime.getHours()).padStart(2, '0');
+        const minutes = String(parisTime.getMinutes()).padStart(2, '0');
+        const seconds = String(parisTime.getSeconds()).padStart(2, '0');
+        const dateStamp = `${year}${month}${day}`;
+        const timeStamp = `${hours}${minutes}${seconds}`;
+        const cleanName = currentCockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+        const fileName = `${dateStamp} SOMONE COCKPITS ${cleanName} ${lang} ${timeStamp} v${APP_VERSION}.xlsx`;
 
         a.download = fileName;
         document.body.appendChild(a);
