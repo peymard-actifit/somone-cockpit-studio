@@ -312,12 +312,6 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
         )}
       </div>
 
-      {/* Zone (badge discret) */}
-      {element.zone && (
-        <span className="absolute top-2 right-2 text-[8px] text-[#94A3B8] uppercase tracking-wider bg-[#F5F7FA] px-1 py-0.5 rounded border border-[#E2E8F0]">
-          {element.zone}
-        </span>
-      )}
 
       {/* Boutons (visibles au survol) - en haut à droite */}
       {!readOnly && (
