@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.11.4';
+const APP_VERSION = '14.11.5';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2385,6 +2385,9 @@ INSTRUCTIONS:
       // Créer le workbook Excel
       const wb = XLSX.utils.book_new();
 
+      // Filtrer les domaines publiables uniquement (publiable !== false)
+      const publishableDomains = (dataToExport.domains || []).filter((d: any) => d.publiable !== false);
+
       // ========== 1. ONGLET ZONES ==========
       let zonesData = (dataToExport.zones || []).map((z: any, idx: number) => ({
         'Label': z.name,
@@ -2400,7 +2403,7 @@ INSTRUCTIONS:
 
       // ========== 2. ONGLET TEMPLATES ==========
       const templatesMap = new Map<string, any>();
-      (dataToExport.domains || []).forEach((d: any, idx: number) => {
+      publishableDomains.forEach((d: any, idx: number) => {
         if (d.templateName && !templatesMap.has(d.templateName)) {
           templatesMap.set(d.templateName, {
             'Label': d.templateName,
@@ -2419,7 +2422,7 @@ INSTRUCTIONS:
       XLSX.utils.book_append_sheet(wb, wsTemplates, 'Templates');
 
       // ========== 3. ONGLET DOMAINS ==========
-      let domainsData = (dataToExport.domains || []).map((d: any, idx: number) => ({
+      let domainsData = publishableDomains.map((d: any, idx: number) => ({
         'Label': d.name,
         'Id': d.id,
         'Order': d.order !== undefined ? d.order : idx + 1,
@@ -2433,14 +2436,14 @@ INSTRUCTIONS:
 
       // ========== 4. ONGLET CATEGORIES ==========
       let categoriesData: any[] = [];
-      (dataToExport.domains || []).forEach((d: any) => {
+      publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any, idx: number) => {
           categoriesData.push({
             'Label': c.name,
             'Id': c.id,
             'Icon': c.icon || '',
             'Order': c.order !== undefined ? c.order : idx + 1,
-            'Domain': d.id,
+            'Domain': d.name, // Label du domaine au lieu de l'ID
           });
         });
       });
@@ -2467,15 +2470,15 @@ INSTRUCTIONS:
 
       // ========== 6. ONGLET ELEMENTS ==========
       let elementsData: any[] = [];
-      (dataToExport.domains || []).forEach((d: any) => {
+      publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any, idx: number) => {
             elementsData.push({
               'Template': d.templateName || '',
               'Label': e.name,
-              'Category': c.id,
+              'Category': c.name, // Label de la catégorie au lieu de l'ID
               'Id': e.id,
-              'Domain': d.id,
+              'Domain': d.name, // Label du domaine au lieu de l'ID
               'Order': e.order !== undefined ? e.order : idx + 1,
             });
           });
@@ -2489,7 +2492,7 @@ INSTRUCTIONS:
 
       // ========== 7. ONGLET SUBCATEGORIES ==========
       let subCategoriesData: any[] = [];
-      (dataToExport.domains || []).forEach((d: any) => {
+      publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any, idx: number) => {
@@ -2498,7 +2501,7 @@ INSTRUCTIONS:
                 'Id': sc.id,
                 'Icon': sc.icon || '',
                 'Order': sc.order !== undefined ? sc.order : idx + 1,
-                'Domain': d.id,
+                'Domain': d.name, // Label du domaine au lieu de l'ID
               });
             });
           });
@@ -2512,7 +2515,7 @@ INSTRUCTIONS:
 
       // ========== 8. ONGLET ITEMS (= Sous-éléments) ==========
       let itemsData: any[] = [];
-      (dataToExport.domains || []).forEach((d: any) => {
+      publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
@@ -2523,7 +2526,7 @@ INSTRUCTIONS:
                   'Label': se.name,
                   'Order': se.order !== undefined ? se.order : idx + 1,
                   'Template': d.templateName || '',
-                  'Subcategory': sc.id,
+                  'Subcategory': sc.name, // Label de la sous-catégorie au lieu de l'ID
                   'Type': '',
                   'Formula': '',
                   'Preprocessing': '',
@@ -2566,8 +2569,8 @@ INSTRUCTIONS:
       }]);
       XLSX.utils.book_append_sheet(wb, wsAlertList, 'alert list');
 
-      // Onglets pour les domaines "Suivi des heures" (un onglet par domaine)
-      for (const d of (dataToExport.domains || [])) {
+      // Onglets pour les domaines "Suivi des heures" (un onglet par domaine publiable)
+      for (const d of publishableDomains) {
         if (d.templateType === 'hours-tracking' && d.hoursTracking) {
           const hoursData = d.hoursTracking;
 
