@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.16.0';
+const APP_VERSION = '14.16.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1791,6 +1791,8 @@ INSTRUCTIONS:
         templateIcons: templateIcons !== undefined ? templateIcons : cockpit.data.templateIcons || {},
         // IMPORTANT: Toujours préserver les originaux sauvegardés
         originals: cockpit.data.originals,
+        // IMPORTANT: Préserver le dossier parent
+        folderId: cockpit.data.folderId,
       };
       cockpit.updatedAt = now;
 
