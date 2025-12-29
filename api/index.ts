@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.5';
+const APP_VERSION = '14.17.6';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1846,94 +1846,109 @@ INSTRUCTIONS:
     // Duplicate cockpit
     const duplicateMatch = path.match(/^\/cockpits\/([^/]+)\/duplicate$/);
     if (duplicateMatch && method === 'POST') {
-      const id = duplicateMatch[1];
-      const { name } = req.body;
-      
-      console.log(`[Duplicate] === DÉBUT DUPLICATION ===`);
-      console.log(`[Duplicate] ID source: ${id}, Nouveau nom: ${name}`);
+      try {
+        const id = duplicateMatch[1];
+        const { name } = req.body;
+        
+        console.log(`[Duplicate] === DÉBUT DUPLICATION ===`);
+        console.log(`[Duplicate] ID source: ${id}, Nouveau nom: ${name}`);
 
-      const db = await getDb();
-      console.log(`[Duplicate] DB chargée, ${db.cockpits?.length || 0} cockpits existants`);
-      
-      const original = db.cockpits.find(c => c.id === id);
+        const db = await getDb();
+        console.log(`[Duplicate] DB chargée, ${db.cockpits?.length || 0} cockpits existants`);
+        
+        const original = db.cockpits.find(c => c.id === id);
 
-      if (!original) {
-        console.error(`[Duplicate] ERREUR: Cockpit source ${id} non trouvé`);
-        return res.status(404).json({ error: 'Maquette non trouvée' });
+        if (!original) {
+          console.error(`[Duplicate] ERREUR: Cockpit source ${id} non trouvé`);
+          return res.status(404).json({ error: 'Maquette non trouvée' });
+        }
+        
+        console.log(`[Duplicate] Original trouvé: "${original.name}"`);
+        console.log(`[Duplicate] Original.data existe: ${!!original.data}`);
+        console.log(`[Duplicate] Original.data.domains: ${(original.data?.domains || []).length} domaines`);
+        console.log(`[Duplicate] Original.data.zones: ${(original.data?.zones || []).length} zones`);
+
+        if (!currentUser.isAdmin && original.userId !== currentUser.id) {
+          return res.status(403).json({ error: 'Accès non autorisé' });
+        }
+
+        const newId = generateId();
+        const now = new Date().toISOString();
+        
+        console.log(`[Duplicate] Nouvel ID généré: ${newId}`);
+
+        // Copier TOUTES les données de la maquette source (copie profonde)
+        let copiedData: any;
+        try {
+          copiedData = JSON.parse(JSON.stringify(original.data || {}));
+          console.log(`[Duplicate] JSON.parse réussi`);
+        } catch (jsonErr: any) {
+          console.error(`[Duplicate] ERREUR JSON.parse:`, jsonErr?.message || jsonErr);
+          return res.status(500).json({ error: `Erreur copie données: ${jsonErr?.message}` });
+        }
+        
+        console.log(`[Duplicate] Données copiées:`);
+        console.log(`[Duplicate]   - domains: ${(copiedData.domains || []).length}`);
+        console.log(`[Duplicate]   - zones: ${(copiedData.zones || []).length}`);
+        console.log(`[Duplicate]   - folderId: ${copiedData.folderId || 'null'}`);
+        console.log(`[Duplicate]   - logo: ${copiedData.logo ? 'présent' : 'absent'}`);
+        console.log(`[Duplicate]   - templateIcons: ${Object.keys(copiedData.templateIcons || {}).length} icônes`);
+
+        const newCockpit: CockpitData = {
+          id: newId,
+          name: name || `${original.name} - Copie`,
+          userId: currentUser.id,
+          data: copiedData,
+          createdAt: now,
+          updatedAt: now
+        };
+
+        // Réinitialiser le statut de publication (la copie n'est pas publiée)
+        if (newCockpit.data) {
+          delete newCockpit.data.publicId;
+          delete newCockpit.data.isPublished;
+          delete newCockpit.data.publishedAt;
+        }
+
+        // Ajouter le nouveau cockpit à la base
+        db.cockpits.push(newCockpit);
+        console.log(`[Duplicate] Cockpit ajouté à la DB, total: ${db.cockpits.length}`);
+        
+        // Sauvegarder et vérifier le succès
+        const saveSuccess = await saveDb(db);
+        if (!saveSuccess) {
+          console.error(`[Duplicate] ERREUR: Échec de saveDb!`);
+          return res.status(500).json({ error: 'Erreur lors de la sauvegarde' });
+        }
+        
+        console.log(`[Duplicate] Sauvegarde réussie!`);
+        
+        // Vérifier que le cockpit existe bien après sauvegarde
+        const verifyDb = await getDb();
+        const verifyExists = verifyDb.cockpits.find(c => c.id === newId);
+        console.log(`[Duplicate] Vérification post-save: cockpit ${newId} existe = ${!!verifyExists}`);
+        
+        if (!verifyExists) {
+          console.error(`[Duplicate] ERREUR CRITIQUE: Le cockpit n'existe pas après sauvegarde!`);
+          return res.status(500).json({ error: 'Erreur critique: cockpit non persisté' });
+        }
+        
+        console.log(`[Duplicate] === DUPLICATION RÉUSSIE: ${newCockpit.name} (${newId}) ===`);
+
+        // Retourner TOUTES les données comme le fait GET /cockpits/:id
+        return res.json({
+          id: newId,
+          name: newCockpit.name,
+          userId: currentUser.id,
+          createdAt: now,
+          updatedAt: now,
+          ...newCockpit.data, // Inclure TOUTES les données copiées
+        });
+      } catch (err: any) {
+        console.error(`[Duplicate] EXCEPTION NON GÉRÉE:`, err?.message || err);
+        console.error(`[Duplicate] Stack:`, err?.stack);
+        return res.status(500).json({ error: `Erreur duplication: ${err?.message || 'Erreur inconnue'}` });
       }
-      
-      console.log(`[Duplicate] Original trouvé: "${original.name}"`);
-      console.log(`[Duplicate] Original.data existe: ${!!original.data}`);
-      console.log(`[Duplicate] Original.data.domains: ${(original.data?.domains || []).length} domaines`);
-      console.log(`[Duplicate] Original.data.zones: ${(original.data?.zones || []).length} zones`);
-
-      if (!currentUser.isAdmin && original.userId !== currentUser.id) {
-        return res.status(403).json({ error: 'Accès non autorisé' });
-      }
-
-      const newId = generateId();
-      const now = new Date().toISOString();
-      
-      console.log(`[Duplicate] Nouvel ID généré: ${newId}`);
-
-      // Copier TOUTES les données de la maquette source (copie profonde)
-      const copiedData = JSON.parse(JSON.stringify(original.data || {}));
-      
-      console.log(`[Duplicate] Données copiées:`);
-      console.log(`[Duplicate]   - domains: ${(copiedData.domains || []).length}`);
-      console.log(`[Duplicate]   - zones: ${(copiedData.zones || []).length}`);
-      console.log(`[Duplicate]   - folderId: ${copiedData.folderId || 'null'}`);
-      console.log(`[Duplicate]   - logo: ${copiedData.logo ? 'présent' : 'absent'}`);
-      console.log(`[Duplicate]   - templateIcons: ${Object.keys(copiedData.templateIcons || {}).length} icônes`);
-
-      const newCockpit: CockpitData = {
-        id: newId,
-        name: name || `${original.name} - Copie`,
-        userId: currentUser.id,
-        data: copiedData,
-        createdAt: now,
-        updatedAt: now
-      };
-
-      // Réinitialiser le statut de publication (la copie n'est pas publiée)
-      delete newCockpit.data.publicId;
-      delete newCockpit.data.isPublished;
-      delete newCockpit.data.publishedAt;
-
-      // Ajouter le nouveau cockpit à la base
-      db.cockpits.push(newCockpit);
-      console.log(`[Duplicate] Cockpit ajouté à la DB, total: ${db.cockpits.length}`);
-      
-      // Sauvegarder et vérifier le succès
-      const saveSuccess = await saveDb(db);
-      if (!saveSuccess) {
-        console.error(`[Duplicate] ERREUR: Échec de saveDb!`);
-        return res.status(500).json({ error: 'Erreur lors de la sauvegarde' });
-      }
-      
-      console.log(`[Duplicate] Sauvegarde réussie!`);
-      
-      // Vérifier que le cockpit existe bien après sauvegarde
-      const verifyDb = await getDb();
-      const verifyExists = verifyDb.cockpits.find(c => c.id === newId);
-      console.log(`[Duplicate] Vérification post-save: cockpit ${newId} existe = ${!!verifyExists}`);
-      
-      if (!verifyExists) {
-        console.error(`[Duplicate] ERREUR CRITIQUE: Le cockpit n'existe pas après sauvegarde!`);
-        return res.status(500).json({ error: 'Erreur critique: cockpit non persisté' });
-      }
-      
-      console.log(`[Duplicate] === DUPLICATION RÉUSSIE: ${newCockpit.name} (${newId}) ===`);
-
-      // Retourner TOUTES les données comme le fait GET /cockpits/:id
-      return res.json({
-        id: newId,
-        name: newCockpit.name,
-        userId: currentUser.id,
-        createdAt: now,
-        updatedAt: now,
-        ...newCockpit.data, // Inclure TOUTES les données copiées
-      });
     }
 
     // Reorder cockpits
