@@ -17,6 +17,7 @@ function FolderCard({
   onDelete,
   cockpitsCount,
   isUserFolder = true, // true = répertoire de l'utilisateur, false = répertoire d'un autre compte (admin)
+  isDraggingCockpit = false, // true si une maquette est en cours de drag
 }: {
   folder: Folder;
   onClick: () => void;
@@ -24,15 +25,27 @@ function FolderCard({
   onDelete: () => void;
   cockpitsCount: number;
   isUserFolder?: boolean;
+  isDraggingCockpit?: boolean;
 }) {
   const {
     attributes,
     listeners,
-    setNodeRef,
+    setNodeRef: setSortableRef,
     transform,
     transition,
     isDragging,
   } = useSortable({ id: `folder-${folder.id}` });
+
+  // Zone droppable pour recevoir les maquettes
+  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
+    id: `folder-${folder.id}`,
+  });
+
+  // Combiner les refs
+  const setNodeRef = (node: HTMLElement | null) => {
+    setSortableRef(node);
+    setDroppableRef(node);
+  };
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -40,14 +53,19 @@ function FolderCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Déterminer si on doit illuminer (survol avec une maquette)
+  const isHighlighted = isOver && isDraggingCockpit;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group border rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer ${
-        isUserFolder 
-          ? 'bg-amber-50 border-amber-200 hover:border-amber-400 hover:shadow-amber-200/30' 
-          : 'bg-purple-50 border-purple-200 hover:border-purple-400 hover:shadow-purple-200/30'
+      className={`group border-2 rounded-xl overflow-hidden transition-all duration-200 cursor-pointer ${
+        isHighlighted
+          ? 'bg-amber-200 border-amber-500 shadow-lg shadow-amber-300/50 scale-105 ring-2 ring-amber-400'
+          : isUserFolder 
+            ? 'bg-amber-50 border-amber-200 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-200/30' 
+            : 'bg-purple-50 border-purple-200 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-200/30'
       }`}
       onClick={onClick}
     >
@@ -981,6 +999,7 @@ export default function HomePage() {
                   }}
                   cockpitsCount={cockpits.filter(c => c.folderId === folder.id).length}
                   isUserFolder={true}
+                  isDraggingCockpit={!!draggedCockpitId}
                 />
               ))}
               
