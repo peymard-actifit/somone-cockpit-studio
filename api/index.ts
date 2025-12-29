@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.12';
+const APP_VERSION = '14.17.13';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1592,7 +1592,7 @@ INSTRUCTIONS:
 
     // Create cockpit
     if (path === '/cockpits' && method === 'POST') {
-      const { name, domains, zones, logo, scrollingBanner, useOriginalView } = req.body;
+      const { name, domains, zones, logo, scrollingBanner, useOriginalView, originals, templateIcons } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: 'Nom requis' });
@@ -1653,6 +1653,8 @@ INSTRUCTIONS:
           logo: logo || null,
           scrollingBanner: scrollingBanner || null,
           useOriginalView: useOriginalView || false,
+          templateIcons: templateIcons || {},
+          originals: originals || null, // Textes originaux avant traduction (pour restauration)
         },
         createdAt: now,
         updatedAt: now
@@ -1672,6 +1674,8 @@ INSTRUCTIONS:
         logo: logo || null,
         scrollingBanner: scrollingBanner || null,
         useOriginalView: useOriginalView || false,
+        templateIcons: templateIcons || {},
+        originals: originals || null,
       });
     }
 

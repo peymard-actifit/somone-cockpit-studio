@@ -2353,6 +2353,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           // Options d'affichage
           useOriginalView: cockpit.useOriginalView || false, // Vue "Cockpit Original"
           
+          // Textes originaux (avant traduction) - permet de restaurer après import
+          originals: cockpit.originals || null,
+          
           // Note: Les champs suivants ne sont PAS exportés car spécifiques à l'instance :
           // - id, userId, createdAt, updatedAt (seront régénérés)
           // - publicId, isPublished, publishedAt (publication locale uniquement)
@@ -2461,6 +2464,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           
           // Options d'affichage
           useOriginalView: importedCockpit.useOriginalView || false,
+          
+          // Textes originaux (avant traduction) - permet de restaurer après import
+          originals: importedCockpit.originals || null,
         })
       });
 
