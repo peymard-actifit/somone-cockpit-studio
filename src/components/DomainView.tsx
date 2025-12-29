@@ -103,10 +103,12 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   // DOIT être déclaré AVANT les returns conditionnels !
   const maxCategoryHeaderWidth = useMemo(() => {
     if (horizontalCategories.length === 0) return 0;
-    // Estimation : environ 10px par caractère + 40px pour l'icône + 12px de gap
+    // Estimation améliorée pour text-lg font-bold (environ 12px par caractère en moyenne)
+    // + 40px pour l'icône + 12px de gap + 24px de marge de sécurité
     const maxNameLength = Math.max(...horizontalCategories.map(c => c.name.length));
     const hasIcons = horizontalCategories.some(c => c.icon);
-    return maxNameLength * 10 + (hasIcons ? 52 : 0) + 16; // 16px de padding
+    // 12px par caractère pour text-lg bold, +52px si icône (40px icône + 12px gap), +24px marge
+    return maxNameLength * 12 + (hasIcons ? 52 : 0) + 24;
   }, [horizontalCategories]);
 
   // Modal de configuration supprimée - l'édition se fait maintenant via EditorPanel
