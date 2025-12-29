@@ -172,8 +172,6 @@ export default function AlertsView({ domain, cockpit, readOnly = false }: Alerts
   // Récupérer les incidents du domaine
   const incidents = domain.alertsData?.incidents || [];
   const rowSpacing = domain.alertsData?.rowSpacing || 4;
-  // Hauteur des tuiles par défaut au minimum (60px)
-  const tileHeight = domain.alertsData?.tileHeight || 60;
 
   // Filtrer et trier les incidents
   const filteredAndSortedIncidents = useMemo(() => {
