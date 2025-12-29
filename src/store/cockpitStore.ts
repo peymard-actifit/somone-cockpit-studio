@@ -2331,7 +2331,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       // EXPORT COMPLET - Exporter TOUTES les données du cockpit sans exception
       // Seuls id/userId/createdAt/updatedAt seront régénérés à l'import (car nouvelle instance)
-      const { id, userId, createdAt, updatedAt, ...cockpitData } = cockpit;
+      // On les exclut de l'export car ils seront régénérés
+      const { id: _id, userId: _userId, createdAt: _createdAt, updatedAt: _updatedAt, ...cockpitData } = cockpit;
       
       const exportData = {
         exportVersion: '3.0', // Version 3.0 = export complet
