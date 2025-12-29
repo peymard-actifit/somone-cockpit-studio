@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.3';
+const APP_VERSION = '14.17.4';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1892,17 +1892,14 @@ INSTRUCTIONS:
       
       console.log(`[Duplicate] Cockpit "${newCockpit.name}" créé avec ID: ${newId}`);
 
+      // Retourner TOUTES les données comme le fait GET /cockpits/:id
       return res.json({
         id: newId,
         name: newCockpit.name,
         userId: currentUser.id,
         createdAt: now,
         updatedAt: now,
-        folderId: originalFolderId || null, // Retourner le folderId
-        domains: newCockpit.data.domains || [],
-        zones: newCockpit.data.zones || [],
-        logo: newCockpit.data.logo,
-        templateIcons: newCockpit.data.templateIcons || {},
+        ...newCockpit.data, // Inclure TOUTES les données copiées
       });
     }
 
