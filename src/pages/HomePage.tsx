@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY, APP_VERSION } from '../config/version';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, useDroppable } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Cockpit, Folder } from '../types';
@@ -113,6 +113,47 @@ function FolderCard({
         )}
       </div>
     </div>
+  );
+}
+
+// Composant droppable pour le breadcrumb "Mes maquettes"
+function DroppableBreadcrumb({ 
+  isActive, 
+  onNavigate,
+  isDragging 
+}: { 
+  isActive: boolean; 
+  onNavigate: () => void;
+  isDragging: boolean;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: 'breadcrumb-root',
+  });
+
+  return (
+    <h2 
+      ref={setNodeRef}
+      className={`text-2xl font-bold transition-all duration-200 ${
+        isActive 
+          ? 'text-slate-500 cursor-pointer hover:text-[#1E3A5F]' 
+          : 'text-[#1E3A5F]'
+      } ${isDragging && isActive ? 'px-3 py-1 rounded-lg border-2 border-dashed' : ''} ${
+        isOver && isDragging
+          ? 'bg-blue-500/20 border-blue-500 text-blue-600 scale-105' 
+          : isDragging && isActive 
+            ? 'border-slate-400/50 bg-slate-100/50' 
+            : ''
+      }`}
+      onClick={() => isActive && onNavigate()}
+      title={isDragging && isActive ? 'Déposer ici pour remettre à la racine' : undefined}
+    >
+      Mes maquettes
+      {isDragging && isActive && (
+        <span className="ml-2 text-sm font-normal text-blue-600">
+          ← Déposer ici
+        </span>
+      )}
+    </h2>
   );
 }
 
@@ -810,14 +851,13 @@ export default function HomePage() {
         {/* Section Header avec Breadcrumb */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            {/* Breadcrumb */}
+            {/* Breadcrumb avec zone de drop */}
             <div className="flex items-center gap-2 mb-1">
-              <h2 
-                className={`text-2xl font-bold ${currentFolderId ? 'text-slate-500 cursor-pointer hover:text-[#1E3A5F]' : 'text-[#1E3A5F]'}`}
-                onClick={() => currentFolderId && setCurrentFolder(null)}
-              >
-                Mes maquettes
-              </h2>
+              <DroppableBreadcrumb 
+                isActive={!!currentFolderId} 
+                onNavigate={() => setCurrentFolder(null)}
+                isDragging={!!draggedCockpitId}
+              />
               {currentFolder && (
                 <>
                   <MuiIcon name="ChevronRight" size={24} className="text-slate-400" />
@@ -992,14 +1032,6 @@ export default function HomePage() {
             </div>
           </SortableContext>
           
-          {/* Overlay de drag pour montrer qu'on peut déposer sur "Mes maquettes" */}
-          <DragOverlay>
-            {draggedCockpitId && currentFolderId && (
-              <div className="fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg shadow-lg">
-                Glissez sur "Mes maquettes" pour remettre à la racine
-              </div>
-            )}
-          </DragOverlay>
         </DndContext>
       </main>
 
