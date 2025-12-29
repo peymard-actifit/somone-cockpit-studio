@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.6';
+const APP_VERSION = '14.17.7';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1848,9 +1848,14 @@ INSTRUCTIONS:
     if (duplicateMatch && method === 'POST') {
       try {
         const id = duplicateMatch[1];
-        const { name } = req.body;
         
         console.log(`[Duplicate] === DÉBUT DUPLICATION ===`);
+        console.log(`[Duplicate] req.body type:`, typeof req.body);
+        console.log(`[Duplicate] req.body:`, JSON.stringify(req.body)?.substring(0, 200));
+        
+        const body = req.body || {};
+        const name = body.name;
+        
         console.log(`[Duplicate] ID source: ${id}, Nouveau nom: ${name}`);
 
         const db = await getDb();
@@ -3914,9 +3919,10 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
     // Route not found
     return res.status(404).json({ error: 'Route non trouvée' });
 
-  } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
+  } catch (error: any) {
+    console.error('API GLOBAL Error:', error?.message || error);
+    console.error('API GLOBAL Stack:', error?.stack);
+    return res.status(500).json({ error: `Erreur serveur: ${error?.message || 'Erreur inconnue'}` });
   }
 }
 
