@@ -3,9 +3,9 @@ import type { Domain, Cockpit, Zone } from '../types';
 import { MuiIcon } from './IconPicker';
 
 interface LibraryViewProps {
-  domain: Domain;
+  domain: Domain;  // Requis par DomainView mais non utilisé directement
   cockpit: Cockpit;
-  readOnly?: boolean;
+  readOnly?: boolean;  // Requis par DomainView mais non utilisé directement
 }
 
 // Interface pour un template avec son état d'utilisation
@@ -22,7 +22,7 @@ interface ZoneWithTemplates {
   templates: TemplateInfo[];
 }
 
-export default function LibraryView({ domain, cockpit, readOnly = false }: LibraryViewProps) {
+export default function LibraryView({ cockpit }: LibraryViewProps) {
   // Récupérer toutes les zones de la maquette
   const zones = useMemo(() => {
     return (cockpit as any).zones || [];
