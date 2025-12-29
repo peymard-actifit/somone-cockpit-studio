@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.1';
+const APP_VERSION = '14.17.2';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1863,11 +1863,15 @@ INSTRUCTIONS:
       const newId = generateId();
       const now = new Date().toISOString();
 
+      // Copier les données en préservant le folderId
+      const copiedData = JSON.parse(JSON.stringify(original.data));
+      const originalFolderId = copiedData.folderId; // Conserver le folderId
+
       const newCockpit: CockpitData = {
         id: newId,
         name: name || `${original.name} - Copie`,
         userId: currentUser.id,
-        data: JSON.parse(JSON.stringify(original.data)),
+        data: copiedData,
         createdAt: now,
         updatedAt: now
       };
@@ -1886,7 +1890,8 @@ INSTRUCTIONS:
         userId: currentUser.id,
         createdAt: now,
         updatedAt: now,
-        domains: [],
+        folderId: originalFolderId || null, // Retourner le folderId
+        domains: newCockpit.data.domains || [],
       });
     }
 
