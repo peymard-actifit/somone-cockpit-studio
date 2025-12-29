@@ -343,18 +343,25 @@ export interface ElementForStatusCalc {
 }
 
 // Fonction pour obtenir la couleur effective d'un élément (gère le cas hérité et héritage domaine)
+// Le paramètre visitedDomainIds permet d'éviter les références circulaires
 export function getEffectiveStatus(
   element: ElementForStatusCalc,
-  domains?: DomainForStatusCalc[]
+  domains?: DomainForStatusCalc[],
+  visitedDomainIds?: Set<string>
 ): TileStatus {
   if (element.status === 'herite') {
     return getInheritedStatus(element);
   }
   if (element.status === 'herite_domaine' && element.inheritFromDomainId && domains) {
+    // Protection contre les références circulaires
+    if (visitedDomainIds?.has(element.inheritFromDomainId)) {
+      console.warn(`Référence circulaire détectée pour le domaine ${element.inheritFromDomainId}`);
+      return 'ok'; // Éviter la boucle infinie
+    }
     const targetDomain = domains.find(d => d.id === element.inheritFromDomainId);
     if (targetDomain) {
-      // Passer tous les domaines pour permettre le calcul récursif correct
-      return getDomainWorstStatus(targetDomain, domains);
+      // Passer tous les domaines avec le tracking des domaines visités
+      return getDomainWorstStatus(targetDomain, domains, visitedDomainIds);
     }
     return 'ok'; // Par défaut si le domaine n'est pas trouvé
   }
@@ -364,9 +371,10 @@ export function getEffectiveStatus(
 // Fonction pour obtenir les couleurs effectives (gère le cas hérité et héritage domaine)
 export function getEffectiveColors(
   element: ElementForStatusCalc,
-  domains?: DomainForStatusCalc[]
+  domains?: DomainForStatusCalc[],
+  visitedDomainIds?: Set<string>
 ) {
-  const effectiveStatus = getEffectiveStatus(element, domains) || element.status || 'ok';
+  const effectiveStatus = getEffectiveStatus(element, domains, visitedDomainIds) || element.status || 'ok';
   return STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
 }
 
@@ -386,10 +394,18 @@ export type DomainForStatusCalc = {
 };
 
 // Fonction pour calculer le statut le plus critique d'un domaine
+// Le paramètre visitedDomainIds permet d'éviter les références circulaires
 export function getDomainWorstStatus(
   domain: DomainForStatusCalc,
-  allDomains?: DomainForStatusCalc[]
+  allDomains?: DomainForStatusCalc[],
+  visitedDomainIds?: Set<string>
 ): TileStatus {
+  // Initialiser ou copier le Set des domaines visités
+  const visited = visitedDomainIds ? new Set(visitedDomainIds) : new Set<string>();
+  
+  // Marquer ce domaine comme visité pour éviter les boucles
+  visited.add(domain.id);
+
   let worstStatus: TileStatus = 'ok';
   let worstPriority = STATUS_PRIORITY_MAP['ok'];
 
@@ -397,7 +413,8 @@ export function getDomainWorstStatus(
   for (const category of domain.categories) {
     for (const element of category.elements) {
       // Calculer le statut effectif de l'élément (gère l'héritage et l'héritage domaine)
-      const effectiveStatus = getEffectiveStatus(element, allDomains);
+      // Passer le Set des domaines visités pour détecter les cycles
+      const effectiveStatus = getEffectiveStatus(element, allDomains, visited);
       const priority = STATUS_PRIORITY_MAP[effectiveStatus] || 0;
 
       if (priority > worstPriority) {

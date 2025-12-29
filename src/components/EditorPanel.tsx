@@ -1889,7 +1889,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-full px-3 py-2 text-sm border border-purple-300 rounded-lg bg-white text-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-purple-400"
               >
                 <option value="">Sélectionner un domaine...</option>
-                {currentCockpit.domains.map((d) => (
+                {currentCockpit.domains
+                  .filter((d) => d.id !== domain?.id) // Exclure le domaine actuel pour éviter les références circulaires
+                  .map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
                   </option>
@@ -1898,6 +1900,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <p className="text-xs text-purple-600 mt-2">
                 La couleur de cet élément sera synchronisée avec le statut le plus critique du domaine sélectionné.
               </p>
+              {element.inheritFromDomainId === domain?.id && (
+                <p className="text-xs text-red-600 mt-1 font-medium">
+                  ⚠️ Attention : Un élément ne peut pas hériter de son propre domaine.
+                </p>
+              )}
             </div>
           )}
         </Section>
