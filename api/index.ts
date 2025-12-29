@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.10';
+const APP_VERSION = '14.17.11';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -246,26 +246,19 @@ async function saveDb(db: Database): Promise<boolean> {
   
   try {
     // Étape 2: Envoi vers Redis
-    console.log(`[saveDb] 🔄 Étape 2: Envoi vers Upstash Redis...`);
+    console.log(`[saveDb] 🔄 Étape 2: Envoi vers Upstash Redis (${sizeMB}MB)...`);
     const startTime = Date.now();
     const result = await redis.set(DB_KEY, db);
     const duration = Date.now() - startTime;
-    console.log(`[saveDb] ✅ Sauvegarde réussie en ${duration}ms (${sizeMB}MB)`);
+    console.log(`[saveDb] ✅ Sauvegarde réussie en ${duration}ms, résultat:`, result);
     return true;
   } catch (redisError: any) {
-    console.error(`[saveDb] ❌ ERREUR Redis:`, redisError?.message || redisError);
-    console.error(`[saveDb] ❌ Stack:`, redisError?.stack);
+    console.error(`[saveDb] ❌ ERREUR Redis complète:`, JSON.stringify(redisError, Object.getOwnPropertyNames(redisError)));
+    console.error(`[saveDb] ❌ Message:`, redisError?.message);
+    console.error(`[saveDb] ❌ Name:`, redisError?.name);
+    console.error(`[saveDb] ❌ Code:`, redisError?.code);
+    console.error(`[saveDb] ❌ Status:`, redisError?.status);
     console.error(`[saveDb] 📊 Taille tentée: ${sizeKB}KB (${sizeMB}MB)`);
-    
-    // Analyser le type d'erreur
-    const errMsg = redisError?.message || '';
-    if (errMsg.includes('timeout')) {
-      console.error(`[saveDb] 💡 Timeout - la requête a pris trop de temps`);
-    } else if (errMsg.includes('size') || errMsg.includes('large') || errMsg.includes('limit')) {
-      console.error(`[saveDb] 💡 Limite de taille dépassée`);
-    } else if (errMsg.includes('memory')) {
-      console.error(`[saveDb] 💡 Problème de mémoire`);
-    }
     return false;
   }
 }
