@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.7';
+const APP_VERSION = '14.17.8';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -231,10 +231,19 @@ async function saveDb(db: Database): Promise<boolean> {
   try {
     const dataStr = JSON.stringify(db);
     const sizeKB = Math.round(dataStr.length / 1024);
-    console.log(`[saveDb] Sauvegarde en cours... ${db.cockpits?.length || 0} cockpits, taille: ${sizeKB}KB`);
+    const sizeMB = (dataStr.length / 1024 / 1024).toFixed(2);
+    console.log(`[saveDb] Sauvegarde en cours... ${db.cockpits?.length || 0} cockpits, taille: ${sizeKB}KB (${sizeMB}MB)`);
+    
+    // Log taille par cockpit pour diagnostic
+    db.cockpits?.forEach((c: any, idx: number) => {
+      const cockpitSize = JSON.stringify(c).length;
+      if (cockpitSize > 100000) { // Log si > 100KB
+        console.log(`[saveDb] Cockpit[${idx}] "${c.name}": ${Math.round(cockpitSize/1024)}KB`);
+      }
+    });
     
     if (dataStr.length > 10000000) { // 10MB limite de securite
-      console.error(`[saveDb] ERREUR: Base trop grosse (${sizeKB}KB)`);
+      console.error(`[saveDb] ERREUR: Base trop grosse (${sizeMB}MB > 10MB)`);
       return false;
     }
     
@@ -243,6 +252,7 @@ async function saveDb(db: Database): Promise<boolean> {
     return true;
   } catch (error: any) {
     console.error('[saveDb] ERREUR Redis set:', error?.message || error);
+    console.error('[saveDb] Stack:', error?.stack);
     return false;
   }
 }
@@ -1868,10 +1878,23 @@ INSTRUCTIONS:
           return res.status(404).json({ error: 'Maquette non trouvée' });
         }
         
-        console.log(`[Duplicate] Original trouvé: "${original.name}"`);
+        const originalSize = JSON.stringify(original).length;
+        console.log(`[Duplicate] Original trouvé: "${original.name}" (${Math.round(originalSize/1024)}KB)`);
         console.log(`[Duplicate] Original.data existe: ${!!original.data}`);
         console.log(`[Duplicate] Original.data.domains: ${(original.data?.domains || []).length} domaines`);
         console.log(`[Duplicate] Original.data.zones: ${(original.data?.zones || []).length} zones`);
+        
+        // Vérifier les images volumineuses
+        let totalImageSize = 0;
+        (original.data?.domains || []).forEach((d: any) => {
+          if (d.backgroundImage && d.backgroundImage.length > 10000) {
+            console.log(`[Duplicate]   Domain "${d.name}" a une image de fond: ${Math.round(d.backgroundImage.length/1024)}KB`);
+            totalImageSize += d.backgroundImage.length;
+          }
+        });
+        if (totalImageSize > 0) {
+          console.log(`[Duplicate]   Total images: ${Math.round(totalImageSize/1024)}KB`);
+        }
 
         if (!currentUser.isAdmin && original.userId !== currentUser.id) {
           return res.status(403).json({ error: 'Accès non autorisé' });
