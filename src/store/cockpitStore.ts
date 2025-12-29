@@ -2329,43 +2329,22 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       const cockpit = await response.json();
 
-      // Créer un objet d'export avec TOUTES les données du cockpit
-      // Liste exhaustive des propriétés exportables :
+      // EXPORT COMPLET - Exporter TOUTES les données du cockpit sans exception
+      // Seuls id/userId/createdAt/updatedAt seront régénérés à l'import (car nouvelle instance)
+      const { id, userId, createdAt, updatedAt, ...cockpitData } = cockpit;
+      
       const exportData = {
-        exportVersion: '2.0', // Version du format d'export
-        appVersion: APP_VERSION, // Version de l'application qui a exporté
+        exportVersion: '3.0', // Version 3.0 = export complet
+        appVersion: APP_VERSION,
         exportedAt: new Date().toISOString(),
-        cockpit: {
-          // Identité
-          name: cockpit.name,
-          
-          // Contenu principal
-          domains: cockpit.domains || [], // Inclut toutes les catégories, éléments, sous-éléments, etc.
-          zones: cockpit.zones || [], // Zones pour le tri des éléments
-          
-          // Apparence
-          logo: cockpit.logo || null, // Logo en base64
-          scrollingBanner: cockpit.scrollingBanner || null, // Bandeau défilant
-          
-          // Icônes des templates
-          templateIcons: cockpit.templateIcons || {},
-          
-          // Options d'affichage
-          useOriginalView: cockpit.useOriginalView || false, // Vue "Cockpit Original"
-          
-          // Textes originaux (avant traduction) - permet de restaurer après import
-          originals: cockpit.originals || null,
-          
-          // Note: Les champs suivants ne sont PAS exportés car spécifiques à l'instance :
-          // - id, userId, createdAt, updatedAt (seront régénérés)
-          // - publicId, isPublished, publishedAt (publication locale uniquement)
-          // - folderId, order (organisation locale uniquement)
-          // - sharedWith (dépend des utilisateurs du système cible)
-        }
+        cockpit: cockpitData // TOUT le reste est exporté : domains, zones, logo, scrollingBanner, 
+                             // templateIcons, useOriginalView, originals, folderId, sharedWith, 
+                             // publicId, isPublished, publishedAt, order, etc.
       };
 
       // Log pour debug
-      console.log(`[Export] Maquette "${cockpit.name}" - Domaines: ${(cockpit.domains || []).length}, Zones: ${(cockpit.zones || []).length}`);
+      const dataKeys = Object.keys(cockpitData);
+      console.log(`[Export] Maquette "${cockpit.name}" - Export COMPLET avec ${dataKeys.length} propriétés: ${dataKeys.join(', ')}`);
 
       // Convertir en JSON
       const jsonStr = JSON.stringify(exportData, null, 2);
@@ -2436,11 +2415,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const importedCockpit = importData.cockpit;
       
       // Log des informations de version si disponibles
-      console.log(`[Import] Fichier exporté depuis version ${importData.appVersion || importData.version || 'inconnue'}`);
-      console.log(`[Import] Maquette "${importedCockpit.name}" - Domaines: ${(importedCockpit.domains || []).length}, Zones: ${(importedCockpit.zones || []).length}`);
+      const dataKeys = Object.keys(importedCockpit);
+      console.log(`[Import] Fichier exporté depuis version ${importData.appVersion || importData.version || 'inconnue'} (format v${importData.exportVersion || '1.0'})`);
+      console.log(`[Import] Maquette "${importedCockpit.name}" - ${dataKeys.length} propriétés: ${dataKeys.join(', ')}`);
 
-      // Créer une nouvelle maquette avec TOUTES les données importées
-      // Les IDs seront régénérés automatiquement par le serveur
+      // IMPORT COMPLET - Envoyer TOUTES les données du fichier
+      // L'API va régénérer les IDs et créer une nouvelle instance
       const response = await fetch(`${API_URL}/cockpits`, {
         method: 'POST',
         headers: {
@@ -2448,25 +2428,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          // Identité
-          name: importedCockpit.name || 'Maquette importée',
-          
-          // Contenu principal (avec toutes les données imbriquées)
-          domains: importedCockpit.domains || [], // Domaines avec catégories, éléments, sous-éléments, etc.
-          zones: importedCockpit.zones || [], // Zones pour le tri
-          
-          // Apparence
-          logo: importedCockpit.logo || null,
-          scrollingBanner: importedCockpit.scrollingBanner || null,
-          
-          // Icônes des templates
-          templateIcons: importedCockpit.templateIcons || {},
-          
-          // Options d'affichage
-          useOriginalView: importedCockpit.useOriginalView || false,
-          
-          // Textes originaux (avant traduction) - permet de restaurer après import
-          originals: importedCockpit.originals || null,
+          ...importedCockpit, // TOUTES les données du fichier exporté
+          name: importedCockpit.name || 'Maquette importée', // S'assurer qu'il y a un nom
         })
       });
 

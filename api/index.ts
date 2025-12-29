@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.13';
+const APP_VERSION = '14.17.14';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1592,7 +1592,8 @@ INSTRUCTIONS:
 
     // Create cockpit
     if (path === '/cockpits' && method === 'POST') {
-      const { name, domains, zones, logo, scrollingBanner, useOriginalView, originals, templateIcons } = req.body;
+      // IMPORT COMPLET - Accepter TOUTES les propriétés envoyées
+      const { name, domains, zones, ...otherData } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: 'Nom requis' });
@@ -1643,19 +1644,28 @@ INSTRUCTIONS:
       const newDomains = domains && Array.isArray(domains) ? regenerateIds(domains) : [];
       const newZones = zones && Array.isArray(zones) ? regenerateIds(zones) : [];
 
+      // Log pour debug
+      const otherKeys = Object.keys(otherData);
+      console.log(`[POST /cockpits] Création avec ${otherKeys.length} propriétés supplémentaires: ${otherKeys.join(', ')}`);
+
+      // Construire data avec TOUTES les propriétés envoyées
+      const cockpitData = {
+        domains: newDomains.map((d: any) => ({ ...d, cockpitId: id })),
+        zones: newZones.map((z: any) => ({ ...z, cockpitId: id })),
+        ...otherData, // TOUTES les autres propriétés (logo, scrollingBanner, templateIcons, originals, etc.)
+      };
+
+      // Supprimer les propriétés qui ne doivent pas être dans data (elles sont au niveau cockpit)
+      delete cockpitData.id;
+      delete cockpitData.userId;
+      delete cockpitData.createdAt;
+      delete cockpitData.updatedAt;
+
       const newCockpit: CockpitData = {
         id,
         name,
         userId: currentUser.id,
-        data: {
-          domains: newDomains.map((d: any) => ({ ...d, cockpitId: id })),
-          zones: newZones.map((z: any) => ({ ...z, cockpitId: id })),
-          logo: logo || null,
-          scrollingBanner: scrollingBanner || null,
-          useOriginalView: useOriginalView || false,
-          templateIcons: templateIcons || {},
-          originals: originals || null, // Textes originaux avant traduction (pour restauration)
-        },
+        data: cockpitData,
         createdAt: now,
         updatedAt: now
       };
@@ -1663,19 +1673,14 @@ INSTRUCTIONS:
       db.cockpits.push(newCockpit);
       await saveDb(db);
 
+      // Retourner TOUTES les données comme le fait GET /cockpits/:id
       return res.json({
         id,
         name,
         userId: currentUser.id,
         createdAt: now,
         updatedAt: now,
-        domains: newDomains,
-        zones: newZones,
-        logo: logo || null,
-        scrollingBanner: scrollingBanner || null,
-        useOriginalView: useOriginalView || false,
-        templateIcons: templateIcons || {},
-        originals: originals || null,
+        ...cockpitData, // TOUTES les données
       });
     }
 
