@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.8';
+const APP_VERSION = '14.17.9';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -232,27 +232,28 @@ async function saveDb(db: Database): Promise<boolean> {
     const dataStr = JSON.stringify(db);
     const sizeKB = Math.round(dataStr.length / 1024);
     const sizeMB = (dataStr.length / 1024 / 1024).toFixed(2);
-    console.log(`[saveDb] Sauvegarde en cours... ${db.cockpits?.length || 0} cockpits, taille: ${sizeKB}KB (${sizeMB}MB)`);
+    console.log(`[saveDb] 📊 Sauvegarde: ${db.cockpits?.length || 0} cockpits, taille totale: ${sizeKB}KB (${sizeMB}MB)`);
     
-    // Log taille par cockpit pour diagnostic
+    // Log informatif des cockpits volumineux (> 100KB)
     db.cockpits?.forEach((c: any, idx: number) => {
       const cockpitSize = JSON.stringify(c).length;
-      if (cockpitSize > 100000) { // Log si > 100KB
-        console.log(`[saveDb] Cockpit[${idx}] "${c.name}": ${Math.round(cockpitSize/1024)}KB`);
+      if (cockpitSize > 100000) {
+        console.log(`[saveDb]   📦 "${c.name}": ${Math.round(cockpitSize/1024)}KB`);
       }
     });
     
-    if (dataStr.length > 10000000) { // 10MB limite de securite
-      console.error(`[saveDb] ERREUR: Base trop grosse (${sizeMB}MB > 10MB)`);
-      return false;
-    }
-    
+    // Plus de limite artificielle - on laisse Redis gérer
     const result = await redis.set(DB_KEY, db);
-    console.log(`[saveDb] Resultat Redis:`, result);
+    console.log(`[saveDb] ✅ Sauvegarde réussie (${sizeMB}MB)`);
     return true;
   } catch (error: any) {
-    console.error('[saveDb] ERREUR Redis set:', error?.message || error);
-    console.error('[saveDb] Stack:', error?.stack);
+    const sizeKB = Math.round(JSON.stringify(db).length / 1024);
+    console.error(`[saveDb] ❌ ERREUR Redis (taille: ${sizeKB}KB):`, error?.message || error);
+    
+    // Message d'erreur plus explicite pour les limites Redis
+    if (error?.message?.includes('too large') || error?.message?.includes('size') || error?.message?.includes('limit')) {
+      console.error(`[saveDb] 💡 La base de données est peut-être trop volumineuse pour Upstash Redis`);
+    }
     return false;
   }
 }
@@ -1879,21 +1880,22 @@ INSTRUCTIONS:
         }
         
         const originalSize = JSON.stringify(original).length;
-        console.log(`[Duplicate] Original trouvé: "${original.name}" (${Math.round(originalSize/1024)}KB)`);
-        console.log(`[Duplicate] Original.data existe: ${!!original.data}`);
-        console.log(`[Duplicate] Original.data.domains: ${(original.data?.domains || []).length} domaines`);
-        console.log(`[Duplicate] Original.data.zones: ${(original.data?.zones || []).length} zones`);
+        const originalSizeKB = Math.round(originalSize/1024);
+        const originalSizeMB = (originalSize/1024/1024).toFixed(2);
+        console.log(`[Duplicate] 📦 Original: "${original.name}" - ${originalSizeKB}KB (${originalSizeMB}MB)`);
+        console.log(`[Duplicate]   📊 ${(original.data?.domains || []).length} domaines, ${(original.data?.zones || []).length} zones`);
         
-        // Vérifier les images volumineuses
+        // Détail des données volumineuses (informatif)
         let totalImageSize = 0;
         (original.data?.domains || []).forEach((d: any) => {
           if (d.backgroundImage && d.backgroundImage.length > 10000) {
-            console.log(`[Duplicate]   Domain "${d.name}" a une image de fond: ${Math.round(d.backgroundImage.length/1024)}KB`);
+            const imgSizeKB = Math.round(d.backgroundImage.length/1024);
+            console.log(`[Duplicate]   🖼️ Image "${d.name}": ${imgSizeKB}KB`);
             totalImageSize += d.backgroundImage.length;
           }
         });
         if (totalImageSize > 0) {
-          console.log(`[Duplicate]   Total images: ${Math.round(totalImageSize/1024)}KB`);
+          console.log(`[Duplicate]   📷 Total images: ${Math.round(totalImageSize/1024)}KB (${(totalImageSize/1024/1024).toFixed(2)}MB)`);
         }
 
         if (!currentUser.isAdmin && original.userId !== currentUser.id) {
@@ -1943,13 +1945,18 @@ INSTRUCTIONS:
         console.log(`[Duplicate] Cockpit ajouté à la DB, total: ${db.cockpits.length}`);
         
         // Sauvegarder et vérifier le succès
+        const newDbSize = JSON.stringify(db).length;
+        console.log(`[Duplicate] 💾 Sauvegarde en cours... (nouvelle taille DB: ${Math.round(newDbSize/1024)}KB)`);
+        
         const saveSuccess = await saveDb(db);
         if (!saveSuccess) {
-          console.error(`[Duplicate] ERREUR: Échec de saveDb!`);
-          return res.status(500).json({ error: 'Erreur lors de la sauvegarde' });
+          console.error(`[Duplicate] ❌ Échec de la sauvegarde`);
+          return res.status(500).json({ 
+            error: `Erreur lors de la sauvegarde. La maquette "${original.name}" fait ${originalSizeKB}KB, la base totale ferait ${Math.round(newDbSize/1024)}KB. Vérifiez les limites Redis.`
+          });
         }
         
-        console.log(`[Duplicate] Sauvegarde réussie!`);
+        console.log(`[Duplicate] ✅ Sauvegarde réussie!`);
         
         // Vérifier que le cockpit existe bien après sauvegarde
         const verifyDb = await getDb();
