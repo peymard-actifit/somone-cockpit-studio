@@ -12,7 +12,8 @@ export type TemplateType =
   | 'element'       // Vue élément (sous-catégories)
   | 'hours-tracking' // Vue suivi des heures
   | 'alerts'        // Vue alertes/incidents
-  | 'stats';        // Vue statistiques
+  | 'stats'         // Vue statistiques
+  | 'library';      // Vue bibliothèque (zones + templates)
 
 // Orientation des catégories
 export type Orientation = 'horizontal' | 'vertical';

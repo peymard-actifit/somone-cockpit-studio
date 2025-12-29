@@ -7,6 +7,7 @@ import HoursTrackingView from './HoursTrackingView';
 import GridView from './GridView';
 import AlertsView from './AlertsView';
 import StatsView from './StatsView';
+import LibraryView from './LibraryView';
 import { MuiIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
 import { useState, useEffect, useMemo } from 'react';
@@ -183,6 +184,16 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
         <StatsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
+      </div>
+    );
+  }
+
+  // Vue bibliothèque
+  if (domain.templateType === 'library') {
+    if (!cockpit) return null;
+    return (
+      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
+        <LibraryView domain={domain} cockpit={cockpit} readOnly={readOnly} />
       </div>
     );
   }

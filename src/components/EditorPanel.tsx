@@ -2684,6 +2684,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               { type: 'hours-tracking' as TemplateType, label: 'Suivi des heures', desc: 'Suivi des heures et coûts du projet' },
               { type: 'alerts' as TemplateType, label: 'Alertes', desc: 'Liste d\'incidents et statistiques' },
               { type: 'stats' as TemplateType, label: 'Stats', desc: 'Graphiques de disponibilité' },
+              { type: 'library' as TemplateType, label: 'Bibliothèque', desc: 'Zones et templates supervisables' },
             ].map(({ type, label, desc }) => (
               <button
                 key={type}
