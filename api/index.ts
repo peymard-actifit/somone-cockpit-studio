@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.14.2';
+const APP_VERSION = '14.15.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2391,11 +2391,55 @@ INSTRUCTIONS:
       // Filtrer les domaines publiables uniquement (publiable !== false)
       const publishableDomains = (dataToExport.domains || []).filter((d: any) => d.publiable !== false);
 
+      // ========== GÉNÉRATION D'IDS LISIBLES ==========
+      // Fonction pour créer un ID lisible à partir d'un nom
+      // Préfixes: d- domaines, c- catégories, e- éléments, sc- sous-catégories, se- sous-éléments, z- zones, t- templates
+      const usedIds: Record<string, Set<string>> = {
+        'd': new Set<string>(),
+        'c': new Set<string>(),
+        'e': new Set<string>(),
+        'sc': new Set<string>(),
+        'se': new Set<string>(),
+        'z': new Set<string>(),
+        't': new Set<string>(),
+      };
+
+      const generateReadableId = (name: string, prefix: string): string => {
+        // Normaliser le nom: minuscules, accents supprimés, espaces -> tirets
+        const baseSlug = name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+          .replace(/[^a-z0-9\s-]/g, '') // Garder seulement lettres, chiffres, espaces, tirets
+          .replace(/\s+/g, '-') // Espaces -> tirets
+          .replace(/-+/g, '-') // Éviter les tirets multiples
+          .replace(/^-|-$/g, ''); // Supprimer tirets au début/fin
+        
+        const baseId = `${prefix}-${baseSlug || 'unnamed'}`;
+        
+        // Vérifier si cet ID existe déjà
+        const usedSet = usedIds[prefix];
+        if (!usedSet.has(baseId)) {
+          usedSet.add(baseId);
+          return baseId;
+        }
+        
+        // Trouver un index disponible
+        let index = 1;
+        let uniqueId = `${baseId}-${String(index).padStart(3, '0')}`;
+        while (usedSet.has(uniqueId)) {
+          index++;
+          uniqueId = `${baseId}-${String(index).padStart(3, '0')}`;
+        }
+        usedSet.add(uniqueId);
+        return uniqueId;
+      };
+
       // ========== 1. ONGLET ZONES ==========
       // Les zones ont maintenant une propriété icon
       let zonesData = (dataToExport.zones || []).map((z: any, idx: number) => ({
         'Label': z.name,
-        'Id': z.id,
+        'Id': generateReadableId(z.name, 'z'),
         'Icon': z.icon || '',
         'Order': idx + 1,
       }));
@@ -2417,7 +2461,7 @@ INSTRUCTIONS:
         if (d.templateName && !templatesMap.has(d.templateName)) {
           templatesMap.set(d.templateName, {
             'Label': d.templateName,
-            'Id': d.templateName.toLowerCase().replace(/\s+/g, '-'),
+            'Id': generateReadableId(d.templateName, 't'),
             'Icon': templateIcons[d.templateName] || '',
             'Order': templateOrderCounter++,
             'Zone': '',
@@ -2432,7 +2476,7 @@ INSTRUCTIONS:
             if (e.template && !templatesMap.has(e.template)) {
               templatesMap.set(e.template, {
                 'Label': e.template,
-                'Id': e.template.toLowerCase().replace(/\s+/g, '-'),
+                'Id': generateReadableId(e.template, 't'),
                 'Icon': templateIcons[e.template] || '',
                 'Order': templateOrderCounter++,
                 'Zone': '',
@@ -2453,7 +2497,7 @@ INSTRUCTIONS:
       // Les domaines ont maintenant une propriété icon
       let domainsData = publishableDomains.map((d: any, idx: number) => ({
         'Label': d.name,
-        'Id': d.id,
+        'Id': generateReadableId(d.name, 'd'),
         'Order': idx + 1, // Ordres séquentiels après filtrage (1, 2, 3...)
         'Icon': d.icon || '',
       }));
@@ -2470,7 +2514,7 @@ INSTRUCTIONS:
         (d.categories || []).forEach((c: any) => {
           categoriesData.push({
             'Label': c.name,
-            'Id': c.id,
+            'Id': generateReadableId(c.name, 'c'),
             'Icon': c.icon || '',
             'Order': catOrderCounter++, // Ordres séquentiels (1, 2, 3...)
             'Domain': d.name, // Label du domaine au lieu de l'ID
@@ -2508,7 +2552,7 @@ INSTRUCTIONS:
               'Template': e.template || d.templateName || '', // Priorité au template de l'élément
               'Label': e.name,
               'Category': c.name, // Label de la catégorie au lieu de l'ID
-              'Id': e.id,
+              'Id': generateReadableId(e.name, 'e'),
               'Domain': d.name, // Label du domaine au lieu de l'ID
               'Order': elemOrderCounter++, // Ordres séquentiels (1, 2, 3...)
               'Zone': e.zone || '', // Zone de l'élément
@@ -2534,7 +2578,7 @@ INSTRUCTIONS:
             (e.subCategories || []).forEach((sc: any) => {
               subCategoriesData.push({
                 'Label': sc.name,
-                'Id': sc.id,
+                'Id': generateReadableId(sc.name, 'sc'),
                 'Icon': sc.icon || '',
                 'Order': subCatOrderCounter++, // Ordres séquentiels (1, 2, 3...)
                 'Domain': d.name, // Label du domaine au lieu de l'ID
@@ -2558,7 +2602,7 @@ INSTRUCTIONS:
             (e.subCategories || []).forEach((sc: any) => {
               (sc.subElements || []).forEach((se: any) => {
                 itemsData.push({
-                  'Id': se.id,
+                  'Id': generateReadableId(se.name, 'se'),
                   'Key': '',
                   'Label': se.name,
                   'Order': itemOrderCounter++, // Ordres séquentiels (1, 2, 3...)
