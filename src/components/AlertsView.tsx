@@ -301,7 +301,8 @@ export default function AlertsView({ domain, cockpit, readOnly = false }: Alerts
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const newPosition = ((e.clientY - rect.top) / rect.height) * 100;
-      setSplitPosition(Math.max(15, Math.min(50, newPosition)));
+      // Permettre de réduire jusqu'à 5% pour juste afficher les textes et chiffres
+      setSplitPosition(Math.max(5, Math.min(50, newPosition)));
     };
 
     const handleMouseUp = () => {
@@ -631,50 +632,50 @@ export default function AlertsView({ domain, cockpit, readOnly = false }: Alerts
           <div className="grid grid-cols-4 gap-4 h-full">
             {/* Total - Bleu */}
             <div
-              className="rounded-xl border-2 shadow-sm flex flex-col items-start justify-center p-4"
-              style={{ minHeight: tileHeight, backgroundColor: '#E3F2FD', borderColor: '#BBDEFB' }}
+              className="rounded-xl border-2 shadow-sm flex flex-col items-center justify-center p-2 overflow-hidden"
+              style={{ backgroundColor: '#E3F2FD', borderColor: '#BBDEFB' }}
             >
-              <div className="flex items-center gap-2 mb-2" style={{ color: STATUS_COLORS.information.hex }}>
-                <MuiIcon name="Warning" size={20} />
-                <span className="text-sm font-medium">Alertes totales en cours</span>
+              <div className="flex items-center gap-2" style={{ color: STATUS_COLORS.information.hex }}>
+                <MuiIcon name="Warning" size={16} />
+                <span className="text-xs font-medium whitespace-nowrap">Alertes totales en cours</span>
               </div>
-              <span className="text-4xl font-bold" style={{ color: STATUS_COLORS.information.hex }}>{counts.total}</span>
+              <span className="text-3xl font-bold" style={{ color: STATUS_COLORS.information.hex }}>{counts.total}</span>
             </div>
 
             {/* Fatales - Violet */}
             <div
-              className="rounded-xl border-2 shadow-sm flex flex-col items-start justify-center p-4"
-              style={{ minHeight: tileHeight, backgroundColor: '#F3E8FF', borderColor: '#DDD6FE' }}
+              className="rounded-xl border-2 shadow-sm flex flex-col items-center justify-center p-2 overflow-hidden"
+              style={{ backgroundColor: '#F3E8FF', borderColor: '#DDD6FE' }}
             >
-              <div className="flex items-center gap-2 mb-2" style={{ color: STATUS_COLORS.fatal.hex }}>
-                <MuiIcon name="Warning" size={20} />
-                <span className="text-sm font-medium">Alertes fatales</span>
+              <div className="flex items-center gap-2" style={{ color: STATUS_COLORS.fatal.hex }}>
+                <MuiIcon name="Warning" size={16} />
+                <span className="text-xs font-medium whitespace-nowrap">Alertes fatales</span>
               </div>
-              <span className="text-4xl font-bold" style={{ color: STATUS_COLORS.fatal.hex }}>{counts.fatal}</span>
+              <span className="text-3xl font-bold" style={{ color: STATUS_COLORS.fatal.hex }}>{counts.fatal}</span>
             </div>
 
             {/* Critiques - Rouge */}
             <div
-              className="rounded-xl border-2 shadow-sm flex flex-col items-start justify-center p-4"
-              style={{ minHeight: tileHeight, backgroundColor: '#FEE2E2', borderColor: '#FECACA' }}
+              className="rounded-xl border-2 shadow-sm flex flex-col items-center justify-center p-2 overflow-hidden"
+              style={{ backgroundColor: '#FEE2E2', borderColor: '#FECACA' }}
             >
-              <div className="flex items-center gap-2 mb-2" style={{ color: STATUS_COLORS.critique.hex }}>
-                <MuiIcon name="Warning" size={20} />
-                <span className="text-sm font-medium">Alertes critiques</span>
+              <div className="flex items-center gap-2" style={{ color: STATUS_COLORS.critique.hex }}>
+                <MuiIcon name="Warning" size={16} />
+                <span className="text-xs font-medium whitespace-nowrap">Alertes critiques</span>
               </div>
-              <span className="text-4xl font-bold" style={{ color: STATUS_COLORS.critique.hex }}>{counts.critique}</span>
+              <span className="text-3xl font-bold" style={{ color: STATUS_COLORS.critique.hex }}>{counts.critique}</span>
             </div>
 
             {/* Mineures - Orange */}
             <div
-              className="rounded-xl border-2 shadow-sm flex flex-col items-start justify-center p-4"
-              style={{ minHeight: tileHeight, backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }}
+              className="rounded-xl border-2 shadow-sm flex flex-col items-center justify-center p-2 overflow-hidden"
+              style={{ backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }}
             >
-              <div className="flex items-center gap-2 mb-2" style={{ color: STATUS_COLORS.mineur.hex }}>
-                <MuiIcon name="Warning" size={20} />
-                <span className="text-sm font-medium">Alertes mineures</span>
+              <div className="flex items-center gap-2" style={{ color: STATUS_COLORS.mineur.hex }}>
+                <MuiIcon name="Warning" size={16} />
+                <span className="text-xs font-medium whitespace-nowrap">Alertes mineures</span>
               </div>
-              <span className="text-4xl font-bold" style={{ color: STATUS_COLORS.mineur.hex }}>{counts.mineur}</span>
+              <span className="text-3xl font-bold" style={{ color: STATUS_COLORS.mineur.hex }}>{counts.mineur}</span>
             </div>
           </div>
         </div>
@@ -752,50 +753,50 @@ export default function AlertsView({ domain, cockpit, readOnly = false }: Alerts
         <div className="grid grid-cols-4 gap-4 h-full">
           {/* Total - Bleu */}
           <div
-            className="rounded-xl border-2 shadow-sm flex flex-col items-start justify-center p-4"
-            style={{ minHeight: tileHeight, backgroundColor: '#E3F2FD', borderColor: '#BBDEFB' }}
+            className="rounded-xl border-2 shadow-sm flex flex-col items-center justify-center p-2 overflow-hidden"
+            style={{ backgroundColor: '#E3F2FD', borderColor: '#BBDEFB' }}
           >
-            <div className="flex items-center gap-2 mb-2" style={{ color: STATUS_COLORS.information.hex }}>
-              <MuiIcon name="Warning" size={20} />
-              <span className="text-sm font-medium">Alertes totales en cours</span>
+            <div className="flex items-center gap-2" style={{ color: STATUS_COLORS.information.hex }}>
+              <MuiIcon name="Warning" size={16} />
+              <span className="text-xs font-medium whitespace-nowrap">Alertes totales en cours</span>
             </div>
-            <span className="text-4xl font-bold" style={{ color: STATUS_COLORS.information.hex }}>{counts.total}</span>
+            <span className="text-3xl font-bold" style={{ color: STATUS_COLORS.information.hex }}>{counts.total}</span>
           </div>
 
           {/* Fatales - Violet */}
           <div
-            className="rounded-xl border-2 shadow-sm flex flex-col items-start justify-center p-4"
-            style={{ minHeight: tileHeight, backgroundColor: '#F3E8FF', borderColor: '#DDD6FE' }}
+            className="rounded-xl border-2 shadow-sm flex flex-col items-center justify-center p-2 overflow-hidden"
+            style={{ backgroundColor: '#F3E8FF', borderColor: '#DDD6FE' }}
           >
-            <div className="flex items-center gap-2 mb-2" style={{ color: STATUS_COLORS.fatal.hex }}>
-              <MuiIcon name="Warning" size={20} />
-              <span className="text-sm font-medium">Alertes fatales</span>
+            <div className="flex items-center gap-2" style={{ color: STATUS_COLORS.fatal.hex }}>
+              <MuiIcon name="Warning" size={16} />
+              <span className="text-xs font-medium whitespace-nowrap">Alertes fatales</span>
             </div>
-            <span className="text-4xl font-bold" style={{ color: STATUS_COLORS.fatal.hex }}>{counts.fatal}</span>
+            <span className="text-3xl font-bold" style={{ color: STATUS_COLORS.fatal.hex }}>{counts.fatal}</span>
           </div>
 
           {/* Critiques - Rouge */}
           <div
-            className="rounded-xl border-2 shadow-sm flex flex-col items-start justify-center p-4"
-            style={{ minHeight: tileHeight, backgroundColor: '#FEE2E2', borderColor: '#FECACA' }}
+            className="rounded-xl border-2 shadow-sm flex flex-col items-center justify-center p-2 overflow-hidden"
+            style={{ backgroundColor: '#FEE2E2', borderColor: '#FECACA' }}
           >
-            <div className="flex items-center gap-2 mb-2" style={{ color: STATUS_COLORS.critique.hex }}>
-              <MuiIcon name="Warning" size={20} />
-              <span className="text-sm font-medium">Alertes critiques</span>
+            <div className="flex items-center gap-2" style={{ color: STATUS_COLORS.critique.hex }}>
+              <MuiIcon name="Warning" size={16} />
+              <span className="text-xs font-medium whitespace-nowrap">Alertes critiques</span>
             </div>
-            <span className="text-4xl font-bold" style={{ color: STATUS_COLORS.critique.hex }}>{counts.critique}</span>
+            <span className="text-3xl font-bold" style={{ color: STATUS_COLORS.critique.hex }}>{counts.critique}</span>
           </div>
 
           {/* Mineures - Orange */}
           <div
-            className="rounded-xl border-2 shadow-sm flex flex-col items-start justify-center p-4"
-            style={{ minHeight: tileHeight, backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }}
+            className="rounded-xl border-2 shadow-sm flex flex-col items-center justify-center p-2 overflow-hidden"
+            style={{ backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }}
           >
-            <div className="flex items-center gap-2 mb-2" style={{ color: STATUS_COLORS.mineur.hex }}>
-              <MuiIcon name="Warning" size={20} />
-              <span className="text-sm font-medium">Alertes mineures</span>
+            <div className="flex items-center gap-2" style={{ color: STATUS_COLORS.mineur.hex }}>
+              <MuiIcon name="Warning" size={16} />
+              <span className="text-xs font-medium whitespace-nowrap">Alertes mineures</span>
             </div>
-            <span className="text-4xl font-bold" style={{ color: STATUS_COLORS.mineur.hex }}>{counts.mineur}</span>
+            <span className="text-3xl font-bold" style={{ color: STATUS_COLORS.mineur.hex }}>{counts.mineur}</span>
           </div>
         </div>
       </div>
