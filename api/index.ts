@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.9';
+const APP_VERSION = '14.17.10';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -228,31 +228,43 @@ async function getDb(): Promise<Database> {
 }
 
 async function saveDb(db: Database): Promise<boolean> {
+  let dataStr: string;
+  let sizeKB: number;
+  let sizeMB: string;
+  
   try {
-    const dataStr = JSON.stringify(db);
-    const sizeKB = Math.round(dataStr.length / 1024);
-    const sizeMB = (dataStr.length / 1024 / 1024).toFixed(2);
-    console.log(`[saveDb] 📊 Sauvegarde: ${db.cockpits?.length || 0} cockpits, taille totale: ${sizeKB}KB (${sizeMB}MB)`);
-    
-    // Log informatif des cockpits volumineux (> 100KB)
-    db.cockpits?.forEach((c: any, idx: number) => {
-      const cockpitSize = JSON.stringify(c).length;
-      if (cockpitSize > 100000) {
-        console.log(`[saveDb]   📦 "${c.name}": ${Math.round(cockpitSize/1024)}KB`);
-      }
-    });
-    
-    // Plus de limite artificielle - on laisse Redis gérer
+    // Étape 1: Sérialisation JSON
+    console.log(`[saveDb] 🔄 Étape 1: Sérialisation JSON...`);
+    dataStr = JSON.stringify(db);
+    sizeKB = Math.round(dataStr.length / 1024);
+    sizeMB = (dataStr.length / 1024 / 1024).toFixed(2);
+    console.log(`[saveDb] 📊 Taille: ${sizeKB}KB (${sizeMB}MB), ${db.cockpits?.length || 0} cockpits`);
+  } catch (jsonError: any) {
+    console.error(`[saveDb] ❌ ERREUR JSON.stringify:`, jsonError?.message || jsonError);
+    return false;
+  }
+  
+  try {
+    // Étape 2: Envoi vers Redis
+    console.log(`[saveDb] 🔄 Étape 2: Envoi vers Upstash Redis...`);
+    const startTime = Date.now();
     const result = await redis.set(DB_KEY, db);
-    console.log(`[saveDb] ✅ Sauvegarde réussie (${sizeMB}MB)`);
+    const duration = Date.now() - startTime;
+    console.log(`[saveDb] ✅ Sauvegarde réussie en ${duration}ms (${sizeMB}MB)`);
     return true;
-  } catch (error: any) {
-    const sizeKB = Math.round(JSON.stringify(db).length / 1024);
-    console.error(`[saveDb] ❌ ERREUR Redis (taille: ${sizeKB}KB):`, error?.message || error);
+  } catch (redisError: any) {
+    console.error(`[saveDb] ❌ ERREUR Redis:`, redisError?.message || redisError);
+    console.error(`[saveDb] ❌ Stack:`, redisError?.stack);
+    console.error(`[saveDb] 📊 Taille tentée: ${sizeKB}KB (${sizeMB}MB)`);
     
-    // Message d'erreur plus explicite pour les limites Redis
-    if (error?.message?.includes('too large') || error?.message?.includes('size') || error?.message?.includes('limit')) {
-      console.error(`[saveDb] 💡 La base de données est peut-être trop volumineuse pour Upstash Redis`);
+    // Analyser le type d'erreur
+    const errMsg = redisError?.message || '';
+    if (errMsg.includes('timeout')) {
+      console.error(`[saveDb] 💡 Timeout - la requête a pris trop de temps`);
+    } else if (errMsg.includes('size') || errMsg.includes('large') || errMsg.includes('limit')) {
+      console.error(`[saveDb] 💡 Limite de taille dépassée`);
+    } else if (errMsg.includes('memory')) {
+      console.error(`[saveDb] 💡 Problème de mémoire`);
     }
     return false;
   }
