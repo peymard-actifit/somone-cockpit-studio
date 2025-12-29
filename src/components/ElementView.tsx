@@ -222,13 +222,30 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   const horizontalSubCategories = forceVerticalSubCategories ? [] : element.subCategories.filter(sc => sc.orientation !== 'vertical');
   const verticalSubCategories = forceVerticalSubCategories ? element.subCategories : element.subCategories.filter(sc => sc.orientation === 'vertical');
 
+  // Préférence pour le mode inline des sous-catégories horizontales (grille CSS)
+  const [horizontalSubCategoriesInline, setHorizontalSubCategoriesInline] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(`horizontalSubCategoriesInline_${storageKey}`) === 'true';
+  });
+
+  // Écouter les changements de préférence
+  useEffect(() => {
+    const handlePreferenceChange = () => {
+      setHorizontalSubCategoriesInline(localStorage.getItem(`horizontalSubCategoriesInline_${storageKey}`) === 'true');
+    };
+    window.addEventListener(`horizontalSubCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
+    return () => {
+      window.removeEventListener(`horizontalSubCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
+    };
+  }, [storageKey]);
+
   // Calculer la largeur minimale des en-têtes de sous-catégories pour l'alignement
   const maxSubCategoryHeaderWidth = useMemo(() => {
     if (horizontalSubCategories.length === 0) return 0;
     const maxNameLength = Math.max(...horizontalSubCategories.map(sc => sc.name.length));
     const hasIcons = horizontalSubCategories.some(sc => sc.icon);
-    // Estimer la largeur: caractères * 8px + icône (44px si présente) + padding (16px)
-    return maxNameLength * 8 + (hasIcons ? 44 : 0) + 16;
+    // Estimer la largeur: caractères * 10px + icône (44px si présente) + padding (24px)
+    return maxNameLength * 10 + (hasIcons ? 44 : 0) + 24;
   }, [horizontalSubCategories]);
 
 
@@ -464,7 +481,11 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
           )}
 
           {/* Sous-catégories HORIZONTALES : affichées de manière classique */}
-          <div className={getSpaceYClass(subCategorySpacing)}>
+          {/* Utiliser CSS Grid pour aligner les tuiles quand mode inline est activé */}
+          <div 
+            className={horizontalSubCategoriesInline ? 'grid gap-x-4 gap-y-4' : getSpaceYClass(subCategorySpacing)}
+            style={horizontalSubCategoriesInline ? { gridTemplateColumns: 'max-content 1fr' } : undefined}
+          >
             {horizontalSubCategories.map((subCategory) => (
               <SubCategorySection
                 key={subCategory.id}
@@ -478,6 +499,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                 horizontalSpacing={horizontalSpacing}
                 subCategorySpacing={subCategorySpacing}
                 subCategoryHeaderMinWidth={maxSubCategoryHeaderWidth}
+                useGridLayout={horizontalSubCategoriesInline}
               />
             ))}
           </div>

@@ -17,9 +17,10 @@ interface SubCategorySectionProps {
   horizontalSpacing?: number; // Espacement horizontal passé depuis ElementView
   subCategorySpacing?: number; // Espacement entre sous-catégories passé depuis ElementView
   subCategoryHeaderMinWidth?: number; // Largeur minimale de l'en-tête pour l'alignement
+  useGridLayout?: boolean; // Utiliser CSS Grid pour l'alignement (mode inline dans une grille parent)
 }
 
-export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick, elementId, verticalSubCategoryWidth, horizontalSpacing: propHorizontalSpacing, subCategoryHeaderMinWidth }: SubCategorySectionProps) {
+export default function SubCategorySection({ subCategory, element, domain, readOnly = false, onSubElementClick, elementId, verticalSubCategoryWidth, horizontalSpacing: propHorizontalSpacing, subCategoryHeaderMinWidth, useGridLayout = false }: SubCategorySectionProps) {
   const { addSubElement, deleteSubCategory, moveSubElement, reorderSubElement, findSubElementsByName, linkSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubElement, setIsAddingSubElement] = useState(false);
@@ -212,12 +213,17 @@ export default function SubCategorySection({ subCategory, element, domain, readO
   };
 
 
+  // Mode grille CSS : utiliser display:contents pour que les enfants soient dans la grille parent
+  const containerClass = useGridLayout && useInlineLayout
+    ? 'contents' // Les enfants seront directement dans la grille parent
+    : `group ${useInlineLayout ? `flex items-center ${getGapClass(horizontalSpacing)}` : ''}`;
+
   return (
-    <div className={`group ${useInlineLayout ? `flex items-center ${getGapClass(horizontalSpacing)}` : ''}`}>
+    <div className={containerClass}>
       {/* En-tête de sous-catégorie - Style PDF SOMONE mode clair */}
       <div
         className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}
-        style={useInlineLayout && subCategoryHeaderMinWidth ? { minWidth: `${subCategoryHeaderMinWidth}px` } : undefined}
+        style={useInlineLayout && subCategoryHeaderMinWidth && !useGridLayout ? { minWidth: `${subCategoryHeaderMinWidth}px` } : undefined}
       >
         {subCategory.icon && (
           <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">

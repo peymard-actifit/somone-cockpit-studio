@@ -1,6 +1,6 @@
 {
     "name":  "somone-cockpit-studio",
-    "version":  "14.15.3",
+    "version":  "14.16.0",
     "description":  "Studio d\u0027assemblage de maquettes de cockpit",
     "type":  "module",
     "scripts":  {

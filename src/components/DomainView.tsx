@@ -98,6 +98,24 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   const horizontalCategories = domain.categories.filter(c => c.orientation === 'horizontal');
   const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
 
+  // Préférence pour le mode inline des catégories horizontales (grille CSS)
+  const storageKey = domain.id ? `domain_${domain.id}` : 'global';
+  const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(`horizontalCategoriesInline_${storageKey}`) === 'true';
+  });
+
+  // Écouter les changements de préférence
+  useEffect(() => {
+    const handlePreferenceChange = () => {
+      setHorizontalCategoriesInline(localStorage.getItem(`horizontalCategoriesInline_${storageKey}`) === 'true');
+    };
+    window.addEventListener(`horizontalCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
+    return () => {
+      window.removeEventListener(`horizontalCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
+    };
+  }, [storageKey]);
+
   // Calculer la largeur minimale des en-têtes de catégorie pour l'alignement
   // (basé sur le nom le plus long + icône si présente)
   // DOIT être déclaré AVANT les returns conditionnels !
@@ -469,7 +487,11 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
         )}
 
         {/* Catégories HORIZONTALES */}
-        <div>
+        {/* Utiliser CSS Grid pour aligner les tuiles quand mode inline est activé */}
+        <div 
+          className={horizontalCategoriesInline ? 'grid gap-x-4' : ''}
+          style={horizontalCategoriesInline ? { gridTemplateColumns: 'max-content 1fr' } : undefined}
+        >
           {horizontalCategories.map((category) => {
             // Convertir la valeur du slider (0-100) en classes Tailwind
             const getMarginBottomClass = (value: number) => {
@@ -487,7 +509,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
             };
 
             return (
-              <div key={category.id} className={getMarginBottomClass(categorySpacing)}>
+              <div key={category.id} className={horizontalCategoriesInline ? 'contents' : getMarginBottomClass(categorySpacing)}>
                 <CategorySection
                   category={category}
                   onElementClick={onElementClick}
@@ -496,6 +518,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                   horizontalSpacing={horizontalSpacing}
                   categoryHeaderMinWidth={maxCategoryHeaderWidth}
                   domains={cockpit?.domains}
+                  useGridLayout={horizontalCategoriesInline}
                 />
               </div>
             );
