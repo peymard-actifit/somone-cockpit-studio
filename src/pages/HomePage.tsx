@@ -848,6 +848,12 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
         {/* Section Header avec Breadcrumb */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -949,12 +955,6 @@ export default function HomePage() {
         )}
 
         {/* Grid avec Drag & Drop (Répertoires + Maquettes) */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
           <SortableContext
             items={[
               ...userFolders.map(f => `folder-${f.id}`),
