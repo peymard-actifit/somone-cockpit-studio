@@ -665,10 +665,8 @@ export default function HomePage() {
 
   const handleDuplicate = async (id: string) => {
     if (!newName.trim()) return;
-    const cockpit = await duplicateCockpit(id, newName.trim());
-    if (cockpit) {
-      navigate(`/studio/${cockpit.id}`);
-    }
+    await duplicateCockpit(id, newName.trim());
+    // Ne pas naviguer automatiquement - rester sur la page d'accueil
     setShowDuplicateModal(null);
     setNewName('');
   };
