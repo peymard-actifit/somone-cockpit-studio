@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.2';
+const APP_VERSION = '14.17.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1882,7 +1882,15 @@ INSTRUCTIONS:
       delete newCockpit.data.publishedAt;
 
       db.cockpits.push(newCockpit);
-      await saveDb(db);
+      
+      // Vérifier que la sauvegarde a réussi
+      const saveSuccess = await saveDb(db);
+      if (!saveSuccess) {
+        console.error('[Duplicate] Erreur lors de la sauvegarde du cockpit dupliqué');
+        return res.status(500).json({ error: 'Erreur lors de la sauvegarde' });
+      }
+      
+      console.log(`[Duplicate] Cockpit "${newCockpit.name}" créé avec ID: ${newId}`);
 
       return res.json({
         id: newId,
@@ -1892,6 +1900,9 @@ INSTRUCTIONS:
         updatedAt: now,
         folderId: originalFolderId || null, // Retourner le folderId
         domains: newCockpit.data.domains || [],
+        zones: newCockpit.data.zones || [],
+        logo: newCockpit.data.logo,
+        templateIcons: newCockpit.data.templateIcons || {},
       });
     }
 
