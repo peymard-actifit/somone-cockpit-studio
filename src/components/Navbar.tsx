@@ -26,7 +26,7 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
   // Passer tous les domaines pour le calcul récursif (éléments avec status herite_domaine)
   const worstStatus = domainData ? getDomainWorstStatus(domainData, currentCockpit?.domains) : 'ok';
   const statusColor = STATUS_COLORS[worstStatus].hex;
-  const hasAlert = worstStatus !== 'okay';
+  const hasAlert = worstStatus !== 'ok';
 
   // Style de base pour le drag
   const baseStyle: React.CSSProperties = {
