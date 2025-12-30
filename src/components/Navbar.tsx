@@ -148,8 +148,8 @@ export default function Navbar() {
   useEffect(() => {
     const handlePreferenceChange = () => {
       const saved = localStorage.getItem(DOMAIN_TAB_COLOR_MODE_KEY);
-      if (saved === 'full' || saved === 'border' || saved === 'icon' || saved === 'corner') {
-        setDomainTabColorMode(saved as 'dot' | 'full' | 'border' | 'icon' | 'corner');
+      if (saved === 'square' || saved === 'full' || saved === 'border' || saved === 'icon' || saved === 'corner') {
+        setDomainTabColorMode(saved as 'dot' | 'square' | 'full' | 'border' | 'icon' | 'corner');
       } else {
         setDomainTabColorMode('dot');
       }
