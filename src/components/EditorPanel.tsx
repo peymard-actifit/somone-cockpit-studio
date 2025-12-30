@@ -309,9 +309,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const [newExcludedDate, setNewExcludedDate] = useState('');
 
   // Préférence pour le mode de coloration des onglets de domaine
-  const [domainTabColorMode, setDomainTabColorMode] = useState<'dot' | 'full' | 'border' | 'icon' | 'corner'>(() => {
+  const [domainTabColorMode, setDomainTabColorMode] = useState<'dot' | 'square' | 'full' | 'border' | 'icon' | 'corner'>(() => {
     const saved = localStorage.getItem('domainTabColorMode');
-    if (saved === 'full' || saved === 'border' || saved === 'icon' || saved === 'corner') return saved as 'dot' | 'full' | 'border' | 'icon' | 'corner';
+    if (saved === 'square' || saved === 'full' || saved === 'border' || saved === 'icon' || saved === 'corner') return saved as 'dot' | 'square' | 'full' | 'border' | 'icon' | 'corner';
     return 'dot';
   });
 
@@ -3902,7 +3902,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         }}
                         className="w-4 h-4 text-[#1E3A5F] border-[#CBD5E1] focus:ring-[#1E3A5F]"
                       />
-                      <span className="text-sm text-[#64748B]">Pastille de couleur</span>
+                      <span className="text-sm text-[#64748B]">Pastille ronde</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="domainTabColorMode"
+                        checked={domainTabColorMode === 'square'}
+                        onChange={() => {
+                          setDomainTabColorMode('square');
+                          localStorage.setItem('domainTabColorMode', 'square');
+                          window.dispatchEvent(new Event('domainTabColorModeChanged'));
+                        }}
+                        className="w-4 h-4 text-[#1E3A5F] border-[#CBD5E1] focus:ring-[#1E3A5F]"
+                      />
+                      <span className="text-sm text-[#64748B]">Pastille carrée</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
