@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.17';
+const APP_VERSION = '14.17.18';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1111,151 +1111,139 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const { message, history } = req.body;
 
-      // Construire le contexte COMPLET du cockpit (en lecture seule pour les cockpits publics)
+      // Construire un contexte OPTIMISÉ du cockpit (version résumée pour ne pas dépasser la limite de tokens)
       const cockpitData = cockpit.data || {};
-      const cockpitContext = {
-        name: cockpit.name,
-        logo: cockpitData.logo || null,
-        scrollingBanner: cockpitData.scrollingBanner || null,
-        domains: (cockpitData.domains || []).map((d: any) => ({
-          id: d.id,
-          name: d.name,
-          templateType: d.templateType,
-          templateName: d.templateName || null,
-          order: d.order || 0,
-          categories: (d.categories || []).map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            orientation: c.orientation,
-            icon: c.icon || null,
-            order: c.order || 0,
-            elements: (c.elements || []).map((e: any) => ({
-              id: e.id,
-              name: e.name,
-              status: e.status,
-              value: e.value || null,
-              unit: e.unit || null,
-              icon: e.icon || null,
-              icon2: e.icon2 || null,
-              icon3: e.icon3 || null,
-              zone: e.zone || null,
-              order: e.order || 0,
-              positionX: e.positionX || null,
-              positionY: e.positionY || null,
-              width: e.width || null,
-              height: e.height || null,
-              subCategories: (e.subCategories || []).map((sc: any) => ({
-                id: sc.id,
-                name: sc.name,
-                orientation: sc.orientation,
-                icon: sc.icon || null,
-                order: sc.order || 0,
-                subElements: (sc.subElements || []).map((se: any) => ({
-                  id: se.id,
-                  name: se.name,
-                  status: se.status,
-                  value: se.value || null,
-                  unit: se.unit || null,
-                  order: se.order || 0,
-                  alert: se.alert ? {
-                    id: se.alert.id,
-                    date: se.alert.date,
-                    description: se.alert.description,
-                    duration: se.alert.duration || null,
-                    ticketNumber: se.alert.ticketNumber || null,
-                    actions: se.alert.actions || null
-                  } : null
-                }))
-              }))
-            }))
-          })),
-          mapElements: (d.mapElements || []).map((me: any) => ({
-            id: me.id,
-            name: me.name,
-            status: me.status,
-            icon: me.icon || null,
-            gps: me.gps ? {
-              lat: me.gps.lat,
-              lng: me.gps.lng
-            } : null
-          })),
-          mapBounds: d.mapBounds || null,
-          backgroundImage: d.backgroundImage ? (typeof d.backgroundImage === 'string' && d.backgroundImage.length > 100 ? `présente (${d.backgroundImage.length} caractères)` : 'présente') : null,
-          backgroundMode: d.backgroundMode || null,
-          enableClustering: d.enableClustering !== false
-        })),
-        zones: (cockpitData.zones || []).map((z: any) => ({
-          id: z.id,
-          name: z.name
-        }))
+      
+      // Fonction pour créer un résumé textuel compact
+      const createCompactSummary = () => {
+        const domains = cockpitData.domains || [];
+        const zones = cockpitData.zones || [];
+        
+        // Compteurs globaux
+        let totalElements = 0;
+        let totalSubElements = 0;
+        const statusCounts: Record<string, number> = { ok: 0, mineur: 0, critique: 0, fatal: 0, deconnecte: 0, information: 0 };
+        const alerts: Array<{element: string, domain: string, description: string}> = [];
+        
+        // Résumé par domaine (format texte compact)
+        const domainSummaries = domains.map((d: any) => {
+          const categories = d.categories || [];
+          let domainElements: string[] = [];
+          let domainStatusCounts: Record<string, number> = { ok: 0, mineur: 0, critique: 0, fatal: 0, deconnecte: 0, information: 0 };
+          
+          categories.forEach((c: any) => {
+            (c.elements || []).forEach((e: any) => {
+              totalElements++;
+              const status = e.status || 'ok';
+              if (statusCounts[status] !== undefined) statusCounts[status]++;
+              if (domainStatusCounts[status] !== undefined) domainStatusCounts[status]++;
+              
+              // Collecter les éléments avec leur statut et valeur
+              let elementInfo = `${e.name} (${status})`;
+              if (e.value) elementInfo += ` = ${e.value}${e.unit || ''}`;
+              domainElements.push(elementInfo);
+              
+              // Sous-éléments
+              (e.subCategories || []).forEach((sc: any) => {
+                (sc.subElements || []).forEach((se: any) => {
+                  totalSubElements++;
+                  const seStatus = se.status || 'ok';
+                  if (statusCounts[seStatus] !== undefined) statusCounts[seStatus]++;
+                  
+                  // Alertes
+                  if (se.alert && se.alert.description) {
+                    alerts.push({
+                      element: `${e.name} > ${sc.name} > ${se.name}`,
+                      domain: d.name,
+                      description: se.alert.description.substring(0, 100)
+                    });
+                  }
+                });
+              });
+            });
+          });
+          
+          // Points de carte
+          const mapElements = d.mapElements || [];
+          mapElements.forEach((me: any) => {
+            const status = me.status || 'ok';
+            if (statusCounts[status] !== undefined) statusCounts[status]++;
+            domainElements.push(`${me.name} (${status}) [carte]`);
+          });
+          
+          // Résumé du domaine
+          const problemCount = domainStatusCounts.mineur + domainStatusCounts.critique + domainStatusCounts.fatal + domainStatusCounts.deconnecte;
+          return {
+            name: d.name,
+            type: d.templateType || 'standard',
+            categoriesCount: categories.length,
+            elementsCount: domainElements.length,
+            problems: problemCount,
+            elements: domainElements.slice(0, 50), // Limiter à 50 éléments par domaine
+            hasBackgroundImage: !!d.backgroundImage
+          };
+        });
+        
+        return {
+          cockpitName: cockpit.name,
+          totalDomains: domains.length,
+          totalCategories: domains.reduce((acc: number, d: any) => acc + (d.categories || []).length, 0),
+          totalElements,
+          totalSubElements,
+          zones: zones.map((z: any) => z.name),
+          statusCounts,
+          alerts: alerts.slice(0, 20), // Limiter à 20 alertes
+          domains: domainSummaries
+        };
       };
+      
+      const cockpitSummary = createCompactSummary();
+      
+      // Limiter l'historique à 6 derniers messages pour économiser des tokens
+      const limitedHistory = (history || []).slice(-6);
 
       const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, en mode consultation d'un cockpit publié.
 
 Ce cockpit est en MODE LECTURE SEULE - tu ne peux QUE répondre aux questions, pas modifier le cockpit.
 
-STRUCTURE COMPLÃˆTE DU COCKPIT:
-- Cockpit: "${cockpitContext.name}"
-- Le cockpit peut avoir un logo et une bannière défilante
-- Le cockpit contient des Domaines (onglets principaux)
-  - Chaque domaine a un type de template (standard, map, background)
-  - Les domaines peuvent avoir une image de fond
-  - Les domaines de type "map" peuvent avoir des points GPS et des limites de carte (mapBounds)
-- Domaines contiennent des Catégories (groupes d'éléments)
-  - Les catégories ont une orientation (horizontal ou vertical)
-  - Les catégories peuvent avoir une icône
-- Catégories contiennent des Éléments (tuiles avec statut coloré)
-  - Les éléments ont un statut (ok, mineur, critique, fatal, deconnecte)
-  - Les éléments peuvent avoir une valeur et une unité
-  - Les éléments peuvent avoir jusqu'à 3 icônes (icon, icon2, icon3)
-  - Les éléments peuvent être associés à une zone
-  - Les éléments en vue "background" ont une position (positionX, positionY) et une taille (width, height)
-- Éléments contiennent des Sous-catégories
-  - Les sous-catégories ont une orientation
-  - Les sous-catégories peuvent avoir une icône
-- Sous-catégories contiennent des Sous-éléments
-  - Les sous-éléments ont un statut
-  - Les sous-éléments peuvent avoir une valeur et une unité
-  - Les sous-éléments peuvent avoir une alerte avec date, description, durée, numéro de ticket et actions
-- Le cockpit contient des Zones (groupements logiques d'éléments)
-- Les domaines de type "map" contiennent des MapElements (points sur la carte)
-  - Chaque MapElement a un nom, un statut, une icône et des coordonnées GPS (lat, lng)
+COCKPIT: "${cockpitSummary.cockpitName}"
 
-STATUTS DISPONIBLES: 
-- ok (vert) : tout fonctionne normalement
-- mineur (orange) : problème mineur
-- critique (rouge) : problème critique nécessitant une attention
-- fatal (violet) : problème grave
-- deconnecte (gris) : élément déconnecté ou indisponible
+STATISTIQUES:
+- ${cockpitSummary.totalDomains} domaines, ${cockpitSummary.totalCategories} catégories
+- ${cockpitSummary.totalElements} éléments, ${cockpitSummary.totalSubElements} sous-éléments
+- Zones: ${cockpitSummary.zones.join(', ') || 'aucune'}
 
-CONTEXTE COMPLET DU COCKPIT:
-${JSON.stringify(cockpitContext, null, 2)}
+STATUTS (comptage):
+- OK: ${cockpitSummary.statusCounts.ok}
+- Mineur: ${cockpitSummary.statusCounts.mineur}
+- Critique: ${cockpitSummary.statusCounts.critique}
+- Fatal: ${cockpitSummary.statusCounts.fatal}
+- Déconnecté: ${cockpitSummary.statusCounts.deconnecte}
+- Information: ${cockpitSummary.statusCounts.information || 0}
+
+DOMAINES ET ÉLÉMENTS:
+${cockpitSummary.domains.map((d: any) => `
+## ${d.name} (${d.type})
+- ${d.categoriesCount} catégories, ${d.elementsCount} éléments${d.problems > 0 ? `, ${d.problems} problèmes` : ''}${d.hasBackgroundImage ? ', avec image de fond' : ''}
+- Éléments: ${d.elements.join(', ')}
+`).join('\n')}
+
+${cockpitSummary.alerts.length > 0 ? `
+ALERTES ACTIVES:
+${cockpitSummary.alerts.map((a: any) => `- ${a.element} (${a.domain}): ${a.description}`).join('\n')}
+` : ''}
+
+STATUTS DISPONIBLES: ok (vert), mineur (orange), critique (rouge), fatal (violet), deconnecte (gris), information (bleu)
 
 INSTRUCTIONS:
 1. Réponds en français de manière concise et professionnelle
-2. Tu es en MODE CONSULTATION - tu ne peux QUE répondre aux questions, analyser et réfléchir
-3. Analyse TOUTES les données du cockpit : domaines, catégories, éléments, sous-éléments, zones, mapElements, alertes
-4. IMPORTANT pour les vues "map" et "background" :
-   - Si backgroundImage est marqué "présente", cela signifie qu'une image de fond est configurée pour ce domaine
-   - L'image de fond peut être affichée MÃŠME S'IL N'Y A PAS d'éléments de carte (mapElements)
-   - Les mapElements sont des POINTS SUR LA CARTE, pas l'image de fond elle-même
-   - L'absence de mapElements ne signifie PAS que l'image de fond est absente ou ne s'affiche pas
-   - Si backgroundImage est "présente", l'image DEVRAIT s'afficher dans la vue, même sans points GPS
-5. Tu peux :
-   - Compter les éléments par statut, par domaine, par catégorie
-   - Identifier les problèmes (éléments avec statut critique/fatal/mineur)
-   - Expliquer la structure complète du cockpit
-   - Analyser les alertes et leurs détails
-   - Décrire les zones et leur utilisation
-   - Analyser les points GPS sur les cartes
-   - Faire des recherches croisées entre zones, domaines et éléments
-   - Identifier les tendances et patterns
-   - Distinguer entre l'image de fond d'un domaine (qui peut être affichée seule) et les éléments de carte (points GPS)
-6. Sois précis et utilise les données réelles du cockpit dans tes réponses`;
+2. Tu es en MODE CONSULTATION - tu ne peux QUE répondre aux questions
+3. Utilise les données ci-dessus pour répondre aux questions sur les éléments, statuts, alertes
+4. Sois précis et utilise les noms réels des éléments dans tes réponses`;
 
       const messages = [
         { role: 'system', content: systemPrompt },
-        ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
+        ...limitedHistory.map((h: any) => ({ role: h.role, content: h.content })),
         { role: 'user', content: message }
       ];
 
