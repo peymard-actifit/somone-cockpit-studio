@@ -73,12 +73,9 @@ export default function PublicUserCockpitsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin mb-4">
-            <MuiIcon name="Refresh" size={48} className="text-white" />
-          </div>
-          <p className="text-slate-400">Chargement...</p>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="animate-spin">
+          <MuiIcon name="Refresh" size={32} className="text-slate-400" />
         </div>
       </div>
     );
@@ -86,135 +83,141 @@ export default function PublicUserCockpitsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <MuiIcon name="Error" size={64} className="text-red-400 mb-4" />
-          <p className="text-slate-400">{error}</p>
+          <MuiIcon name="Error" size={48} className="text-red-400 mb-2" />
+          <p className="text-slate-400 text-sm">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="bg-slate-800/50 border-b border-slate-700/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-900 text-white">
+      {/* Header compact */}
+      <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <MuiIcon name="Dashboard" size={24} className="text-white" />
+            <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
+              <MuiIcon name="Dashboard" size={18} className="text-white" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">SOMONE Cockpit Studio</h1>
-              <p className="text-xs text-slate-400">Cockpits publiés</p>
-            </div>
+            <span className="font-semibold text-sm">SOMONE Cockpit Studio</span>
           </div>
-          <span className="text-xs text-slate-500">{VERSION_DISPLAY}</span>
+          <span className="text-[10px] text-slate-500">{VERSION_DISPLAY}</span>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        {/* User info */}
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
-                <MuiIcon name="Person" size={32} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white">{data?.userName || 'Utilisateur'}</h2>
-                <p className="text-slate-400 text-sm">
-                  {data?.cockpits.length || 0} cockpit{(data?.cockpits.length || 0) > 1 ? 's' : ''} publié{(data?.cockpits.length || 0) > 1 ? 's' : ''}
-                </p>
-              </div>
+      <main className="max-w-6xl mx-auto px-4 py-4">
+        {/* User info - compact */}
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+              <MuiIcon name="Person" size={22} className="text-white" />
             </div>
-            
-            {/* Bouton copier l'URL de cette page */}
-            <button
-              onClick={() => copyToClipboard(getPageUrl())}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                copiedUrl === getPageUrl()
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600/50'
-              }`}
-            >
-              <MuiIcon name={copiedUrl === getPageUrl() ? 'Check' : 'ContentCopy'} size={18} />
-              {copiedUrl === getPageUrl() ? 'URL copiée !' : 'Copier l\'URL de cette page'}
-            </button>
+            <div>
+              <h1 className="text-lg font-bold">{data?.userName || 'Utilisateur'}</h1>
+              <p className="text-xs text-slate-400">
+                {data?.cockpits.length || 0} cockpit{(data?.cockpits.length || 0) > 1 ? 's' : ''} publié{(data?.cockpits.length || 0) > 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
+          
+          <button
+            onClick={() => copyToClipboard(getPageUrl())}
+            className={`p-2 rounded-md transition-all ${
+              copiedUrl === getPageUrl()
+                ? 'bg-green-600 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+            title={copiedUrl === getPageUrl() ? 'URL copiée !' : 'Copier l\'URL de cette page'}
+          >
+            <MuiIcon name={copiedUrl === getPageUrl() ? 'Check' : 'Share'} size={18} />
+          </button>
         </div>
 
-        {/* Liste des cockpits */}
+        {/* Liste des cockpits - format tableau dense */}
         {data?.cockpits.length === 0 ? (
-          <div className="text-center py-16">
-            <MuiIcon name="Inbox" size={64} className="text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400">Aucun cockpit publié pour le moment.</p>
+          <div className="text-center py-8">
+            <MuiIcon name="Inbox" size={40} className="text-slate-600 mx-auto mb-2" />
+            <p className="text-slate-500 text-sm">Aucun cockpit publié</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {data?.cockpits.map((cockpit) => {
-              const fullUrl = getFullUrl(cockpit.publicId);
-              return (
-                <div
-                  key={cockpit.id}
-                  className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600/50 transition-all group"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
+          <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+            {/* En-tête du tableau */}
+            <div className="grid grid-cols-[1fr_80px_100px_auto] gap-2 px-3 py-2 bg-slate-700/50 text-xs font-medium text-slate-400 uppercase tracking-wide">
+              <div>Nom</div>
+              <div className="text-center">Domaines</div>
+              <div className="text-center">Publié le</div>
+              <div className="text-center w-20">Actions</div>
+            </div>
+            
+            {/* Lignes */}
+            <div className="divide-y divide-slate-700/50">
+              {data?.cockpits.map((cockpit) => {
+                const fullUrl = getFullUrl(cockpit.publicId);
+                const isCopied = copiedUrl === fullUrl;
+                
+                return (
+                  <div
+                    key={cockpit.id}
+                    className="grid grid-cols-[1fr_80px_100px_auto] gap-2 px-3 py-2 items-center hover:bg-slate-700/30 transition-colors"
+                  >
+                    {/* Nom + URL */}
+                    <div className="min-w-0">
                       <Link
                         to={`/public/${cockpit.publicId}`}
-                        className="text-lg font-semibold text-white hover:text-blue-400 transition-colors block truncate"
+                        className="font-medium text-white hover:text-blue-400 transition-colors truncate block"
                       >
                         {cockpit.name}
                       </Link>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <MuiIcon name="Layers" size={14} />
-                          {cockpit.domainsCount} domaine{cockpit.domainsCount > 1 ? 's' : ''}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MuiIcon name="Schedule" size={14} />
-                          Publié le {new Date(cockpit.publishedAt).toLocaleDateString('fr-FR')}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-xs text-slate-500 font-mono truncate">
+                      <div className="text-[10px] text-slate-500 font-mono truncate">
                         {fullUrl}
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 ml-4">
+                    {/* Domaines */}
+                    <div className="text-center text-sm text-slate-400">
+                      {cockpit.domainsCount}
+                    </div>
+                    
+                    {/* Date */}
+                    <div className="text-center text-xs text-slate-400">
+                      {new Date(cockpit.publishedAt).toLocaleDateString('fr-FR')}
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex items-center justify-center gap-1 w-20">
                       <button
                         onClick={() => copyToClipboard(fullUrl)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                          copiedUrl === fullUrl
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        className={`p-1.5 rounded transition-all ${
+                          isCopied
+                            ? 'bg-green-600 text-white'
+                            : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                         }`}
-                        title="Copier l'URL"
+                        title={isCopied ? 'Copié !' : 'Copier l\'URL'}
                       >
-                        <MuiIcon name={copiedUrl === fullUrl ? 'Check' : 'ContentCopy'} size={18} />
-                        {copiedUrl === fullUrl ? 'Copié !' : 'Copier'}
+                        <MuiIcon name={isCopied ? 'Check' : 'ContentCopy'} size={14} />
                       </button>
                       <Link
                         to={`/public/${cockpit.publicId}`}
-                        className="flex items-center gap-2 px-3 py-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 rounded-lg transition-all"
+                        className="p-1.5 bg-blue-600 text-white hover:bg-blue-500 rounded transition-all"
+                        title="Ouvrir"
                       >
-                        <MuiIcon name="OpenInNew" size={18} />
-                        Ouvrir
+                        <MuiIcon name="OpenInNew" size={14} />
                       </Link>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-700/50 mt-auto">
-        <div className="max-w-4xl mx-auto px-6 py-4 text-center text-sm text-slate-500">
+      {/* Footer compact */}
+      <footer className="border-t border-slate-800 mt-8">
+        <div className="max-w-6xl mx-auto px-4 py-2 text-center text-[10px] text-slate-600">
           SOMONE Cockpit Studio © {new Date().getFullYear()}
         </div>
       </footer>
