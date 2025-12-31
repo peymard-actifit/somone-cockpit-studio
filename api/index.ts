@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.17.20';
+const APP_VERSION = '14.18.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1062,6 +1062,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       return res.json(response);
+    }
+
+    // =====================
+    // PUBLIC USER COCKPITS LIST
+    // =====================
+    // Route publique pour afficher la liste des cockpits publiés d'un utilisateur
+    
+    const publicUserCockpitsMatch = path.match(/^\/public\/user\/([^/]+)\/cockpits$/);
+    if (publicUserCockpitsMatch && method === 'GET') {
+      const userId = publicUserCockpitsMatch[1];
+      console.log('[Public User Cockpits] Fetching cockpits for user:', userId);
+      
+      const db = await getDb();
+      
+      // Trouver l'utilisateur
+      const user = db.users.find(u => u.id === userId);
+      if (!user) {
+        return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+      
+      // Trouver les cockpits publiés de cet utilisateur
+      const publishedCockpits = db.cockpits
+        .filter(c => c.userId === userId && c.data?.isPublished === true && c.data?.publicId)
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          publicId: c.data?.publicId,
+          publishedAt: c.data?.publishedAt || c.updatedAt,
+          domainsCount: (c.data?.domains || []).length,
+        }))
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+      
+      console.log(`[Public User Cockpits] Found ${publishedCockpits.length} published cockpits for user ${user.name || user.email}`);
+      
+      return res.json({
+        userName: user.name || user.email || 'Utilisateur',
+        cockpits: publishedCockpits,
+      });
     }
 
     // =====================

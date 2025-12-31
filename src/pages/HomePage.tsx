@@ -896,6 +896,20 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Bouton Mes cockpits publiés (uniquement à la racine) */}
+            {!currentFolderId && user?.id && (
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/public/user/${user.id}`;
+                  window.open(url, '_blank');
+                }}
+                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25"
+                title="Voir et partager la liste de vos cockpits publiés"
+              >
+                <MuiIcon name="Share" size={20} />
+                Mes publications
+              </button>
+            )}
             {/* Bouton Nouveau répertoire (uniquement à la racine) */}
             {!currentFolderId && (
               <button

@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import StudioPage from './pages/StudioPage';
 import PublicCockpitPage from './pages/PublicCockpitPage';
+import PublicUserCockpitsPage from './pages/PublicUserCockpitsPage';
 import { ConfirmProvider } from './contexts/ConfirmContext';
 import React, { useEffect, useState } from 'react';
 
@@ -128,8 +129,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* Route publique - accessible sans authentification */}
+          {/* Routes publiques - accessibles sans authentification */}
           <Route path="/public/:publicId" element={<PublicCockpitPage />} />
+          <Route path="/public/user/:userId" element={<PublicUserCockpitsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <SpeedInsights />
