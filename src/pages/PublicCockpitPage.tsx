@@ -158,9 +158,10 @@ export default function PublicCockpitPage() {
     return (
       <header className="bg-[#1E3A5F] shadow-lg z-50">
         <div className="px-6 py-2">
-          <div className="flex items-center justify-between">
-            {/* Logo et nom stylisé */}
-            <div className="flex items-center gap-6">
+          {/* Layout 3 colonnes : Gauche (titre) | Centre (onglets) | Droite (IA) */}
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+            {/* GAUCHE : Logo et nom stylisé */}
+            <div className="flex items-center gap-4 flex-shrink-0">
               {cockpit.logo ? (
                 <img src={cockpit.logo} alt="Logo" className="h-10 w-auto" />
               ) : (
@@ -169,45 +170,45 @@ export default function PublicCockpitPage() {
                   {lastPart && <span className="text-lg font-bold text-white tracking-wider">{lastPart}</span>}
                 </div>
               )}
-              
-              {/* Onglets domaines - style original */}
-              <div className="flex items-center gap-1">
-                {cockpit.domains.map((domain) => {
-                  const worstStatus = getDomainWorstStatus(domain as any, cockpit.domains as any);
-                  const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
-                  const hasAlert = worstStatus !== 'ok';
-                  const isActive = currentDomainId === domain.id;
-                  
-                  return (
-                    <button
-                      key={domain.id}
-                      onClick={() => {
-                        setCurrentDomainId(domain.id);
-                        setCurrentElementId(null);
-                      }}
-                      className={`relative px-5 py-2 text-sm font-medium rounded-lg transition-all ${
-                        isActive
-                          ? 'bg-[#4A6D8C] text-white'
-                          : 'bg-[#2D4A63] text-slate-300 hover:bg-[#3A5A75] hover:text-white'
-                      }`}
-                    >
-                      {domain.name}
-                      {/* Pastille de statut en haut à droite - position ajustée pour rester dans l'onglet */}
-                      {hasAlert && (
-                        <div
-                          className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border border-white/50"
-                          style={{ backgroundColor: statusColor }}
-                          title={`Statut: ${worstStatus}`}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
             
-            {/* Zone droite - Assistant IA et infos */}
-            <div className="flex items-center gap-4">
+            {/* CENTRE : Onglets domaines - centrés */}
+            <div className="flex items-center justify-center gap-1">
+              {cockpit.domains.map((domain) => {
+                const worstStatus = getDomainWorstStatus(domain as any, cockpit.domains as any);
+                const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
+                const hasAlert = worstStatus !== 'ok';
+                const isActive = currentDomainId === domain.id;
+                
+                return (
+                  <button
+                    key={domain.id}
+                    onClick={() => {
+                      setCurrentDomainId(domain.id);
+                      setCurrentElementId(null);
+                    }}
+                    className={`relative px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+                      isActive
+                        ? 'bg-[#4A6D8C] text-white'
+                        : 'bg-[#2D4A63] text-slate-300 hover:bg-[#3A5A75] hover:text-white'
+                    }`}
+                  >
+                    {domain.name}
+                    {/* Pastille de statut en haut à droite */}
+                    {hasAlert && (
+                      <div
+                        className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border border-white/50"
+                        style={{ backgroundColor: statusColor }}
+                        title={`Statut: ${worstStatus}`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* DROITE : Assistant IA et infos */}
+            <div className="flex items-center gap-4 flex-shrink-0">
               {/* Assistant IA stylisé */}
               {publicId && cockpit && (
                 <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
