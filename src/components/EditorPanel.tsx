@@ -13,6 +13,70 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import LinkElementModal from './LinkElementModal';
 
+// Fonction pour compresser une image (évite les erreurs 413 Payload Too Large de Vercel)
+async function compressImage(file: File, maxSizeMB: number = 3, maxDimension: number = 4096): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Calculer les nouvelles dimensions
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        // Créer un canvas pour redimensionner
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Impossible de créer le contexte canvas'));
+          return;
+        }
+
+        // Dessiner l'image redimensionnée
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compresser progressivement jusqu'à atteindre la taille cible
+        let quality = 0.9;
+        let result = canvas.toDataURL('image/jpeg', quality);
+        const targetSize = maxSizeMB * 1024 * 1024;
+
+        while (result.length > targetSize && quality > 0.1) {
+          quality -= 0.1;
+          result = canvas.toDataURL('image/jpeg', quality);
+          console.log(`[Compression] Qualité ${(quality * 100).toFixed(0)}% → ${(result.length / 1024 / 1024).toFixed(2)} MB`);
+        }
+
+        // Si toujours trop grand, réduire les dimensions
+        if (result.length > targetSize) {
+          const scale = Math.sqrt(targetSize / result.length) * 0.9;
+          canvas.width = Math.round(width * scale);
+          canvas.height = Math.round(height * scale);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          result = canvas.toDataURL('image/jpeg', 0.8);
+          console.log(`[Compression] Redimensionné à ${canvas.width}x${canvas.height} → ${(result.length / 1024 / 1024).toFixed(2)} MB`);
+        }
+
+        console.log(`[Compression] ✅ Image compressée: ${(result.length / 1024 / 1024).toFixed(2)} MB (original: ${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+        resolve(result);
+      };
+      img.onerror = () => reject(new Error('Erreur de chargement de l\'image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Erreur de lecture du fichier'));
+    reader.readAsDataURL(file);
+  });
+}
+
 // Composant input avec etat local pour eviter la perte de focus
 function EditableInput({ value, onChange, className, placeholder, allowEmpty = false }: {
   value: string;
@@ -1680,38 +1744,33 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const maxSizeMB = 25; // Augmenté à 25MB (Redis supporte 50MB)
-                      const maxSizeBytes = maxSizeMB * 1024 * 1024;
-                      if (file.size > maxSizeBytes) {
-                        alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
-                        e.target.value = '';
-                        return;
-                      }
-
-                      const reader = new FileReader();
-                      reader.onload = async (event) => {
-                        const base64 = event.target?.result as string;
+                      try {
+                        console.log(`[EditorPanel] 📸 Upload image élément originale: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                        
+                        // Compresser l'image pour éviter les erreurs 413 (limite Vercel ~4.5MB)
+                        const base64 = await compressImage(file, 3, 4096);
                         const base64SizeMB = base64.length / 1024 / 1024;
-                        if (base64SizeMB > 35) {
-                          alert(`Erreur: L'image encodée est trop volumineuse (${base64SizeMB.toFixed(2)} MB). Veuillez utiliser une image plus petite (max 35 MB encodé).`);
-                          return;
-                        }
-                        console.log(`[EditorPanel] 📸 Upload image élément: ${base64SizeMB.toFixed(2)} MB`);
+                        
+                        console.log(`[EditorPanel] 📸 Image élément compressée: ${base64SizeMB.toFixed(2)} MB`);
                         updateElement(element.id, { backgroundImage: base64 });
+                        
                         // Forcer la sauvegarde immédiate
                         const saved = await forceSave();
                         if (!saved) {
                           alert('Attention: L\'image a été chargée mais la sauvegarde a échoué.');
                         }
-                      };
-                      reader.readAsDataURL(file);
+                      } catch (err: any) {
+                        console.error('[EditorPanel] ❌ Erreur compression:', err);
+                        alert(`Erreur lors du traitement de l'image: ${err.message}`);
+                      }
+                      e.target.value = ''; // Réinitialiser l'input
                     }
                   }}
                 />
                 <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
                   <MuiIcon name="Upload" size={24} className="mb-2" />
                   <span className="text-xs font-medium">Cliquez pour choisir un fichier</span>
-                  <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF jusqu'à 10MB</span>
+                  <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF (compression auto)</span>
                 </div>
               </label>
             </div>
@@ -2729,26 +2788,15 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const maxSizeMB = 25; // Augmenté à 25MB (Redis supporte 50MB)
-                        const maxSizeBytes = maxSizeMB * 1024 * 1024;
-                        if (file.size > maxSizeBytes) {
-                          alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
-                          e.target.value = '';
-                          return;
-                        }
-
-                        const reader = new FileReader();
-                        reader.onload = async (event) => {
-                          const base64 = event.target?.result as string;
-
-                          // Vérifier la taille en base64 (généralement 1.33x la taille originale)
+                        try {
+                          console.log(`[EditorPanel] 📸 Upload image originale: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                          
+                          // Compresser l'image pour éviter les erreurs 413 (limite Vercel ~4.5MB)
+                          // On cible 3MB max pour laisser de la marge pour le reste de la requête
+                          const base64 = await compressImage(file, 3, 4096);
                           const base64SizeMB = base64.length / 1024 / 1024;
-                          if (base64SizeMB > 35) {
-                            alert(`Erreur: L'image encodée est trop volumineuse (${base64SizeMB.toFixed(2)} MB). Veuillez utiliser une image plus petite (max 35 MB encodé).`);
-                            return;
-                          }
-
-                          console.log(`[EditorPanel] 📸 Upload image: ${base64SizeMB.toFixed(2)} MB`);
+                          
+                          console.log(`[EditorPanel] 📸 Image compressée: ${base64SizeMB.toFixed(2)} MB`);
                           setImageUrl(base64);
                           updateDomain(domain.id, { backgroundImage: base64 });
 
@@ -2758,18 +2806,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                             console.log('[EditorPanel] ✅ Image sauvegardée avec succès');
                           } else {
                             console.error('[EditorPanel] ❌ Échec de la sauvegarde de l\'image');
-                            alert('Attention: L\'image a été chargée mais la sauvegarde a échoué. Veuillez réessayer ou utiliser une image plus petite.');
+                            alert('Attention: L\'image a été chargée mais la sauvegarde a échoué. Veuillez réessayer.');
                           }
-                        };
-                        reader.readAsDataURL(file);
+                        } catch (err: any) {
+                          console.error('[EditorPanel] ❌ Erreur compression:', err);
+                          alert(`Erreur lors du traitement de l'image: ${err.message}`);
+                        }
+                        e.target.value = ''; // Réinitialiser l'input
                       }
                     }}
                   />
-                  <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
-                    <MuiIcon name="Upload" size={24} className="mb-2" />
-                    <span className="text-xs font-medium">Cliquez pour choisir un fichier</span>
-                    <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF jusqu'à 30MB</span>
-                  </div>
+                <div className="flex flex-col items-center justify-center text-[#64748B] hover:text-[#1E3A5F]">
+                  <MuiIcon name="Upload" size={24} className="mb-2" />
+                  <span className="text-xs font-medium">Cliquez pour choisir un fichier</span>
+                  <span className="text-[10px] text-[#94A3B8] mt-1">PNG, JPG, GIF (compression auto)</span>
+                </div>
                 </label>
               </div>
 
