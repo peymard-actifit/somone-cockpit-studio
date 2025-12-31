@@ -1680,7 +1680,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const maxSizeMB = 10; // Réduit à 10MB pour fiabilité
+                      const maxSizeMB = 25; // Augmenté à 25MB (Redis supporte 50MB)
                       const maxSizeBytes = maxSizeMB * 1024 * 1024;
                       if (file.size > maxSizeBytes) {
                         alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
@@ -1692,8 +1692,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       reader.onload = async (event) => {
                         const base64 = event.target?.result as string;
                         const base64SizeMB = base64.length / 1024 / 1024;
-                        if (base64SizeMB > 15) {
-                          alert(`Erreur: L'image encodée est trop volumineuse. Veuillez utiliser une image plus petite.`);
+                        if (base64SizeMB > 35) {
+                          alert(`Erreur: L'image encodée est trop volumineuse (${base64SizeMB.toFixed(2)} MB). Veuillez utiliser une image plus petite (max 35 MB encodé).`);
                           return;
                         }
                         console.log(`[EditorPanel] 📸 Upload image élément: ${base64SizeMB.toFixed(2)} MB`);
@@ -2729,10 +2729,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const maxSizeMB = 10; // Réduit à 10MB pour fiabilité Redis
+                        const maxSizeMB = 25; // Augmenté à 25MB (Redis supporte 50MB)
                         const maxSizeBytes = maxSizeMB * 1024 * 1024;
                         if (file.size > maxSizeBytes) {
-                          alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB pour garantir une sauvegarde fiable.`);
+                          alert(`Erreur: Le fichier est trop volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB). La taille maximale autorisée est de ${maxSizeMB} MB.`);
                           e.target.value = '';
                           return;
                         }
@@ -2743,8 +2743,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
                           // Vérifier la taille en base64 (généralement 1.33x la taille originale)
                           const base64SizeMB = base64.length / 1024 / 1024;
-                          if (base64SizeMB > 15) {
-                            alert(`Erreur: L'image encodée est trop volumineuse (${base64SizeMB.toFixed(2)} MB). Veuillez utiliser une image plus petite.`);
+                          if (base64SizeMB > 35) {
+                            alert(`Erreur: L'image encodée est trop volumineuse (${base64SizeMB.toFixed(2)} MB). Veuillez utiliser une image plus petite (max 35 MB encodé).`);
                             return;
                           }
 

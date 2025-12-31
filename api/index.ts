@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.18.2';
+const APP_VERSION = '14.19.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1217,7 +1217,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             categoriesCount: categories.length,
             elementsCount: domainElements.length,
             problems: problemCount,
-            elements: domainElements.slice(0, 50), // Limiter à 50 éléments par domaine
+            elements: domainElements.slice(0, 100), // Augmenté de 50 à 100 éléments par domaine
             hasBackgroundImage: !!d.backgroundImage
           };
         });
@@ -1230,15 +1230,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           totalSubElements,
           zones: zones.map((z: any) => z.name),
           statusCounts,
-          alerts: alerts.slice(0, 20), // Limiter à 20 alertes
+          alerts: alerts.slice(0, 50), // Augmenté de 20 à 50 alertes
           domains: domainSummaries
         };
       };
       
       const cockpitSummary = createCompactSummary();
       
-      // Limiter l'historique à 6 derniers messages pour économiser des tokens
-      const limitedHistory = (history || []).slice(-6);
+      // Limiter l'historique à 12 derniers messages pour une meilleure continuité de conversation
+      const limitedHistory = (history || []).slice(-12);
 
       const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, en mode consultation d'un cockpit publié.
 
@@ -1296,7 +1296,7 @@ INSTRUCTIONS:
             model: 'gpt-4o-mini',
             messages,
             temperature: 0.7,
-            max_tokens: 2000,
+            max_tokens: 4000, // Augmenté de 2000 à 4000 pour des réponses plus détaillées
           }),
         });
 
@@ -3721,7 +3721,7 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
             model,
             messages,
             temperature: 0.7,
-            max_tokens: 16000, // Maximum de tokens pour permettre de nombreuses actions et réponses détaillées
+            max_tokens: 32000, // Augmenté de 16000 à 32000 pour plus d'actions et réponses détaillées
             // Optimiser pour les images : réduire la qualité si nécessaire
             ...(hasImage && imageBase64 && {
               // Option pour réduire le temps de traitement si nécessaire
