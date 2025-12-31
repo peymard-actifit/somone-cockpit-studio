@@ -89,6 +89,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   // Récupérer le cockpit - DOIT être fait AVANT tout return conditionnel
   // pour les vues qui en ont besoin (alerts, stats)
   const cockpit = cockpitProp || useCockpitStore.getState().currentCockpit;
+  
+  // Mode cockpit original (fond transparent pour les catégories en mode publié)
+  const useOriginalView = cockpit?.useOriginalView || false;
 
   // ============================================================================
   // TOUS LES HOOKS ET USEMEMO DOIVENT ÊTRE DÉCLARÉS ICI, AVANT TOUT RETURN CONDITIONNEL
@@ -332,12 +335,12 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
 
         {/* Catégories VERTICALES */}
         {verticalCategories.length > 0 && (
-          <div className="mb-10 bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-            <div className="flex border-b border-[#E2E8F0]">
+          <div className={`mb-10 rounded-xl overflow-hidden ${readOnly && useOriginalView ? 'bg-transparent border-transparent shadow-none' : 'bg-white border border-[#E2E8F0] shadow-sm'}`}>
+            <div className={`flex ${readOnly && useOriginalView ? '' : 'border-b border-[#E2E8F0]'}`}>
               {verticalCategories.map((category) => (
                 <div
                   key={category.id}
-                  className="p-4 border-r border-[#E2E8F0] last:border-r-0 bg-[#F5F7FA] flex items-center justify-center"
+                  className={`p-4 flex items-center justify-center ${readOnly && useOriginalView ? '' : 'border-r border-[#E2E8F0] last:border-r-0 bg-[#F5F7FA]'}`}
                   style={{
                     minWidth: `${verticalCategoryWidth}px`,
                     maxWidth: `${verticalCategoryWidth}px`,
@@ -414,7 +417,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                 return (
                   <div
                     key={category.id}
-                    className={`p-4 border-r border-[#E2E8F0] last:border-r-0 transition-all ${draggingOverCategoryId === category.id ? 'bg-[#F5F7FA] border-[#1E3A5F] border-2' : ''
+                    className={`p-4 transition-all ${readOnly && useOriginalView ? '' : 'border-r border-[#E2E8F0] last:border-r-0'} ${draggingOverCategoryId === category.id ? 'bg-[#F5F7FA] border-[#1E3A5F] border-2' : ''
                       }`}
                     style={{
                       minWidth: `${verticalCategoryWidth}px`,
@@ -530,6 +533,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                   categoryHeaderMinWidth={maxCategoryHeaderWidth}
                   domains={cockpit?.domains}
                   useGridLayout={horizontalCategoriesInline}
+                  useOriginalView={readOnly && useOriginalView}
                 />
               </div>
             );

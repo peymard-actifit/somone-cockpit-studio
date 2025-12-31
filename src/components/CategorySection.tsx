@@ -15,11 +15,12 @@ interface CategorySectionProps {
   categoryHeaderMinWidth?: number; // Largeur minimale de l'en-tête pour l'alignement
   domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
   useGridLayout?: boolean; // Utiliser CSS Grid pour l'alignement (mode inline dans une grille parent)
+  useOriginalView?: boolean; // Mode cockpit original (fond transparent pour les catégories)
 }
 
 // Ce composant gère uniquement les catégories HORIZONTALES
 // Les catégories VERTICALES sont gérées directement dans DomainView
-export default function CategorySection({ category, onElementClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth, domains, useGridLayout = false }: CategorySectionProps) {
+export default function CategorySection({ category, onElementClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth, domains, useGridLayout = false, useOriginalView = false }: CategorySectionProps) {
   const { addElement, deleteCategory, moveElement, reorderElement, findElementsByName, linkElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingElement, setIsAddingElement] = useState(false);
@@ -271,9 +272,9 @@ export default function CategorySection({ category, onElementClick, readOnly = f
         )}
       </div>
 
-      {/* Conteneur blanc pour les éléments - Style PDF SOMONE */}
+      {/* Conteneur blanc pour les éléments - Style PDF SOMONE (transparent en mode original publié) */}
       <div
-        className={`bg-white rounded-xl border shadow-sm transition-all flex-1 ${isDraggingOver ? 'border-[#1E3A5F] border-2 bg-[#F5F7FA]' : 'border-[#E2E8F0]'
+        className={`${readOnly && useOriginalView ? 'bg-transparent border-transparent shadow-none' : 'bg-white border shadow-sm'} rounded-xl transition-all flex-1 ${isDraggingOver ? 'border-[#1E3A5F] border-2 bg-[#F5F7FA]' : readOnly && useOriginalView ? '' : 'border-[#E2E8F0]'
           } ${useInlineLayout ? `relative ${getPaddingClass(horizontalSpacing)}` : getPaddingClass(horizontalSpacing)} ${useGridLayout && useInlineLayout ? getMarginBottomClass(categorySpacing) : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
