@@ -313,7 +313,7 @@ function SortableCockpitCard({
                     onClick={() => {
                       window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
                     }}
-                    className="p-1 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                    className="p-1 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 rounded transition-colors"
                     title="Ouvrir la version publiée"
                   >
                     <MuiIcon name="OpenInBrowser" size={12} />
