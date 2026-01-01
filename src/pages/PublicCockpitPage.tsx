@@ -15,6 +15,7 @@ export default function PublicCockpitPage() {
   const [currentElementId, setCurrentElementId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
 
   useEffect(() => {
     const fetchPublicCockpit = async () => {
@@ -377,6 +378,49 @@ export default function PublicCockpitPage() {
           </div>
         )}
       </footer>
+
+      {/* Popup Message d'accueil */}
+      {showWelcomeMessage && (cockpit as any).welcomeMessage && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-in fade-in zoom-in duration-300">
+            {/* Header avec titre du cockpit */}
+            <div className="bg-gradient-to-r from-[#1E3A5F] to-[#2D4A6F] px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {cockpit.logo ? (
+                    <img src={cockpit.logo} alt="Logo" className="h-10 w-auto" />
+                  ) : (
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                      <MuiIcon name="Dashboard" size={24} className="text-white" />
+                    </div>
+                  )}
+                  <h2 className="text-xl font-bold text-white">{cockpit.name}</h2>
+                </div>
+              </div>
+            </div>
+            
+            {/* Contenu du message */}
+            <div className="px-6 py-6">
+              <div className="prose prose-slate max-w-none">
+                <p className="text-slate-700 text-base leading-relaxed whitespace-pre-wrap">
+                  {(cockpit as any).welcomeMessage}
+                </p>
+              </div>
+            </div>
+            
+            {/* Bouton Continuer */}
+            <div className="px-6 pb-6 flex justify-center">
+              <button
+                onClick={() => setShowWelcomeMessage(false)}
+                className="px-8 py-3 bg-gradient-to-r from-[#1E3A5F] to-[#2D4A6F] hover:from-[#2D4A6F] hover:to-[#3D5A7F] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <MuiIcon name="ArrowForward" size={20} />
+                Accéder au cockpit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.19.1';
+const APP_VERSION = '14.20.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -978,6 +978,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             isPublished: data.isPublished || false,
             publishedAt: data.publishedAt || null,
             useOriginalView: snapshot.useOriginalView || false,
+            welcomeMessage: snapshot.welcomeMessage || data.welcomeMessage || null,
             snapshotVersion: snapshot.snapshotVersion,
             snapshotCreatedAt: snapshot.snapshotCreatedAt,
             snapshotStorage: data.snapshotStorage || 'unknown',
@@ -1052,6 +1053,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         publicId: data.publicId || null,
         isPublished: data.isPublished || false,
         publishedAt: data.publishedAt || null,
+        welcomeMessage: data.welcomeMessage || null,
       };
 
       // Log final pour vérifier ce qui est envoyé
@@ -2062,6 +2064,7 @@ INSTRUCTIONS:
     const publishMatch = path.match(/^\/cockpits\/([^/]+)\/publish$/);
     if (publishMatch && method === 'POST') {
       const id = publishMatch[1];
+      const { welcomeMessage } = req.body || {};
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
 
@@ -2094,9 +2097,10 @@ INSTRUCTIONS:
 
       const publishedAt = new Date().toISOString();
 
-      // Marquer comme publie
+      // Marquer comme publie et sauvegarder le message d'accueil
       cockpit.data.isPublished = true;
       cockpit.data.publishedAt = publishedAt;
+      cockpit.data.welcomeMessage = welcomeMessage || null;
 
       // CREATION DU SNAPSHOT - Copie figee pour acces public
       // Le snapshot est stocke dans PostgreSQL (Neon) pour eviter les limites Redis
@@ -2107,6 +2111,7 @@ INSTRUCTIONS:
         logo: cockpit.data.logo || null,
         scrollingBanner: cockpit.data.scrollingBanner || null,
         useOriginalView: cockpit.data.useOriginalView || false,
+        welcomeMessage: welcomeMessage || null,
         domains: JSON.parse(JSON.stringify(
           (cockpit.data.domains || [])
             .filter((domain: any) => domain.publiable !== false)
@@ -2207,6 +2212,50 @@ INSTRUCTIONS:
 
       if (cockpit.data) {
         cockpit.data.isPublished = false;
+      }
+
+      await saveDb(db);
+
+      return res.json({ success: true });
+    }
+
+    // Update welcome message
+    const welcomeMessageMatch = path.match(/^\/cockpits\/([^/]+)\/welcome-message$/);
+    if (welcomeMessageMatch && method === 'PUT') {
+      const id = welcomeMessageMatch[1];
+      const { welcomeMessage } = req.body;
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.id === id);
+
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+
+      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+        return res.status(403).json({ error: 'Accès non autorisé' });
+      }
+
+      if (cockpit.data) {
+        cockpit.data.welcomeMessage = welcomeMessage || null;
+        
+        // Si publié, mettre à jour le snapshot aussi
+        if (cockpit.data.isPublished && cockpit.data.publicId) {
+          const snapshotVersion = (cockpit.data.snapshotVersion || 0) + 1;
+          
+          // Récupérer le snapshot existant
+          const existingSnapshot = await loadSnapshot(cockpit.data.publicId);
+          if (existingSnapshot) {
+            existingSnapshot.welcomeMessage = welcomeMessage || null;
+            await saveSnapshot(
+              cockpit.id,
+              cockpit.data.publicId,
+              cockpit.name,
+              existingSnapshot,
+              snapshotVersion
+            );
+            cockpit.data.snapshotVersion = snapshotVersion;
+          }
+        }
       }
 
       await saveDb(db);

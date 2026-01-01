@@ -181,7 +181,8 @@ function SortableCockpitCard({
   navigate,
   handleUnpublish,
   getPublicBaseUrl,
-  handlePublish,
+  openPublishModal,
+  openEditWelcomeModal,
   setNewName,
   setShowDuplicateModal,
   handleExportClick,
@@ -192,7 +193,8 @@ function SortableCockpitCard({
   navigate: (path: string) => void;
   handleUnpublish: (id: string) => Promise<void>;
   getPublicBaseUrl: () => string;
-  handlePublish: (id: string) => Promise<{ publicId: string } | null>;
+  openPublishModal: (id: string) => void;
+  openEditWelcomeModal: (id: string) => void;
   setNewName: (name: string) => void;
   setShowDuplicateModal: (id: string) => void;
   handleExportClick: (id: string) => void;
@@ -200,7 +202,6 @@ function SortableCockpitCard({
   formatDate: (dateString: string) => string;
 }) {
   // État local pour le chargement de cette carte uniquement
-  const [isPublishing, setIsPublishing] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
   
   const {
@@ -216,16 +217,6 @@ function SortableCockpitCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  };
-  
-  // Handlers locaux pour gérer l'état de chargement par carte
-  const onPublish = async () => {
-    setIsPublishing(true);
-    try {
-      await handlePublish(cockpit.id);
-    } finally {
-      setIsPublishing(false);
-    }
   };
   
   const onUnpublish = async () => {
@@ -317,31 +308,37 @@ function SortableCockpitCard({
                 )}
               </button>
               {cockpit.publicId && (
-                <button
-                  onClick={() => {
-                    window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
-                  }}
-                  className="p-1 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
-                  title="Ouvrir la version publiée"
-                >
-                  <MuiIcon name="OpenInBrowser" size={12} />
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
+                    }}
+                    className="p-1 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                    title="Ouvrir la version publiée"
+                  >
+                    <MuiIcon name="OpenInBrowser" size={12} />
+                  </button>
+                  <button
+                    onClick={() => openEditWelcomeModal(cockpit.id)}
+                    className={`p-1 rounded transition-colors ${
+                      cockpit.welcomeMessage 
+                        ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' 
+                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/50'
+                    }`}
+                    title={cockpit.welcomeMessage ? "Modifier le message d'accueil" : "Ajouter un message d'accueil"}
+                  >
+                    <MuiIcon name="Campaign" size={12} />
+                  </button>
+                </>
               )}
             </>
           ) : (
             <button
-              onClick={onPublish}
+              onClick={() => openPublishModal(cockpit.id)}
               className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded transition-colors text-[10px] bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
-              disabled={isPublishing}
             >
-              {isPublishing ? (
-                <div className="animate-spin"><MuiIcon name="Refresh" size={12} /></div>
-              ) : (
-                <>
-                  <MuiIcon name="Globe" size={12} />
-                  Publier
-                </>
-              )}
+              <MuiIcon name="Globe" size={12} />
+              Publier
             </button>
           )}
           <button
@@ -476,6 +473,12 @@ export default function HomePage() {
   const [showSystemPromptModal, setShowSystemPromptModal] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState('');
   const { token } = useAuthStore();
+  
+  // États pour le message d'accueil (publication)
+  const [showPublishModal, setShowPublishModal] = useState<string | null>(null);
+  const [publishWelcomeMessage, setPublishWelcomeMessage] = useState('');
+  const [showEditWelcomeModal, setShowEditWelcomeModal] = useState<string | null>(null);
+  const [editWelcomeMessage, setEditWelcomeMessage] = useState('');
   
   // États pour les répertoires
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -686,9 +689,36 @@ export default function HomePage() {
     return 'https://somone-cockpit-studio.vercel.app';
   };
 
-  const handlePublish = async (id: string) => {
-    const result = await publishCockpit(id);
-    return result; // Retourner le résultat pour que l'appelant puisse l'utiliser
+  // Ouvre le modal pour publier avec un message d'accueil
+  const openPublishModal = (id: string) => {
+    const cockpit = cockpits.find(c => c.id === id);
+    setPublishWelcomeMessage(cockpit?.welcomeMessage || '');
+    setShowPublishModal(id);
+  };
+  
+  // Effectue la publication avec le message
+  const handlePublish = async (id: string, welcomeMessage?: string) => {
+    const result = await publishCockpit(id, welcomeMessage);
+    setShowPublishModal(null);
+    setPublishWelcomeMessage('');
+    return result;
+  };
+  
+  // Ouvre le modal pour éditer le message d'accueil
+  const openEditWelcomeModal = (id: string) => {
+    const cockpit = cockpits.find(c => c.id === id);
+    setEditWelcomeMessage(cockpit?.welcomeMessage || '');
+    setShowEditWelcomeModal(id);
+  };
+  
+  // Sauvegarde le message d'accueil modifié
+  const handleSaveWelcomeMessage = async (id: string) => {
+    const { updateWelcomeMessage } = useCockpitStore.getState();
+    await updateWelcomeMessage(id, editWelcomeMessage || null);
+    setShowEditWelcomeModal(null);
+    setEditWelcomeMessage('');
+    // Recharger pour avoir les données à jour
+    fetchCockpits();
   };
 
   const handleUnpublish = async (id: string) => {
@@ -1023,7 +1053,8 @@ export default function HomePage() {
                   navigate={navigate}
                   handleUnpublish={handleUnpublish}
                   getPublicBaseUrl={getPublicBaseUrl}
-                  handlePublish={handlePublish}
+                  openPublishModal={openPublishModal}
+                  openEditWelcomeModal={openEditWelcomeModal}
                   setNewName={setNewName}
                   setShowDuplicateModal={setShowDuplicateModal}
                   handleExportClick={handleExportClick}
@@ -1292,6 +1323,125 @@ export default function HomePage() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Modal: Publier avec message d'accueil */}
+      {showPublishModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">
+            <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MuiIcon name="Globe" size={20} className="text-blue-400" />
+                Publier la maquette
+              </h3>
+              <button
+                onClick={() => { setShowPublishModal(null); setPublishWelcomeMessage(''); }}
+                className="p-1 text-slate-500 hover:text-white transition-colors"
+              >
+                <MuiIcon name="Close" size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Message d'accueil (optionnel)
+                </label>
+                <textarea
+                  value={publishWelcomeMessage}
+                  onChange={(e) => setPublishWelcomeMessage(e.target.value)}
+                  placeholder="Ce message s'affichera à chaque ouverture du cockpit publié..."
+                  rows={4}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  Les visiteurs verront ce message dans un popup avant d'accéder au cockpit.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => { setShowPublishModal(null); setPublishWelcomeMessage(''); }}
+                  className="flex-1 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={async () => {
+                    if (showPublishModal) {
+                      await handlePublish(showPublishModal, publishWelcomeMessage || undefined);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>
+                  ) : (
+                    <>
+                      <MuiIcon name="Globe" size={16} />
+                      Publier
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Modifier le message d'accueil */}
+      {showEditWelcomeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">
+            <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MuiIcon name="Campaign" size={20} className="text-amber-400" />
+                Message d'accueil
+              </h3>
+              <button
+                onClick={() => { setShowEditWelcomeModal(null); setEditWelcomeMessage(''); }}
+                className="p-1 text-slate-500 hover:text-white transition-colors"
+              >
+                <MuiIcon name="Close" size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Message affiché aux visiteurs
+                </label>
+                <textarea
+                  value={editWelcomeMessage}
+                  onChange={(e) => setEditWelcomeMessage(e.target.value)}
+                  placeholder="Ce message s'affichera à chaque ouverture du cockpit publié..."
+                  rows={4}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 resize-none"
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  Laissez vide pour supprimer le message d'accueil.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => { setShowEditWelcomeModal(null); setEditWelcomeMessage(''); }}
+                  className="flex-1 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={async () => {
+                    if (showEditWelcomeModal) {
+                      await handleSaveWelcomeMessage(showEditWelcomeModal);
+                    }
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  <MuiIcon name="Save" size={16} />
+                  Enregistrer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal: Changer le nom */}

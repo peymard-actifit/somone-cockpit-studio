@@ -51,6 +51,7 @@ export interface Cockpit {
   publicId?: string;      // ID public unique pour l'URL
   isPublished?: boolean;  // Si le cockpit est publié
   publishedAt?: string;   // Date de publication
+  welcomeMessage?: string; // Message d'accueil affiché en popup lors de l'ouverture du cockpit publié
   order?: number;         // Ordre d'affichage pour le drag & drop
   // Organisation
   folderId?: string;      // ID du répertoire parent (null = racine)

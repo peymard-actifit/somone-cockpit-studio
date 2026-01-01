@@ -107,8 +107,9 @@ interface CockpitState {
   importCockpit: (file: File) => Promise<Cockpit | null>;
 
   // Publication
-  publishCockpit: (id: string) => Promise<{ publicId: string } | null>;
+  publishCockpit: (id: string, welcomeMessage?: string) => Promise<{ publicId: string } | null>;
   unpublishCockpit: (id: string) => Promise<boolean>;
+  updateWelcomeMessage: (id: string, welcomeMessage: string | null) => Promise<boolean>;
 
   // Utilitaires
   triggerAutoSave: () => void;
@@ -2457,7 +2458,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     }
   },
 
-  publishCockpit: async (id: string) => {
+  publishCockpit: async (id: string, welcomeMessage?: string) => {
     const token = useAuthStore.getState().token;
     set({ isLoading: true });
 
@@ -2519,6 +2520,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
+        body: JSON.stringify({ welcomeMessage: welcomeMessage || null }),
       });
 
       if (!response.ok) throw new Error('Erreur publication');
@@ -2529,7 +2531,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       set(state => ({
         cockpits: state.cockpits.map(c =>
           c.id === id
-            ? { ...c, publicId: result.publicId, isPublished: true, publishedAt: result.publishedAt }
+            ? { ...c, publicId: result.publicId, isPublished: true, publishedAt: result.publishedAt, welcomeMessage: welcomeMessage || undefined }
             : c
         ),
         isLoading: false
@@ -2539,6 +2541,36 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     } catch (error) {
       set({ error: 'Erreur lors de la publication', isLoading: false });
       return null;
+    }
+  },
+
+  updateWelcomeMessage: async (id: string, welcomeMessage: string | null) => {
+    const token = useAuthStore.getState().token;
+    try {
+      const response = await fetch(`${API_URL}/cockpits/${id}/welcome-message`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ welcomeMessage }),
+      });
+
+      if (!response.ok) throw new Error('Erreur mise à jour message');
+
+      // Mettre à jour la liste des cockpits
+      set(state => ({
+        cockpits: state.cockpits.map(c =>
+          c.id === id
+            ? { ...c, welcomeMessage: welcomeMessage || undefined }
+            : c
+        ),
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Erreur updateWelcomeMessage:', error);
+      return false;
     }
   },
 
