@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.20.2';
+const APP_VERSION = '14.20.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2224,43 +2224,60 @@ INSTRUCTIONS:
     if (welcomeMessageMatch && method === 'PUT') {
       const id = welcomeMessageMatch[1];
       const { welcomeMessage } = req.body;
+      console.log(`[Welcome Message] Mise à jour pour cockpit ${id}: "${welcomeMessage?.substring(0, 50) || 'null'}..."`);
+      
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.id === id);
 
       if (!cockpit) {
+        console.log(`[Welcome Message] Cockpit ${id} non trouvé`);
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
       if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+        console.log(`[Welcome Message] Accès non autorisé pour ${currentUser.email}`);
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
-      if (cockpit.data) {
-        cockpit.data.welcomeMessage = welcomeMessage || null;
+      // Initialiser cockpit.data si nécessaire
+      if (!cockpit.data) {
+        cockpit.data = { domains: [], zones: [] };
+      }
+      
+      cockpit.data.welcomeMessage = welcomeMessage || null;
+      console.log(`[Welcome Message] Message mis à jour dans cockpit.data`);
+      
+      // Si publié, mettre à jour le snapshot aussi
+      if (cockpit.data.isPublished && cockpit.data.publicId) {
+        const snapshotVersion = (cockpit.data.snapshotVersion || 0) + 1;
+        console.log(`[Welcome Message] Cockpit publié, mise à jour du snapshot v${snapshotVersion}`);
         
-        // Si publié, mettre à jour le snapshot aussi
-        if (cockpit.data.isPublished && cockpit.data.publicId) {
-          const snapshotVersion = (cockpit.data.snapshotVersion || 0) + 1;
-          
-          // Récupérer le snapshot existant
-          const existingSnapshot = await loadSnapshot(cockpit.data.publicId);
-          if (existingSnapshot) {
-            existingSnapshot.welcomeMessage = welcomeMessage || null;
-            await saveSnapshot(
-              cockpit.id,
-              cockpit.data.publicId,
-              cockpit.name,
-              existingSnapshot,
-              snapshotVersion
-            );
+        // Récupérer le snapshot existant
+        const existingSnapshot = await loadSnapshot(cockpit.data.publicId);
+        if (existingSnapshot) {
+          existingSnapshot.welcomeMessage = welcomeMessage || null;
+          const saved = await saveSnapshot(
+            cockpit.id,
+            cockpit.data.publicId,
+            cockpit.name,
+            existingSnapshot,
+            snapshotVersion
+          );
+          if (saved) {
             cockpit.data.snapshotVersion = snapshotVersion;
+            console.log(`[Welcome Message] Snapshot mis à jour avec succès`);
+          } else {
+            console.error(`[Welcome Message] Erreur sauvegarde snapshot`);
           }
+        } else {
+          console.log(`[Welcome Message] Pas de snapshot existant trouvé`);
         }
       }
 
-      await saveDb(db);
+      const saveSuccess = await saveDb(db);
+      console.log(`[Welcome Message] Sauvegarde DB: ${saveSuccess ? 'OK' : 'ERREUR'}`);
 
-      return res.json({ success: true });
+      return res.json({ success: true, welcomeMessage: cockpit.data.welcomeMessage });
     }
 
     // Fonction utilitaire pour traduire avec DeepL

@@ -2546,6 +2546,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   updateWelcomeMessage: async (id: string, welcomeMessage: string | null) => {
     const token = useAuthStore.getState().token;
+    console.log(`[Store] updateWelcomeMessage appelé pour ${id} avec message: "${welcomeMessage?.substring(0, 30) || 'null'}..."`);
+    
     try {
       const response = await fetch(`${API_URL}/cockpits/${id}/welcome-message`, {
         method: 'PUT',
@@ -2556,7 +2558,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         body: JSON.stringify({ welcomeMessage }),
       });
 
-      if (!response.ok) throw new Error('Erreur mise à jour message');
+      console.log(`[Store] Réponse API: ${response.status}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`[Store] Erreur API:`, errorData);
+        throw new Error('Erreur mise à jour message');
+      }
+
+      const result = await response.json();
+      console.log(`[Store] Résultat:`, result);
 
       // Mettre à jour la liste des cockpits
       set(state => ({
@@ -2567,6 +2578,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         ),
       }));
 
+      console.log(`[Store] Liste cockpits mise à jour`);
       return true;
     } catch (error) {
       console.error('Erreur updateWelcomeMessage:', error);
