@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.20.3';
+const APP_VERSION = '14.20.4';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1394,6 +1394,7 @@ INSTRUCTIONS:
         order: c.data?.order, // Ordre pour le drag & drop
         sharedWith: c.data?.sharedWith || [], // Partage
         folderId: c.data?.folderId || null, // Répertoire parent
+        welcomeMessage: c.data?.welcomeMessage || null, // Message d'accueil
       }));
 
       console.log(`[GET /cockpits] Returning ${result.length} cockpits`);
