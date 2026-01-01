@@ -259,10 +259,10 @@ function SortableCockpitCard({
       </div>
 
       {/* Contenu */}
-      <div className="p-2.5">
+      <div className="p-3">
         {/* Date de modification */}
-        <div className="flex items-center gap-1.5 text-slate-500 text-[10px] mb-2">
-          <MuiIcon name="Clock" size={10} />
+        <div className="flex items-center gap-1.5 text-slate-500 text-[11px] mb-2">
+          <MuiIcon name="Clock" size={12} />
           <span>{formatDate(cockpit.updatedAt)}</span>
         </div>
 
@@ -290,19 +290,19 @@ function SortableCockpitCard({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {cockpit.isPublished ? (
             <>
               <button
                 onClick={onUnpublish}
-                className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded transition-colors text-[10px] bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded transition-colors text-[11px] bg-red-500/20 hover:bg-red-500/30 text-red-400 min-w-[70px]"
                 disabled={isUnpublishing}
               >
                 {isUnpublishing ? (
-                  <div className="animate-spin"><MuiIcon name="Refresh" size={12} /></div>
+                  <div className="animate-spin"><MuiIcon name="Refresh" size={14} /></div>
                 ) : (
                   <>
-                    <MuiIcon name="Globe" size={12} />
+                    <MuiIcon name="Globe" size={14} />
                     Dépublier
                   </>
                 )}
@@ -313,21 +313,21 @@ function SortableCockpitCard({
                     onClick={() => {
                       window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
                     }}
-                    className="p-1 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                    className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
                     title="Ouvrir la version publiée"
                   >
-                    <MuiIcon name="OpenInBrowser" size={12} />
+                    <MuiIcon name="OpenInBrowser" size={14} />
                   </button>
                   <button
                     onClick={() => openEditWelcomeModal(cockpit.id)}
-                    className={`p-1 rounded transition-colors ${
+                    className={`p-1.5 rounded transition-colors ${
                       cockpit.welcomeMessage 
                         ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' 
                         : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/50'
                     }`}
                     title={cockpit.welcomeMessage ? "Modifier le message d'accueil" : "Ajouter un message d'accueil"}
                   >
-                    <MuiIcon name="Campaign" size={12} />
+                    <MuiIcon name="Campaign" size={14} />
                   </button>
                 </>
               )}
@@ -335,9 +335,9 @@ function SortableCockpitCard({
           ) : (
             <button
               onClick={() => openPublishModal(cockpit.id)}
-              className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded transition-colors text-[10px] bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
+              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded transition-colors text-[11px] bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
             >
-              <MuiIcon name="Globe" size={12} />
+              <MuiIcon name="Globe" size={14} />
               Publier
             </button>
           )}
@@ -346,24 +346,24 @@ function SortableCockpitCard({
               setNewName(cockpit.name + ' - Copie');
               setShowDuplicateModal(cockpit.id);
             }}
-            className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded transition-colors"
+            className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded transition-colors"
             title="Dupliquer"
           >
-            <MuiIcon name="ContentCopy" size={12} />
+            <MuiIcon name="ContentCopy" size={14} />
           </button>
           <button
             onClick={() => handleExportClick(cockpit.id)}
-            className="p-1 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded transition-colors"
+            className="p-1.5 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded transition-colors"
             title="Exporter"
           >
-            <MuiIcon name="Download" size={12} />
+            <MuiIcon name="Download" size={14} />
           </button>
           <button
             onClick={() => setShowDeleteModal(cockpit.id)}
-            className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
+            className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
             title="Supprimer"
           >
-            <MuiIcon name="Delete" size={12} />
+            <MuiIcon name="Delete" size={14} />
           </button>
         </div>
       </div>
@@ -1022,7 +1022,7 @@ export default function HomePage() {
             ]}
             strategy={verticalListSortingStrategy}
           >
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {/* Répertoires de l'utilisateur (uniquement à la racine) */}
               {!currentFolderId && userFolders.map((folder) => (
                 <FolderCard
