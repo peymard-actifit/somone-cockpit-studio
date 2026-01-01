@@ -259,10 +259,10 @@ function SortableCockpitCard({
       </div>
 
       {/* Contenu */}
-      <div className="p-3">
+      <div className="p-2.5">
         {/* Date de modification */}
-        <div className="flex items-center gap-1.5 text-slate-500 text-[11px] mb-2">
-          <MuiIcon name="Clock" size={12} />
+        <div className="flex items-center gap-1.5 text-slate-500 text-[10px] mb-2">
+          <MuiIcon name="Clock" size={10} />
           <span>{formatDate(cockpit.updatedAt)}</span>
         </div>
 
@@ -290,19 +290,19 @@ function SortableCockpitCard({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1">
           {cockpit.isPublished ? (
             <>
               <button
                 onClick={onUnpublish}
-                className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded transition-colors text-[11px] bg-red-500/20 hover:bg-red-500/30 text-red-400 min-w-[70px]"
+                className="flex items-center justify-center gap-0.5 px-1.5 py-1 rounded transition-colors text-[10px] bg-red-500/20 hover:bg-red-500/30 text-red-400"
                 disabled={isUnpublishing}
               >
                 {isUnpublishing ? (
-                  <div className="animate-spin"><MuiIcon name="Refresh" size={14} /></div>
+                  <div className="animate-spin"><MuiIcon name="Refresh" size={12} /></div>
                 ) : (
                   <>
-                    <MuiIcon name="Globe" size={14} />
+                    <MuiIcon name="Globe" size={12} />
                     Dépublier
                   </>
                 )}
@@ -313,21 +313,21 @@ function SortableCockpitCard({
                     onClick={() => {
                       window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
                     }}
-                    className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                    className="p-1 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
                     title="Ouvrir la version publiée"
                   >
-                    <MuiIcon name="OpenInBrowser" size={14} />
+                    <MuiIcon name="OpenInBrowser" size={12} />
                   </button>
                   <button
                     onClick={() => openEditWelcomeModal(cockpit.id)}
-                    className={`p-1.5 rounded transition-colors ${
+                    className={`p-1 rounded transition-colors ${
                       cockpit.welcomeMessage 
                         ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' 
                         : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/50'
                     }`}
                     title={cockpit.welcomeMessage ? "Modifier le message d'accueil" : "Ajouter un message d'accueil"}
                   >
-                    <MuiIcon name="Campaign" size={14} />
+                    <MuiIcon name="Campaign" size={12} />
                   </button>
                 </>
               )}
@@ -335,9 +335,9 @@ function SortableCockpitCard({
           ) : (
             <button
               onClick={() => openPublishModal(cockpit.id)}
-              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded transition-colors text-[11px] bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
+              className="flex items-center justify-center gap-0.5 px-1.5 py-1 rounded transition-colors text-[10px] bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
             >
-              <MuiIcon name="Globe" size={14} />
+              <MuiIcon name="Globe" size={12} />
               Publier
             </button>
           )}
@@ -346,24 +346,24 @@ function SortableCockpitCard({
               setNewName(cockpit.name + ' - Copie');
               setShowDuplicateModal(cockpit.id);
             }}
-            className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded transition-colors"
+            className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded transition-colors"
             title="Dupliquer"
           >
-            <MuiIcon name="ContentCopy" size={14} />
+            <MuiIcon name="ContentCopy" size={12} />
           </button>
           <button
             onClick={() => handleExportClick(cockpit.id)}
-            className="p-1.5 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded transition-colors"
+            className="p-1 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded transition-colors"
             title="Exporter"
           >
-            <MuiIcon name="Download" size={14} />
+            <MuiIcon name="Download" size={12} />
           </button>
           <button
             onClick={() => setShowDeleteModal(cockpit.id)}
-            className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
+            className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
             title="Supprimer"
           >
-            <MuiIcon name="Delete" size={14} />
+            <MuiIcon name="Delete" size={12} />
           </button>
         </div>
       </div>
@@ -1357,28 +1357,48 @@ export default function HomePage() {
                   Les visiteurs verront ce message dans un popup avant d'accéder au cockpit.
                 </p>
               </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => { setShowPublishModal(null); setPublishWelcomeMessage(''); }}
-                  className="flex-1 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl transition-colors"
-                >
-                  Annuler
-                </button>
+              <div className="flex flex-col gap-3 pt-2">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setShowPublishModal(null); setPublishWelcomeMessage(''); }}
+                    className="flex-1 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (showPublishModal) {
+                        await handlePublish(showPublishModal, publishWelcomeMessage || undefined);
+                      }
+                    }}
+                    disabled={isLoading || !publishWelcomeMessage.trim()}
+                    className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-xl transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>
+                    ) : (
+                      <>
+                        <MuiIcon name="Campaign" size={16} />
+                        Publier avec message
+                      </>
+                    )}
+                  </button>
+                </div>
                 <button
                   onClick={async () => {
                     if (showPublishModal) {
-                      await handlePublish(showPublishModal, publishWelcomeMessage || undefined);
+                      await handlePublish(showPublishModal, undefined);
                     }
                   }}
                   disabled={isLoading}
-                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
                     <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>
                   ) : (
                     <>
                       <MuiIcon name="Globe" size={16} />
-                      Publier
+                      Publier sans message
                     </>
                   )}
                 </button>
