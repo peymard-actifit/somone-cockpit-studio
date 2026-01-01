@@ -415,7 +415,7 @@ export default function PublicCockpitPage() {
                 className="px-8 py-3 bg-gradient-to-r from-[#1E3A5F] to-[#2D4A6F] hover:from-[#2D4A6F] hover:to-[#3D5A7F] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
               >
                 <MuiIcon name="ArrowForward" size={20} />
-                Accéder au cockpit
+                Accéder à la maquette de cockpit
               </button>
             </div>
           </div>
