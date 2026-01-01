@@ -701,6 +701,8 @@ export default function HomePage() {
     const result = await publishCockpit(id, welcomeMessage);
     setShowPublishModal(null);
     setPublishWelcomeMessage('');
+    // Recharger la liste pour mettre à jour l'affichage
+    await fetchCockpits();
     return result;
   };
   
@@ -723,6 +725,8 @@ export default function HomePage() {
 
   const handleUnpublish = async (id: string) => {
     await unpublishCockpit(id);
+    // Recharger la liste pour mettre à jour l'affichage
+    await fetchCockpits();
   };
 
   const formatDate = (dateString: string) => {
