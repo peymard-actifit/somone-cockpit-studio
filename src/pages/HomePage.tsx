@@ -1985,9 +1985,9 @@ export default function HomePage() {
                                 <MuiIcon name="Visibility" size={12} className="text-slate-500" />
                                 <span className="font-medium text-amber-400">{cockpit.views}</span>
                               </div>
-                              <div className="flex items-center gap-1" title="Clics">
+                              <div className="flex items-center gap-1" title="Clics totaux (éléments + sous-éléments)">
                                 <MuiIcon name="TouchApp" size={12} className="text-slate-500" />
-                                <span className="text-slate-300">{cockpit.clicks || 0}</span>
+                                <span className="text-slate-300">{(cockpit.elementsClicked || 0) + (cockpit.subElementsClicked || 0)}</span>
                               </div>
                               <div className="flex items-center gap-1" title="Pages vues">
                                 <MuiIcon name="Tab" size={12} className="text-slate-500" />

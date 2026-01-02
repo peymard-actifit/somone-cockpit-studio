@@ -92,6 +92,14 @@ function PublicCockpitContent() {
     }
   }, [publicId]);
 
+  // Tracker la première page vue une fois le cockpit chargé
+  useEffect(() => {
+    if (cockpit && currentDomainId) {
+      trackEvent('page', { domainId: currentDomainId });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cockpit?.id]); // Ne tracker qu'une fois au chargement initial
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-cockpit-bg-dark flex items-center justify-center">
