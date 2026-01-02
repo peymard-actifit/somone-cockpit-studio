@@ -160,7 +160,8 @@ export default function CategorySection({ category, onElementClick, readOnly = f
     };
   }, [storageKey]);
 
-  const isHorizontal = category.orientation === 'horizontal';
+  // Les catégories sans orientation sont considérées comme horizontales par défaut
+  const isHorizontal = category.orientation !== 'vertical';
   const useInlineLayout = isHorizontal && horizontalCategoriesInline;
 
   // Préférences d'espacement (indépendantes par domaine)

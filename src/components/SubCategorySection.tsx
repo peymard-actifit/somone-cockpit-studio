@@ -163,7 +163,8 @@ export default function SubCategorySection({ subCategory, element, domain, readO
     };
   }, [storageKey]);
 
-  const isHorizontal = subCategory.orientation === 'horizontal';
+  // Les sous-catégories sans orientation sont considérées comme horizontales par défaut
+  const isHorizontal = subCategory.orientation !== 'vertical';
   const useInlineLayout = isHorizontal && horizontalSubCategoriesInline;
 
   // Préférences d'espacement (indépendantes par élément)

@@ -99,7 +99,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   // ============================================================================
 
   // Séparer les catégories horizontales et verticales (utilisé pour le calcul useMemo)
-  const horizontalCategories = domain.categories.filter(c => c.orientation === 'horizontal');
+  // Les catégories sans orientation sont considérées comme horizontales par défaut
+  const horizontalCategories = domain.categories.filter(c => c.orientation !== 'vertical');
   const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
 
   // Préférence pour le mode inline des catégories horizontales (grille CSS)

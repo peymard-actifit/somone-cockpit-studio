@@ -3930,7 +3930,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Préférences d'affichage - Masquées pour les vues Map, Background, Hours-tracking, Alerts et Stats */}
         {domain && domain.templateType !== 'map' && domain.templateType !== 'background' && domain.templateType !== 'hours-tracking' && domain.templateType !== 'alerts' && domain.templateType !== 'stats' && (() => {
-          const horizontalCategories = domain.categories.filter(c => c.orientation === 'horizontal');
+          // Les catégories sans orientation sont considérées comme horizontales par défaut
+          const horizontalCategories = domain.categories.filter(c => c.orientation !== 'vertical');
           const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
 
           return (
