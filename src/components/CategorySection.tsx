@@ -143,27 +143,12 @@ export default function CategorySection({ category, onElementClick, readOnly = f
     }
   };
 
-  // Préférence pour la position des catégories horizontales (indépendante par domaine)
+  // Clé pour les préférences spécifiques au domaine
   const storageKey = domainId ? `domain_${domainId}` : 'global';
-  const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
-    const saved = localStorage.getItem(`horizontalCategoriesInline_${storageKey}`);
-    return saved === 'true';
-  });
-
-  useEffect(() => {
-    const handlePreferenceChange = () => {
-      setHorizontalCategoriesInline(localStorage.getItem(`horizontalCategoriesInline_${storageKey}`) === 'true');
-    };
-    window.addEventListener(`horizontalCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
-    return () => {
-      window.removeEventListener(`horizontalCategoriesPreferenceChanged_${storageKey}`, handlePreferenceChange);
-    };
-  }, [storageKey]);
 
   // Les catégories sans orientation sont considérées comme horizontales par défaut
   const isHorizontal = category.orientation !== 'vertical';
   // Les catégories horizontales s'affichent toujours en mode inline (titre à gauche, éléments à droite)
-  // La préférence horizontalCategoriesInline permet d'activer l'alignement CSS Grid avec les autres catégories
   const useInlineLayout = isHorizontal;
 
   // Préférences d'espacement (indépendantes par domaine)
