@@ -486,6 +486,11 @@ export default function HomePage() {
   const [showRenameFolderModal, setShowRenameFolderModal] = useState<string | null>(null);
   const [renameFolderName, setRenameFolderName] = useState('');
   const [draggedCockpitId, setDraggedCockpitId] = useState<string | null>(null);
+  
+  // États pour le dashboard des statistiques
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
     fetchCockpits();
@@ -552,6 +557,23 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Erreur récupération prompt système:', error);
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    setStatsLoading(true);
+    try {
+      const response = await fetch('/api/stats/dashboard', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDashboardStats(data);
+      }
+    } catch (error) {
+      console.error('Erreur récupération statistiques:', error);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -929,7 +951,21 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Bouton Informations (admin uniquement, à la racine) */}
+            {!currentFolderId && user?.isAdmin && (
+              <button
+                onClick={() => {
+                  setShowStatsModal(true);
+                  fetchDashboardStats();
+                }}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-500 hover:from-slate-500 hover:to-slate-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-slate-500/25 text-sm"
+                title="Statistiques d'utilisation du studio"
+              >
+                <MuiIcon name="Analytics" size={18} />
+                Infos
+              </button>
+            )}
             {/* Bouton Mes cockpits publiés (uniquement à la racine) */}
             {!currentFolderId && user?.id && (
               <button
@@ -937,11 +973,11 @@ export default function HomePage() {
                   const url = `${window.location.origin}/public/user/${user.id}`;
                   window.open(url, '_blank');
                 }}
-                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
                 title="Voir et partager la liste de vos cockpits publiés"
               >
-                <MuiIcon name="Share" size={20} />
-                Mes publications
+                <MuiIcon name="Share" size={18} />
+                Publications
               </button>
             )}
             {/* Bouton Nouveau répertoire (uniquement à la racine) */}
@@ -951,10 +987,10 @@ export default function HomePage() {
                   setNewFolderName('');
                   setShowNewFolderModal(true);
                 }}
-                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-amber-500/25"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-amber-500/25 text-sm"
               >
-                <MuiIcon name="CreateNewFolder" size={20} />
-                Nouveau répertoire
+                <MuiIcon name="CreateNewFolder" size={18} />
+                Répertoire
               </button>
             )}
             <input
@@ -967,28 +1003,28 @@ export default function HomePage() {
             />
             <label
               htmlFor="import-cockpit-input"
-              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-green-500/25 cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-green-500/25 cursor-pointer text-sm"
             >
-              <MuiIcon name="Upload" size={20} />
-              Importer
+              <MuiIcon name="Upload" size={18} />
+              Import
             </label>
             <button
               onClick={() => {
                 setShowSystemPromptModal(true);
                 fetchSystemPrompt();
               }}
-              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-violet-500/25 text-sm"
               title="Configurer le prompt système de l'IA"
             >
-              <MuiIcon name="Settings" size={20} />
-              <span>Prompt IA</span>
+              <MuiIcon name="Psychology" size={18} />
+              IA
             </button>
             <button
               onClick={() => setShowNewModal(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25 text-sm"
             >
-              <MuiIcon name="Plus" size={20} />
-              Nouvelle maquette
+              <MuiIcon name="Plus" size={18} />
+              Nouveau
             </button>
           </div>
         </div>
@@ -1817,6 +1853,187 @@ export default function HomePage() {
                 <MuiIcon name="Save" size={16} />
                 Sauvegarder
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Statistiques Dashboard */}
+      {showStatsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-cockpit-bg-card border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-fade-in flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MuiIcon name="Analytics" size={24} className="text-blue-400" />
+                Tableau de bord - Statistiques en temps réel
+              </h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchDashboardStats}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                  title="Rafraîchir"
+                >
+                  <MuiIcon name="Refresh" size={18} className={statsLoading ? 'animate-spin' : ''} />
+                </button>
+                <button
+                  onClick={() => setShowStatsModal(false)}
+                  className="p-1 text-slate-500 hover:text-white transition-colors"
+                >
+                  <MuiIcon name="X" size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1">
+              {statsLoading && !dashboardStats ? (
+                <div className="flex items-center justify-center py-12">
+                  <MuiIcon name="Refresh" size={32} className="text-blue-400 animate-spin" />
+                </div>
+              ) : dashboardStats ? (
+                <div className="space-y-6">
+                  {/* Résumé global */}
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                      <div className="text-2xl font-bold text-blue-400">{dashboardStats.totalUsers || 0}</div>
+                      <div className="text-sm text-slate-400">Utilisateurs</div>
+                    </div>
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                      <div className="text-2xl font-bold text-green-400">{dashboardStats.totalCockpits || 0}</div>
+                      <div className="text-sm text-slate-400">Maquettes totales</div>
+                    </div>
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+                      <div className="text-2xl font-bold text-purple-400">{dashboardStats.publishedCockpits || 0}</div>
+                      <div className="text-sm text-slate-400">Maquettes publiées</div>
+                    </div>
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                      <div className="text-2xl font-bold text-amber-400">{dashboardStats.totalViews || 0}</div>
+                      <div className="text-sm text-slate-400">Consultations totales</div>
+                    </div>
+                  </div>
+
+                  {/* Utilisateurs par statistiques */}
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-700/30">
+                      <h4 className="font-medium text-white flex items-center gap-2">
+                        <MuiIcon name="People" size={18} className="text-blue-400" />
+                        Statistiques par utilisateur
+                      </h4>
+                    </div>
+                    <div className="divide-y divide-slate-700/50 max-h-60 overflow-y-auto">
+                      {dashboardStats.userStats && dashboardStats.userStats.length > 0 ? (
+                        dashboardStats.userStats.map((userStat: any) => (
+                          <div key={userStat.userId} className="px-4 py-3 flex items-center justify-between hover:bg-slate-700/30">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                {userStat.userName?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-white">{userStat.userName || userStat.email}</div>
+                                <div className="text-xs text-slate-500">{userStat.email}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="text-center">
+                                <div className="font-medium text-green-400">{userStat.cockpitsCount}</div>
+                                <div className="text-[10px] text-slate-500">maquettes</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="font-medium text-purple-400">{userStat.publishedCount}</div>
+                                <div className="text-[10px] text-slate-500">publiées</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="font-medium text-amber-400">{userStat.totalViews}</div>
+                                <div className="text-[10px] text-slate-500">vues</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-6 text-center text-slate-500 text-sm">
+                          Aucune statistique disponible
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Top maquettes consultées */}
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-700/30">
+                      <h4 className="font-medium text-white flex items-center gap-2">
+                        <MuiIcon name="TrendingUp" size={18} className="text-amber-400" />
+                        Top maquettes les plus consultées
+                      </h4>
+                    </div>
+                    <div className="divide-y divide-slate-700/50 max-h-60 overflow-y-auto">
+                      {dashboardStats.topCockpits && dashboardStats.topCockpits.length > 0 ? (
+                        dashboardStats.topCockpits.map((cockpit: any, index: number) => (
+                          <div key={cockpit.id} className="px-4 py-3 flex items-center justify-between hover:bg-slate-700/30">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                index === 0 ? 'bg-amber-500 text-white' :
+                                index === 1 ? 'bg-slate-400 text-white' :
+                                index === 2 ? 'bg-amber-700 text-white' :
+                                'bg-slate-600 text-slate-300'
+                              }`}>
+                                {index + 1}
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-white">{cockpit.name}</div>
+                                <div className="text-xs text-slate-500">par {cockpit.ownerName}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MuiIcon name="Visibility" size={14} className="text-slate-500" />
+                              <span className="text-sm font-medium text-amber-400">{cockpit.views}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-6 text-center text-slate-500 text-sm">
+                          Aucune consultation enregistrée
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Activité récente */}
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-700/30">
+                      <h4 className="font-medium text-white flex items-center gap-2">
+                        <MuiIcon name="History" size={18} className="text-green-400" />
+                        Activité récente
+                      </h4>
+                    </div>
+                    <div className="divide-y divide-slate-700/50 max-h-60 overflow-y-auto">
+                      {dashboardStats.recentActivity && dashboardStats.recentActivity.length > 0 ? (
+                        dashboardStats.recentActivity.map((activity: any, index: number) => (
+                          <div key={index} className="px-4 py-2 flex items-center gap-3 hover:bg-slate-700/30">
+                            <MuiIcon 
+                              name={activity.type === 'view' ? 'Visibility' : activity.type === 'edit' ? 'Edit' : 'Add'} 
+                              size={14} 
+                              className={activity.type === 'view' ? 'text-amber-400' : activity.type === 'edit' ? 'text-blue-400' : 'text-green-400'} 
+                            />
+                            <span className="text-sm text-slate-300 flex-1">
+                              <span className="text-white font-medium">{activity.userName}</span>
+                              {' '}{activity.action}{' '}
+                              <span className="text-blue-400">{activity.cockpitName}</span>
+                            </span>
+                            <span className="text-xs text-slate-500">{activity.time}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-6 text-center text-slate-500 text-sm">
+                          Aucune activité récente
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-slate-500">
+                  Impossible de charger les statistiques
+                </div>
+              )}
             </div>
           </div>
         </div>

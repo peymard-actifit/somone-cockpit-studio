@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.20.7';
+const APP_VERSION = '14.21.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -931,6 +931,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       console.log('Found cockpit:', cockpit.name);
+      
+      // Incrémenter le compteur de vues (sans bloquer la réponse)
+      if (!cockpit.data.viewCount) cockpit.data.viewCount = 0;
+      cockpit.data.viewCount++;
+      cockpit.data.lastViewedAt = new Date().toISOString();
+      saveDb(db).catch(err => console.error('Erreur sauvegarde viewCount:', err));
 
       const data = cockpit.data || {};
       
@@ -3471,6 +3477,130 @@ INSTRUCTIONS:
       return res.json({
         configured: !!OPENAI_API_KEY,
         model: OPENAI_API_KEY ? 'gpt-4o-mini' : 'none'
+      });
+    }
+
+    // =====================
+    // STATS DASHBOARD (admin only)
+    // =====================
+    if (path === '/stats/dashboard' && method === 'GET') {
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const db = await getDb();
+      
+      // Statistiques globales
+      const totalUsers = db.users?.length || 0;
+      const totalCockpits = db.cockpits?.length || 0;
+      const publishedCockpits = db.cockpits?.filter(c => c.data?.isPublished).length || 0;
+      const totalViews = db.cockpits?.reduce((sum, c) => sum + (c.data?.viewCount || 0), 0) || 0;
+
+      // Statistiques par utilisateur
+      const userStats = db.users?.map(user => {
+        const userCockpits = db.cockpits?.filter(c => c.userId === user.id) || [];
+        const publishedCount = userCockpits.filter(c => c.data?.isPublished).length;
+        const userTotalViews = userCockpits.reduce((sum, c) => sum + (c.data?.viewCount || 0), 0);
+        
+        return {
+          userId: user.id,
+          userName: user.name || user.username,
+          email: user.email,
+          cockpitsCount: userCockpits.length,
+          publishedCount,
+          totalViews: userTotalViews,
+        };
+      }).sort((a, b) => b.cockpitsCount - a.cockpitsCount) || [];
+
+      // Top cockpits par consultations
+      const topCockpits = db.cockpits
+        ?.filter(c => c.data?.isPublished && (c.data?.viewCount || 0) > 0)
+        .map(c => {
+          const owner = db.users?.find(u => u.id === c.userId);
+          return {
+            id: c.id,
+            name: c.name,
+            ownerName: owner?.name || owner?.email || 'Inconnu',
+            views: c.data?.viewCount || 0,
+            publishedAt: c.data?.publishedAt,
+          };
+        })
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 10) || [];
+
+      // Activité récente (basée sur les mises à jour récentes)
+      const recentActivity = db.cockpits
+        ?.filter(c => c.updatedAt)
+        .map(c => {
+          const owner = db.users?.find(u => u.id === c.userId);
+          const date = new Date(c.updatedAt);
+          const now = new Date();
+          const diffMs = now.getTime() - date.getTime();
+          const diffMins = Math.floor(diffMs / 60000);
+          const diffHours = Math.floor(diffMs / 3600000);
+          const diffDays = Math.floor(diffMs / 86400000);
+          
+          let time = '';
+          if (diffMins < 1) time = "À l'instant";
+          else if (diffMins < 60) time = `il y a ${diffMins} min`;
+          else if (diffHours < 24) time = `il y a ${diffHours}h`;
+          else time = `il y a ${diffDays}j`;
+
+          return {
+            cockpitId: c.id,
+            cockpitName: c.name,
+            userName: owner?.name || owner?.email || 'Inconnu',
+            action: 'a modifié',
+            type: 'edit',
+            time,
+            timestamp: c.updatedAt,
+          };
+        })
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 15) || [];
+
+      // Ajouter les consultations récentes
+      const recentViews = db.cockpits
+        ?.filter(c => c.data?.lastViewedAt && c.data?.isPublished)
+        .map(c => {
+          const owner = db.users?.find(u => u.id === c.userId);
+          const date = new Date(c.data.lastViewedAt);
+          const now = new Date();
+          const diffMs = now.getTime() - date.getTime();
+          const diffMins = Math.floor(diffMs / 60000);
+          const diffHours = Math.floor(diffMs / 3600000);
+          const diffDays = Math.floor(diffMs / 86400000);
+          
+          let time = '';
+          if (diffMins < 1) time = "À l'instant";
+          else if (diffMins < 60) time = `il y a ${diffMins} min`;
+          else if (diffHours < 24) time = `il y a ${diffHours}h`;
+          else time = `il y a ${diffDays}j`;
+
+          return {
+            cockpitId: c.id,
+            cockpitName: c.name,
+            userName: 'Visiteur',
+            action: 'a consulté',
+            type: 'view',
+            time,
+            timestamp: c.data.lastViewedAt,
+          };
+        }) || [];
+
+      // Fusionner et trier les activités
+      const allActivity = [...recentActivity, ...recentViews]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 20);
+
+      return res.json({
+        totalUsers,
+        totalCockpits,
+        publishedCockpits,
+        totalViews,
+        userStats,
+        topCockpits,
+        recentActivity: allActivity,
       });
     }
 
