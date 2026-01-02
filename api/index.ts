@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.21.2';
+const APP_VERSION = '14.21.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1080,6 +1080,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const publicId = trackingMatch[1];
       const { eventType, elementId, subElementId, domainId } = req.body || {};
       
+      console.log(`[Tracking] Reçu: publicId=${publicId}, eventType=${eventType}, elementId=${elementId}, subElementId=${subElementId}`);
+      
       const db = await getDb();
       const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
       
@@ -1106,8 +1108,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             break;
         }
         
-        // Sauvegarder en arrière-plan
-        saveDb(db).catch(err => console.error('Erreur tracking:', err));
+        console.log(`[Tracking] Après incrémentation: clicks=${cockpit.data.clickCount}, pages=${cockpit.data.pagesViewed}, elements=${cockpit.data.elementsClicked}, subElements=${cockpit.data.subElementsClicked}`);
+        
+        // Sauvegarder - ATTENDRE la sauvegarde pour garantir la persistance
+        try {
+          await saveDb(db);
+          console.log(`[Tracking] Sauvegarde réussie pour ${cockpit.name}`);
+        } catch (err) {
+          console.error('[Tracking] Erreur sauvegarde:', err);
+        }
+      } else {
+        console.log(`[Tracking] Cockpit non trouvé pour publicId=${publicId}`);
       }
       
       return res.json({ success: true });
