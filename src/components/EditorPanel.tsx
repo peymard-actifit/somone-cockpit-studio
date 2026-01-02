@@ -505,10 +505,16 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       window.addEventListener(`verticalCategoryWidthChanged_${domainStorageKey}`, handleDomainSpacingChange);
       window.addEventListener(`greenTilesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
       window.addEventListener(`horizontalCategoriesPreferenceChanged_${domainStorageKey}`, handleDomainDisplayChange);
+      // Réinitialiser les états quand on change de domaine
+      handleDomainSpacingChange();
+      handleDomainDisplayChange();
     }
     if (element) {
       window.addEventListener(`spacingPreferenceChanged_${elementStorageKey}`, handleElementSpacingChange);
       window.addEventListener(`verticalSubCategoryWidthChanged_${elementStorageKey}`, handleElementSpacingChange);
+      window.addEventListener(`horizontalSubCategoriesPreferenceChanged_${elementStorageKey}`, handleElementSpacingChange);
+      // Réinitialiser les états quand on change d'élément
+      handleElementSpacingChange();
     }
     return () => {
       if (domain) {
