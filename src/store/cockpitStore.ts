@@ -91,11 +91,15 @@ interface CockpitState {
   addMapElement: (domainId: string, name: string, gps: GpsCoords, status?: TileStatus, icon?: string) => void;
   updateMapElement: (mapElementId: string, updates: Partial<MapElement>) => void;
   deleteMapElement: (mapElementId: string) => void;
-  cloneMapElement: (mapElementId: string) => void;
+  cloneMapElement: (mapElementId: string) => string | null; // Retourne l'ID du clone
+  lastClonedMapElementId: string | null;
+  clearLastClonedMapElementId: () => void;
   updateMapBounds: (domainId: string, bounds: MapBounds) => void;
 
   // Clone Element (pour BackgroundView)
-  cloneElement: (elementId: string) => void;
+  cloneElement: (elementId: string) => string | null; // Retourne l'ID du clone
+  lastClonedElementId: string | null;
+  clearLastClonedElementId: () => void;
 
   // Duplication liée d'éléments et sous-éléments
   duplicateElementLinked: (elementId: string) => void;
@@ -179,6 +183,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   error: null,
   autoSaveTimeout: null,
   recentChanges: [],
+  lastClonedElementId: null,
+  lastClonedMapElementId: null,
 
   // =====================================================
   // GESTION DES RÉPERTOIRES
@@ -1987,106 +1993,122 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   cloneMapElement: (mapElementId: string) => {
-    set((state) => {
-      if (!state.currentCockpit) return state;
+    const state = get();
+    if (!state.currentCockpit) return null;
 
-      let elementToClone: MapElement | null = null;
-      let domainId: string | null = null;
+    let elementToClone: MapElement | null = null;
+    let domainId: string | null = null;
 
-      // Trouver l'élément à cloner
-      for (const domain of state.currentCockpit.domains) {
-        const element = (domain.mapElements || []).find(me => me.id === mapElementId);
-        if (element) {
-          elementToClone = element;
-          domainId = domain.id;
-          break;
-        }
+    // Trouver l'élément à cloner
+    for (const domain of state.currentCockpit.domains) {
+      const element = (domain.mapElements || []).find(me => me.id === mapElementId);
+      if (element) {
+        elementToClone = element;
+        domainId = domain.id;
+        break;
       }
+    }
 
-      if (!elementToClone || !domainId) return state;
+    if (!elementToClone || !domainId) return null;
 
-      // Créer un clone avec un nouveau nom et un nouvel ID
-      const clonedElement: MapElement = {
-        ...elementToClone,
-        id: generateId(),
-        name: `${elementToClone.name} (copie)`,
-      };
+    // Générer l'ID du clone avant pour pouvoir le retourner
+    const cloneId = generateId();
 
-      return {
-        currentCockpit: {
-          ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => {
-            if (d.id !== domainId) return d;
-            return {
-              ...d,
-              mapElements: [...(d.mapElements || []), clonedElement],
-            };
-          }),
-          updatedAt: new Date().toISOString(),
-        },
-      };
-    });
+    // Créer un clone avec un nouveau nom et un nouvel ID
+    const clonedElement: MapElement = {
+      ...elementToClone,
+      id: cloneId,
+      name: `${elementToClone.name} (copie)`,
+    };
+
+    set((s) => ({
+      currentCockpit: s.currentCockpit ? {
+        ...s.currentCockpit,
+        domains: s.currentCockpit.domains.map(d => {
+          if (d.id !== domainId) return d;
+          return {
+            ...d,
+            mapElements: [...(d.mapElements || []), clonedElement],
+          };
+        }),
+        updatedAt: new Date().toISOString(),
+      } : null,
+      lastClonedMapElementId: cloneId,
+    }));
     get().triggerAutoSave();
+    return cloneId;
+  },
+
+  clearLastClonedMapElementId: () => {
+    set({ lastClonedMapElementId: null });
   },
 
   cloneElement: (elementId: string) => {
-    set((state) => {
-      if (!state.currentCockpit) return state;
+    const state = get();
+    if (!state.currentCockpit) return null;
 
-      let elementToClone: Element | null = null;
-      let categoryId: string | null = null;
+    let elementToClone: Element | null = null;
+    let categoryId: string | null = null;
 
-      // Trouver l'élément à cloner
-      for (const domain of state.currentCockpit.domains) {
-        for (const category of domain.categories) {
-          const element = category.elements.find(e => e.id === elementId);
-          if (element) {
-            elementToClone = element;
-            categoryId = category.id;
-            break;
-          }
+    // Trouver l'élément à cloner
+    for (const domain of state.currentCockpit.domains) {
+      for (const category of domain.categories) {
+        const element = category.elements.find(e => e.id === elementId);
+        if (element) {
+          elementToClone = element;
+          categoryId = category.id;
+          break;
         }
-        if (elementToClone) break;
       }
+      if (elementToClone) break;
+    }
 
-      if (!elementToClone || !categoryId) return state;
+    if (!elementToClone || !categoryId) return null;
 
-      // Décaler légèrement la position du clone (2% vers la droite et le bas)
-      const offsetX = elementToClone.positionX !== undefined ? Math.min(95, (elementToClone.positionX || 0) + 2) : undefined;
-      const offsetY = elementToClone.positionY !== undefined ? Math.min(95, (elementToClone.positionY || 0) + 2) : undefined;
+    // Décaler légèrement la position du clone (2% vers la droite et le bas)
+    const offsetX = elementToClone.positionX !== undefined ? Math.min(95, (elementToClone.positionX || 0) + 2) : undefined;
+    const offsetY = elementToClone.positionY !== undefined ? Math.min(95, (elementToClone.positionY || 0) + 2) : undefined;
 
-      // Créer un clone avec un nouveau nom, un nouvel ID et réinitialiser les sous-catégories
-      const clonedElement: Element = {
-        ...elementToClone,
-        id: generateId(),
-        categoryId,
-        name: `${elementToClone.name} (copie)`,
-        subCategories: [], // Ne pas cloner les sous-catégories
-        order: 0, // Sera mis à jour dans le code ci-dessous
-        // Préserver position et taille si présentes, avec décalage
-        positionX: offsetX,
-        positionY: offsetY,
-      };
+    // Générer l'ID du clone avant pour pouvoir le retourner
+    const cloneId = generateId();
 
-      return {
-        currentCockpit: {
-          ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
-            ...d,
-            categories: d.categories.map(c => {
-              if (c.id !== categoryId) return c;
-              const newOrder = c.elements.length;
-              return {
-                ...c,
-                elements: [...c.elements, { ...clonedElement, order: newOrder }],
-              };
-            }),
-          })),
-          updatedAt: new Date().toISOString(),
-        },
-      };
-    });
+    // Créer un clone avec un nouveau nom, un nouvel ID et réinitialiser les sous-catégories
+    const clonedElement: Element = {
+      ...elementToClone,
+      id: cloneId,
+      categoryId,
+      name: `${elementToClone.name} (copie)`,
+      subCategories: [], // Ne pas cloner les sous-catégories
+      order: 0, // Sera mis à jour dans le code ci-dessous
+      // Préserver position et taille si présentes, avec décalage
+      positionX: offsetX,
+      positionY: offsetY,
+    };
+
+    set((s) => ({
+      currentCockpit: s.currentCockpit ? {
+        ...s.currentCockpit,
+        domains: s.currentCockpit.domains.map(d => ({
+          ...d,
+          categories: d.categories.map(c => {
+            if (c.id !== categoryId) return c;
+            const newOrder = c.elements.length;
+            return {
+              ...c,
+              elements: [...c.elements, { ...clonedElement, order: newOrder }],
+            };
+          }),
+        })),
+        updatedAt: new Date().toISOString(),
+      } : null,
+      lastClonedElementId: cloneId,
+    }));
     get().triggerAutoSave();
+    return cloneId;
+  },
+
+  clearLastClonedElementId: () => {
+    set({ lastClonedElementId: null });
   },
 
   // Dupliquer un élément avec liaison automatique dans la même catégorie

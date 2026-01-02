@@ -47,7 +47,7 @@ interface MapViewProps {
 export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: _domainsProp }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
-  const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement } = useCockpitStore();
+  const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement, lastClonedMapElementId, clearLastClonedMapElementId } = useCockpitStore();
   const { token } = useAuthStore();
 
   // Ã‰tat de l'analyse IA
@@ -137,6 +137,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; pointId: string; isCluster: boolean } | null>(null);
 
+  // Renommage rapide après clonage
+  const [renamingPointId, setRenamingPointId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
   // Formulaire édition point supprimé - l'édition se fait maintenant via EditorPanel
 
   // Limites de zoom
@@ -149,6 +154,40 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     setScale(1);
     setPosition({ x: 0, y: 0 });
   }, [domain.backgroundImage]);
+
+  // Activer le mode renommage quand un point est cloné
+  useEffect(() => {
+    if (lastClonedMapElementId && !_readOnly) {
+      // Chercher le point cloné dans ce domaine
+      const clonedPoint = (domain.mapElements || []).find(p => p.id === lastClonedMapElementId);
+      
+      if (clonedPoint) {
+        setRenamingPointId(lastClonedMapElementId);
+        setRenamingValue(clonedPoint.name);
+        clearLastClonedMapElementId();
+        // Focus sur l'input après le rendu
+        setTimeout(() => {
+          renameInputRef.current?.focus();
+          renameInputRef.current?.select();
+        }, 50);
+      }
+    }
+  }, [lastClonedMapElementId, domain.mapElements, _readOnly, clearLastClonedMapElementId]);
+
+  // Gérer la validation du renommage
+  const handleRenameSubmit = useCallback(() => {
+    if (renamingPointId && renamingValue.trim()) {
+      updateMapElement(renamingPointId, { name: renamingValue.trim() });
+    }
+    setRenamingPointId(null);
+    setRenamingValue('');
+  }, [renamingPointId, renamingValue, updateMapElement]);
+
+  // Gérer l'annulation du renommage
+  const handleRenameCancel = useCallback(() => {
+    setRenamingPointId(null);
+    setRenamingValue('');
+  }, []);
 
   // Mettre à jour le formulaire quand le domaine change
   useEffect(() => {
@@ -1930,6 +1969,53 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             setPendingElementData(null);
           }}
         />
+      )}
+
+      {/* Popup de renommage rapide après clonage */}
+      {renamingPointId && createPortal(
+        <div
+          className="fixed inset-0 z-[99998] flex items-center justify-center bg-black/30"
+          onClick={handleRenameCancel}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-4 min-w-[300px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-sm font-semibold text-[#1E3A5F] mb-3">Renommer le point cloné</h4>
+            <input
+              ref={renameInputRef}
+              type="text"
+              value={renamingValue}
+              onChange={(e) => setRenamingValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleRenameSubmit();
+                } else if (e.key === 'Escape') {
+                  handleRenameCancel();
+                }
+              }}
+              className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:border-[#1E3A5F] text-[#1E3A5F]"
+              placeholder="Nom du point"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                onClick={handleRenameCancel}
+                className="px-3 py-1.5 text-sm text-[#64748B] hover:text-[#1E3A5F] transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleRenameSubmit}
+                className="px-3 py-1.5 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors"
+              >
+                Valider (Entrée)
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Tooltip au survol - rendu via Portal pour être toujours au premier plan */}

@@ -43,7 +43,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, findElementsByName, linkElement, currentCockpit } = useCockpitStore();
+  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, findElementsByName, linkElement, currentCockpit, lastClonedElementId, clearLastClonedElementId } = useCockpitStore();
   // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
   const domains = domainsProp || currentCockpit?.domains;
 
@@ -149,6 +149,47 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   // Tooltip au survol
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; elementId: string } | null>(null);
+
+  // Renommage rapide après clonage
+  const [renamingElementId, setRenamingElementId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Activer le mode renommage quand un élément est cloné
+  useEffect(() => {
+    if (lastClonedElementId && !_readOnly) {
+      // Chercher l'élément cloné dans ce domaine
+      const clonedElement = domain.categories
+        ?.flatMap(c => c.elements)
+        .find(e => e.id === lastClonedElementId);
+      
+      if (clonedElement) {
+        setRenamingElementId(lastClonedElementId);
+        setRenamingValue(clonedElement.name);
+        clearLastClonedElementId();
+        // Focus sur l'input après le rendu
+        setTimeout(() => {
+          renameInputRef.current?.focus();
+          renameInputRef.current?.select();
+        }, 50);
+      }
+    }
+  }, [lastClonedElementId, domain.categories, _readOnly, clearLastClonedElementId]);
+
+  // Gérer la validation du renommage
+  const handleRenameSubmit = useCallback(() => {
+    if (renamingElementId && renamingValue.trim()) {
+      updateElement(renamingElementId, { name: renamingValue.trim() });
+    }
+    setRenamingElementId(null);
+    setRenamingValue('');
+  }, [renamingElementId, renamingValue, updateElement]);
+
+  // Gérer l'annulation du renommage
+  const handleRenameCancel = useCallback(() => {
+    setRenamingElementId(null);
+    setRenamingValue('');
+  }, []);
 
   // Limites de zoom
   const MIN_ZOOM = 0.5;
@@ -1869,6 +1910,53 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             setPendingElementData(null);
           }}
         />
+      )}
+
+      {/* Popup de renommage rapide après clonage */}
+      {renamingElementId && createPortal(
+        <div
+          className="fixed inset-0 z-[99998] flex items-center justify-center bg-black/30"
+          onClick={handleRenameCancel}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-4 min-w-[300px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-sm font-semibold text-[#1E3A5F] mb-3">Renommer l'élément cloné</h4>
+            <input
+              ref={renameInputRef}
+              type="text"
+              value={renamingValue}
+              onChange={(e) => setRenamingValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleRenameSubmit();
+                } else if (e.key === 'Escape') {
+                  handleRenameCancel();
+                }
+              }}
+              className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:border-[#1E3A5F] text-[#1E3A5F]"
+              placeholder="Nom de l'élément"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                onClick={handleRenameCancel}
+                className="px-3 py-1.5 text-sm text-[#64748B] hover:text-[#1E3A5F] transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleRenameSubmit}
+                className="px-3 py-1.5 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors"
+              >
+                Valider (Entrée)
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Tooltip au survol - rendu via Portal pour être toujours au premier plan */}
