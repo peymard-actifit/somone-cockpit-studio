@@ -143,9 +143,6 @@ export default function CategorySection({ category, onElementClick, readOnly = f
     }
   };
 
-  // Clé pour les préférences spécifiques au domaine
-  const storageKey = domainId ? `domain_${domainId}` : 'global';
-
   // Les catégories sans orientation sont considérées comme horizontales par défaut
   const isHorizontal = category.orientation !== 'vertical';
   // Les catégories horizontales s'affichent toujours en mode inline (titre à gauche, éléments à droite)
