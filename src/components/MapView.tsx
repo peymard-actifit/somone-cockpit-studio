@@ -1998,10 +1998,13 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         <div
           className="fixed inset-0 z-[99998] flex items-center justify-center bg-black/30"
           onClick={handleRenameCancel}
+          onMouseDown={(e) => e.target === e.currentTarget && e.stopPropagation()}
         >
           <div
             className="bg-white rounded-xl shadow-2xl p-4 min-w-[300px]"
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
           >
             <h4 className="text-sm font-semibold text-[#1E3A5F] mb-3">Renommer le point cloné</h4>
             <input
@@ -2017,6 +2020,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   handleRenameCancel();
                 }
               }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseUp={(e) => e.stopPropagation()}
+              onMouseMove={(e) => e.stopPropagation()}
+              onSelect={(e) => e.stopPropagation()}
               className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:border-[#1E3A5F] text-[#1E3A5F]"
               placeholder="Nom du point"
               autoFocus
@@ -2024,12 +2031,14 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             <div className="flex justify-end gap-2 mt-3">
               <button
                 onClick={handleRenameCancel}
+                onMouseDown={(e) => e.stopPropagation()}
                 className="px-3 py-1.5 text-sm text-[#64748B] hover:text-[#1E3A5F] transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={handleRenameSubmit}
+                onMouseDown={(e) => e.stopPropagation()}
                 className="px-3 py-1.5 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors"
               >
                 Valider (Entrée)
