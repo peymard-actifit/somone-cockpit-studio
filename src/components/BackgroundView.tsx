@@ -44,7 +44,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, findElementsByName, linkElement, currentCockpit, lastClonedElementId, clearLastClonedElementId } = useCockpitStore();
+  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, findElementsByName, linkElement, currentCockpit, lastClonedElementId, clearLastClonedElementId, zones } = useCockpitStore();
   // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
   const domains = domainsProp || currentCockpit?.domains;
 
@@ -1934,7 +1934,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         elements={positionedElements}
         categories={domain.categories || []}
         domain={domain}
-        templates={currentCockpit?.zones?.map(z => z.name) || []}
+        templates={zones?.map(z => z.name) || []}
       />
 
       {/* Popup de renommage rapide après clonage */}

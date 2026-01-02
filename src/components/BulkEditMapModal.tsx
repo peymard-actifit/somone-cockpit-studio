@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { MapElement, TileStatus, Domain } from '../types';
+import type { MapElement, TileStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { MuiIcon } from './IconPicker';
 import { useCockpitStore } from '../store/cockpitStore';
@@ -8,10 +8,9 @@ interface BulkEditMapModalProps {
   isOpen: boolean;
   onClose: () => void;
   mapElements: MapElement[];
-  domain: Domain;
 }
 
-export default function BulkEditMapModal({ isOpen, onClose, mapElements, domain }: BulkEditMapModalProps) {
+export default function BulkEditMapModal({ isOpen, onClose, mapElements }: BulkEditMapModalProps) {
   const { updateMapElement } = useCockpitStore();
   const [searchTerm, setSearchTerm] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
@@ -87,12 +86,10 @@ export default function BulkEditMapModal({ isOpen, onClose, mapElements, domain 
         </div>
 
         {/* En-têtes de colonnes */}
-        <div className="grid grid-cols-[2fr_100px_80px_80px_60px_100px_100px] gap-2 px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs font-semibold text-[#64748B] flex-shrink-0">
+        <div className="grid grid-cols-[2fr_100px_80px_100px_100px] gap-2 px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs font-semibold text-[#64748B] flex-shrink-0">
           <div>Nom</div>
           <div>Statut</div>
           <div>Icône</div>
-          <div>Valeur</div>
-          <div>Unité</div>
           <div>Latitude</div>
           <div>Longitude</div>
         </div>
@@ -138,7 +135,7 @@ function BulkEditMapRow({ element, statuses, popularIcons, onUpdate }: BulkEditM
   const colors = STATUS_COLORS[element.status];
 
   return (
-    <div className="grid grid-cols-[2fr_100px_80px_80px_60px_100px_100px] gap-2 px-4 py-1.5 border-b border-[#F1F5F9] hover:bg-[#F8FAFC] items-center text-sm">
+    <div className="grid grid-cols-[2fr_100px_80px_100px_100px] gap-2 px-4 py-1.5 border-b border-[#F1F5F9] hover:bg-[#F8FAFC] items-center text-sm">
       {/* Nom */}
       <input
         type="text"
@@ -190,24 +187,6 @@ function BulkEditMapRow({ element, statuses, popularIcons, onUpdate }: BulkEditM
           </div>
         )}
       </div>
-
-      {/* Valeur */}
-      <input
-        type="text"
-        value={element.value || ''}
-        onChange={(e) => onUpdate(element.id, { value: e.target.value })}
-        placeholder="-"
-        className="px-2 py-1 border border-transparent hover:border-[#E2E8F0] focus:border-[#1E3A5F] rounded text-[#1E3A5F] focus:outline-none bg-transparent text-center"
-      />
-
-      {/* Unité */}
-      <input
-        type="text"
-        value={element.unit || ''}
-        onChange={(e) => onUpdate(element.id, { unit: e.target.value })}
-        placeholder="-"
-        className="px-2 py-1 border border-transparent hover:border-[#E2E8F0] focus:border-[#1E3A5F] rounded text-[#1E3A5F] focus:outline-none bg-transparent text-center text-xs"
-      />
 
       {/* Latitude */}
       <input

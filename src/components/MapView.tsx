@@ -1991,7 +1991,6 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         isOpen={showBulkEditModal}
         onClose={() => setShowBulkEditModal(false)}
         mapElements={domain.mapElements || []}
-        domain={domain}
       />
 
       {/* Popup de renommage rapide après clonage */}
