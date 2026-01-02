@@ -1919,31 +1919,30 @@ export default function HomePage() {
                         Statistiques par utilisateur
                       </h4>
                     </div>
-                    <div className="divide-y divide-slate-700/50 max-h-60 overflow-y-auto">
+                    <div className="divide-y divide-slate-700/50 max-h-48 overflow-y-auto">
                       {dashboardStats.userStats && dashboardStats.userStats.length > 0 ? (
                         dashboardStats.userStats.map((userStat: any) => (
-                          <div key={userStat.userId} className="px-4 py-3 flex items-center justify-between hover:bg-slate-700/30">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                          <div key={userStat.userId} className="px-3 py-1.5 flex items-center justify-between hover:bg-slate-700/30">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                                 {userStat.userName?.charAt(0).toUpperCase() || '?'}
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-white">{userStat.userName || userStat.email}</div>
-                                <div className="text-xs text-slate-500">{userStat.email}</div>
+                              <div className="truncate">
+                                <div className="text-xs font-medium text-white truncate" title={userStat.userName || userStat.email}>{userStat.userName || userStat.email}</div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="text-center">
-                                <div className="font-medium text-green-400">{userStat.cockpitsCount}</div>
-                                <div className="text-[10px] text-slate-500">maquettes</div>
+                            <div className="flex items-center gap-3 text-[10px] flex-shrink-0">
+                              <div className="text-center" title="Maquettes">
+                                <span className="font-medium text-green-400">{userStat.cockpitsCount}</span>
+                                <span className="text-slate-500 ml-1">maq</span>
                               </div>
-                              <div className="text-center">
-                                <div className="font-medium text-purple-400">{userStat.publishedCount}</div>
-                                <div className="text-[10px] text-slate-500">publiées</div>
+                              <div className="text-center" title="Publiées">
+                                <span className="font-medium text-purple-400">{userStat.publishedCount}</span>
+                                <span className="text-slate-500 ml-1">pub</span>
                               </div>
-                              <div className="text-center">
-                                <div className="font-medium text-amber-400">{userStat.totalViews}</div>
-                                <div className="text-[10px] text-slate-500">vues</div>
+                              <div className="text-center" title="Vues">
+                                <span className="font-medium text-amber-400">{userStat.totalViews}</span>
+                                <span className="text-slate-500 ml-1">vues</span>
                               </div>
                             </div>
                           </div>
