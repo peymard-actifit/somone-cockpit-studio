@@ -308,28 +308,15 @@ function SortableCockpitCard({
                 )}
               </button>
               {cockpit.publicId && (
-                <>
-                  <button
-                    onClick={() => {
-                      window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
-                    }}
-                    className="p-1 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 rounded transition-colors"
-                    title="Ouvrir la version publiée"
-                  >
-                    <MuiIcon name="OpenInBrowser" size={12} />
-                  </button>
-                  <button
-                    onClick={() => openEditWelcomeModal(cockpit.id)}
-                    className={`p-1 rounded transition-colors ${
-                      cockpit.welcomeMessage 
-                        ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' 
-                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/50'
-                    }`}
-                    title={cockpit.welcomeMessage ? "Modifier le message d'accueil" : "Ajouter un message d'accueil"}
-                  >
-                    <MuiIcon name="Campaign" size={12} />
-                  </button>
-                </>
+                <button
+                  onClick={() => {
+                    window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
+                  }}
+                  className="p-1 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 rounded transition-colors"
+                  title="Ouvrir la version publiée"
+                >
+                  <MuiIcon name="OpenInBrowser" size={12} />
+                </button>
               )}
             </>
           ) : (
@@ -341,6 +328,18 @@ function SortableCockpitCard({
               Publier
             </button>
           )}
+          {/* Bouton message d'accueil - toujours visible pour préparer avant publication */}
+          <button
+            onClick={() => openEditWelcomeModal(cockpit.id)}
+            className={`p-1 rounded transition-colors ${
+              cockpit.welcomeMessage 
+                ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' 
+                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/50'
+            }`}
+            title={cockpit.welcomeMessage ? "Modifier le message d'accueil" : "Ajouter un message d'accueil"}
+          >
+            <MuiIcon name="Campaign" size={12} />
+          </button>
           <button
             onClick={() => {
               setNewName(cockpit.name + ' - Copie');
