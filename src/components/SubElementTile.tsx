@@ -5,6 +5,7 @@ import { useCockpitStore } from '../store/cockpitStore';
 import AlertPopup from './AlertPopup';
 import { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { useTracking } from '../contexts/TrackingContext';
 
 interface SubElementTileProps {
   subElement: SubElement;
@@ -28,6 +29,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
   const [showAlert, setShowAlert] = useState(false);
   const { deleteSubElement, duplicateSubElementLinked } = useCockpitStore();
   const confirm = useConfirm();
+  const { trackEvent, isTracking } = useTracking();
   const colors = STATUS_COLORS[subElement.status];
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -143,6 +145,10 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
 
     // Si en mode lecture seule, juste ouvrir l'alerte si présente
     if (readOnly) {
+      // Tracker le clic sur le sous-élément (cockpits publiés)
+      if (isTracking) {
+        trackEvent('subElement', { subElementId: subElement.id });
+      }
       if (hasAlert) {
         setShowAlert(true);
       }

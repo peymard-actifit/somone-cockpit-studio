@@ -7,8 +7,9 @@ import ElementView from '../components/ElementView';
 import PublicAIChat from '../components/PublicAIChat';
 import { VERSION_DISPLAY } from '../config/version';
 import { getDomainWorstStatus, STATUS_COLORS } from '../types';
+import { TrackingProvider, useTracking } from '../contexts/TrackingContext';
 
-export default function PublicCockpitPage() {
+function PublicCockpitContent() {
   const { publicId } = useParams();
   const [cockpit, setCockpit] = useState<Cockpit | null>(null);
   const [currentDomainId, setCurrentDomainId] = useState<string | null>(null);
@@ -16,16 +17,7 @@ export default function PublicCockpitPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
-
-  // Fonction de tracking des événements (non bloquante)
-  const trackEvent = (eventType: 'click' | 'page' | 'element' | 'subElement', extra?: { elementId?: string; subElementId?: string; domainId?: string }) => {
-    if (!publicId) return;
-    fetch(`/api/public/track/${publicId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventType, ...extra })
-    }).catch(() => {}); // Silencieux en cas d'erreur
-  };
+  const { trackEvent } = useTracking();
 
   useEffect(() => {
     const fetchPublicCockpit = async () => {
@@ -435,5 +427,16 @@ export default function PublicCockpitPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Wrapper avec le TrackingProvider
+export default function PublicCockpitPage() {
+  const { publicId } = useParams();
+  
+  return (
+    <TrackingProvider publicId={publicId} enabled={true}>
+      <PublicCockpitContent />
+    </TrackingProvider>
   );
 }
