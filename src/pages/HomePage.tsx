@@ -1967,9 +1967,9 @@ export default function HomePage() {
                     <div className="divide-y divide-slate-700/50 max-h-60 overflow-y-auto">
                       {dashboardStats.topCockpits && dashboardStats.topCockpits.length > 0 ? (
                         dashboardStats.topCockpits.map((cockpit: any, index: number) => (
-                          <div key={cockpit.id} className="px-4 py-3 flex items-center justify-between hover:bg-slate-700/30">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          <div key={cockpit.id} className="px-3 py-2 flex items-center justify-between hover:bg-slate-700/30 gap-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
                                 index === 0 ? 'bg-amber-500 text-white' :
                                 index === 1 ? 'bg-slate-400 text-white' :
                                 index === 2 ? 'bg-amber-700 text-white' :
@@ -1977,14 +1977,30 @@ export default function HomePage() {
                               }`}>
                                 {index + 1}
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-white">{cockpit.name}</div>
-                                <div className="text-xs text-slate-500">par {cockpit.ownerName}</div>
-                              </div>
+                              <div className="truncate text-xs font-medium text-white" title={cockpit.name}>{cockpit.name}</div>
+                              <div className="text-[10px] text-slate-500 truncate" title={cockpit.ownerName}>({cockpit.ownerName})</div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <MuiIcon name="Visibility" size={14} className="text-slate-500" />
-                              <span className="text-sm font-medium text-amber-400">{cockpit.views}</span>
+                            <div className="flex items-center gap-3 flex-shrink-0 text-[10px]">
+                              <div className="flex items-center gap-1" title="Vues">
+                                <MuiIcon name="Visibility" size={12} className="text-slate-500" />
+                                <span className="font-medium text-amber-400">{cockpit.views}</span>
+                              </div>
+                              <div className="flex items-center gap-1" title="Clics">
+                                <MuiIcon name="TouchApp" size={12} className="text-slate-500" />
+                                <span className="text-slate-300">{cockpit.clicks || 0}</span>
+                              </div>
+                              <div className="flex items-center gap-1" title="Pages vues">
+                                <MuiIcon name="Tab" size={12} className="text-slate-500" />
+                                <span className="text-slate-300">{cockpit.pagesViewed || 0}</span>
+                              </div>
+                              <div className="flex items-center gap-1" title={`Éléments cliqués / ${cockpit.elementsCount || 0} total`}>
+                                <MuiIcon name="Widgets" size={12} className="text-slate-500" />
+                                <span className="text-blue-400">{cockpit.elementsClicked || 0}</span>
+                              </div>
+                              <div className="flex items-center gap-1" title={`Sous-éléments cliqués / ${cockpit.subElementsCount || 0} total`}>
+                                <MuiIcon name="GridView" size={12} className="text-slate-500" />
+                                <span className="text-purple-400">{cockpit.subElementsClicked || 0}</span>
+                              </div>
                             </div>
                           </div>
                         ))

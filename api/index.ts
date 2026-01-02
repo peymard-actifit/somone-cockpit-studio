@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.21.0';
+const APP_VERSION = '14.21.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1070,6 +1070,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       return res.json(response);
+    }
+
+    // =====================
+    // PUBLIC TRACKING (pour les stats)
+    // =====================
+    const trackingMatch = path.match(/^\/public\/track\/([^/]+)$/);
+    if (trackingMatch && method === 'POST') {
+      const publicId = trackingMatch[1];
+      const { eventType, elementId, subElementId, domainId } = req.body || {};
+      
+      const db = await getDb();
+      const cockpit = db.cockpits.find(c => c.data?.publicId === publicId && c.data?.isPublished);
+      
+      if (cockpit && cockpit.data) {
+        // Initialiser les compteurs si nécessaire
+        if (!cockpit.data.clickCount) cockpit.data.clickCount = 0;
+        if (!cockpit.data.pagesViewed) cockpit.data.pagesViewed = 0;
+        if (!cockpit.data.elementsClicked) cockpit.data.elementsClicked = 0;
+        if (!cockpit.data.subElementsClicked) cockpit.data.subElementsClicked = 0;
+        
+        // Incrémenter selon le type d'événement
+        switch (eventType) {
+          case 'click':
+            cockpit.data.clickCount++;
+            break;
+          case 'page':
+            cockpit.data.pagesViewed++;
+            break;
+          case 'element':
+            cockpit.data.elementsClicked++;
+            break;
+          case 'subElement':
+            cockpit.data.subElementsClicked++;
+            break;
+        }
+        
+        // Sauvegarder en arrière-plan
+        saveDb(db).catch(err => console.error('Erreur tracking:', err));
+      }
+      
+      return res.json({ success: true });
     }
 
     // =====================
@@ -3517,11 +3558,30 @@ INSTRUCTIONS:
         ?.filter(c => c.data?.isPublished && (c.data?.viewCount || 0) > 0)
         .map(c => {
           const owner = db.users?.find(u => u.id === c.userId);
+          // Compter les éléments et sous-éléments
+          let elementsCount = 0;
+          let subElementsCount = 0;
+          (c.data?.domains || []).forEach((d: any) => {
+            (d.categories || []).forEach((cat: any) => {
+              elementsCount += (cat.elements || []).length;
+              (cat.elements || []).forEach((el: any) => {
+                (el.subCategories || []).forEach((sc: any) => {
+                  subElementsCount += (sc.subElements || []).length;
+                });
+              });
+            });
+          });
           return {
             id: c.id,
             name: c.name,
             ownerName: owner?.name || owner?.email || 'Inconnu',
             views: c.data?.viewCount || 0,
+            clicks: c.data?.clickCount || 0,
+            pagesViewed: c.data?.pagesViewed || 0,
+            elementsClicked: c.data?.elementsClicked || 0,
+            subElementsClicked: c.data?.subElementsClicked || 0,
+            elementsCount,
+            subElementsCount,
             publishedAt: c.data?.publishedAt,
           };
         })

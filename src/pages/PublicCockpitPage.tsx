@@ -17,6 +17,16 @@ export default function PublicCockpitPage() {
   const [error, setError] = useState<string | null>(null);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
 
+  // Fonction de tracking des événements (non bloquante)
+  const trackEvent = (eventType: 'click' | 'page' | 'element' | 'subElement', extra?: { elementId?: string; subElementId?: string; domainId?: string }) => {
+    if (!publicId) return;
+    fetch(`/api/public/track/${publicId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventType, ...extra })
+    }).catch(() => {}); // Silencieux en cas d'erreur
+  };
+
   useEffect(() => {
     const fetchPublicCockpit = async () => {
       try {
@@ -139,6 +149,7 @@ export default function PublicCockpitPage() {
   // Handler pour cliquer sur un élément
   const handleElementClick = (elementId: string) => {
     setCurrentElementId(elementId);
+    trackEvent('element', { elementId, domainId: currentDomainId || undefined });
   };
 
   // Handler pour revenir à la vue domaine
@@ -187,6 +198,7 @@ export default function PublicCockpitPage() {
                     onClick={() => {
                       setCurrentDomainId(domain.id);
                       setCurrentElementId(null);
+                      trackEvent('page', { domainId: domain.id });
                     }}
                     className={`relative px-5 py-2 text-sm font-medium rounded-lg transition-all ${
                       isActive
@@ -286,6 +298,7 @@ export default function PublicCockpitPage() {
                   onClick={() => {
                     setCurrentDomainId(domain.id);
                     setCurrentElementId(null);
+                    trackEvent('page', { domainId: domain.id });
                   }}
                   style={hasAlert ? {
                     borderLeft: `3px solid ${statusColor}`,
