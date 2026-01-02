@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { MuiIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
+import BulkEditMapModal from './BulkEditMapModal';
 
 // Liste des icônes populaires pour les points de carte
 const POPULAR_MAP_ICONS = [
@@ -141,6 +142,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const [renamingPointId, setRenamingPointId] = useState<string | null>(null);
   const [renamingValue, setRenamingValue] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Modal d'édition en masse
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
 
   // Formulaire édition point supprimé - l'édition se fait maintenant via EditorPanel
 
@@ -859,10 +863,21 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           <MuiIcon name="Place" size={20} className="text-[#1E3A5F]" />
           {domain.name}
         </h2>
-        <p className="text-sm text-[#64748B] mt-1">
-          {(domain.mapElements?.length || 0)} point(s) sur la carte
-          {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
-        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <p className="text-sm text-[#64748B]">
+            {(domain.mapElements?.length || 0)} point(s) sur la carte
+            {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
+          </p>
+          {!_readOnly && (domain.mapElements?.length || 0) > 0 && (
+            <button
+              onClick={() => setShowBulkEditModal(true)}
+              className="p-1 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded transition-colors"
+              title="Édition en masse"
+            >
+              <MuiIcon name="EditNote" size={16} />
+            </button>
+          )}
+        </div>
         {!_readOnly && !hasMapBounds && mapImageUrl && (
           <p className="text-xs text-[#FFB74D] mt-1 flex items-center gap-1">
             <MuiIcon name="Warning" size={12} />
@@ -1970,6 +1985,14 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           }}
         />
       )}
+
+      {/* Modal d'édition en masse */}
+      <BulkEditMapModal
+        isOpen={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        mapElements={domain.mapElements || []}
+        domain={domain}
+      />
 
       {/* Popup de renommage rapide après clonage */}
       {renamingPointId && createPortal(

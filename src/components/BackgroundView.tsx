@@ -3,6 +3,7 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, STATUS_LABELS, STATUS_PRIORITY_MAP, getEffectiveColors, getEffectiveStatus } from '../types';
 import IconPicker, { MuiIcon, isCustomIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
+import BulkEditModal from './BulkEditModal';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -154,6 +155,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const [renamingElementId, setRenamingElementId] = useState<string | null>(null);
   const [renamingValue, setRenamingValue] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Modal d'édition en masse
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
 
   // Activer le mode renommage quand un élément est cloné
   useEffect(() => {
@@ -950,10 +954,21 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           <MuiIcon name="Image" size={20} className="text-[#1E3A5F]" />
           {domain.name}
         </h2>
-        <p className="text-sm text-[#64748B] mt-1">
-          {positionedElements.length} élément(s) positionné(s)
-          {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
-        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <p className="text-sm text-[#64748B]">
+            {positionedElements.length} élément(s) positionné(s)
+            {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
+          </p>
+          {!_readOnly && positionedElements.length > 0 && (
+            <button
+              onClick={() => setShowBulkEditModal(true)}
+              className="p-1 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded transition-colors"
+              title="Édition en masse"
+            >
+              <MuiIcon name="EditNote" size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filtre de catégories */}
@@ -1911,6 +1926,16 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           }}
         />
       )}
+
+      {/* Modal d'édition en masse */}
+      <BulkEditModal
+        isOpen={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        elements={positionedElements}
+        categories={domain.categories || []}
+        domain={domain}
+        templates={currentCockpit?.zones?.map(z => z.name) || []}
+      />
 
       {/* Popup de renommage rapide après clonage */}
       {renamingElementId && createPortal(
