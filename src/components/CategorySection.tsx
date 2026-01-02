@@ -162,7 +162,9 @@ export default function CategorySection({ category, onElementClick, readOnly = f
 
   // Les catégories sans orientation sont considérées comme horizontales par défaut
   const isHorizontal = category.orientation !== 'vertical';
-  const useInlineLayout = isHorizontal && horizontalCategoriesInline;
+  // Les catégories horizontales s'affichent toujours en mode inline (titre à gauche, éléments à droite)
+  // La préférence horizontalCategoriesInline permet d'activer l'alignement CSS Grid avec les autres catégories
+  const useInlineLayout = isHorizontal;
 
   // Préférences d'espacement (indépendantes par domaine)
   const spacingStorageKey = domainId ? `domain_${domainId}` : 'global';
