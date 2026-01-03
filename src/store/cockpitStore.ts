@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType, Incident, Folder } from '../types';
 import { useAuthStore } from './authStore';
 import { APP_VERSION } from '../config/version';
+import { offlineSync } from '../services/offlineSync';
 
 // Interface pour tracker les modifications récentes
 export interface RecentChange {
@@ -498,24 +499,37 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       if (!currentCockpit) return;
 
       const token = useAuthStore.getState().token;
-      try {
-        // IMPORTANT : Sauvegarder TOUTES les données (y compris non publiables)
-        // L'auto-save doit préserver toutes les données du studio
-        // Récupérer les zones depuis le state (pas depuis currentCockpit)
-        const zones = get().zones;
-        
-        const payload: any = {
-          name: currentCockpit.name,
-          domains: currentCockpit.domains || [], // TOUS les domaines, y compris non publiables
-          logo: currentCockpit.logo,
-          scrollingBanner: currentCockpit.scrollingBanner,
-          sharedWith: currentCockpit.sharedWith || [],
-          useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
-          zones: zones || [], // Inclure les zones depuis le state
-          templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
-          clientUpdatedAt: currentCockpit.updatedAt, // Pour détection de conflits
-        };
+      
+      // Récupérer les zones depuis le state
+      const zones = get().zones;
+      
+      const payload: any = {
+        name: currentCockpit.name,
+        domains: currentCockpit.domains || [],
+        logo: currentCockpit.logo,
+        scrollingBanner: currentCockpit.scrollingBanner,
+        sharedWith: currentCockpit.sharedWith || [],
+        useOriginalView: currentCockpit.useOriginalView || false,
+        zones: zones || [],
+        templateIcons: currentCockpit.templateIcons || {},
+        clientUpdatedAt: currentCockpit.updatedAt,
+      };
 
+      // Toujours sauvegarder une copie locale (backup)
+      offlineSync.backupCockpit(currentCockpit);
+
+      // Vérifier l'état du réseau
+      const syncState = offlineSync.getState();
+      
+      if (!syncState.isOnline) {
+        // Mode offline : ajouter à la queue
+        console.log('[Auto-save] Mode offline, ajout à la queue');
+        offlineSync.enqueue(currentCockpit.id, 'update', payload);
+        return;
+      }
+
+      // Mode online : tenter la sauvegarde directe
+      try {
         const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
           method: 'PUT',
           headers: {
@@ -525,14 +539,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           body: JSON.stringify(payload),
         });
 
-        // Gérer les conflits de version
         if (response.status === 409) {
           console.warn('[Auto-save] Conflit détecté, rechargement du cockpit...');
-          // Recharger le cockpit depuis le serveur
           get().fetchCockpit(currentCockpit.id);
+        } else if (!response.ok) {
+          throw new Error(`Erreur serveur: ${response.status}`);
+        } else {
+          // Succès : nettoyer le backup local
+          offlineSync.clearBackup(currentCockpit.id);
         }
-      } catch (error) {
-        console.error('Erreur auto-save:', error);
+      } catch (error: any) {
+        // Erreur réseau : passer en mode offline
+        console.warn('[Auto-save] Erreur réseau, passage en mode offline:', error.message);
+        offlineSync.enqueue(currentCockpit.id, 'update', payload);
       }
     }, 1000);
 
@@ -555,20 +574,35 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     }
 
     const token = useAuthStore.getState().token;
+    
+    const payload: any = {
+      name: currentCockpit.name,
+      domains: currentCockpit.domains || [],
+      logo: currentCockpit.logo,
+      scrollingBanner: currentCockpit.scrollingBanner,
+      sharedWith: currentCockpit.sharedWith || [],
+      useOriginalView: currentCockpit.useOriginalView || false,
+      templateIcons: currentCockpit.templateIcons || {},
+      clientUpdatedAt: currentCockpit.updatedAt,
+    };
+    if ((currentCockpit as any).zones) {
+      payload.zones = (currentCockpit as any).zones;
+    }
+
+    // Toujours sauvegarder une copie locale
+    offlineSync.backupCockpit(currentCockpit);
+
+    // Vérifier l'état du réseau
+    const syncState = offlineSync.getState();
+    
+    if (!syncState.isOnline) {
+      // Mode offline : ajouter à la queue et retourner succès (sauvegarde locale)
+      console.log('[forceSave] Mode offline, ajout à la queue');
+      offlineSync.enqueue(currentCockpit.id, 'save', payload);
+      return true; // La sauvegarde sera faite au retour du réseau
+    }
+
     try {
-      const payload: any = {
-        name: currentCockpit.name,
-        domains: currentCockpit.domains || [],
-        logo: currentCockpit.logo,
-        scrollingBanner: currentCockpit.scrollingBanner,
-        sharedWith: currentCockpit.sharedWith || [],
-        useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
-        templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
-        clientUpdatedAt: currentCockpit.updatedAt, // Pour détection de conflits
-      };
-      if ((currentCockpit as any).zones) {
-        payload.zones = (currentCockpit as any).zones;
-      }
 
       const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
         method: 'PUT',
@@ -592,10 +626,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         return false;
       }
 
+      // Succès : nettoyer le backup local
+      offlineSync.clearBackup(currentCockpit.id);
       return true;
-    } catch (error) {
-      console.error('[forceSave] ❌ Erreur:', error);
-      return false;
+    } catch (error: any) {
+      // Erreur réseau : passer en mode offline
+      console.warn('[forceSave] Erreur réseau, passage en mode offline:', error.message);
+      offlineSync.enqueue(currentCockpit.id, 'save', payload);
+      return true; // La sauvegarde sera faite au retour du réseau
     }
   },
 

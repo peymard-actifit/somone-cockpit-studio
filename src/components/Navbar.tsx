@@ -5,6 +5,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getDomainWorstStatus, STATUS_COLORS } from '../types';
+import { useSyncState, offlineSync } from '../services/offlineSync';
 
 // Clés pour les préférences d'affichage des onglets
 const DOMAIN_TAB_COLOR_MODE_KEY = 'domainTabColorMode';
@@ -127,6 +128,62 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
   );
 }
 
+// Composant indicateur de synchronisation
+function SyncIndicator() {
+  const syncState = useSyncState();
+  
+  // Si tout est ok, ne rien afficher
+  if (syncState.isOnline && syncState.pendingCount === 0 && !syncState.isSyncing) {
+    return null;
+  }
+
+  // Déterminer l'état et les couleurs
+  let bgColor = 'bg-green-500';
+  let icon = 'CloudDone';
+  let tooltip = 'Synchronisé';
+  let animate = false;
+
+  if (!syncState.isOnline) {
+    bgColor = 'bg-orange-500';
+    icon = 'CloudOff';
+    tooltip = `Hors ligne - ${syncState.pendingCount} modification${syncState.pendingCount > 1 ? 's' : ''} en attente`;
+    animate = syncState.pendingCount > 0;
+  } else if (syncState.isSyncing) {
+    bgColor = 'bg-blue-500';
+    icon = 'CloudSync';
+    tooltip = `Synchronisation en cours... (${syncState.pendingCount})`;
+    animate = true;
+  } else if (syncState.pendingCount > 0) {
+    bgColor = 'bg-yellow-500';
+    icon = 'CloudQueue';
+    tooltip = `${syncState.pendingCount} modification${syncState.pendingCount > 1 ? 's' : ''} en attente`;
+    animate = true;
+  }
+
+  return (
+    <div 
+      className={`flex items-center gap-1.5 px-3 py-1.5 ${bgColor} rounded-lg mr-2 cursor-pointer transition-all hover:opacity-90`}
+      title={tooltip}
+      onClick={() => {
+        if (syncState.isOnline && syncState.pendingCount > 0) {
+          offlineSync.forceSync();
+        }
+      }}
+    >
+      <MuiIcon 
+        name={icon as any} 
+        size={14} 
+        className={`text-white ${animate ? 'animate-pulse' : ''}`} 
+      />
+      {syncState.pendingCount > 0 && (
+        <span className="text-xs font-medium text-white">
+          {syncState.pendingCount}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function Navbar() {
   const { currentCockpit, currentDomainId, setCurrentDomain, addDomain, reorderDomains } = useCockpitStore();
   const [isAdding, setIsAdding] = useState(false);
@@ -224,6 +281,9 @@ export default function Navbar() {
             </div>
           </SortableContext>
         </DndContext>
+
+        {/* Indicateur de synchronisation */}
+        <SyncIndicator />
 
         {/* Bouton ajouter domaine */}
         {!isAdding && (
