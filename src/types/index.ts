@@ -181,6 +181,7 @@ export interface DataSource {
   fields?: string; // Champs à extraire, feuilles Excel, règles d'extraction
   description?: string;
   config?: Record<string, any>; // Configuration additionnelle
+  prompt?: string; // Prompt IA pour générer automatiquement les champs
 }
 
 // Calcul
@@ -192,6 +193,7 @@ export interface Calculation {
   definition: string; // Définition technique (JSON, YAML, DSL)
   sources: string[]; // IDs des sources utilisées
   result?: any; // Résultat calculé (pour explicabilité)
+  prompt?: string; // Prompt IA pour générer automatiquement les champs
 }
 
 // Explication d'un calcul (générée automatiquement)
@@ -223,6 +225,7 @@ export interface SubElement {
   calculations?: Calculation[]; // Calculs associés
   // Liaison entre sous-éléments du même nom
   linkedGroupId?: string;  // ID du groupe de liaison (sous-éléments synchronisés)
+  applyCalculation?: boolean; // Active/désactive l'application du calcul (défaut: false)
 }
 
 // Alerte

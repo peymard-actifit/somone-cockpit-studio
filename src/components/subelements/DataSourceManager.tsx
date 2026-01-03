@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SubElement, DataSource, DataSourceType } from '../../types';
 import { MuiIcon } from '../IconPicker';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { useAuthStore } from '../../store/authStore';
 
 interface DataSourceManagerProps {
   subElement: SubElement;
@@ -27,7 +28,9 @@ const generateId = () => crypto.randomUUID();
 export default function DataSourceManager({ subElement, sources, onUpdate }: DataSourceManagerProps) {
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const confirm = useConfirm();
+  const { token } = useAuthStore();
 
   const handleAdd = () => {
     const newSource: DataSource = {
@@ -80,6 +83,51 @@ export default function DataSourceManager({ subElement, sources, onUpdate }: Dat
     setShowForm(false);
   };
 
+  // Génération IA des champs depuis le prompt
+  const generateFromPrompt = async () => {
+    if (!editingSource?.prompt?.trim()) {
+      alert('Veuillez entrer une description de la source dans le champ prompt');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/ai/generate-source', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          prompt: editingSource.prompt,
+          subElementName: subElement.name,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération');
+      }
+
+      const result = await response.json();
+      
+      // Mettre à jour les champs avec les valeurs générées
+      setEditingSource({
+        ...editingSource,
+        name: result.name || editingSource.name,
+        type: result.type || editingSource.type,
+        location: result.location || editingSource.location,
+        connection: result.connection || editingSource.connection,
+        fields: result.fields || editingSource.fields,
+        description: result.description || editingSource.description,
+      });
+    } catch (error) {
+      console.error('Erreur génération IA:', error);
+      alert('Erreur lors de la génération. Veuillez réessayer.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (showForm && editingSource) {
     return (
       <div className="space-y-4">
@@ -96,6 +144,42 @@ export default function DataSourceManager({ subElement, sources, onUpdate }: Dat
         </div>
 
         <div className="space-y-3">
+          {/* Champ Prompt IA */}
+          <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+            <label className="block text-xs text-purple-700 font-medium mb-1">
+              <MuiIcon name="AutoAwesome" size={12} className="inline mr-1" />
+              Prompt IA - Décrivez la source souhaitée
+            </label>
+            <div className="flex gap-2">
+              <textarea
+                value={editingSource.prompt || ''}
+                onChange={(e) => setEditingSource({ ...editingSource, prompt: e.target.value })}
+                placeholder="Ex: Je veux récupérer les données de vente du fichier Excel mensuel situé sur le serveur partagé, dans la feuille 'Ventes', colonnes A à F..."
+                rows={2}
+                className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-purple-500 resize-none"
+              />
+              <button
+                onClick={generateFromPrompt}
+                disabled={isGenerating || !editingSource.prompt?.trim()}
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                title="Générer les champs automatiquement"
+              >
+                {isGenerating ? (
+                  <MuiIcon name="Refresh" size={16} className="animate-spin" />
+                ) : (
+                  <MuiIcon name="AutoAwesome" size={16} />
+                )}
+              </button>
+            </div>
+            <p className="text-xs text-purple-600 mt-1">
+              Décrivez en langage naturel la source de données dont vous avez besoin. L'IA remplira les champs automatiquement.
+            </p>
+          </div>
+
+          <div className="border-t border-[#E2E8F0] pt-3">
+            <p className="text-xs text-[#64748B] mb-2">Champs générés (modifiables) :</p>
+          </div>
+
           <div>
             <label className="block text-xs text-[#64748B] mb-1">Nom *</label>
             <input

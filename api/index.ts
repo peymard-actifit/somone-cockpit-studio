@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.24.0';
+const APP_VERSION = '14.25.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3828,6 +3828,148 @@ Tu dois aider à créer et modifier des cockpits qui répondent à ces besoins.`
       db.systemPrompt = prompt;
       await saveDb(db);
       return res.json({ success: true, prompt });
+    }
+
+    // AI Generate Source - Génère les champs d'une source depuis un prompt
+    if (path === '/ai/generate-source' && method === 'POST') {
+      if (!OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API key not configured' });
+      }
+
+      const { prompt, subElementName } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt requis' });
+      }
+
+      try {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `Tu es un assistant qui génère des configurations de sources de données pour un cockpit de supervision.
+À partir de la description en langage naturel, génère un objet JSON avec les champs suivants:
+- name: nom court et descriptif de la source (string)
+- type: type de source parmi: excel, csv, json, api, database, email, supervision, hypervision, observability, other (string)
+- location: emplacement/chemin/URL de la source (string)
+- connection: détails de connexion si applicable (string, optionnel)
+- fields: champs à extraire ou règles d'extraction (string)
+- description: description de ce que fait cette source (string)
+
+Réponds UNIQUEMENT avec le JSON, sans markdown ni explication.`
+              },
+              {
+                role: 'user',
+                content: `Sous-élément: ${subElementName || 'Non spécifié'}
+Description de la source souhaitée: ${prompt}`
+              }
+            ],
+            max_tokens: 500,
+            temperature: 0.3,
+          }),
+        });
+
+        if (!openaiResponse.ok) {
+          throw new Error('Erreur OpenAI');
+        }
+
+        const data = await openaiResponse.json();
+        const content = data.choices[0]?.message?.content || '';
+        
+        // Parser le JSON de la réponse
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const result = JSON.parse(jsonMatch[0]);
+          return res.json(result);
+        }
+        
+        return res.status(500).json({ error: 'Impossible de parser la réponse IA' });
+      } catch (error: any) {
+        log.error('[AI Generate Source]', error);
+        return res.status(500).json({ error: 'Erreur génération: ' + error.message });
+      }
+    }
+
+    // AI Generate Calculation - Génère les champs d'un calcul depuis un prompt
+    if (path === '/ai/generate-calculation' && method === 'POST') {
+      if (!OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API key not configured' });
+      }
+
+      const { prompt, subElementName, availableSources } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt requis' });
+      }
+
+      const sourcesInfo = (availableSources || []).map((s: any) => `- ${s.name} (${s.type}, id: ${s.id})`).join('\n');
+
+      try {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `Tu es un assistant qui génère des configurations de calculs pour un cockpit de supervision.
+À partir de la description en langage naturel, génère un objet JSON avec les champs suivants:
+- name: nom court et descriptif du calcul (string)
+- description: description métier du calcul (string)
+- sources: tableau des IDs des sources utilisées (array de strings)
+- definition: définition technique du calcul en JSON (string contenant un objet JSON avec les propriétés: operation, filter, aggregation, formula, etc.)
+
+Les opérations possibles dans definition: sum, avg, count, min, max, percentage, ratio, trend, threshold, custom.
+Tu peux utiliser des filtres, des agrégations temporelles, des formules.
+
+Réponds UNIQUEMENT avec le JSON, sans markdown ni explication.`
+              },
+              {
+                role: 'user',
+                content: `Sous-élément: ${subElementName || 'Non spécifié'}
+Sources disponibles:
+${sourcesInfo || 'Aucune source définie'}
+
+Calcul souhaité: ${prompt}`
+              }
+            ],
+            max_tokens: 800,
+            temperature: 0.3,
+          }),
+        });
+
+        if (!openaiResponse.ok) {
+          throw new Error('Erreur OpenAI');
+        }
+
+        const data = await openaiResponse.json();
+        const content = data.choices[0]?.message?.content || '';
+        
+        // Parser le JSON de la réponse
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const result = JSON.parse(jsonMatch[0]);
+          // S'assurer que definition est une string JSON
+          if (result.definition && typeof result.definition === 'object') {
+            result.definition = JSON.stringify(result.definition, null, 2);
+          }
+          return res.json(result);
+        }
+        
+        return res.status(500).json({ error: 'Impossible de parser la réponse IA' });
+      } catch (error: any) {
+        log.error('[AI Generate Calculation]', error);
+        return res.status(500).json({ error: 'Erreur génération: ' + error.message });
+      }
     }
 
     // AI Chat

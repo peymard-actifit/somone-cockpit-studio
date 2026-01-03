@@ -25,8 +25,45 @@ export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: So
     ? subElement.calculations[0] 
     : null;
 
+  const hasCalculations = (subElement.calculations?.length || 0) > 0;
+  const hasSources = (subElement.sources?.length || 0) > 0;
+
   return (
     <div className="space-y-4">
+      {/* Toggle Application du calcul */}
+      {(hasCalculations || hasSources) && (
+        <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={subElement.applyCalculation || false}
+                onChange={(e) => onUpdate({ applyCalculation: e.target.checked })}
+                className="sr-only"
+              />
+              <div className={`w-10 h-6 rounded-full transition-colors ${
+                subElement.applyCalculation ? 'bg-green-500' : 'bg-gray-300'
+              }`}>
+                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                  subElement.applyCalculation ? 'translate-x-4' : ''
+                }`} />
+              </div>
+            </div>
+            <div className="flex-1">
+              <span className="text-sm font-medium text-green-800">Application du calcul</span>
+              <p className="text-xs text-green-600">
+                {subElement.applyCalculation 
+                  ? 'Activé - Le calcul sera exécuté sur les données sources' 
+                  : 'Désactivé - Le calcul ne sera pas appliqué'}
+              </p>
+            </div>
+            {subElement.applyCalculation && (
+              <MuiIcon name="CheckCircle" size={20} className="text-green-500" />
+            )}
+          </label>
+        </div>
+      )}
+
       {/* Onglets */}
       <div className="flex border-b border-[#E2E8F0]">
         <button
