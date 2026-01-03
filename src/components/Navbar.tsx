@@ -219,20 +219,24 @@ export default function Navbar() {
     return () => window.removeEventListener('domainTabColorModeChanged', handlePreferenceChange);
   }, []);
 
-  if (!currentCockpit) return null;
-
-  const domains = currentCockpit.domains || [];
-
-  // Trier les domaines par order pour garantir l'ordre correct
-  const sortedDomains = [...domains].sort((a, b) => a.order - b.order);
-
-  // Capteurs pour le drag and drop
+  // ============================================================================
+  // HOOKS POUR LE DRAG AND DROP - DOIVENT ÊTRE DÉCLARÉS AVANT TOUT RETURN CONDITIONNEL
+  // (Règle #300 de React : les hooks doivent être appelés dans le même ordre à chaque rendu)
+  // ============================================================================
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Return conditionnel - APRÈS tous les hooks
+  if (!currentCockpit) return null;
+
+  const domains = currentCockpit.domains || [];
+
+  // Trier les domaines par order pour garantir l'ordre correct
+  const sortedDomains = [...domains].sort((a, b) => a.order - b.order);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
