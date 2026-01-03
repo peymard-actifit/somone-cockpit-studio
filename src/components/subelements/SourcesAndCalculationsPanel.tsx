@@ -3,8 +3,18 @@ import type { SubElement, DataSource, Calculation } from '../../types';
 import DataSourceManager from './DataSourceManager';
 import CalculationManager from './CalculationManager';
 import CalculationExplanation from './CalculationExplanation';
+import CalculationExecutionModal from './CalculationExecutionModal';
 import { MuiIcon } from '../IconPicker';
 import { useAuthStore } from '../../store/authStore';
+
+interface ExecutionStep {
+  step: number;
+  action: string;
+  status: 'pending' | 'running' | 'success' | 'error' | 'skipped';
+  message: string;
+  details?: any;
+  timestamp: string;
+}
 
 interface SourcesAndCalculationsPanelProps {
   subElement: SubElement;
@@ -14,6 +24,8 @@ interface SourcesAndCalculationsPanelProps {
 export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: SourcesAndCalculationsPanelProps) {
   const [activeTab, setActiveTab] = useState<'sources' | 'calculations' | 'explanation'>('sources');
   const [isExecuting, setIsExecuting] = useState(false);
+  const [showExecutionModal, setShowExecutionModal] = useState(false);
+  const [executionSteps, setExecutionSteps] = useState<ExecutionStep[]>([]);
   const [executionResult, setExecutionResult] = useState<{
     success: boolean;
     value?: string;
@@ -42,12 +54,24 @@ export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: So
   const hasCalculations = (subElement.calculations?.length || 0) > 0;
   const hasSources = (subElement.sources?.length || 0) > 0;
 
-  // Exécuter le calcul
+  // Exécuter le calcul avec modal des étapes
   const executeCalculation = async () => {
     if (!selectedCalculation) return;
 
+    // Ouvrir le modal et réinitialiser
+    setShowExecutionModal(true);
     setIsExecuting(true);
     setExecutionResult(null);
+    setExecutionSteps([]);
+
+    // Ajouter une étape initiale côté client
+    setExecutionSteps([{
+      step: 0,
+      action: 'init',
+      status: 'running',
+      message: 'Envoi de la requête au serveur...',
+      timestamp: new Date().toISOString(),
+    }]);
 
     try {
       const response = await fetch('/api/ai/execute-calculation', {
@@ -65,23 +89,39 @@ export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: So
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de l\'exécution');
+      const result = await response.json();
+      
+      // Mettre à jour les étapes depuis le serveur
+      if (result.steps && Array.isArray(result.steps)) {
+        setExecutionSteps(result.steps);
       }
 
-      const result = await response.json();
-      setExecutionResult({
-        success: true,
-        value: result.value,
-        unit: result.unit,
-        status: result.status,
-        explanation: result.explanation,
-        mode: result.mode,
-        warnings: result.warnings,
-        rawData: result.rawData,
-      });
+      if (!response.ok) {
+        setExecutionResult({
+          success: false,
+          error: result.error || 'Erreur lors de l\'exécution',
+        });
+      } else {
+        setExecutionResult({
+          success: true,
+          value: result.value,
+          unit: result.unit,
+          status: result.status,
+          explanation: result.explanation,
+          mode: result.mode,
+          warnings: result.warnings,
+          rawData: result.rawData,
+        });
+      }
     } catch (error: any) {
       console.error('Erreur exécution calcul:', error);
+      setExecutionSteps(prev => [...prev, {
+        step: prev.length + 1,
+        action: 'network_error',
+        status: 'error',
+        message: `Erreur réseau: ${error.message}`,
+        timestamp: new Date().toISOString(),
+      }]);
       setExecutionResult({
         success: false,
         error: error.message || 'Erreur lors de l\'exécution du calcul',
@@ -351,6 +391,23 @@ export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: So
           />
         )}
       </div>
+
+      {/* Modal d'exécution */}
+      <CalculationExecutionModal
+        isOpen={showExecutionModal}
+        onClose={() => setShowExecutionModal(false)}
+        steps={executionSteps}
+        result={executionResult ? {
+          value: executionResult.value,
+          unit: executionResult.unit,
+          status: executionResult.status,
+          explanation: executionResult.explanation,
+          mode: executionResult.mode,
+        } : null}
+        isExecuting={isExecuting}
+        onApply={applyResult}
+        calculationName={selectedCalculation?.name}
+      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.25.3';
+const APP_VERSION = '14.25.4';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -282,42 +282,122 @@ function hasConflict(serverUpdatedAt: string, clientUpdatedAt?: string): boolean
 // Fonctions d'accès aux sources de données
 // ============================================
 
-/**
- * Récupère les données depuis une source
- */
-async function fetchSourceData(source: any): Promise<any> {
-  const { type, location, connection, fields } = source;
+interface ExecutionStep {
+  step: number;
+  action: string;
+  status: 'pending' | 'running' | 'success' | 'error' | 'skipped';
+  message: string;
+  details?: any;
+  timestamp: string;
+}
 
-  switch (type) {
-    case 'api':
-      return await fetchFromAPI(location, connection, fields);
+/**
+ * Récupère les données depuis une source avec logging des étapes
+ */
+async function fetchSourceData(source: any, steps: ExecutionStep[]): Promise<any> {
+  const { type, location, connection, fields } = source;
+  const stepNum = steps.length + 1;
+  
+  // Vérifier que la source est valide
+  if (!source || !type) {
+    steps.push({
+      step: stepNum,
+      action: 'validate_source',
+      status: 'error',
+      message: 'Source invalide ou type non défini',
+      timestamp: new Date().toISOString(),
+    });
+    return null;
+  }
+
+  steps.push({
+    step: stepNum,
+    action: 'fetch_source',
+    status: 'running',
+    message: `Récupération de la source "${source.name || 'Sans nom'}" (${type})`,
+    details: { type, location: location?.substring(0, 50) || 'Non défini' },
+    timestamp: new Date().toISOString(),
+  });
+
+  try {
+    let data = null;
     
-    case 'json':
-      return await fetchFromJSON(location);
+    switch (type) {
+      case 'api':
+        if (!location) throw new Error('URL de l\'API non définie');
+        data = await fetchFromAPI(location, connection, fields);
+        break;
+      
+      case 'json':
+        if (!location) throw new Error('URL du JSON non définie');
+        data = await fetchFromJSON(location);
+        break;
+      
+      case 'csv':
+        if (!location) throw new Error('URL du CSV non définie');
+        data = await fetchFromCSV(location, fields);
+        break;
+      
+      case 'excel':
+        // Excel désactivé côté serveur (lib trop lourde), utiliser CSV ou API
+        steps[steps.length - 1].status = 'skipped';
+        steps[steps.length - 1].message = `Excel: Utilisez un export CSV ou une API`;
+        return null;
+      
+      case 'database':
+        if (!connection) throw new Error('Connexion BDD non définie');
+        data = await fetchFromDatabase(connection, fields);
+        break;
+      
+      case 'supervision':
+      case 'hypervision':
+      case 'observability':
+        if (!location) throw new Error('URL du service de monitoring non définie');
+        data = await fetchFromMonitoring(type, location, connection);
+        break;
+      
+      case 'manual':
+      case 'static':
+        // Données statiques définies dans la config
+        if (source.config?.data) {
+          data = source.config.data;
+        } else if (fields) {
+          // Essayer de parser les champs comme des données JSON
+          try {
+            data = JSON.parse(fields);
+          } catch {
+            data = null;
+          }
+        }
+        break;
+      
+      default:
+        // Pour les autres types, essayer comme une URL si définie
+        if (location && (location.startsWith('http://') || location.startsWith('https://'))) {
+          data = await fetchFromAPI(location, connection, fields);
+        } else {
+          steps[steps.length - 1].status = 'skipped';
+          steps[steps.length - 1].message = `Type "${type}" non supporté ou pas de données`;
+          return null;
+        }
+    }
     
-    case 'csv':
-      return await fetchFromCSV(location, fields);
+    // Mise à jour du statut de l'étape
+    const lastStep = steps[steps.length - 1];
+    lastStep.status = 'success';
+    lastStep.message = `Source "${source.name || 'Sans nom'}" récupérée`;
+    lastStep.details = { 
+      ...lastStep.details, 
+      recordCount: Array.isArray(data) ? data.length : (data ? 1 : 0) 
+    };
     
-    case 'excel':
-      // Pour Excel, on a besoin d'un fichier accessible via URL
-      return await fetchFromExcel(location, fields);
+    return data;
     
-    case 'database':
-      // Les BDD nécessitent une configuration de connexion
-      return await fetchFromDatabase(connection, fields);
-    
-    case 'supervision':
-    case 'hypervision':
-    case 'observability':
-      // Ces sources utilisent généralement des APIs
-      return await fetchFromMonitoring(type, location, connection);
-    
-    default:
-      // Pour les autres types, essayer comme une URL
-      if (location && (location.startsWith('http://') || location.startsWith('https://'))) {
-        return await fetchFromAPI(location, connection, fields);
-      }
-      return null;
+  } catch (error: any) {
+    const lastStep = steps[steps.length - 1];
+    lastStep.status = 'error';
+    lastStep.message = `Erreur: ${error.message}`;
+    return null;
   }
 }
 
@@ -513,21 +593,31 @@ interface CalculationResult {
 function executeCalculation(
   definition: any, 
   sourceData: Record<string, any>,
-  context: { subElementName?: string; currentValue?: string; currentUnit?: string }
+  context: { subElementName?: string; currentValue?: string; currentUnit?: string },
+  steps?: ExecutionStep[]
 ): CalculationResult {
-  const { operation, formula, filter, aggregation, threshold, field } = definition;
+  const { operation, formula, filter, threshold, field } = definition;
   
   // Récupérer toutes les données des sources
   const allData: any[] = [];
   Object.values(sourceData).forEach((src: any) => {
-    if (Array.isArray(src.data)) {
+    if (src && Array.isArray(src.data)) {
       allData.push(...src.data);
-    } else if (src.data) {
+    } else if (src && src.data) {
       allData.push(src.data);
     }
   });
 
   if (allData.length === 0) {
+    if (steps) {
+      steps.push({
+        step: steps.length + 1,
+        action: 'no_data',
+        status: 'error',
+        message: 'Aucune donnée disponible dans les sources',
+        timestamp: new Date().toISOString(),
+      });
+    }
     return {
       value: context.currentValue || 'N/A',
       unit: context.currentUnit,
@@ -4512,62 +4602,150 @@ Calcul souhaité: ${prompt}`
     // Execute Calculation - Exécute un calcul réel sur les données sources
     if (path === '/ai/execute-calculation' && method === 'POST') {
       const { calculation, sources, subElementName, currentValue, currentUnit } = req.body;
+      
+      // Tableau des étapes d'exécution
+      const executionSteps: ExecutionStep[] = [];
+      
+      // Étape 1: Validation
+      executionSteps.push({
+        step: 1,
+        action: 'validation',
+        status: 'running',
+        message: 'Validation des paramètres...',
+        timestamp: new Date().toISOString(),
+      });
+      
       if (!calculation) {
-        return res.status(400).json({ error: 'Calcul requis' });
+        executionSteps[0].status = 'error';
+        executionSteps[0].message = 'Calcul non défini';
+        return res.status(400).json({ 
+          error: 'Calcul requis',
+          steps: executionSteps 
+        });
       }
+      
+      executionSteps[0].status = 'success';
+      executionSteps[0].message = `Calcul "${calculation.name || 'Sans nom'}" validé`;
+      executionSteps[0].details = { 
+        calculationName: calculation.name,
+        sourcesCount: (sources || []).length 
+      };
 
       try {
-        // Récupérer les données depuis les sources réelles
+        // Étape 2: Récupération des sources
+        executionSteps.push({
+          step: 2,
+          action: 'fetch_sources',
+          status: 'running',
+          message: `Récupération de ${(sources || []).length} source(s)...`,
+          timestamp: new Date().toISOString(),
+        });
+        
         const sourceData: Record<string, any> = {};
-        const sourceErrors: string[] = [];
+        const sourceSteps: ExecutionStep[] = [];
 
         for (const source of (sources || [])) {
-          try {
-            const data = await fetchSourceData(source);
-            if (data !== null) {
-              sourceData[source.id] = {
-                name: source.name,
-                type: source.type,
-                data: data,
-              };
-            }
-          } catch (err: any) {
-            sourceErrors.push(`${source.name}: ${err.message}`);
+          const data = await fetchSourceData(source, sourceSteps);
+          if (data !== null) {
+            sourceData[source.id] = {
+              name: source.name,
+              type: source.type,
+              data: data,
+            };
           }
         }
+        
+        // Ajouter les sous-étapes des sources
+        executionSteps.push(...sourceSteps);
+        
+        // Mettre à jour l'étape de récupération
+        const successSources = sourceSteps.filter(s => s.status === 'success').length;
+        executionSteps[1].status = successSources > 0 ? 'success' : 'error';
+        executionSteps[1].message = `${successSources}/${(sources || []).length} source(s) récupérée(s)`;
+        executionSteps[1].details = { successSources, totalSources: (sources || []).length };
 
-        // Parser la définition du calcul
+        // Étape 3: Parsing de la définition
+        const parseStepIndex = executionSteps.length;
+        executionSteps.push({
+          step: parseStepIndex + 1,
+          action: 'parse_definition',
+          status: 'running',
+          message: 'Analyse de la définition du calcul...',
+          timestamp: new Date().toISOString(),
+        });
+        
         let calculationDef: any = {};
         try {
-          if (calculation.definition.trim().startsWith('{')) {
+          if (calculation.definition && calculation.definition.trim().startsWith('{')) {
             calculationDef = JSON.parse(calculation.definition);
+            executionSteps[parseStepIndex].status = 'success';
+            executionSteps[parseStepIndex].message = 'Définition JSON parsée';
+            executionSteps[parseStepIndex].details = { format: 'json', operation: calculationDef.operation };
           } else {
-            // Si ce n'est pas du JSON, on le traite comme une formule texte
-            calculationDef = { formula: calculation.definition };
+            calculationDef = { formula: calculation.definition || 'count', operation: 'custom' };
+            executionSteps[parseStepIndex].status = 'success';
+            executionSteps[parseStepIndex].message = 'Formule texte détectée';
+            executionSteps[parseStepIndex].details = { format: 'formula', formula: calculation.definition };
           }
         } catch (e) {
-          calculationDef = { formula: calculation.definition };
+          calculationDef = { formula: calculation.definition || 'count', operation: 'custom' };
+          executionSteps[parseStepIndex].status = 'success';
+          executionSteps[parseStepIndex].message = 'Formule texte utilisée (JSON invalide)';
         }
 
-        // Exécuter le calcul
+        // Étape 4: Exécution du calcul
+        const execStepIndex = executionSteps.length;
+        executionSteps.push({
+          step: execStepIndex + 1,
+          action: 'execute',
+          status: 'running',
+          message: 'Exécution du calcul...',
+          details: { operation: calculationDef.operation || 'count' },
+          timestamp: new Date().toISOString(),
+        });
+        
         const result = executeCalculation(calculationDef, sourceData, {
           subElementName,
           currentValue,
           currentUnit,
+        }, executionSteps);
+        
+        executionSteps[execStepIndex].status = 'success';
+        executionSteps[execStepIndex].message = `Calcul terminé: ${result.value} ${result.unit || ''}`;
+        executionSteps[execStepIndex].details = { 
+          ...executionSteps[execStepIndex].details,
+          result: result.value,
+          unit: result.unit 
+        };
+
+        // Retourner le résultat avec les étapes
+        return res.json({
+          ...result,
+          steps: executionSteps,
         });
-
-        // Ajouter les erreurs de sources si présentes
-        if (sourceErrors.length > 0) {
-          result.warnings = sourceErrors;
-        }
-
-        return res.json(result);
 
       } catch (error: any) {
         log.error('[Execute Calculation]', error);
         
+        // Ajouter l'étape d'erreur
+        executionSteps.push({
+          step: executionSteps.length + 1,
+          action: 'error',
+          status: 'error',
+          message: `Erreur: ${error.message}`,
+          timestamp: new Date().toISOString(),
+        });
+        
         // En cas d'erreur, essayer avec l'IA comme fallback
         if (OPENAI_API_KEY) {
+          executionSteps.push({
+            step: executionSteps.length + 1,
+            action: 'ai_fallback',
+            status: 'running',
+            message: 'Tentative de calcul assisté par IA...',
+            timestamp: new Date().toISOString(),
+          });
+          
           try {
             const aiResult = await executeCalculationWithAI(
               calculation, 
@@ -4577,13 +4755,25 @@ Calcul souhaité: ${prompt}`
               currentUnit,
               OPENAI_API_KEY
             );
-            return res.json({ ...aiResult, mode: 'ai-assisted' });
+            
+            executionSteps[executionSteps.length - 1].status = 'success';
+            executionSteps[executionSteps.length - 1].message = 'Calcul assisté par IA réussi';
+            
+            return res.json({ ...aiResult, mode: 'ai-assisted', steps: executionSteps });
           } catch (aiError: any) {
-            return res.status(500).json({ error: 'Erreur exécution: ' + error.message });
+            executionSteps[executionSteps.length - 1].status = 'error';
+            executionSteps[executionSteps.length - 1].message = `IA échouée: ${aiError.message}`;
+            return res.status(500).json({ 
+              error: 'Erreur exécution: ' + error.message,
+              steps: executionSteps 
+            });
           }
         }
         
-        return res.status(500).json({ error: 'Erreur exécution: ' + error.message });
+        return res.status(500).json({ 
+          error: 'Erreur exécution: ' + error.message,
+          steps: executionSteps 
+        });
       }
     }
 
