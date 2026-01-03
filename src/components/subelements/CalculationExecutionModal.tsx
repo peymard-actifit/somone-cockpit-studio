@@ -93,7 +93,7 @@ export default function CalculationExecutionModal({
   const allSuccess = !isExecuting && steps.length > 0 && steps.every(s => s.status === 'success' || s.status === 'skipped');
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
