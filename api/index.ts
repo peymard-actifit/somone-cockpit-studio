@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.25.1';
+const APP_VERSION = '14.25.2';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3969,6 +3969,93 @@ Calcul souhaité: ${prompt}`
       } catch (error: any) {
         log.error('[AI Generate Calculation]', error);
         return res.status(500).json({ error: 'Erreur génération: ' + error.message });
+      }
+    }
+
+    // AI Execute Calculation - Exécute un calcul et retourne le résultat
+    if (path === '/ai/execute-calculation' && method === 'POST') {
+      if (!OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API key not configured' });
+      }
+
+      const { calculation, sources, subElementName, currentValue, currentUnit } = req.body;
+      if (!calculation) {
+        return res.status(400).json({ error: 'Calcul requis' });
+      }
+
+      // Préparer la description des sources
+      const sourcesDescription = (sources || []).map((s: any) => 
+        `- ${s.name} (${s.type}): ${s.location || 'Non spécifié'}${s.fields ? `, champs: ${s.fields}` : ''}`
+      ).join('\n');
+
+      try {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `Tu es un moteur de calcul intelligent pour un cockpit de supervision.
+Tu dois exécuter un calcul basé sur sa définition et les sources de données disponibles.
+
+IMPORTANT: Tu simules l'exécution du calcul car tu n'as pas accès aux vraies données.
+Génère un résultat réaliste et cohérent basé sur:
+- Le type de calcul demandé
+- Les sources de données décrites
+- Le contexte du sous-élément
+
+Réponds UNIQUEMENT avec un objet JSON contenant:
+- value: la valeur calculée (string, ex: "98.5", "1234", "OK")
+- unit: l'unité si applicable (string, ex: "%", "€", "ms", null)
+- status: le statut déduit parmi: "ok", "warning", "critical", "unknown" (string)
+- explanation: explication courte du calcul effectué (string, 1-2 phrases)
+
+Ne mets pas de markdown, juste le JSON.`
+              },
+              {
+                role: 'user',
+                content: `Sous-élément: ${subElementName || 'Non spécifié'}
+Valeur actuelle: ${currentValue || 'Non définie'} ${currentUnit || ''}
+
+Calcul à exécuter:
+- Nom: ${calculation.name}
+- Description: ${calculation.description || 'Non spécifiée'}
+- Définition technique: ${calculation.definition}
+
+Sources de données disponibles:
+${sourcesDescription || 'Aucune source définie'}
+
+Exécute ce calcul et retourne le résultat.`
+              }
+            ],
+            max_tokens: 500,
+            temperature: 0.3,
+          }),
+        });
+
+        if (!openaiResponse.ok) {
+          throw new Error('Erreur OpenAI');
+        }
+
+        const data = await openaiResponse.json();
+        const content = data.choices[0]?.message?.content || '';
+        
+        // Parser le JSON de la réponse
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const result = JSON.parse(jsonMatch[0]);
+          return res.json(result);
+        }
+        
+        return res.status(500).json({ error: 'Impossible de parser le résultat' });
+      } catch (error: any) {
+        log.error('[AI Execute Calculation]', error);
+        return res.status(500).json({ error: 'Erreur exécution: ' + error.message });
       }
     }
 
