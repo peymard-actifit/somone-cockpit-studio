@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.25.11';
+const APP_VERSION = '14.25.12';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -356,6 +356,44 @@ async function fetchSourceData(source: any, steps: ExecutionStep[]): Promise<any
         data = await fetchFromMonitoring(type, location, connection);
         break;
       
+      case 'email':
+        // Pour les sources email, on utilise les données configurées dans fields
+        // ou on peut configurer une API de récupération d'emails
+        if (location && (location.startsWith('http://') || location.startsWith('https://'))) {
+          // Si une URL d'API email est fournie (ex: Microsoft Graph, Gmail API)
+          data = await fetchFromAPI(location, connection, fields);
+        } else if (fields) {
+          // Sinon, essayer de parser les champs comme des données ou une valeur
+          try {
+            // Essayer de parser comme JSON
+            data = JSON.parse(fields);
+          } catch {
+            // Si ce n'est pas du JSON, extraire la valeur depuis le texte
+            // Format attendu: "valeur: 5" ou "total: 123" ou juste un nombre
+            const valueMatch = fields.match(/(?:valeur|value|total|count|nombre)[\s:=]+(\d+(?:[.,]\d+)?)/i);
+            if (valueMatch) {
+              data = { value: parseFloat(valueMatch[1].replace(',', '.')) };
+            } else {
+              // Essayer d'extraire juste un nombre
+              const numberMatch = fields.match(/(\d+(?:[.,]\d+)?)/);
+              if (numberMatch) {
+                data = { value: parseFloat(numberMatch[1].replace(',', '.')) };
+              } else {
+                // Utiliser le texte brut comme valeur
+                data = { rawText: fields, value: fields };
+              }
+            }
+          }
+        } else if (source.config?.data) {
+          data = source.config.data;
+        } else {
+          // Pas de données configurées pour cette source email
+          steps[steps.length - 1].status = 'skipped';
+          steps[steps.length - 1].message = `Source email "${location || 'Non définie'}": Configurez les données dans le champ "Champs/règles" ou une API`;
+          return null;
+        }
+        break;
+      
       case 'manual':
       case 'static':
         // Données statiques définies dans la config
@@ -371,13 +409,35 @@ async function fetchSourceData(source: any, steps: ExecutionStep[]): Promise<any
         }
         break;
       
+      case 'other':
       default:
-        // Pour les autres types, essayer comme une URL si définie
+        // Pour les autres types, essayer plusieurs stratégies
         if (location && (location.startsWith('http://') || location.startsWith('https://'))) {
+          // Si une URL est fournie, l'utiliser comme API
           data = await fetchFromAPI(location, connection, fields);
+        } else if (fields) {
+          // Sinon, essayer de parser les champs comme des données
+          try {
+            data = JSON.parse(fields);
+          } catch {
+            // Extraire une valeur numérique si présente
+            const valueMatch = fields.match(/(?:valeur|value|total|count|nombre)[\s:=]+(\d+(?:[.,]\d+)?)/i);
+            if (valueMatch) {
+              data = { value: parseFloat(valueMatch[1].replace(',', '.')) };
+            } else {
+              const numberMatch = fields.match(/(\d+(?:[.,]\d+)?)/);
+              if (numberMatch) {
+                data = { value: parseFloat(numberMatch[1].replace(',', '.')) };
+              } else {
+                data = { rawText: fields, value: fields };
+              }
+            }
+          }
+        } else if (source.config?.data) {
+          data = source.config.data;
         } else {
           steps[steps.length - 1].status = 'skipped';
-          steps[steps.length - 1].message = `Type "${type}" non supporté ou pas de données`;
+          steps[steps.length - 1].message = `Type "${type}": Configurez une URL ou des données dans "Champs/règles"`;
           return null;
         }
     }
