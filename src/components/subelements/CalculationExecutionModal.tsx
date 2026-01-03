@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { MuiIcon } from '../IconPicker';
 
 interface ExecutionStep {
@@ -92,7 +93,8 @@ export default function CalculationExecutionModal({
   const hasErrors = steps.some(s => s.status === 'error');
   const allSuccess = !isExecuting && steps.length > 0 && steps.every(s => s.status === 'success' || s.status === 'skipped');
 
-  return (
+  // Utiliser un portail pour rendre le modal en dehors du contexte de stacking
+  const modalContent = (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         {/* Header */}
@@ -237,4 +239,7 @@ export default function CalculationExecutionModal({
       </div>
     </div>
   );
+
+  // Rendre via un portail dans le body pour éviter les problèmes de z-index
+  return createPortal(modalContent, document.body);
 }
