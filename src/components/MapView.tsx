@@ -1894,7 +1894,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                         : 'border-[#E2E8F0] hover:border-[#CBD5E1]'
                       }`}
                   >
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[status].hex }} />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[status]?.hex || '#9E9E9E' }} />
                     <span className="text-xs text-[#1E3A5F]">{STATUS_LABELS[status]}</span>
                   </button>
                 ))}
@@ -1911,7 +1911,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 >
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: STATUS_COLORS[pointForm.status].hex }}
+                    style={{ backgroundColor: STATUS_COLORS[pointForm.status]?.hex || '#9E9E9E' }}
                   >
                     <MuiIcon name={pointForm.icon} size={18} className="text-white" />
                   </div>

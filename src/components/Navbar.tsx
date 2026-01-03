@@ -26,8 +26,9 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
   const domainData = currentCockpit?.domains.find(d => d.id === domain.id);
   // Passer tous les domaines pour le calcul récursif (éléments avec status herite_domaine)
   const worstStatus = domainData ? getDomainWorstStatus(domainData, currentCockpit?.domains) : 'ok';
-  const statusColor = STATUS_COLORS[worstStatus].hex;
-  const hasAlert = worstStatus !== 'ok';
+  // Protection: vérifier que STATUS_COLORS[worstStatus] existe avant d'accéder à .hex
+  const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
+  const hasAlert = worstStatus !== 'ok' && worstStatus !== undefined;
 
   // Style de base pour le drag
   const baseStyle: React.CSSProperties = {

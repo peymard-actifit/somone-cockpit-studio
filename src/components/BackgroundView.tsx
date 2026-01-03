@@ -1766,7 +1766,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     }`}
                   title="Aucune icône (rectangle)"
                 >
-                  <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[newElementForm.status].hex }} />
+                  <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[newElementForm.status]?.hex || '#9E9E9E' }} />
                 </button>
                 {POPULAR_ICONS.map((iconName) => (
                   <button
@@ -1778,7 +1778,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                       }`}
                     title={iconName}
                   >
-                    <MuiIcon name={iconName} size={24} color={STATUS_COLORS[newElementForm.status].hex} />
+                    <MuiIcon name={iconName} size={24} color={STATUS_COLORS[newElementForm.status]?.hex || '#9E9E9E'} />
                   </button>
                 ))}
                 {/* Bouton pour ouvrir le sélecteur complet */}
@@ -1795,7 +1795,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     className="p-2 rounded-lg border border-[#1E3A5F] bg-[#1E3A5F]/10"
                     title="Image personnalisée"
                   >
-                    <MuiIcon name={newElementForm.icon} size={24} color={STATUS_COLORS[newElementForm.status].hex} />
+                    <MuiIcon name={newElementForm.icon} size={24} color={STATUS_COLORS[newElementForm.status]?.hex || '#9E9E9E'} />
                   </button>
                 )}
               </div>

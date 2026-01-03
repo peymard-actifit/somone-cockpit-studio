@@ -2191,7 +2191,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 >
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: STATUS_COLORS[se.status].hex }}
+                    style={{ backgroundColor: STATUS_COLORS[se.status]?.hex || '#9E9E9E' }}
                   />
                   <span className="text-sm text-[#1E3A5F] truncate flex-1">{se.name}</span>
                   {se.alert && (
@@ -2272,7 +2272,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       }`}
                     title="Aucune icône (rectangle)"
                   >
-                    <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[element.status].hex }} />
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[element.status]?.hex || '#9E9E9E' }} />
                   </button>
                   {[
                     'Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Building2',
@@ -2290,7 +2290,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         }`}
                       title={iconName}
                     >
-                      <MuiIcon name={iconName} size={24} color={STATUS_COLORS[element.status].hex} />
+                      <MuiIcon name={iconName} size={24} color={STATUS_COLORS[element.status]?.hex || '#9E9E9E'} />
                     </button>
                   ))}
                   {/* Bouton pour ouvrir le sélecteur complet */}
@@ -2307,7 +2307,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       className="p-2 rounded-lg border border-[#1E3A5F] bg-[#1E3A5F]/10"
                       title="Image personnalisée"
                     >
-                      <MuiIcon name={element.icon} size={24} color={STATUS_COLORS[element.status].hex} />
+                      <MuiIcon name={element.icon} size={24} color={STATUS_COLORS[element.status]?.hex || '#9E9E9E'} />
                     </button>
                   )}
                 </div>
@@ -2423,7 +2423,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           : 'border-transparent hover:bg-white'
                           }`}
                         title={iconName}
-                        style={{ color: STATUS_COLORS[mapElement.status].hex }}
+                        style={{ color: STATUS_COLORS[mapElement.status]?.hex || '#9E9E9E' }}
                       >
                         <MuiIcon name={iconName} size={24} />
                       </button>
