@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.25.2';
+const APP_VERSION = '14.25.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -276,6 +276,543 @@ function hasConflict(serverUpdatedAt: string, clientUpdatedAt?: string): boolean
   
   // Tolérance de 2 secondes pour les décalages
   return serverTime > clientTime + 2000;
+}
+
+// ============================================
+// Fonctions d'accès aux sources de données
+// ============================================
+
+/**
+ * Récupère les données depuis une source
+ */
+async function fetchSourceData(source: any): Promise<any> {
+  const { type, location, connection, fields } = source;
+
+  switch (type) {
+    case 'api':
+      return await fetchFromAPI(location, connection, fields);
+    
+    case 'json':
+      return await fetchFromJSON(location);
+    
+    case 'csv':
+      return await fetchFromCSV(location, fields);
+    
+    case 'excel':
+      // Pour Excel, on a besoin d'un fichier accessible via URL
+      return await fetchFromExcel(location, fields);
+    
+    case 'database':
+      // Les BDD nécessitent une configuration de connexion
+      return await fetchFromDatabase(connection, fields);
+    
+    case 'supervision':
+    case 'hypervision':
+    case 'observability':
+      // Ces sources utilisent généralement des APIs
+      return await fetchFromMonitoring(type, location, connection);
+    
+    default:
+      // Pour les autres types, essayer comme une URL
+      if (location && (location.startsWith('http://') || location.startsWith('https://'))) {
+        return await fetchFromAPI(location, connection, fields);
+      }
+      return null;
+  }
+}
+
+async function fetchFromAPI(url: string, connection?: string, fields?: string): Promise<any> {
+  if (!url) return null;
+  
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  
+  // Parser les headers de connexion si fournis
+  if (connection) {
+    try {
+      const connConfig = JSON.parse(connection);
+      if (connConfig.headers) {
+        Object.assign(headers, connConfig.headers);
+      }
+      if (connConfig.apiKey) {
+        headers['Authorization'] = `Bearer ${connConfig.apiKey}`;
+      }
+    } catch {
+      // Si ce n'est pas du JSON, traiter comme une clé API
+      if (connection.trim()) {
+        headers['Authorization'] = `Bearer ${connection}`;
+      }
+    }
+  }
+
+  const response = await fetch(url, { headers, method: 'GET' });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  
+  // Extraire les champs spécifiques si demandé
+  if (fields) {
+    return extractFields(data, fields);
+  }
+  
+  return data;
+}
+
+async function fetchFromJSON(url: string): Promise<any> {
+  if (!url) return null;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`JSON fetch error: ${response.status}`);
+  }
+  
+  return await response.json();
+}
+
+async function fetchFromCSV(url: string, fields?: string): Promise<any> {
+  if (!url) return null;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`CSV fetch error: ${response.status}`);
+  }
+  
+  const text = await response.text();
+  const lines = text.split('\n').filter(l => l.trim());
+  
+  if (lines.length === 0) return [];
+  
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+  const data = lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => { row[h] = values[i] || ''; });
+    return row;
+  });
+  
+  return data;
+}
+
+async function fetchFromExcel(url: string, fields?: string): Promise<any> {
+  // Pour Excel, on attend une URL vers un fichier .xlsx
+  // Le parsing Excel nécessite une lib spéciale, on utilise xlsx qui est déjà importé
+  if (!url) return null;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Excel fetch error: ${response.status}`);
+    }
+    
+    const buffer = await response.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    
+    // Prendre la première feuille ou celle spécifiée dans fields
+    let sheetName = workbook.SheetNames[0];
+    if (fields) {
+      const sheetMatch = fields.match(/sheet:\s*([^,]+)/i);
+      if (sheetMatch && workbook.SheetNames.includes(sheetMatch[1].trim())) {
+        sheetName = sheetMatch[1].trim();
+      }
+    }
+    
+    const sheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(sheet);
+    
+    return data;
+  } catch (error: any) {
+    throw new Error(`Excel parse error: ${error.message}`);
+  }
+}
+
+async function fetchFromDatabase(connection: string, query?: string): Promise<any> {
+  // Pour les BDD, on utilise la connexion PostgreSQL configurée
+  if (!sql || !query) return null;
+  
+  try {
+    // Sécurité: on n'exécute que des SELECT
+    const cleanQuery = query.trim().toLowerCase();
+    if (!cleanQuery.startsWith('select')) {
+      throw new Error('Seules les requêtes SELECT sont autorisées');
+    }
+    
+    const result = await sql.unsafe(query);
+    return result;
+  } catch (error: any) {
+    throw new Error(`Database error: ${error.message}`);
+  }
+}
+
+async function fetchFromMonitoring(type: string, url: string, connection?: string): Promise<any> {
+  // Les outils de monitoring exposent généralement des APIs REST
+  return await fetchFromAPI(url, connection);
+}
+
+/**
+ * Extrait des champs spécifiques d'un objet de données
+ */
+function extractFields(data: any, fieldsSpec: string): any {
+  if (!fieldsSpec) return data;
+  
+  const fields = fieldsSpec.split(',').map(f => f.trim());
+  
+  if (Array.isArray(data)) {
+    return data.map(item => {
+      const result: Record<string, any> = {};
+      fields.forEach(field => {
+        if (field.includes('.')) {
+          // Champ imbriqué
+          const parts = field.split('.');
+          let value = item;
+          for (const part of parts) {
+            value = value?.[part];
+          }
+          result[field] = value;
+        } else {
+          result[field] = item[field];
+        }
+      });
+      return result;
+    });
+  }
+  
+  const result: Record<string, any> = {};
+  fields.forEach(field => {
+    if (field.includes('.')) {
+      const parts = field.split('.');
+      let value = data;
+      for (const part of parts) {
+        value = value?.[part];
+      }
+      result[field] = value;
+    } else {
+      result[field] = data[field];
+    }
+  });
+  return result;
+}
+
+// ============================================
+// Moteur de calcul
+// ============================================
+
+interface CalculationResult {
+  value: string;
+  unit?: string;
+  status: string;
+  explanation: string;
+  mode?: string;
+  warnings?: string[];
+  rawData?: any;
+}
+
+/**
+ * Exécute un calcul sur les données sources
+ */
+function executeCalculation(
+  definition: any, 
+  sourceData: Record<string, any>,
+  context: { subElementName?: string; currentValue?: string; currentUnit?: string }
+): CalculationResult {
+  const { operation, formula, filter, aggregation, threshold, field } = definition;
+  
+  // Récupérer toutes les données des sources
+  const allData: any[] = [];
+  Object.values(sourceData).forEach((src: any) => {
+    if (Array.isArray(src.data)) {
+      allData.push(...src.data);
+    } else if (src.data) {
+      allData.push(src.data);
+    }
+  });
+
+  if (allData.length === 0) {
+    return {
+      value: context.currentValue || 'N/A',
+      unit: context.currentUnit,
+      status: 'unknown',
+      explanation: 'Aucune donnée disponible dans les sources',
+      mode: 'no-data',
+    };
+  }
+
+  // Appliquer le filtre si présent
+  let filteredData = allData;
+  if (filter) {
+    filteredData = applyFilter(allData, filter);
+  }
+
+  // Exécuter l'opération
+  let result: number | string = 0;
+  let unit = context.currentUnit || '';
+  let explanation = '';
+
+  switch (operation || 'count') {
+    case 'count':
+      result = filteredData.length;
+      explanation = `Nombre d'éléments: ${result}`;
+      break;
+
+    case 'sum':
+      result = filteredData.reduce((acc, item) => {
+        const val = parseFloat(getFieldValue(item, field || 'value'));
+        return acc + (isNaN(val) ? 0 : val);
+      }, 0);
+      explanation = `Somme de ${field || 'value'}: ${result}`;
+      break;
+
+    case 'avg':
+    case 'average':
+      const sum = filteredData.reduce((acc, item) => {
+        const val = parseFloat(getFieldValue(item, field || 'value'));
+        return acc + (isNaN(val) ? 0 : val);
+      }, 0);
+      result = filteredData.length > 0 ? sum / filteredData.length : 0;
+      result = Math.round(result * 100) / 100;
+      explanation = `Moyenne de ${field || 'value'}: ${result}`;
+      break;
+
+    case 'min':
+      const mins = filteredData.map(item => parseFloat(getFieldValue(item, field || 'value'))).filter(v => !isNaN(v));
+      result = mins.length > 0 ? Math.min(...mins) : 0;
+      explanation = `Minimum de ${field || 'value'}: ${result}`;
+      break;
+
+    case 'max':
+      const maxs = filteredData.map(item => parseFloat(getFieldValue(item, field || 'value'))).filter(v => !isNaN(v));
+      result = maxs.length > 0 ? Math.max(...maxs) : 0;
+      explanation = `Maximum de ${field || 'value'}: ${result}`;
+      break;
+
+    case 'percentage':
+      const total = filteredData.length;
+      const matching = filter ? filteredData.length : allData.length;
+      result = total > 0 ? Math.round((matching / allData.length) * 10000) / 100 : 0;
+      unit = '%';
+      explanation = `Pourcentage: ${matching}/${allData.length} = ${result}%`;
+      break;
+
+    case 'ratio':
+      const { numerator, denominator } = definition;
+      const numVal = filteredData.reduce((acc, item) => acc + (parseFloat(getFieldValue(item, numerator)) || 0), 0);
+      const denVal = filteredData.reduce((acc, item) => acc + (parseFloat(getFieldValue(item, denominator)) || 0), 0);
+      result = denVal > 0 ? Math.round((numVal / denVal) * 10000) / 100 : 0;
+      explanation = `Ratio ${numerator}/${denominator}: ${result}`;
+      break;
+
+    case 'last':
+    case 'latest':
+      const lastItem = filteredData[filteredData.length - 1];
+      result = getFieldValue(lastItem, field || 'value') || 'N/A';
+      explanation = `Dernière valeur de ${field || 'value'}`;
+      break;
+
+    case 'first':
+      const firstItem = filteredData[0];
+      result = getFieldValue(firstItem, field || 'value') || 'N/A';
+      explanation = `Première valeur de ${field || 'value'}`;
+      break;
+
+    case 'custom':
+      // Formule personnalisée
+      if (formula) {
+        try {
+          result = evaluateFormula(formula, filteredData, sourceData);
+          explanation = `Formule personnalisée: ${formula}`;
+        } catch (e: any) {
+          result = 'Erreur';
+          explanation = `Erreur dans la formule: ${e.message}`;
+        }
+      }
+      break;
+
+    default:
+      result = filteredData.length;
+      explanation = `Opération par défaut (count): ${result}`;
+  }
+
+  // Déterminer le statut basé sur les seuils
+  let status = 'ok';
+  if (threshold) {
+    const numResult = typeof result === 'number' ? result : parseFloat(result as string);
+    if (!isNaN(numResult)) {
+      if (threshold.critical !== undefined && numResult <= threshold.critical) {
+        status = 'critical';
+      } else if (threshold.warning !== undefined && numResult <= threshold.warning) {
+        status = 'warning';
+      } else if (threshold.criticalAbove !== undefined && numResult >= threshold.criticalAbove) {
+        status = 'critical';
+      } else if (threshold.warningAbove !== undefined && numResult >= threshold.warningAbove) {
+        status = 'warning';
+      }
+    }
+  }
+
+  return {
+    value: String(result),
+    unit: unit || definition.unit,
+    status,
+    explanation,
+    mode: 'real-data',
+    rawData: { sourceCount: Object.keys(sourceData).length, dataCount: allData.length, filteredCount: filteredData.length },
+  };
+}
+
+function applyFilter(data: any[], filter: any): any[] {
+  if (!filter) return data;
+  
+  return data.filter(item => {
+    for (const [key, value] of Object.entries(filter)) {
+      const itemValue = getFieldValue(item, key);
+      
+      if (typeof value === 'object' && value !== null) {
+        // Opérateurs avancés
+        const ops = value as any;
+        if (ops.$eq !== undefined && itemValue !== ops.$eq) return false;
+        if (ops.$ne !== undefined && itemValue === ops.$ne) return false;
+        if (ops.$gt !== undefined && parseFloat(itemValue) <= ops.$gt) return false;
+        if (ops.$gte !== undefined && parseFloat(itemValue) < ops.$gte) return false;
+        if (ops.$lt !== undefined && parseFloat(itemValue) >= ops.$lt) return false;
+        if (ops.$lte !== undefined && parseFloat(itemValue) > ops.$lte) return false;
+        if (ops.$in !== undefined && !ops.$in.includes(itemValue)) return false;
+        if (ops.$nin !== undefined && ops.$nin.includes(itemValue)) return false;
+        if (ops.$contains !== undefined && !String(itemValue).includes(ops.$contains)) return false;
+      } else {
+        // Comparaison simple
+        if (itemValue !== value) return false;
+      }
+    }
+    return true;
+  });
+}
+
+function getFieldValue(obj: any, fieldPath: string): any {
+  if (!obj || !fieldPath) return undefined;
+  
+  const parts = fieldPath.split('.');
+  let value = obj;
+  
+  for (const part of parts) {
+    if (value === null || value === undefined) return undefined;
+    value = value[part];
+  }
+  
+  return value;
+}
+
+function evaluateFormula(formula: string, data: any[], sourceData: Record<string, any>): number | string {
+  // Évaluation basique de formules
+  // Variables disponibles: COUNT, SUM, AVG, MIN, MAX + accès aux données
+  
+  let result = formula;
+  
+  // Remplacer COUNT
+  result = result.replace(/COUNT/gi, String(data.length));
+  
+  // Remplacer SUM(field)
+  result = result.replace(/SUM\(([^)]+)\)/gi, (_, field) => {
+    const sum = data.reduce((acc, item) => acc + (parseFloat(getFieldValue(item, field)) || 0), 0);
+    return String(sum);
+  });
+  
+  // Remplacer AVG(field)
+  result = result.replace(/AVG\(([^)]+)\)/gi, (_, field) => {
+    const sum = data.reduce((acc, item) => acc + (parseFloat(getFieldValue(item, field)) || 0), 0);
+    return String(data.length > 0 ? sum / data.length : 0);
+  });
+  
+  // Remplacer MIN(field)
+  result = result.replace(/MIN\(([^)]+)\)/gi, (_, field) => {
+    const vals = data.map(item => parseFloat(getFieldValue(item, field))).filter(v => !isNaN(v));
+    return String(vals.length > 0 ? Math.min(...vals) : 0);
+  });
+  
+  // Remplacer MAX(field)
+  result = result.replace(/MAX\(([^)]+)\)/gi, (_, field) => {
+    const vals = data.map(item => parseFloat(getFieldValue(item, field))).filter(v => !isNaN(v));
+    return String(vals.length > 0 ? Math.max(...vals) : 0);
+  });
+  
+  // Évaluer l'expression mathématique résultante
+  try {
+    // Sécurité: n'autoriser que les caractères mathématiques
+    if (/^[\d\s+\-*/().]+$/.test(result)) {
+      return eval(result);
+    }
+    return result;
+  } catch {
+    return result;
+  }
+}
+
+/**
+ * Fallback: exécute le calcul avec l'IA si les données ne sont pas accessibles
+ */
+async function executeCalculationWithAI(
+  calculation: any,
+  sources: any[],
+  subElementName: string,
+  currentValue: string,
+  currentUnit: string,
+  apiKey: string
+): Promise<CalculationResult> {
+  const sourcesDescription = (sources || []).map((s: any) => 
+    `- ${s.name} (${s.type}): ${s.location || 'Non spécifié'}${s.fields ? `, champs: ${s.fields}` : ''}`
+  ).join('\n');
+
+  const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `Tu es un moteur de calcul pour un cockpit de supervision.
+Analyse le calcul demandé et génère un résultat estimé basé sur les informations disponibles.
+
+Réponds UNIQUEMENT avec un objet JSON:
+{
+  "value": "valeur calculée",
+  "unit": "unité ou null",
+  "status": "ok|warning|critical|unknown",
+  "explanation": "explication courte"
+}`
+        },
+        {
+          role: 'user',
+          content: `Sous-élément: ${subElementName}
+Valeur actuelle: ${currentValue || 'N/A'} ${currentUnit || ''}
+
+Calcul: ${calculation.name}
+Description: ${calculation.description || 'N/A'}
+Définition: ${calculation.definition}
+
+Sources: ${sourcesDescription || 'Aucune'}`
+        }
+      ],
+      max_tokens: 300,
+      temperature: 0.2,
+    }),
+  });
+
+  if (!openaiResponse.ok) {
+    throw new Error('Erreur IA');
+  }
+
+  const data = await openaiResponse.json();
+  const content = data.choices[0]?.message?.content || '';
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  
+  if (jsonMatch) {
+    return JSON.parse(jsonMatch[0]);
+  }
+  
+  throw new Error('Réponse IA invalide');
 }
 
 // Simple JWT implementation
@@ -3972,89 +4509,80 @@ Calcul souhaité: ${prompt}`
       }
     }
 
-    // AI Execute Calculation - Exécute un calcul et retourne le résultat
+    // Execute Calculation - Exécute un calcul réel sur les données sources
     if (path === '/ai/execute-calculation' && method === 'POST') {
-      if (!OPENAI_API_KEY) {
-        return res.status(400).json({ error: 'OpenAI API key not configured' });
-      }
-
       const { calculation, sources, subElementName, currentValue, currentUnit } = req.body;
       if (!calculation) {
         return res.status(400).json({ error: 'Calcul requis' });
       }
 
-      // Préparer la description des sources
-      const sourcesDescription = (sources || []).map((s: any) => 
-        `- ${s.name} (${s.type}): ${s.location || 'Non spécifié'}${s.fields ? `, champs: ${s.fields}` : ''}`
-      ).join('\n');
-
       try {
-        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `Tu es un moteur de calcul intelligent pour un cockpit de supervision.
-Tu dois exécuter un calcul basé sur sa définition et les sources de données disponibles.
+        // Récupérer les données depuis les sources réelles
+        const sourceData: Record<string, any> = {};
+        const sourceErrors: string[] = [];
 
-IMPORTANT: Tu simules l'exécution du calcul car tu n'as pas accès aux vraies données.
-Génère un résultat réaliste et cohérent basé sur:
-- Le type de calcul demandé
-- Les sources de données décrites
-- Le contexte du sous-élément
+        for (const source of (sources || [])) {
+          try {
+            const data = await fetchSourceData(source);
+            if (data !== null) {
+              sourceData[source.id] = {
+                name: source.name,
+                type: source.type,
+                data: data,
+              };
+            }
+          } catch (err: any) {
+            sourceErrors.push(`${source.name}: ${err.message}`);
+          }
+        }
 
-Réponds UNIQUEMENT avec un objet JSON contenant:
-- value: la valeur calculée (string, ex: "98.5", "1234", "OK")
-- unit: l'unité si applicable (string, ex: "%", "€", "ms", null)
-- status: le statut déduit parmi: "ok", "warning", "critical", "unknown" (string)
-- explanation: explication courte du calcul effectué (string, 1-2 phrases)
+        // Parser la définition du calcul
+        let calculationDef: any = {};
+        try {
+          if (calculation.definition.trim().startsWith('{')) {
+            calculationDef = JSON.parse(calculation.definition);
+          } else {
+            // Si ce n'est pas du JSON, on le traite comme une formule texte
+            calculationDef = { formula: calculation.definition };
+          }
+        } catch (e) {
+          calculationDef = { formula: calculation.definition };
+        }
 
-Ne mets pas de markdown, juste le JSON.`
-              },
-              {
-                role: 'user',
-                content: `Sous-élément: ${subElementName || 'Non spécifié'}
-Valeur actuelle: ${currentValue || 'Non définie'} ${currentUnit || ''}
-
-Calcul à exécuter:
-- Nom: ${calculation.name}
-- Description: ${calculation.description || 'Non spécifiée'}
-- Définition technique: ${calculation.definition}
-
-Sources de données disponibles:
-${sourcesDescription || 'Aucune source définie'}
-
-Exécute ce calcul et retourne le résultat.`
-              }
-            ],
-            max_tokens: 500,
-            temperature: 0.3,
-          }),
+        // Exécuter le calcul
+        const result = executeCalculation(calculationDef, sourceData, {
+          subElementName,
+          currentValue,
+          currentUnit,
         });
 
-        if (!openaiResponse.ok) {
-          throw new Error('Erreur OpenAI');
+        // Ajouter les erreurs de sources si présentes
+        if (sourceErrors.length > 0) {
+          result.warnings = sourceErrors;
         }
 
-        const data = await openaiResponse.json();
-        const content = data.choices[0]?.message?.content || '';
+        return res.json(result);
+
+      } catch (error: any) {
+        log.error('[Execute Calculation]', error);
         
-        // Parser le JSON de la réponse
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const result = JSON.parse(jsonMatch[0]);
-          return res.json(result);
+        // En cas d'erreur, essayer avec l'IA comme fallback
+        if (OPENAI_API_KEY) {
+          try {
+            const aiResult = await executeCalculationWithAI(
+              calculation, 
+              sources, 
+              subElementName, 
+              currentValue, 
+              currentUnit,
+              OPENAI_API_KEY
+            );
+            return res.json({ ...aiResult, mode: 'ai-assisted' });
+          } catch (aiError: any) {
+            return res.status(500).json({ error: 'Erreur exécution: ' + error.message });
+          }
         }
         
-        return res.status(500).json({ error: 'Impossible de parser le résultat' });
-      } catch (error: any) {
-        log.error('[AI Execute Calculation]', error);
         return res.status(500).json({ error: 'Erreur exécution: ' + error.message });
       }
     }

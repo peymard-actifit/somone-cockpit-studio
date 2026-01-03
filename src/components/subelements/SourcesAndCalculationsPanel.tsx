@@ -21,6 +21,9 @@ export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: So
     status?: string;
     explanation?: string;
     error?: string;
+    mode?: string;
+    warnings?: string[];
+    rawData?: { sourceCount: number; dataCount: number; filteredCount: number };
   } | null>(null);
   const { token } = useAuthStore();
 
@@ -73,6 +76,9 @@ export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: So
         unit: result.unit,
         status: result.status,
         explanation: result.explanation,
+        mode: result.mode,
+        warnings: result.warnings,
+        rawData: result.rawData,
       });
     } catch (error: any) {
       console.error('Erreur exécution calcul:', error);
@@ -142,16 +148,31 @@ export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: So
             }`}>
               {executionResult.success ? (
                 <>
-                  <div className="flex items-center gap-2 mb-2">
-                    <MuiIcon name="CheckCircle" size={16} className="text-green-600" />
-                    <span className="text-sm font-medium text-green-800">Résultat obtenu</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <MuiIcon name="CheckCircle" size={16} className="text-green-600" />
+                      <span className="text-sm font-medium text-green-800">Résultat obtenu</span>
+                    </div>
+                    {executionResult.mode && (
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        executionResult.mode === 'real-data' 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : executionResult.mode === 'ai-assisted'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {executionResult.mode === 'real-data' ? '📊 Données réelles' :
+                         executionResult.mode === 'ai-assisted' ? '🤖 Assisté par IA' :
+                         executionResult.mode === 'no-data' ? '⚠️ Sans données' : executionResult.mode}
+                      </span>
+                    )}
                   </div>
                   
                   <div className="space-y-2 text-sm">
                     {executionResult.value !== undefined && (
                       <div className="flex items-center gap-2">
                         <span className="text-green-700">Valeur :</span>
-                        <span className="font-mono font-medium text-green-900">
+                        <span className="font-mono font-bold text-lg text-green-900">
                           {executionResult.value} {executionResult.unit || ''}
                         </span>
                       </div>
@@ -159,12 +180,46 @@ export default function SourcesAndCalculationsPanel({ subElement, onUpdate }: So
                     {executionResult.status && (
                       <div className="flex items-center gap-2">
                         <span className="text-green-700">Statut :</span>
-                        <span className="font-medium text-green-900">{executionResult.status}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          executionResult.status === 'ok' ? 'bg-green-100 text-green-700' :
+                          executionResult.status === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                          executionResult.status === 'critical' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {executionResult.status.toUpperCase()}
+                        </span>
                       </div>
                     )}
+                    
+                    {/* Informations sur les données */}
+                    {executionResult.rawData && (
+                      <div className="flex items-center gap-3 text-xs text-green-600">
+                        <span>📁 {executionResult.rawData.sourceCount} source(s)</span>
+                        <span>📋 {executionResult.rawData.dataCount} enregistrement(s)</span>
+                        {executionResult.rawData.filteredCount !== executionResult.rawData.dataCount && (
+                          <span>🔍 {executionResult.rawData.filteredCount} après filtre</span>
+                        )}
+                      </div>
+                    )}
+                    
                     {executionResult.explanation && (
                       <div className="mt-2 p-2 bg-white/50 rounded text-xs text-green-700">
                         {executionResult.explanation}
+                      </div>
+                    )}
+                    
+                    {/* Avertissements */}
+                    {executionResult.warnings && executionResult.warnings.length > 0 && (
+                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                        <div className="flex items-center gap-1 text-yellow-700 font-medium mb-1">
+                          <MuiIcon name="Warning" size={12} />
+                          <span>Avertissements</span>
+                        </div>
+                        <ul className="text-yellow-600 space-y-0.5">
+                          {executionResult.warnings.map((w, i) => (
+                            <li key={i}>• {w}</li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
