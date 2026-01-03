@@ -360,6 +360,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   fetchCockpit: async (id: string) => {
     const token = useAuthStore.getState().token;
+    const state = get();
+    
+    // Sauvegarder l'état de navigation actuel pour les rechargements (ex: conflit 409)
+    const isReload = state.currentCockpit?.id === id;
+    const savedDomainId = isReload ? state.currentDomainId : null;
+    const savedElementId = isReload ? state.currentElementId : null;
+    
     set({ isLoading: true, error: null });
 
     try {
@@ -370,13 +377,34 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       if (!response.ok) throw new Error('Erreur lors du chargement');
 
       const cockpit = await response.json();
+      
+      // Vérifier si les IDs sauvegardés sont toujours valides
+      let validDomainId = cockpit.domains?.[0]?.id || null;
+      let validElementId: string | null = null;
+      
+      if (savedDomainId) {
+        const foundDomain = cockpit.domains?.find((d: any) => d.id === savedDomainId);
+        if (foundDomain) {
+          validDomainId = savedDomainId;
+          // Vérifier si l'élément est toujours valide
+          if (savedElementId) {
+            for (const cat of foundDomain.categories || []) {
+              if (cat.elements?.some((e: any) => e.id === savedElementId)) {
+                validElementId = savedElementId;
+                break;
+              }
+            }
+          }
+        }
+      }
+      
       set({
         currentCockpit: {
           ...cockpit,
           sharedWith: cockpit.sharedWith || [], // S'assurer que sharedWith existe
         },
-        currentDomainId: cockpit.domains?.[0]?.id || null,
-        currentElementId: null,
+        currentDomainId: validDomainId,
+        currentElementId: validElementId,
         zones: cockpit.zones || [],
         isLoading: false
       });
