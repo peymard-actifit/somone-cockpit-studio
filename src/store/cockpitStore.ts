@@ -513,24 +513,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
           zones: zones || [], // Inclure les zones depuis le state
           templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
+          clientUpdatedAt: currentCockpit.updatedAt, // Pour détection de conflits
         };
 
-        console.log('[Auto-save] Envoi de TOUTES les données (y compris non publiables):', {
-          name: payload.name,
-          domainsCount: payload.domains.length,
-          zonesCount: payload.zones?.length || 0,
-          domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
-          nonPublishableDomains: payload.domains.filter((d: any) => d.publiable === false).length
-        });
-
-        // Log des images dans les domaines
-        payload.domains.forEach((d: any, idx: number) => {
-          const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
-          const isPublishable = d.publiable !== false;
-          console.log(`[Auto-save] Domain[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length} chars)` : 'ABSENTE'}, publiable=${isPublishable}`);
-        });
-
-        await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
+        const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -538,6 +524,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           },
           body: JSON.stringify(payload),
         });
+
+        // Gérer les conflits de version
+        if (response.status === 409) {
+          console.warn('[Auto-save] Conflit détecté, rechargement du cockpit...');
+          // Recharger le cockpit depuis le serveur
+          get().fetchCockpit(currentCockpit.id);
+        }
       } catch (error) {
         console.error('Erreur auto-save:', error);
       }
@@ -571,26 +564,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         sharedWith: currentCockpit.sharedWith || [],
         useOriginalView: currentCockpit.useOriginalView || false, // Vue originale
         templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
+        clientUpdatedAt: currentCockpit.updatedAt, // Pour détection de conflits
       };
       if ((currentCockpit as any).zones) {
         payload.zones = (currentCockpit as any).zones;
       }
-
-      // Log détaillé pour le debugging
-      console.log('[forceSave] 💾 Sauvegarde FORCÉE et SYNCHRONE:', {
-        name: payload.name,
-        domainsCount: payload.domains.length,
-        domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
-      });
-
-      // Log des images
-      payload.domains.forEach((d: any, idx: number) => {
-        const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
-        if (hasBg) {
-          const sizeMB = (d.backgroundImage.length / 1024 / 1024).toFixed(2);
-          console.log(`[forceSave] Domain[${idx}] "${d.name}": backgroundImage PRÉSENTE (${sizeMB} MB)`);
-        }
-      });
 
       const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
         method: 'PUT',
@@ -603,11 +581,17 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[forceSave] ❌ Erreur serveur:', response.status, errorData);
+        // Gérer les conflits de version
+        if (response.status === 409) {
+          console.warn('[forceSave] Conflit détecté:', errorData.error);
+          // Recharger le cockpit depuis le serveur
+          await get().fetchCockpit(currentCockpit.id);
+          return false;
+        }
+        console.error('[forceSave] Erreur serveur:', response.status, errorData);
         return false;
       }
 
-      console.log('[forceSave] ✅ Sauvegarde réussie');
       return true;
     } catch (error) {
       console.error('[forceSave] ❌ Erreur:', error);

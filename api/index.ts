@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.23.8';
+const APP_VERSION = '14.23.9';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -15,8 +15,11 @@ const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
 
-console.log('Redis URL configured:', redisUrl ? 'YES' : 'NO');
-console.log('Redis Token configured:', redisToken ? 'YES' : 'NO');
+// Logs de configuration uniquement en dev
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Redis URL configured:', redisUrl ? 'YES' : 'NO');
+  console.log('Redis Token configured:', redisToken ? 'YES' : 'NO');
+}
 
 const redis = new Redis({
   url: redisUrl,
@@ -25,7 +28,9 @@ const redis = new Redis({
 
 // Neon PostgreSQL client (pour les snapshots publies)
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
-console.log('PostgreSQL URL configured:', databaseUrl ? 'YES' : 'NO');
+if (process.env.NODE_ENV !== 'production') {
+  console.log('PostgreSQL URL configured:', databaseUrl ? 'YES' : 'NO');
+}
 
 const sql = databaseUrl ? neon(databaseUrl) : null;
 
@@ -179,6 +184,99 @@ const generateId = () => {
     Math.floor(Math.random() * 16).toString(16)
   );
 };
+
+// ============================================
+// Configuration et validation
+// ============================================
+
+// Limites pour les images
+const IMAGE_CONFIG = {
+  MAX_SIZE_MB: 10,           // Taille max en MB
+  MAX_SIZE_BYTES: 10 * 1024 * 1024,
+  ALLOWED_FORMATS: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+  MIN_SIZE_BYTES: 100,       // Taille min pour éviter les données corrompues
+};
+
+// Mode production (désactive les logs verbeux)
+const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+
+// Logger conditionnel
+const log = {
+  info: (...args: unknown[]) => {
+    if (!IS_PRODUCTION) console.log(...args);
+  },
+  warn: (...args: unknown[]) => console.warn(...args),
+  error: (...args: unknown[]) => console.error(...args),
+  debug: (...args: unknown[]) => {
+    if (!IS_PRODUCTION) console.log('[DEBUG]', ...args);
+  },
+};
+
+/**
+ * Valide une image base64
+ * @returns { valid: boolean, error?: string, format?: string, sizeBytes?: number }
+ */
+function validateImage(base64Data: string | undefined | null): { 
+  valid: boolean; 
+  error?: string; 
+  format?: string; 
+  sizeBytes?: number;
+} {
+  if (!base64Data || typeof base64Data !== 'string') {
+    return { valid: true }; // Pas d'image = valide (optionnel)
+  }
+  
+  // Vérifier le format base64 data URI
+  if (!base64Data.startsWith('data:image/')) {
+    return { valid: false, error: 'Format invalide: doit être une image base64 (data:image/...)' };
+  }
+  
+  // Extraire le type MIME
+  const mimeMatch = base64Data.match(/^data:(image\/[a-z+]+);base64,/i);
+  if (!mimeMatch) {
+    return { valid: false, error: 'Format base64 invalide' };
+  }
+  
+  const mimeType = mimeMatch[1].toLowerCase();
+  if (!IMAGE_CONFIG.ALLOWED_FORMATS.includes(mimeType)) {
+    return { 
+      valid: false, 
+      error: `Format d'image non supporté: ${mimeType}. Formats acceptés: JPEG, PNG, GIF, WebP, SVG` 
+    };
+  }
+  
+  // Calculer la taille approximative
+  const base64Part = base64Data.split(',')[1] || '';
+  const sizeBytes = Math.ceil(base64Part.length * 0.75); // Base64 = ~75% de la taille réelle
+  
+  if (sizeBytes < IMAGE_CONFIG.MIN_SIZE_BYTES) {
+    return { valid: false, error: 'Image trop petite ou corrompue' };
+  }
+  
+  if (sizeBytes > IMAGE_CONFIG.MAX_SIZE_BYTES) {
+    const sizeMB = (sizeBytes / 1024 / 1024).toFixed(2);
+    return { 
+      valid: false, 
+      error: `Image trop volumineuse (${sizeMB} MB). Maximum: ${IMAGE_CONFIG.MAX_SIZE_MB} MB` 
+    };
+  }
+  
+  return { valid: true, format: mimeType, sizeBytes };
+}
+
+/**
+ * Vérifie si une mise à jour est en conflit (optimistic locking)
+ * @returns true si le cockpit a été modifié depuis clientUpdatedAt
+ */
+function hasConflict(serverUpdatedAt: string, clientUpdatedAt?: string): boolean {
+  if (!clientUpdatedAt) return false; // Pas de vérification demandée
+  
+  const serverTime = new Date(serverUpdatedAt).getTime();
+  const clientTime = new Date(clientUpdatedAt).getTime();
+  
+  // Tolérance de 2 secondes pour les décalages
+  return serverTime > clientTime + 2000;
+}
 
 // Simple JWT implementation
 function createToken(payload: any): string {
@@ -1786,15 +1884,40 @@ INSTRUCTIONS:
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
-      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView, templateIcons } = req.body;
+      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView, templateIcons, clientUpdatedAt } = req.body;
       const now = new Date().toISOString();
 
-      // LOG IMPORTANT : Vérifier ce qui arrive
-      if (domains && Array.isArray(domains)) {
-        domains.forEach((d: any, idx: number) => {
-          const hasBg = d.backgroundImage && d.backgroundImage.length > 0;
-          console.log(`[PUT] Domaine[${idx}] "${d.name}": backgroundImage=${hasBg ? `PRESENTE (${d.backgroundImage.length})` : 'ABSENTE'}`);
+      // Vérification de conflit (optimistic locking)
+      if (clientUpdatedAt && hasConflict(cockpit.updatedAt, clientUpdatedAt)) {
+        log.warn(`[PUT] Conflit détecté pour cockpit ${id}: server=${cockpit.updatedAt}, client=${clientUpdatedAt}`);
+        return res.status(409).json({ 
+          error: 'Conflit: la maquette a été modifiée par un autre utilisateur. Veuillez rafraîchir.',
+          serverUpdatedAt: cockpit.updatedAt,
+          clientUpdatedAt
         });
+      }
+
+      // Validation des images dans les domaines
+      if (domains && Array.isArray(domains)) {
+        for (const domain of domains) {
+          if (domain.backgroundImage) {
+            const validation = validateImage(domain.backgroundImage);
+            if (!validation.valid) {
+              return res.status(400).json({ 
+                error: `Image invalide pour le domaine "${domain.name}": ${validation.error}` 
+              });
+            }
+            log.debug(`[PUT] Image validée pour "${domain.name}": ${validation.format}, ${((validation.sizeBytes || 0) / 1024).toFixed(0)} KB`);
+          }
+        }
+      }
+
+      // Validation du logo
+      if (logo) {
+        const logoValidation = validateImage(logo);
+        if (!logoValidation.valid) {
+          return res.status(400).json({ error: `Logo invalide: ${logoValidation.error}` });
+        }
       }
 
       cockpit.name = name || cockpit.name;
@@ -1830,10 +1953,10 @@ INSTRUCTIONS:
                 newDomain.backgroundImage.trim().length === 0 ||
                 newDomain.backgroundImage === '') {
                 merged.backgroundImage = existingDomain.backgroundImage;
-                console.log(`[PUT] âœ… Préservé backgroundImage pour "${newDomain.name}" (${existingDomain.backgroundImage.length} chars)`);
+                log.debug(`[PUT] Préservé backgroundImage pour "${newDomain.name}"`);
               } else {
                 // newDomain a une nouvelle image, l'utiliser
-                console.log(`[PUT] ðŸ”„ Nouveau backgroundImage pour "${newDomain.name}" (${newDomain.backgroundImage.length} chars)`);
+                log.debug(`[PUT] Nouveau backgroundImage pour "${newDomain.name}"`);
               }
             }
 
@@ -1846,7 +1969,7 @@ INSTRUCTIONS:
                 !newDomain.mapBounds.topLeft ||
                 !newDomain.mapBounds.bottomRight) {
                 merged.mapBounds = existingDomain.mapBounds;
-                console.log(`[PUT] âœ… Préservé mapBounds pour "${newDomain.name}"`);
+                log.debug(`[PUT] Préservé mapBounds pour "${newDomain.name}"`);
               }
             }
 
@@ -1874,8 +1997,9 @@ INSTRUCTIONS:
         mergedDomains = cockpit.data.domains || [];
       }
 
-      // Log final pour vérifier ce qui est sauvegardé
-      console.log(`[PUT /cockpits/:id] âœ… Sauvegarde finale - ${mergedDomains.length} domaines:`);
+      // Log uniquement en développement
+      log.debug(`[PUT] Sauvegarde de ${mergedDomains.length} domaines`);
+      /* Logs verbeux supprimés
       mergedDomains.forEach((d: any, idx: number) => {
         const hasBg = d.backgroundImage && typeof d.backgroundImage === 'string' && d.backgroundImage.trim().length > 0;
         const hasMapBounds = d.mapBounds && d.mapBounds.topLeft && d.mapBounds.bottomRight;
@@ -1884,7 +2008,7 @@ INSTRUCTIONS:
           `bg=${hasBg ? `âœ…(${d.backgroundImage.length})` : 'âŒ'}, ` +
           `bounds=${hasMapBounds ? 'âœ…' : 'âŒ'}, ` +
           `points=${hasMapElements ? `âœ…(${d.mapElements.length})` : 'âŒ'}`);
-      });
+      }); */
 
       cockpit.data = {
         domains: mergedDomains,
@@ -1910,8 +2034,9 @@ INSTRUCTIONS:
 
       await saveDb(db);
 
-      // Vérifier après sauvegarde
-      const savedCockpit = db.cockpits.find(c => c.id === cockpit.id);
+      // Vérification de sauvegarde (logs uniquement en dev)
+      log.debug(`[PUT] Cockpit ${id} sauvegardé`);
+      /* const savedCockpit = db.cockpits.find(c => c.id === cockpit.id);
       if (savedCockpit && savedCockpit.data) {
         console.log(`[PUT /cockpits/:id] âœ… Après sauvegarde - Domaines avec images:`);
         (savedCockpit.data.domains || []).forEach((d: any, idx: number) => {
@@ -1928,7 +2053,7 @@ INSTRUCTIONS:
             console.warn(`[PUT] âš ï¸ Image suspecte pour "${d.name}" - trop courte (${d.backgroundImage.length} chars)`);
           }
         });
-      }
+      } */
 
       return res.json({ success: true });
     }
