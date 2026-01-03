@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.25.12';
+const APP_VERSION = '14.26.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -357,41 +357,8 @@ async function fetchSourceData(source: any, steps: ExecutionStep[]): Promise<any
         break;
       
       case 'email':
-        // Pour les sources email, on utilise les données configurées dans fields
-        // ou on peut configurer une API de récupération d'emails
-        if (location && (location.startsWith('http://') || location.startsWith('https://'))) {
-          // Si une URL d'API email est fournie (ex: Microsoft Graph, Gmail API)
-          data = await fetchFromAPI(location, connection, fields);
-        } else if (fields) {
-          // Sinon, essayer de parser les champs comme des données ou une valeur
-          try {
-            // Essayer de parser comme JSON
-            data = JSON.parse(fields);
-          } catch {
-            // Si ce n'est pas du JSON, extraire la valeur depuis le texte
-            // Format attendu: "valeur: 5" ou "total: 123" ou juste un nombre
-            const valueMatch = fields.match(/(?:valeur|value|total|count|nombre)[\s:=]+(\d+(?:[.,]\d+)?)/i);
-            if (valueMatch) {
-              data = { value: parseFloat(valueMatch[1].replace(',', '.')) };
-            } else {
-              // Essayer d'extraire juste un nombre
-              const numberMatch = fields.match(/(\d+(?:[.,]\d+)?)/);
-              if (numberMatch) {
-                data = { value: parseFloat(numberMatch[1].replace(',', '.')) };
-              } else {
-                // Utiliser le texte brut comme valeur
-                data = { rawText: fields, value: fields };
-              }
-            }
-          }
-        } else if (source.config?.data) {
-          data = source.config.data;
-        } else {
-          // Pas de données configurées pour cette source email
-          steps[steps.length - 1].status = 'skipped';
-          steps[steps.length - 1].message = `Source email "${location || 'Non définie'}": Configurez les données dans le champ "Champs/règles" ou une API`;
-          return null;
-        }
+        // Lecture réelle des emails via API (Microsoft Graph, Gmail, ou IMAP proxy)
+        data = await fetchFromEmail(location, connection, fields, steps);
         break;
       
       case 'manual':
@@ -587,6 +554,244 @@ async function fetchFromDatabase(connection: string, query?: string): Promise<an
 async function fetchFromMonitoring(type: string, url: string, connection?: string): Promise<any> {
   // Les outils de monitoring exposent généralement des APIs REST
   return await fetchFromAPI(url, connection);
+}
+
+/**
+ * Récupère les données depuis une boîte email via API
+ * Supporte: Microsoft Graph API, Gmail API, ou API personnalisée
+ */
+async function fetchFromEmail(
+  emailAddress: string | undefined, 
+  connection: string | undefined, 
+  fields: string | undefined,
+  steps: ExecutionStep[]
+): Promise<any> {
+  const stepNum = steps.length;
+  
+  // Parser la configuration de connexion
+  let config: any = {};
+  if (connection) {
+    try {
+      config = JSON.parse(connection);
+    } catch {
+      // Si ce n'est pas du JSON, traiter comme un token
+      config = { token: connection };
+    }
+  }
+
+  const { 
+    provider, // 'microsoft', 'gmail', 'custom'
+    token,
+    apiKey,
+    clientId,
+    clientSecret,
+    refreshToken,
+    apiUrl,
+    folder = 'inbox',
+    subject, // Filtre sur le sujet
+    from, // Filtre sur l'expéditeur
+    maxResults = 10,
+    extractPattern, // Regex pour extraire la valeur du corps
+  } = config;
+
+  // Déterminer le provider automatiquement si non spécifié
+  const detectedProvider = provider || 
+    (emailAddress?.includes('@outlook') || emailAddress?.includes('@microsoft') || emailAddress?.includes('@hotmail') ? 'microsoft' : 
+     emailAddress?.includes('@gmail') ? 'gmail' : 'custom');
+
+  try {
+    let emails: any[] = [];
+
+    // Microsoft Graph API
+    if (detectedProvider === 'microsoft' && token) {
+      const graphUrl = `https://graph.microsoft.com/v1.0/me/mailFolders/${folder}/messages?$top=${maxResults}&$orderby=receivedDateTime desc`;
+      
+      const graphResponse = await fetch(graphUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!graphResponse.ok) {
+        const errorData = await graphResponse.json().catch(() => ({}));
+        throw new Error(`Microsoft Graph API error: ${graphResponse.status} - ${errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const graphData = await graphResponse.json();
+      emails = (graphData.value || []).map((msg: any) => ({
+        id: msg.id,
+        subject: msg.subject,
+        from: msg.from?.emailAddress?.address,
+        body: msg.body?.content || msg.bodyPreview,
+        date: msg.receivedDateTime,
+        isRead: msg.isRead,
+      }));
+    }
+    // Gmail API
+    else if (detectedProvider === 'gmail' && token) {
+      // D'abord, lister les messages
+      let listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}`;
+      if (subject) listUrl += `&q=subject:${encodeURIComponent(subject)}`;
+      if (from) listUrl += `&q=from:${encodeURIComponent(from)}`;
+
+      const listResponse = await fetch(listUrl, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!listResponse.ok) {
+        throw new Error(`Gmail API list error: ${listResponse.status}`);
+      }
+
+      const listData = await listResponse.json();
+      const messageIds = (listData.messages || []).map((m: any) => m.id);
+
+      // Récupérer le contenu de chaque message
+      for (const msgId of messageIds.slice(0, maxResults)) {
+        const msgResponse = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        
+        if (msgResponse.ok) {
+          const msgData = await msgResponse.json();
+          const headers = msgData.payload?.headers || [];
+          const subjectHeader = headers.find((h: any) => h.name === 'Subject')?.value;
+          const fromHeader = headers.find((h: any) => h.name === 'From')?.value;
+          const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
+          
+          // Décoder le corps du message (base64url)
+          let body = '';
+          const parts = msgData.payload?.parts || [msgData.payload];
+          for (const part of parts) {
+            if (part?.mimeType === 'text/plain' && part?.body?.data) {
+              body = Buffer.from(part.body.data, 'base64url').toString('utf-8');
+              break;
+            } else if (part?.mimeType === 'text/html' && part?.body?.data) {
+              body = Buffer.from(part.body.data, 'base64url').toString('utf-8');
+            }
+          }
+
+          emails.push({
+            id: msgId,
+            subject: subjectHeader,
+            from: fromHeader,
+            body: body,
+            date: dateHeader,
+          });
+        }
+      }
+    }
+    // API personnalisée
+    else if (apiUrl && token) {
+      const customResponse = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!customResponse.ok) {
+        throw new Error(`Custom email API error: ${customResponse.status}`);
+      }
+
+      emails = await customResponse.json();
+      if (!Array.isArray(emails)) {
+        emails = emails.emails || emails.messages || emails.data || [emails];
+      }
+    }
+    // Pas de configuration valide
+    else {
+      steps[stepNum - 1].status = 'error';
+      steps[stepNum - 1].message = `Email "${emailAddress}": Token d'accès requis. Configurez la connexion avec {"provider": "microsoft"|"gmail", "token": "votre_token"}`;
+      return null;
+    }
+
+    // Filtrer par sujet si spécifié
+    if (subject && emails.length > 0) {
+      const subjectLower = subject.toLowerCase();
+      emails = emails.filter((e: any) => 
+        e.subject?.toLowerCase().includes(subjectLower)
+      );
+    }
+
+    // Filtrer par expéditeur si spécifié
+    if (from && emails.length > 0) {
+      const fromLower = from.toLowerCase();
+      emails = emails.filter((e: any) => 
+        e.from?.toLowerCase().includes(fromLower)
+      );
+    }
+
+    // Extraire les valeurs du corps des emails selon le pattern
+    const pattern = extractPattern || fields;
+    if (pattern && emails.length > 0) {
+      const extractedValues: any[] = [];
+      
+      for (const email of emails) {
+        const bodyText = email.body || '';
+        
+        // Essayer le pattern comme regex
+        try {
+          const regex = new RegExp(pattern, 'gi');
+          const matches = bodyText.match(regex);
+          
+          if (matches) {
+            // Extraire les valeurs numériques des matches
+            for (const match of matches) {
+              const numMatch = match.match(/(\d+(?:[.,]\d+)?)/);
+              if (numMatch) {
+                extractedValues.push({
+                  emailId: email.id,
+                  subject: email.subject,
+                  date: email.date,
+                  value: parseFloat(numMatch[1].replace(',', '.')),
+                  rawMatch: match,
+                });
+              }
+            }
+          }
+        } catch {
+          // Si le pattern n'est pas une regex valide, chercher comme texte
+          if (bodyText.toLowerCase().includes(pattern.toLowerCase())) {
+            // Extraire le nombre qui suit le pattern
+            const textPattern = new RegExp(pattern + '[\\s:=]*(\\d+(?:[.,]\\d+)?)', 'gi');
+            const textMatch = bodyText.match(textPattern);
+            if (textMatch) {
+              const numMatch = textMatch[0].match(/(\d+(?:[.,]\d+)?)/);
+              if (numMatch) {
+                extractedValues.push({
+                  emailId: email.id,
+                  subject: email.subject,
+                  date: email.date,
+                  value: parseFloat(numMatch[1].replace(',', '.')),
+                });
+              }
+            }
+          }
+        }
+      }
+
+      if (extractedValues.length > 0) {
+        // Retourner la valeur la plus récente ou la somme selon la config
+        return extractedValues;
+      }
+    }
+
+    // Retourner les emails bruts si pas de pattern
+    return emails.map((e: any) => ({
+      id: e.id,
+      subject: e.subject,
+      from: e.from,
+      date: e.date,
+      bodyPreview: e.body?.substring(0, 200),
+    }));
+
+  } catch (error: any) {
+    steps[stepNum - 1].status = 'error';
+    steps[stepNum - 1].message = `Erreur lecture email: ${error.message}`;
+    return null;
+  }
 }
 
 /**
