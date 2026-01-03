@@ -132,7 +132,7 @@ interface BulkEditMapRowProps {
 
 function BulkEditMapRow({ element, statuses, popularIcons, onUpdate }: BulkEditMapRowProps) {
   const [showIconPicker, setShowIconPicker] = useState(false);
-  const colors = STATUS_COLORS[element.status];
+  const colors = STATUS_COLORS[element.status] || STATUS_COLORS.ok;
 
   return (
     <div className="grid grid-cols-[2fr_100px_80px_100px_100px] gap-2 px-4 py-1.5 border-b border-[#F1F5F9] hover:bg-[#F8FAFC] items-center text-sm">

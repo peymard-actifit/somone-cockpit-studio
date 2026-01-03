@@ -1202,7 +1202,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 
           {/* Clusters de points (quand on dézoome) - cliquables pour zoomer */}
           {clusters.map((cluster) => {
-            const colors = STATUS_COLORS[cluster.worstStatus];
+            const colors = STATUS_COLORS[cluster.worstStatus] || STATUS_COLORS.ok;
 
             // Taille relative à l'image de la carte (comme BackgroundView : 3% de l'image)
             // Calculer la taille de l'image pour avoir un équivalent
@@ -1312,7 +1312,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             const pos = gpsToPosition(point.gps);
             if (!pos) return null;
 
-            const colors = STATUS_COLORS[point.status];
+            const colors = STATUS_COLORS[point.status] || STATUS_COLORS.ok;
             const iconName = point.icon || 'MapPin';
             const hasLinkedElement = !!point.elementId;
 

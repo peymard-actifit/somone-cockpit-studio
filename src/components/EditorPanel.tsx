@@ -1122,7 +1122,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               >
                 <div
                   className="w-4 h-4 rounded"
-                  style={{ backgroundColor: STATUS_COLORS[status].hex }}
+                  style={{ backgroundColor: STATUS_COLORS[status]?.hex || '#9E9E9E' }}
                 />
                 <span>{STATUS_LABELS[status]}</span>
               </button>
@@ -1936,7 +1936,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               >
                 <div
                   className="w-4 h-4 rounded"
-                  style={{ backgroundColor: STATUS_COLORS[status].hex }}
+                  style={{ backgroundColor: STATUS_COLORS[status]?.hex || '#9E9E9E' }}
                 />
                 <span>{STATUS_LABELS[status]}</span>
               </button>
@@ -2397,7 +2397,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       >
                         <div
                           className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: STATUS_COLORS[status].hex }}
+                          style={{ backgroundColor: STATUS_COLORS[status]?.hex || '#9E9E9E' }}
                         />
                         <span className="text-sm">{STATUS_LABELS[status]}</span>
                       </button>

@@ -1743,7 +1743,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   >
                     <div
                       className="w-8 h-8 rounded"
-                      style={{ backgroundColor: STATUS_COLORS[status].hex }}
+                      style={{ backgroundColor: STATUS_COLORS[status]?.hex || '#9E9E9E' }}
                     />
                     <span className="text-[10px] text-[#64748B]">{STATUS_LABELS[status]}</span>
                   </button>

@@ -15,7 +15,7 @@ interface AlertPopupProps {
 }
 
 export default function AlertPopup({ alert, subElement, breadcrumb, onClose }: AlertPopupProps) {
-  const colors = STATUS_COLORS[subElement.status];
+  const colors = STATUS_COLORS[subElement.status] || STATUS_COLORS.ok;
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('fr-FR', {
