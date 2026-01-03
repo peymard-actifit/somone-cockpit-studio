@@ -127,13 +127,14 @@ export default function CalculationManager({ subElement, sources, calculations, 
 
       const result = await response.json();
       
-      // Mettre à jour les champs avec les valeurs générées
+      // Mettre à jour les champs avec les valeurs générées (remplacement complet)
       setEditingCalculation({
         ...editingCalculation,
-        name: result.name || editingCalculation.name,
-        description: result.description || editingCalculation.description,
-        definition: result.definition || editingCalculation.definition,
-        sources: result.sources || editingCalculation.sources,
+        name: result.name || '',
+        description: result.description || '',
+        definition: result.definition || '',
+        sources: result.sources || [],
+        prompt: editingCalculation.prompt, // Préserver le prompt
       });
     } catch (error) {
       console.error('Erreur génération IA:', error);

@@ -110,15 +110,16 @@ export default function DataSourceManager({ subElement, sources, onUpdate }: Dat
 
       const result = await response.json();
       
-      // Mettre à jour les champs avec les valeurs générées
+      // Mettre à jour les champs avec les valeurs générées (remplacement complet)
       setEditingSource({
         ...editingSource,
-        name: result.name || editingSource.name,
-        type: result.type || editingSource.type,
-        location: result.location || editingSource.location,
-        connection: result.connection || editingSource.connection,
-        fields: result.fields || editingSource.fields,
-        description: result.description || editingSource.description,
+        name: result.name || '',
+        type: result.type || 'other',
+        location: result.location || '',
+        connection: result.connection || '',
+        fields: result.fields || '',
+        description: result.description || '',
+        prompt: editingSource.prompt, // Préserver le prompt
       });
     } catch (error) {
       console.error('Erreur génération IA:', error);
