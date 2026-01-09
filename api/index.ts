@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.26.1';
+const APP_VERSION = '14.27.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -5050,6 +5050,79 @@ Calcul souhaité: ${prompt}`
 
       const { message, cockpitContext, history, hasImage, imageBase64, imageMimeType } = req.body;
 
+      // === OPTIMISATION DU CONTEXTE ===
+      // Compresser le contexte du cockpit pour réduire les tokens
+      const compressContext = (ctx: any): any => {
+        if (!ctx) return {};
+        
+        // Garder les infos essentielles uniquement
+        const compressed: any = {
+          cockpitName: ctx.cockpitName,
+          currentDomainId: ctx.currentDomainId,
+          currentElementId: ctx.currentElementId,
+        };
+        
+        // Compresser les domaines
+        if (ctx.domains && Array.isArray(ctx.domains)) {
+          compressed.domains = ctx.domains.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            templateType: d.templateType,
+            // Ne garder que les catégories avec leurs noms et IDs
+            categories: (d.categories || []).map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              // Compresser les éléments
+              elements: (c.elements || []).map((e: any) => ({
+                id: e.id,
+                name: e.name,
+                status: e.status,
+                // Compresser les sous-catégories (seulement nom et ID)
+                subCategories: (e.subCategories || []).map((sc: any) => ({
+                  id: sc.id,
+                  name: sc.name,
+                  // Compresser les sous-éléments (sans sources/calculs détaillés)
+                  subElements: (sc.subElements || []).map((se: any) => ({
+                    id: se.id,
+                    name: se.name,
+                    status: se.status,
+                    // Indiquer juste le nombre de sources/calculs
+                    sourcesCount: (se.sources || []).length,
+                    calculationsCount: (se.calculations || []).length,
+                  }))
+                }))
+              }))
+            })),
+            // MapElements (compressés)
+            mapElements: (d.mapElements || []).map((me: any) => ({
+              id: me.id,
+              name: me.name,
+              status: me.status,
+            }))
+          }));
+        }
+        
+        // Zones (juste noms et IDs)
+        if (ctx.zones && Array.isArray(ctx.zones)) {
+          compressed.zones = ctx.zones.map((z: any) => ({ id: z.id, name: z.name }));
+        }
+        
+        return compressed;
+      };
+      
+      // Compresser le contexte
+      const optimizedContext = compressContext(cockpitContext);
+      
+      // Logs de diagnostic pour la taille du contexte
+      const originalContextSize = JSON.stringify(cockpitContext || {}).length;
+      const optimizedContextSize = JSON.stringify(optimizedContext).length;
+      console.log(`[AI] Contexte original: ${originalContextSize} chars, optimisé: ${optimizedContextSize} chars (${Math.round((1 - optimizedContextSize/originalContextSize) * 100)}% de réduction)`);
+      
+      // Limiter l'historique à 10 messages max pour réduire les tokens
+      const limitedHistory = (history || []).slice(-10);
+      console.log(`[AI] Historique: ${(history || []).length} messages -> ${limitedHistory.length} messages (limité)`);
+
+
       // Récupérer le prompt système personnalisé depuis la base de données
       // IMPORTANT: Ce prompt personnalisé est TOUJOURS la première instruction donnée à l'IA
       const db = await getDb();
@@ -5152,8 +5225,8 @@ ACTIONS DISPONIBLES (retourne-les dans le champ "actions"):
 - selectDomain: { domainId?: string, name?: string }
 - selectElement: { elementId?: string, name?: string }
 
-CONTEXTE ACTUEL DU COCKPIT:
-${JSON.stringify(cockpitContext, null, 2)}
+CONTEXTE ACTUEL DU COCKPIT (compressé):
+${JSON.stringify(optimizedContext, null, 2)}
 
 INSTRUCTIONS IMPORTANTES:
 1. Réponds en français de manière concise et professionnelle
@@ -5222,7 +5295,7 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
 
       const messages: any[] = [
         { role: 'system', content: systemPrompt },
-        ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
+        ...limitedHistory.map((h: any) => ({ role: h.role, content: h.content })),
       ];
 
       // Si une image est attachée, utiliser le format multi-modal
@@ -5312,8 +5385,9 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
         messages.push({ role: 'user', content: message });
       }
 
-      // Utiliser gpt-4o-mini qui supporte les images (ou gpt-4o pour meilleure qualité OCR)
-      const model = (hasImage && imageBase64) ? 'gpt-4o-mini' : 'gpt-4o-mini';
+      // Utiliser gpt-4o pour une meilleure capacité (128K tokens contexte)
+      // gpt-4o offre de meilleures performances pour les gros cockpits et les images
+      const model = 'gpt-4o';
 
       try {
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -5336,6 +5410,7 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
 
         if (!openaiResponse.ok) {
           let errorMessage = 'Erreur OpenAI inconnue';
+          let errorCode = '';
           try {
             const errorText = await openaiResponse.text();
             console.error('[AI] OpenAI error response (raw):', errorText.substring(0, 500));
@@ -5343,6 +5418,7 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
             try {
               const error = JSON.parse(errorText);
               errorMessage = error.error?.message || error.message || errorText.substring(0, 200);
+              errorCode = error.error?.code || '';
             } catch (parseError) {
               // Si ce n'est pas du JSON, utiliser le texte brut
               errorMessage = errorText.substring(0, 200) || 'Erreur OpenAI inconnue';
@@ -5350,6 +5426,24 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
           } catch (textError) {
             console.error('[AI] Impossible de lire la réponse d\'erreur OpenAI:', textError);
             errorMessage = `Erreur HTTP ${openaiResponse.status}: ${openaiResponse.statusText}`;
+          }
+
+          // Gérer les erreurs de capacité spécifiquement
+          if (errorMessage.includes('context_length_exceeded') || errorMessage.includes('maximum context length') || errorCode === 'context_length_exceeded') {
+            console.error('[AI] Erreur de capacité détectée - contexte trop long');
+            return res.status(413).json({ 
+              error: 'Le cockpit est trop volumineux pour être traité en une seule requête. Essayez de :\n• Sélectionner un domaine spécifique avant de faire votre demande\n• Simplifier votre demande\n• Diviser votre demande en plusieurs étapes',
+              code: 'CONTEXT_TOO_LARGE'
+            });
+          }
+
+          // Gérer les erreurs de rate limit
+          if (errorMessage.includes('rate_limit') || errorCode === 'rate_limit_exceeded') {
+            console.error('[AI] Rate limit atteint');
+            return res.status(429).json({ 
+              error: 'Limite de requêtes atteinte. Veuillez patienter quelques secondes et réessayer.',
+              code: 'RATE_LIMIT'
+            });
           }
 
           console.error('[AI] Erreur OpenAI finale:', errorMessage);
