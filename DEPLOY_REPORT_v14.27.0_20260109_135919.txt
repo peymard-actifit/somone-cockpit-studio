@@ -1,0 +1,25 @@
+﻿=== RAPPORT DE DEPLOIEMENT ===
+Date: 2026-01-09 13:59:19
+Version: 14.27.0
+Type: minor (ajout de fonctionnalite)
+
+=== AMELIORATIONS APPORTEES ===
+1. Modele IA : gpt-4o-mini -> gpt-4o (contexte 128K tokens)
+2. Compression du contexte cockpit (reduction significative des tokens)
+3. Limitation de l'historique a 10 messages max
+4. Gestion amelioree des erreurs de capacite
+5. Messages d'erreur clairs pour les depassements de contexte
+
+=== ETAPES EXECUTEES ===
+1. Verification des changements: OK
+2. Increment de version: 14.26.1 -> 14.27.0
+3. Commit et Push GitHub: OK
+4. Compilation (build): OK
+5. Deploiement Vercel: OK
+
+=== URLS DE DEPLOIEMENT ===
+Production: https://somone-cockpit-studio.vercel.app
+Preview: https://somone-cockpit-studio-9tbw9n0d2-patrick-eymards-projects.vercel.app
+
+=== RESULTAT ===
+Deploiement reussi - Version 14.27.0 en production

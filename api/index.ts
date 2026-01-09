@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.27.0';
+const APP_VERSION = '14.27.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -5050,77 +5050,14 @@ Calcul souhaité: ${prompt}`
 
       const { message, cockpitContext, history, hasImage, imageBase64, imageMimeType } = req.body;
 
-      // === OPTIMISATION DU CONTEXTE ===
-      // Compresser le contexte du cockpit pour réduire les tokens
-      const compressContext = (ctx: any): any => {
-        if (!ctx) return {};
-        
-        // Garder les infos essentielles uniquement
-        const compressed: any = {
-          cockpitName: ctx.cockpitName,
-          currentDomainId: ctx.currentDomainId,
-          currentElementId: ctx.currentElementId,
-        };
-        
-        // Compresser les domaines
-        if (ctx.domains && Array.isArray(ctx.domains)) {
-          compressed.domains = ctx.domains.map((d: any) => ({
-            id: d.id,
-            name: d.name,
-            templateType: d.templateType,
-            // Ne garder que les catégories avec leurs noms et IDs
-            categories: (d.categories || []).map((c: any) => ({
-              id: c.id,
-              name: c.name,
-              // Compresser les éléments
-              elements: (c.elements || []).map((e: any) => ({
-                id: e.id,
-                name: e.name,
-                status: e.status,
-                // Compresser les sous-catégories (seulement nom et ID)
-                subCategories: (e.subCategories || []).map((sc: any) => ({
-                  id: sc.id,
-                  name: sc.name,
-                  // Compresser les sous-éléments (sans sources/calculs détaillés)
-                  subElements: (sc.subElements || []).map((se: any) => ({
-                    id: se.id,
-                    name: se.name,
-                    status: se.status,
-                    // Indiquer juste le nombre de sources/calculs
-                    sourcesCount: (se.sources || []).length,
-                    calculationsCount: (se.calculations || []).length,
-                  }))
-                }))
-              }))
-            })),
-            // MapElements (compressés)
-            mapElements: (d.mapElements || []).map((me: any) => ({
-              id: me.id,
-              name: me.name,
-              status: me.status,
-            }))
-          }));
-        }
-        
-        // Zones (juste noms et IDs)
-        if (ctx.zones && Array.isArray(ctx.zones)) {
-          compressed.zones = ctx.zones.map((z: any) => ({ id: z.id, name: z.name }));
-        }
-        
-        return compressed;
-      };
+      // === MODE CAPACITÉ MAXIMALE ===
+      // Utiliser le contexte COMPLET sans compression pour maximiser les capacités de l'IA
+      // gpt-4o supporte 128K tokens en entrée - on utilise tout l'espace disponible
       
-      // Compresser le contexte
-      const optimizedContext = compressContext(cockpitContext);
-      
-      // Logs de diagnostic pour la taille du contexte
-      const originalContextSize = JSON.stringify(cockpitContext || {}).length;
-      const optimizedContextSize = JSON.stringify(optimizedContext).length;
-      console.log(`[AI] Contexte original: ${originalContextSize} chars, optimisé: ${optimizedContextSize} chars (${Math.round((1 - optimizedContextSize/originalContextSize) * 100)}% de réduction)`);
-      
-      // Limiter l'historique à 10 messages max pour réduire les tokens
-      const limitedHistory = (history || []).slice(-10);
-      console.log(`[AI] Historique: ${(history || []).length} messages -> ${limitedHistory.length} messages (limité)`);
+      // Log de diagnostic
+      const contextSize = JSON.stringify(cockpitContext || {}).length;
+      const historySize = (history || []).length;
+      console.log(`[AI] Mode CAPACITÉ MAXIMALE - Contexte: ${contextSize} chars, Historique: ${historySize} messages`);
 
 
       // Récupérer le prompt système personnalisé depuis la base de données
@@ -5225,8 +5162,8 @@ ACTIONS DISPONIBLES (retourne-les dans le champ "actions"):
 - selectDomain: { domainId?: string, name?: string }
 - selectElement: { elementId?: string, name?: string }
 
-CONTEXTE ACTUEL DU COCKPIT (compressé):
-${JSON.stringify(optimizedContext, null, 2)}
+CONTEXTE COMPLET DU COCKPIT:
+${JSON.stringify(cockpitContext, null, 2)}
 
 INSTRUCTIONS IMPORTANTES:
 1. Réponds en français de manière concise et professionnelle
@@ -5295,7 +5232,7 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
 
       const messages: any[] = [
         { role: 'system', content: systemPrompt },
-        ...limitedHistory.map((h: any) => ({ role: h.role, content: h.content })),
+        ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
       ];
 
       // Si une image est attachée, utiliser le format multi-modal
@@ -5400,11 +5337,9 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
             model,
             messages,
             temperature: 0.7,
-            max_tokens: 32000, // Augmenté de 16000 à 32000 pour plus d'actions et réponses détaillées
-            // Optimiser pour les images : réduire la qualité si nécessaire
-            ...(hasImage && imageBase64 && {
-              // Option pour réduire le temps de traitement si nécessaire
-            }),
+            // CAPACITÉ MAXIMALE: gpt-4o supporte 128K tokens en entrée et 16K en sortie
+            // max_tokens définit la taille max de la réponse (16384 = maximum pour gpt-4o)
+            max_tokens: 16384,
           }),
         });
 
