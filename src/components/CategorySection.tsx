@@ -9,6 +9,7 @@ import LinkElementModal from './LinkElementModal';
 interface CategorySectionProps {
   category: Category;
   onElementClick?: (elementId: string) => void;
+  onCategoryClick?: (categoryId: string) => void; // Callback pour cliquer sur la catégorie (vue Catégorie)
   readOnly?: boolean;
   domainId?: string; // ID du domaine pour les préférences indépendantes
   horizontalSpacing?: number; // Espacement horizontal passé depuis DomainView
@@ -20,7 +21,7 @@ interface CategorySectionProps {
 
 // Ce composant gère uniquement les catégories HORIZONTALES
 // Les catégories VERTICALES sont gérées directement dans DomainView
-export default function CategorySection({ category, onElementClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth, domains, useGridLayout = false, useOriginalView = false }: CategorySectionProps) {
+export default function CategorySection({ category, onElementClick, onCategoryClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth, domains, useGridLayout = false, useOriginalView = false }: CategorySectionProps) {
   const { addElement, deleteCategory, moveElement, reorderElement, findElementsByName, linkElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingElement, setIsAddingElement] = useState(false);
@@ -220,9 +221,19 @@ export default function CategorySection({ category, onElementClick, readOnly = f
   return (
     <div className={containerClass}>
       {/* En-tête de catégorie - Style PDF SOMONE mode clair */}
+      {/* Cliquable pour ouvrir la vue Catégorie */}
       <div
-        className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'} ${useGridLayout && useInlineLayout ? getMarginBottomClass(categorySpacing) : ''}`}
+        className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'} ${useGridLayout && useInlineLayout ? getMarginBottomClass(categorySpacing) : ''} ${onCategoryClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
         style={useInlineLayout && categoryHeaderMinWidth && !useGridLayout ? { minWidth: `${categoryHeaderMinWidth}px` } : undefined}
+        onClick={() => onCategoryClick?.(category.id)}
+        role={onCategoryClick ? 'button' : undefined}
+        tabIndex={onCategoryClick ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (onCategoryClick && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onCategoryClick(category.id);
+          }
+        }}
       >
         {category.icon && (
           <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
@@ -239,7 +250,8 @@ export default function CategorySection({ category, onElementClick, readOnly = f
         {/* Bouton supprimer catégorie */}
         {!readOnly && !useInlineLayout && (
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              e.stopPropagation(); // Empêcher le clic sur la catégorie
               const confirmed = await confirm({
                 title: 'Supprimer la catégorie',
                 message: `Voulez-vous supprimer la catégorie "${category.name}" et tous ses éléments ?`,

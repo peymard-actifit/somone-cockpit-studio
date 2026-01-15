@@ -1,6 +1,7 @@
-import type { Domain, Cockpit } from '../types';
+import type { Domain, Cockpit, Category } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import CategorySection from './CategorySection';
+import CategoryView from './CategoryView';
 import MapView from './MapView';
 import BackgroundView from './BackgroundView';
 import HoursTrackingView from './HoursTrackingView';
@@ -42,6 +43,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     status: string;
     type: 'element' | 'subElement';
   }>>([]);
+  
+  // État pour la vue Catégorie (quand on clique sur une catégorie)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [draggingOverCategoryId, setDraggingOverCategoryId] = useState<string | null>(null);
   const domainStorageKey = `domain_${domain.id}`;
   const [categorySpacing, setCategorySpacing] = useState(() => {
@@ -287,6 +291,27 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     ? domain.backgroundDarkness / 100
     : 0.6;
 
+  // Trouver la catégorie sélectionnée pour la vue Catégorie
+  const selectedCategory: Category | undefined = selectedCategoryId 
+    ? domain.categories.find(c => c.id === selectedCategoryId)
+    : undefined;
+
+  // Afficher la vue Catégorie si une catégorie est sélectionnée
+  if (selectedCategory) {
+    return (
+      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
+        <CategoryView
+          category={selectedCategory}
+          domain={domain}
+          onBack={() => setSelectedCategoryId(null)}
+          onElementClick={onElementClick}
+          readOnly={readOnly}
+          domains={cockpit?.domains}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="min-h-full bg-[#F5F7FA] relative"
@@ -528,6 +553,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                 <CategorySection
                   category={category}
                   onElementClick={onElementClick}
+                  onCategoryClick={(categoryId) => setSelectedCategoryId(categoryId)}
                   readOnly={readOnly}
                   domainId={domain.id}
                   horizontalSpacing={horizontalSpacing}
