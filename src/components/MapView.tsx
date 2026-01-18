@@ -7,6 +7,7 @@ import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { MuiIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
 import BulkEditMapModal from './BulkEditMapModal';
+import MapCategoryElementsView from './MapCategoryElementsView';
 
 // Liste des icônes populaires pour les points de carte
 const POPULAR_MAP_ICONS = [
@@ -82,6 +83,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     domain.categories?.map(c => c.id) || []
   );
   const [showCategoryFilter, setShowCategoryFilter] = useState(true);
+  // État pour la vue éléments d'une catégorie (quand on clique sur le nom de la catégorie)
+  const [categoryViewId, setCategoryViewId] = useState<string | null>(null);
 
   // Mettre à jour les catégories sélectionnées si les catégories du domaine changent
   useEffect(() => {
@@ -855,6 +858,25 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 
   const { clusters, singlePoints } = calculateClusters();
 
+  // Trouver la catégorie sélectionnée pour la vue des éléments
+  const categoryForView = categoryViewId 
+    ? domain.categories?.find(c => c.id === categoryViewId) 
+    : null;
+
+  // Afficher la vue des éléments d'une catégorie si sélectionnée
+  if (categoryForView) {
+    return (
+      <MapCategoryElementsView
+        category={categoryForView}
+        domain={domain}
+        onBack={() => setCategoryViewId(null)}
+        onElementClick={_onElementClick}
+        readOnly={_readOnly}
+        domains={_domainsProp}
+      />
+    );
+  }
+
   return (
     <div className="relative h-full bg-[#F5F7FA] overflow-hidden flex flex-col">
       {/* Header */}
@@ -925,9 +947,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 }).length;
                 
                 return (
-                  <label
+                  <div
                     key={category.id}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors ${
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded transition-colors ${
                       isSelected ? 'bg-[#1E3A5F]/10' : 'hover:bg-[#F5F7FA]'
                     }`}
                   >
@@ -941,11 +963,17 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                           setSelectedCategories(selectedCategories.filter(id => id !== category.id));
                         }
                       }}
-                      className="w-4 h-4 rounded border-[#CBD5E1] text-[#1E3A5F] focus:ring-[#1E3A5F]"
+                      className="w-4 h-4 rounded border-[#CBD5E1] text-[#1E3A5F] focus:ring-[#1E3A5F] cursor-pointer"
                     />
-                    <span className="text-sm text-[#1E3A5F] flex-1">{category.name}</span>
+                    <button
+                      onClick={() => setCategoryViewId(category.id)}
+                      className="text-sm text-[#1E3A5F] flex-1 text-left hover:text-[#2D5A8F] hover:underline transition-colors"
+                      title="Cliquez pour voir les éléments de cette catégorie"
+                    >
+                      {category.name}
+                    </button>
                     <span className="text-xs text-[#64748B]">({pointCount})</span>
-                  </label>
+                  </div>
                 );
               })}
             </div>

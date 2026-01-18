@@ -4,6 +4,7 @@ import { STATUS_COLORS, STATUS_LABELS, STATUS_PRIORITY_MAP, getEffectiveColors, 
 import IconPicker, { MuiIcon, isCustomIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
 import BulkEditModal from './BulkEditModal';
+import MapCategoryElementsView from './MapCategoryElementsView';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -112,6 +113,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     domain.categories?.map(c => c.id) || []
   );
   const [showCategoryFilter, setShowCategoryFilter] = useState(true);
+  // État pour la vue éléments d'une catégorie (quand on clique sur le nom de la catégorie)
+  const [categoryViewId, setCategoryViewId] = useState<string | null>(null);
 
   // Mettre à jour les catégories sélectionnées si les catégories du domaine changent
   useEffect(() => {
@@ -946,6 +949,25 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     }
   }, [domain, imageUrl, _readOnly]);
 
+  // Trouver la catégorie sélectionnée pour la vue des éléments
+  const categoryForView = categoryViewId 
+    ? domain.categories?.find(c => c.id === categoryViewId) 
+    : null;
+
+  // Afficher la vue des éléments d'une catégorie si sélectionnée
+  if (categoryForView) {
+    return (
+      <MapCategoryElementsView
+        category={categoryForView}
+        domain={domain}
+        onBack={() => setCategoryViewId(null)}
+        onElementClick={_onElementClick}
+        readOnly={_readOnly}
+        domains={domainsProp}
+      />
+    );
+  }
+
   return (
     <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
       {/* Header - Style PDF SOMONE mode clair */}
@@ -1008,9 +1030,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 ).length;
                 
                 return (
-                  <label
+                  <div
                     key={category.id}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors ${
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded transition-colors ${
                       isSelected ? 'bg-[#1E3A5F]/10' : 'hover:bg-[#F5F7FA]'
                     }`}
                   >
@@ -1024,11 +1046,17 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                           setSelectedCategories(selectedCategories.filter(id => id !== category.id));
                         }
                       }}
-                      className="w-4 h-4 rounded border-[#CBD5E1] text-[#1E3A5F] focus:ring-[#1E3A5F]"
+                      className="w-4 h-4 rounded border-[#CBD5E1] text-[#1E3A5F] focus:ring-[#1E3A5F] cursor-pointer"
                     />
-                    <span className="text-sm text-[#1E3A5F] flex-1">{category.name}</span>
+                    <button
+                      onClick={() => setCategoryViewId(category.id)}
+                      className="text-sm text-[#1E3A5F] flex-1 text-left hover:text-[#2D5A8F] hover:underline transition-colors"
+                      title="Cliquez pour voir les éléments de cette catégorie"
+                    >
+                      {category.name}
+                    </button>
                     <span className="text-xs text-[#64748B]">({elementCount})</span>
-                  </label>
+                  </div>
                 );
               })}
             </div>
