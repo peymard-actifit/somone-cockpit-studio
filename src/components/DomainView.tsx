@@ -2,6 +2,7 @@ import type { Domain, Cockpit, Category } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import CategorySection from './CategorySection';
 import CategoryView from './CategoryView';
+import FullDomainView from './FullDomainView';
 import MapView from './MapView';
 import BackgroundView from './BackgroundView';
 import HoursTrackingView from './HoursTrackingView';
@@ -46,6 +47,14 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   
   // État pour la vue Catégorie (quand on clique sur une catégorie)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  // État pour la vue Domaine Complète (quand on clique sur le titre du domaine)
+  const [showFullDomainView, setShowFullDomainView] = useState(false);
+  
+  // Réinitialiser les vues quand on change de domaine
+  useEffect(() => {
+    setSelectedCategoryId(null);
+    setShowFullDomainView(false);
+  }, [domain.id]);
   const [draggingOverCategoryId, setDraggingOverCategoryId] = useState<string | null>(null);
   const domainStorageKey = `domain_${domain.id}`;
   const [categorySpacing, setCategorySpacing] = useState(() => {
@@ -296,6 +305,21 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     ? domain.categories.find(c => c.id === selectedCategoryId)
     : undefined;
 
+  // Afficher la vue Domaine Complète si demandée
+  if (showFullDomainView) {
+    return (
+      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
+        <FullDomainView
+          domain={domain}
+          onBack={() => setShowFullDomainView(false)}
+          onElementClick={onElementClick}
+          readOnly={readOnly}
+          domains={cockpit?.domains}
+        />
+      </div>
+    );
+  }
+
   // Afficher la vue Catégorie si une catégorie est sélectionnée
   if (selectedCategory) {
     return (
@@ -349,9 +373,22 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
 
       {/* Contenu principal */}
       <div className="relative z-20 p-8">
-        {/* Titre du domaine */}
+        {/* Titre du domaine (cliquable pour voir tous les sous-éléments) */}
         <div className="mb-10">
-          <h2 className="text-4xl font-bold text-[#1E3A5F] tracking-tight">{domain.name}</h2>
+          <button
+            onClick={() => setShowFullDomainView(true)}
+            className="group flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+            title="Cliquez pour voir tous les indicateurs du domaine"
+          >
+            <h2 className="text-4xl font-bold text-[#1E3A5F] tracking-tight group-hover:underline decoration-2 underline-offset-4">
+              {domain.name}
+            </h2>
+            <MuiIcon 
+              name="Visibility" 
+              size={24} 
+              className="text-[#64748B] opacity-0 group-hover:opacity-100 transition-opacity" 
+            />
+          </button>
           {domain.templateName && (
             <span className="inline-block mt-2 px-3 py-1 bg-white rounded-full text-xs text-[#64748B] uppercase tracking-wider border border-[#E2E8F0]">
               Template: {domain.templateName}
