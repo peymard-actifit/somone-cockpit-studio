@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '15.1.5';
+const APP_VERSION = '15.1.6';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3835,7 +3835,7 @@ INSTRUCTIONS:
                 'Id': toId(e.template, 't'),
                 'Icon': templateIcons[e.template] || e.icon || '',
                 'Order': templateOrderCounter++,
-                'Zone': e.zone || '',
+                'Zone': e.zone ? toId(e.zone, 'z') : '', // Format z-nom-de-zone
               });
             }
           });
