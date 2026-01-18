@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '15.0.0';
+const APP_VERSION = '15.1.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3647,7 +3647,7 @@ INSTRUCTIONS:
       });
     };
 
-    // Export Excel - Format compatible générateur Zabbix
+    // Export Excel - Format "Cockpit Generator" compatible générateur Zabbix
     const exportMatch = path.match(/^\/cockpits\/([^/]+)\/export(?:\/([^/]+))?$/);
     if (exportMatch && method === 'GET') {
       const id = exportMatch[1];
@@ -3723,8 +3723,36 @@ INSTRUCTIONS:
         return uniqueId;
       };
 
-      // ========== 1. ONGLET ZONES ==========
-      // Les zones ont maintenant une propriété icon
+      // Générer une Key pour les items (format: se.nom.en.lowercase.avec.points)
+      const generateItemKey = (name: string, prefix: string = 'se'): string => {
+        const slug = name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+          .replace(/[^a-z0-9\s-]/g, '') // Garder seulement lettres, chiffres, espaces, tirets
+          .replace(/[\s-]+/g, '.') // Espaces et tirets -> points
+          .replace(/\.+/g, '.') // Éviter les points multiples
+          .replace(/^\.|\.$/g, ''); // Supprimer points au début/fin
+        return `${prefix}.${slug || 'unnamed'}`;
+      };
+
+      // ========== 1. ONGLET DOMAINS ==========
+      // Colonnes: Label, Id, Order, Icon, Enabled
+      let domainsData = publishableDomains.map((d: any, idx: number) => ({
+        'Label': d.name,
+        'Id': generateReadableId(d.name, 'd'),
+        'Order': idx + 1,
+        'Icon': d.icon || '',
+        'Enabled': 'VRAI',
+      }));
+      if (domainsData.length === 0) {
+        domainsData = [{ 'Label': '', 'Id': '', 'Order': '', 'Icon': '', 'Enabled': '' }];
+      }
+      const wsDomains = XLSX.utils.json_to_sheet(domainsData);
+      XLSX.utils.book_append_sheet(wb, wsDomains, 'Domains');
+
+      // ========== 2. ONGLET ZONES ==========
+      // Colonnes: Label, Id, Icon, Order
       let zonesData = (dataToExport.zones || []).map((z: any, idx: number) => ({
         'Label': z.name,
         'Id': generateReadableId(z.name, 'z'),
@@ -3737,27 +3765,13 @@ INSTRUCTIONS:
       const wsZones = XLSX.utils.json_to_sheet(zonesData);
       XLSX.utils.book_append_sheet(wb, wsZones, 'Zones');
 
-      // ========== 2. ONGLET TEMPLATES ==========
-      // Collecter les templates depuis les éléments (e.template) ET depuis les domaines (d.templateName)
-      // Les icônes des templates sont stockées dans cockpit.templateIcons
+      // ========== 3. ONGLET TEMPLATES ==========
+      // Colonnes: Label, Id, Icon, Order, Zone
       const templateIcons = dataToExport.templateIcons || {};
       const templatesMap = new Map<string, any>();
       let templateOrderCounter = 1;
       
-      // Templates depuis les domaines (ancien système)
-      publishableDomains.forEach((d: any) => {
-        if (d.templateName && !templatesMap.has(d.templateName)) {
-          templatesMap.set(d.templateName, {
-            'Label': d.templateName,
-            'Id': generateReadableId(d.templateName, 't'),
-            'Icon': templateIcons[d.templateName] || '',
-            'Order': templateOrderCounter++,
-            'Zone': '',
-          });
-        }
-      });
-      
-      // Templates depuis les éléments (nouveau système)
+      // Templates depuis les éléments (e.template)
       publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           (c.elements || []).forEach((e: any) => {
@@ -3765,9 +3779,9 @@ INSTRUCTIONS:
               templatesMap.set(e.template, {
                 'Label': e.template,
                 'Id': generateReadableId(e.template, 't'),
-                'Icon': templateIcons[e.template] || '',
+                'Icon': templateIcons[e.template] || e.icon || '',
                 'Order': templateOrderCounter++,
-                'Zone': '',
+                'Zone': e.zone || '',
               });
             }
           });
@@ -3781,41 +3795,127 @@ INSTRUCTIONS:
       const wsTemplates = XLSX.utils.json_to_sheet(templatesData);
       XLSX.utils.book_append_sheet(wb, wsTemplates, 'Templates');
 
-      // ========== 3. ONGLET DOMAINS ==========
-      // Les domaines ont maintenant une propriété icon
-      let domainsData = publishableDomains.map((d: any, idx: number) => ({
-        'Label': d.name,
-        'Id': generateReadableId(d.name, 'd'),
-        'Order': idx + 1, // Ordres séquentiels après filtrage (1, 2, 3...)
-        'Icon': d.icon || '',
-      }));
-      if (domainsData.length === 0) {
-        domainsData = [{ 'Label': '', 'Id': '', 'Order': '', 'Icon': '' }];
+      // ========== 4. ONGLET SUBCATEGORIES ==========
+      // Colonnes: Label, Id, Icon, Order, Domain, Orientation, Enabled
+      let subCategoriesData: any[] = [];
+      let subCatOrderCounter = 1;
+      publishableDomains.forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            (e.subCategories || []).forEach((sc: any) => {
+              subCategoriesData.push({
+                'Label': sc.name,
+                'Id': generateReadableId(sc.name, 'sc'),
+                'Icon': sc.icon || '',
+                'Order': subCatOrderCounter++,
+                'Domain': generateReadableId(d.name, 'd'),
+                'Orientation': sc.orientation || 'horizontal',
+                'Enabled': 'VRAI',
+              });
+            });
+          });
+        });
+      });
+      if (subCategoriesData.length === 0) {
+        subCategoriesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Domain': '', 'Orientation': '', 'Enabled': '' }];
       }
-      const wsDomainsData = XLSX.utils.json_to_sheet(domainsData);
-      XLSX.utils.book_append_sheet(wb, wsDomainsData, 'Domains');
+      const wsSubCategories = XLSX.utils.json_to_sheet(subCategoriesData);
+      XLSX.utils.book_append_sheet(wb, wsSubCategories, 'SubCategories');
 
-      // ========== 4. ONGLET CATEGORIES ==========
+      // ========== 5. ONGLET ITEMS (= Sous-éléments) ==========
+      // Colonnes: Id, Key, Label, Order, Template, Subcategory, Icon, Type, Formula, Preprocessing Inventory Field, Enabled, Displayed Value Display
+      let itemsData: any[] = [];
+      let itemOrderCounter = 1;
+      publishableDomains.forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            (e.subCategories || []).forEach((sc: any) => {
+              (sc.subElements || []).forEach((se: any) => {
+                const seId = generateReadableId(se.name, 'se');
+                itemsData.push({
+                  'Id': seId,
+                  'Key': generateItemKey(se.name, 'se'),
+                  'Label': se.name,
+                  'Order': itemOrderCounter++,
+                  'Template': e.template || '',
+                  'Subcategory': generateReadableId(sc.name, 'sc'),
+                  'Icon': se.icon || '',
+                  'Type': 'calculated',
+                  'Formula': '0',
+                  'Preprocessing Inventory Field': '',
+                  'Enabled': 'FAUX',
+                  'Displayed Value Display': 'VRAI',
+                });
+              });
+            });
+          });
+        });
+      });
+      if (itemsData.length === 0) {
+        itemsData = [{ 'Id': '', 'Key': '', 'Label': '', 'Order': '', 'Template': '', 'Subcategory': '', 'Icon': '', 'Type': '', 'Formula': '', 'Preprocessing Inventory Field': '', 'Enabled': '', 'Displayed Value Display': '' }];
+      }
+      const wsItems = XLSX.utils.json_to_sheet(itemsData);
+      XLSX.utils.book_append_sheet(wb, wsItems, 'Items');
+
+      // ========== 6. ONGLET TRIGGERS ==========
+      // Colonnes: Template, texte, statut, valeur, condition
+      const wsTriggers = XLSX.utils.json_to_sheet([{
+        'Template': '',
+        'texte': '',
+        'statut': '',
+        'valeur': '',
+        'condition': '',
+      }]);
+      XLSX.utils.book_append_sheet(wb, wsTriggers, 'Triggers');
+
+      // ========== 7. ONGLET CATEGORIES ==========
+      // Colonnes: Label, Id, Icon, Order Domain, Enabled
       let categoriesData: any[] = [];
-      let catOrderCounter = 1; // Compteur d'ordre global pour les catégories
+      let catOrderCounter = 1;
       publishableDomains.forEach((d: any) => {
         (d.categories || []).forEach((c: any) => {
           categoriesData.push({
             'Label': c.name,
             'Id': generateReadableId(c.name, 'c'),
             'Icon': c.icon || '',
-            'Order': catOrderCounter++, // Ordres séquentiels (1, 2, 3...)
-            'Domain': d.name, // Label du domaine au lieu de l'ID
+            'Order Domain': catOrderCounter++,
+            'Enabled': 'VRAI',
           });
         });
       });
       if (categoriesData.length === 0) {
-        categoriesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Domain': '' }];
+        categoriesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order Domain': '', 'Enabled': '' }];
       }
-      const wsCategoriesData = XLSX.utils.json_to_sheet(categoriesData);
-      XLSX.utils.book_append_sheet(wb, wsCategoriesData, 'Categories');
+      const wsCategories = XLSX.utils.json_to_sheet(categoriesData);
+      XLSX.utils.book_append_sheet(wb, wsCategories, 'Categories');
 
-      // ========== 5. ONGLET ELEMENT DISCOVERIES (vide) ==========
+      // ========== 8. ONGLET ELEMENTS ==========
+      // Colonnes: Template, Label, Category, Id, Domain, Order, Enabled
+      let elementsData: any[] = [];
+      let elemOrderCounter = 1;
+      publishableDomains.forEach((d: any) => {
+        (d.categories || []).forEach((c: any) => {
+          (c.elements || []).forEach((e: any) => {
+            elementsData.push({
+              'Template': e.template || '',
+              'Label': e.name,
+              'Category': generateReadableId(c.name, 'c'),
+              'Id': generateReadableId(`${d.name}-${e.name}-${c.name}`, 'e'),
+              'Domain': generateReadableId(d.name, 'd'),
+              'Order': elemOrderCounter++,
+              'Enabled': 'FAUX',
+            });
+          });
+        });
+      });
+      if (elementsData.length === 0) {
+        elementsData = [{ 'Template': '', 'Label': '', 'Category': '', 'Id': '', 'Domain': '', 'Order': '', 'Enabled': '' }];
+      }
+      const wsElements = XLSX.utils.json_to_sheet(elementsData);
+      XLSX.utils.book_append_sheet(wb, wsElements, 'Elements');
+
+      // ========== 9. ONGLET ELEMENT DISCOVERIES ==========
+      // Colonnes: Template, Label, Category, Id, Domain, Order, Discovery Template Id, File, Discovery Rule Id, CSV Column, Enabled
       const wsElementDiscoveries = XLSX.utils.json_to_sheet([{
         'Template': '',
         'Label': '',
@@ -3827,117 +3927,27 @@ INSTRUCTIONS:
         'File': '',
         'Discovery Rule Id': '',
         'CSV Column': '',
+        'Enabled': '',
       }]);
       XLSX.utils.book_append_sheet(wb, wsElementDiscoveries, 'Element Discoveries');
 
-      // ========== 6. ONGLET ELEMENTS ==========
-      let elementsData: any[] = [];
-      let elemOrderCounter = 1; // Compteur d'ordre global pour les éléments
-      publishableDomains.forEach((d: any) => {
-        (d.categories || []).forEach((c: any) => {
-          (c.elements || []).forEach((e: any) => {
-            elementsData.push({
-              'Template': e.template || d.templateName || '', // Priorité au template de l'élément
-              'Label': e.name,
-              'Category': c.name, // Label de la catégorie au lieu de l'ID
-              'Id': generateReadableId(e.name, 'e'),
-              'Domain': d.name, // Label du domaine au lieu de l'ID
-              'Order': elemOrderCounter++, // Ordres séquentiels (1, 2, 3...)
-              'Zone': e.zone || '', // Zone de l'élément
-              'Icon': e.icon || '',
-              'Icon2': e.icon2 || '',
-              'Icon3': e.icon3 || '',
-            });
-          });
-        });
-      });
-      if (elementsData.length === 0) {
-        elementsData = [{ 'Template': '', 'Label': '', 'Category': '', 'Id': '', 'Domain': '', 'Order': '', 'Zone': '', 'Icon': '', 'Icon2': '', 'Icon3': '' }];
-      }
-      const wsElements = XLSX.utils.json_to_sheet(elementsData);
-      XLSX.utils.book_append_sheet(wb, wsElements, 'Elements');
-
-      // ========== 7. ONGLET SUBCATEGORIES ==========
-      let subCategoriesData: any[] = [];
-      let subCatOrderCounter = 1; // Compteur d'ordre global pour les sous-catégories
-      publishableDomains.forEach((d: any) => {
-        (d.categories || []).forEach((c: any) => {
-          (c.elements || []).forEach((e: any) => {
-            (e.subCategories || []).forEach((sc: any) => {
-              subCategoriesData.push({
-                'Label': sc.name,
-                'Id': generateReadableId(sc.name, 'sc'),
-                'Icon': sc.icon || '',
-                'Order': subCatOrderCounter++, // Ordres séquentiels (1, 2, 3...)
-                'Domain': d.name, // Label du domaine au lieu de l'ID
-              });
-            });
-          });
-        });
-      });
-      if (subCategoriesData.length === 0) {
-        subCategoriesData = [{ 'Label': '', 'Id': '', 'Icon': '', 'Order': '', 'Domain': '' }];
-      }
-      const wsSubCategories = XLSX.utils.json_to_sheet(subCategoriesData);
-      XLSX.utils.book_append_sheet(wb, wsSubCategories, 'SubCategories');
-
-      // ========== 8. ONGLET ITEMS (= Sous-éléments) ==========
-      let itemsData: any[] = [];
-      let itemOrderCounter = 1; // Compteur d'ordre global pour les items
-      publishableDomains.forEach((d: any) => {
-        (d.categories || []).forEach((c: any) => {
-          (c.elements || []).forEach((e: any) => {
-            (e.subCategories || []).forEach((sc: any) => {
-              (sc.subElements || []).forEach((se: any) => {
-                itemsData.push({
-                  'Id': generateReadableId(se.name, 'se'),
-                  'Key': '',
-                  'Label': se.name,
-                  'Order': itemOrderCounter++, // Ordres séquentiels (1, 2, 3...)
-                  'Template': e.template || d.templateName || '', // Priorité au template de l'élément
-                  'Subcategory': sc.name, // Label de la sous-catégorie au lieu de l'ID
-                  'Icon': se.icon || '',
-                  'Type': '',
-                  'Formula': '',
-                  'Preprocessing': '',
-                  'Donnée': '',
-                  'Fichier': '',
-                  'Avancement POC': '',
-                });
-              });
-            });
-          });
-        });
-      });
-      if (itemsData.length === 0) {
-        itemsData = [{ 'Id': '', 'Key': '', 'Label': '', 'Order': '', 'Template': '', 'Subcategory': '', 'Icon': '', 'Type': '', 'Formula': '', 'Preprocessing': '', 'Donnée': '', 'Fichier': '', 'Avancement POC': '' }];
-      }
-      const wsItems = XLSX.utils.json_to_sheet(itemsData);
-      XLSX.utils.book_append_sheet(wb, wsItems, 'Items');
-
-      // ========== 9. ONGLET TRIGGERS (vide) ==========
-      const wsTriggers = XLSX.utils.json_to_sheet([{
-        'Template': '',
-        'texte': '',
-        'statut': '',
-        'valeur': '',
-        'condition': '',
+      // ========== 10. ONGLET CATEGORY DISCOVERIES ==========
+      // Colonnes: Label, Id, Domain, Order, Discovery Template Id, File, Discovery Rule Id, CSV Column, Enabled, Icon
+      const wsCategoryDiscoveries = XLSX.utils.json_to_sheet([{
+        'Label': '',
+        'Id': '',
+        'Domain': '',
+        'Order': '',
+        'Discovery Template Id': '',
+        'File': '',
+        'Discovery Rule Id': '',
+        'CSV Column': '',
+        'Enabled': '',
+        'Icon': '',
       }]);
-      XLSX.utils.book_append_sheet(wb, wsTriggers, 'Triggers');
+      XLSX.utils.book_append_sheet(wb, wsCategoryDiscoveries, 'Category Discoveries');
 
-      // ========== 10. ONGLET ALERT LIST (vide) ==========
-      const wsAlertList = XLSX.utils.json_to_sheet([{
-        'type': '',
-        'Id (item)': '',
-        "nom de l'indicateur (label)": '',
-        "lieu d'incidence": '',
-        'localisation (host)': '',
-        "valeur de l'indicateur": '',
-        'statut': '',
-        'valeur': '',
-        "message d'alerte": '',
-      }]);
-      XLSX.utils.book_append_sheet(wb, wsAlertList, 'alert list');
+      // NOTE: Les onglets supplémentaires pour "Suivi des heures" seront ajoutés après les 10 onglets standard
 
       // Onglets pour les domaines "Suivi des heures" (un onglet par domaine publiable)
       for (const d of publishableDomains) {
@@ -4194,9 +4204,9 @@ INSTRUCTIONS:
         // Utiliser la version de l'application définie en haut du fichier
         const appVersion = APP_VERSION;
 
-        // Format du nom : "YYYYMMDD SOMONE COCKPITS NomMaquette LANG HHMMSS vX.Y.Z.xlsx"
-        const cleanName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-        const fileName = `${dateStamp} SOMONE COCKPITS ${cleanName} ${requestedLang} ${timeStamp} v${appVersion}`;
+        // Format du nom : "YYYYMMDD SOMONE Cockpit Generator NomMaquette.xlsx"
+        const cleanName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ');
+        const fileName = `${dateStamp} SOMONE Cockpit Generator ${cleanName}`;
         const encodedFileName = encodeURIComponent(fileName).replace(/'/g, '%27');
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
