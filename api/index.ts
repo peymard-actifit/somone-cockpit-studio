@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '15.1.3';
+const APP_VERSION = '15.1.4';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3698,39 +3698,6 @@ INSTRUCTIONS:
         return `${prefix}-${slug || 'unnamed'}`;
       };
 
-      // Fonction pour créer un ID unique (avec gestion des doublons pour les éléments principaux)
-      // Préfixes: d- domaines, c- catégories, e- éléments, sc- sous-catégories, se- sous-éléments, z- zones, t- templates
-      const usedIds: Record<string, Set<string>> = {
-        'd': new Set<string>(),
-        'c': new Set<string>(),
-        'e': new Set<string>(),
-        'sc': new Set<string>(),
-        'se': new Set<string>(),
-        'z': new Set<string>(),
-        't': new Set<string>(),
-      };
-
-      const generateUniqueId = (name: string, prefix: string): string => {
-        const baseId = toId(name, prefix);
-        
-        // Vérifier si cet ID existe déjà
-        const usedSet = usedIds[prefix];
-        if (!usedSet.has(baseId)) {
-          usedSet.add(baseId);
-          return baseId;
-        }
-        
-        // Trouver un index disponible
-        let index = 1;
-        let uniqueId = `${baseId}-${String(index).padStart(3, '0')}`;
-        while (usedSet.has(uniqueId)) {
-          index++;
-          uniqueId = `${baseId}-${String(index).padStart(3, '0')}`;
-        }
-        usedSet.add(uniqueId);
-        return uniqueId;
-      };
-
       // Générer une Key pour les items (format: se.nom.en.lowercase.avec.points)
       const generateItemKey = (name: string, prefix: string = 'se'): string => {
         const slug = toSlug(name).replace(/-/g, '.');
@@ -3806,10 +3773,10 @@ INSTRUCTIONS:
             (e.subCategories || []).forEach((sc: any) => {
               subCategoriesData.push({
                 'Label': sc.name,
-                'Id': generateUniqueId(sc.name, 'sc'),
+                'Id': toId(sc.name, 'sc'), // Cohérent avec les références dans Items
                 'Icon': sc.icon || '',
                 'Order': subCatOrderCounter++,
-                'Domain': toId(d.name, 'd'), // Pas de suffixe numérique pour la référence
+                'Domain': toId(d.name, 'd'),
                 'Orientation': sc.orientation || 'horizontal',
                 'Enabled': 'VRAI',
               });
@@ -3832,14 +3799,13 @@ INSTRUCTIONS:
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
               (sc.subElements || []).forEach((se: any) => {
-                const seId = generateUniqueId(se.name, 'se');
                 itemsData.push({
-                  'Id': seId,
+                  'Id': toId(se.name, 'se'), // Cohérent, pas de suffixe
                   'Key': generateItemKey(se.name, 'se'),
                   'Label': se.name,
                   'Order': itemOrderCounter++,
-                  'Template': e.template ? toId(e.template, 't') : '', // Format t-nom-en-minuscules
-                  'Subcategory': toId(sc.name, 'sc'), // Référence sans suffixe numérique
+                  'Template': e.template ? toId(e.template, 't') : '',
+                  'Subcategory': toId(sc.name, 'sc'),
                   'Icon': se.icon || '',
                   'Type': 'calculated',
                   'Formula': '0',
