@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '15.1.2';
+const APP_VERSION = '15.1.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3680,7 +3680,25 @@ INSTRUCTIONS:
       const publishableDomains = (dataToExport.domains || []).filter((d: any) => d.publiable !== false);
 
       // ========== GÉNÉRATION D'IDS LISIBLES ==========
-      // Fonction pour créer un ID lisible à partir d'un nom
+      // Fonction simple pour convertir un nom en slug (minuscules, sans accents, tirets)
+      const toSlug = (name: string): string => {
+        return name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+          .replace(/[^a-z0-9\s-]/g, '') // Garder seulement lettres, chiffres, espaces, tirets
+          .replace(/\s+/g, '-') // Espaces -> tirets
+          .replace(/-+/g, '-') // Éviter les tirets multiples
+          .replace(/^-|-$/g, ''); // Supprimer tirets au début/fin
+      };
+
+      // Fonction pour créer un ID avec préfixe (sans gestion des doublons - pour les références)
+      const toId = (name: string, prefix: string): string => {
+        const slug = toSlug(name);
+        return `${prefix}-${slug || 'unnamed'}`;
+      };
+
+      // Fonction pour créer un ID unique (avec gestion des doublons pour les éléments principaux)
       // Préfixes: d- domaines, c- catégories, e- éléments, sc- sous-catégories, se- sous-éléments, z- zones, t- templates
       const usedIds: Record<string, Set<string>> = {
         'd': new Set<string>(),
@@ -3692,18 +3710,8 @@ INSTRUCTIONS:
         't': new Set<string>(),
       };
 
-      const generateReadableId = (name: string, prefix: string): string => {
-        // Normaliser le nom: minuscules, accents supprimés, espaces -> tirets
-        const baseSlug = name
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
-          .replace(/[^a-z0-9\s-]/g, '') // Garder seulement lettres, chiffres, espaces, tirets
-          .replace(/\s+/g, '-') // Espaces -> tirets
-          .replace(/-+/g, '-') // Éviter les tirets multiples
-          .replace(/^-|-$/g, ''); // Supprimer tirets au début/fin
-        
-        const baseId = `${prefix}-${baseSlug || 'unnamed'}`;
+      const generateUniqueId = (name: string, prefix: string): string => {
+        const baseId = toId(name, prefix);
         
         // Vérifier si cet ID existe déjà
         const usedSet = usedIds[prefix];
@@ -3725,14 +3733,7 @@ INSTRUCTIONS:
 
       // Générer une Key pour les items (format: se.nom.en.lowercase.avec.points)
       const generateItemKey = (name: string, prefix: string = 'se'): string => {
-        const slug = name
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
-          .replace(/[^a-z0-9\s-]/g, '') // Garder seulement lettres, chiffres, espaces, tirets
-          .replace(/[\s-]+/g, '.') // Espaces et tirets -> points
-          .replace(/\.+/g, '.') // Éviter les points multiples
-          .replace(/^\.|\.$/g, ''); // Supprimer points au début/fin
+        const slug = toSlug(name).replace(/-/g, '.');
         return `${prefix}.${slug || 'unnamed'}`;
       };
 
@@ -3740,7 +3741,7 @@ INSTRUCTIONS:
       // Colonnes: Label, Id, Order, Icon, Enabled
       let domainsData = publishableDomains.map((d: any, idx: number) => ({
         'Label': d.name,
-        'Id': generateReadableId(d.name, 'd'),
+        'Id': toId(d.name, 'd'),
         'Order': idx + 1,
         'Icon': d.icon || '',
         'Enabled': 'VRAI',
@@ -3755,7 +3756,7 @@ INSTRUCTIONS:
       // Colonnes: Label, Id, Icon, Order
       let zonesData = (dataToExport.zones || []).map((z: any, idx: number) => ({
         'Label': z.name,
-        'Id': generateReadableId(z.name, 'z'),
+        'Id': toId(z.name, 'z'),
         'Icon': z.icon || '',
         'Order': idx + 1,
       }));
@@ -3778,7 +3779,7 @@ INSTRUCTIONS:
             if (e.template && !templatesMap.has(e.template)) {
               templatesMap.set(e.template, {
                 'Label': e.template,
-                'Id': generateReadableId(e.template, 't'),
+                'Id': toId(e.template, 't'),
                 'Icon': templateIcons[e.template] || e.icon || '',
                 'Order': templateOrderCounter++,
                 'Zone': e.zone || '',
@@ -3805,10 +3806,10 @@ INSTRUCTIONS:
             (e.subCategories || []).forEach((sc: any) => {
               subCategoriesData.push({
                 'Label': sc.name,
-                'Id': generateReadableId(sc.name, 'sc'),
+                'Id': generateUniqueId(sc.name, 'sc'),
                 'Icon': sc.icon || '',
                 'Order': subCatOrderCounter++,
-                'Domain': generateReadableId(d.name, 'd'),
+                'Domain': toId(d.name, 'd'), // Pas de suffixe numérique pour la référence
                 'Orientation': sc.orientation || 'horizontal',
                 'Enabled': 'VRAI',
               });
@@ -3831,14 +3832,14 @@ INSTRUCTIONS:
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
               (sc.subElements || []).forEach((se: any) => {
-                const seId = generateReadableId(se.name, 'se');
+                const seId = generateUniqueId(se.name, 'se');
                 itemsData.push({
                   'Id': seId,
                   'Key': generateItemKey(se.name, 'se'),
                   'Label': se.name,
                   'Order': itemOrderCounter++,
-                  'Template': e.template || '',
-                  'Subcategory': generateReadableId(sc.name, 'sc'),
+                  'Template': e.template ? toId(e.template, 't') : '', // Format t-nom-en-minuscules
+                  'Subcategory': toId(sc.name, 'sc'), // Référence sans suffixe numérique
                   'Icon': se.icon || '',
                   'Type': 'calculated',
                   'Formula': '0',
@@ -3876,7 +3877,7 @@ INSTRUCTIONS:
         (d.categories || []).forEach((c: any) => {
           categoriesData.push({
             'Label': c.name,
-            'Id': generateReadableId(c.name, 'c'),
+            'Id': toId(c.name, 'c'), // Pas de suffixe numérique
             'Icon': c.icon || '',
             'Order Domain': catOrderCounter++,
             'Enabled': 'VRAI',
@@ -3894,14 +3895,19 @@ INSTRUCTIONS:
       let elementsData: any[] = [];
       let elemOrderCounter = 1;
       publishableDomains.forEach((d: any) => {
+        const domainSlug = toSlug(d.name);
         (d.categories || []).forEach((c: any) => {
+          const categorySlug = toSlug(c.name);
           (c.elements || []).forEach((e: any) => {
+            const elementSlug = toSlug(e.name);
+            // Id format: d-domaine-c-categorie-e-element
+            const elementId = `d-${domainSlug}-c-${categorySlug}-e-${elementSlug}`;
             elementsData.push({
-              'Template': e.template || '',
+              'Template': e.template ? toId(e.template, 't') : '', // Format t-nom-en-minuscules
               'Label': e.name,
-              'Category': generateReadableId(c.name, 'c'),
-              'Id': generateReadableId(`${d.name}-${e.name}-${c.name}`, 'e'),
-              'Domain': generateReadableId(d.name, 'd'),
+              'Category': toId(c.name, 'c'), // Pas de suffixe numérique
+              'Id': elementId,
+              'Domain': toId(d.name, 'd'), // Pas de suffixe numérique
               'Order': elemOrderCounter++,
               'Enabled': 'FAUX',
             });
