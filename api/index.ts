@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.28.1';
+const APP_VERSION = '14.28.2';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1960,6 +1960,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         if (snapshot) {
           console.log(`[Public API] Snapshot contient ${snapshot.domains?.length || 0} domaines`);
+          console.log(`[Public API] Snapshot useOriginalView: ${snapshot.useOriginalView === true ? 'OUI (vue originale)' : 'NON (vue standard)'}`);
 
           const response = {
             id: cockpit.id,
@@ -2050,6 +2051,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         isPublished: data.isPublished || false,
         publishedAt: data.publishedAt || null,
         welcomeMessage: data.welcomeMessage || null,
+        // IMPORTANT: Toujours inclure useOriginalView même dans le fallback
+        useOriginalView: data.useOriginalView || false,
       };
 
       // Log final pour vérifier ce qui est envoyé
@@ -3157,7 +3160,8 @@ INSTRUCTIONS:
       }
 
       // Log AVANT publication pour vérifier les données
-      console.log(`[PUBLISH] ðŸš€ Publication du cockpit "${cockpit.name}" (${id})`);
+      console.log(`[PUBLISH] 🚀 Publication du cockpit "${cockpit.name}" (${id})`);
+      console.log(`[PUBLISH] useOriginalView: ${cockpit.data.useOriginalView === true ? 'OUI (vue originale)' : 'NON (vue standard)'}`);
       console.log(`[PUBLISH] Domaines avant publication: ${(cockpit.data.domains || []).length}`);
       (cockpit.data.domains || []).forEach((d: any, idx: number) => {
         const hasBg = d.backgroundImage && typeof d.backgroundImage === 'string' && d.backgroundImage.trim().length > 0;
@@ -3183,10 +3187,14 @@ INSTRUCTIONS:
       const dataSize = JSON.stringify(cockpit.data).length;
       const snapshotVersion = (cockpit.data.snapshotVersion || 0) + 1;
 
+      // IMPORTANT: Capturer useOriginalView EXPLICITEMENT depuis cockpit.data
+      const useOriginalViewValue = cockpit.data.useOriginalView === true;
+      console.log(`[PUBLISH] Snapshot useOriginalView sera: ${useOriginalViewValue}`);
+      
       const publishedSnapshot = {
         logo: cockpit.data.logo || null,
         scrollingBanner: cockpit.data.scrollingBanner || null,
-        useOriginalView: cockpit.data.useOriginalView || false,
+        useOriginalView: useOriginalViewValue, // Utiliser la valeur capturée explicitement
         welcomeMessage: welcomeMessage || null,
         domains: JSON.parse(JSON.stringify(
           (cockpit.data.domains || [])

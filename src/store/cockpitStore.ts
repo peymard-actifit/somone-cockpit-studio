@@ -2555,6 +2555,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           scrollingBanner: currentCockpit.scrollingBanner,
           sharedWith: currentCockpit.sharedWith || [],
           templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
+          // IMPORTANT: Inclure useOriginalView pour que la publication utilise la bonne vue
+          useOriginalView: currentCockpit.useOriginalView || false,
         };
         if ((currentCockpit as any).zones) {
           payload.zones = (currentCockpit as any).zones;
@@ -2565,7 +2567,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           domainsCount: payload.domains.length,
           domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
           nonPublishableDomains: payload.domains.filter((d: any) => d.publiable === false).length,
-          sharedWithCount: payload.sharedWith.length
+          sharedWithCount: payload.sharedWith.length,
+          useOriginalView: payload.useOriginalView, // Log explicite
         });
 
         // Sauvegarder immédiatement TOUTES les données
