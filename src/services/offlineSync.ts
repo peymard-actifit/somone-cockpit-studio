@@ -3,6 +3,7 @@
  * Gère les modifications en cas de coupure réseau et les synchronise au retour
  */
 
+import { useState, useEffect } from 'react';
 import { Cockpit } from '../types';
 
 // Types pour les opérations en queue
@@ -392,5 +393,3 @@ export function useSyncState(): SyncState {
   return state;
 }
 
-// Import React hooks pour le hook
-import { useState, useEffect } from 'react';
