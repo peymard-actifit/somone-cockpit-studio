@@ -2352,15 +2352,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         const a = document.createElement('a');
         a.href = url;
 
-        // Générer le nom du fichier côté client (format: YYYYMMDD SOMONE Cockpit Generator NomMaquette.xlsx)
+        // Générer le nom du fichier côté client (format: YYYYMMDD SOMONE Cockpit Generator NomMaquette LANG HHMMSS.xlsx)
         const now = new Date();
         const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
         const year = parisTime.getFullYear();
         const month = String(parisTime.getMonth() + 1).padStart(2, '0');
         const day = String(parisTime.getDate()).padStart(2, '0');
+        const hours = String(parisTime.getHours()).padStart(2, '0');
+        const minutes = String(parisTime.getMinutes()).padStart(2, '0');
+        const seconds = String(parisTime.getSeconds()).padStart(2, '0');
         const dateStamp = `${year}${month}${day}`;
+        const timeStamp = `${hours}${minutes}${seconds}`;
         const cleanName = currentCockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ');
-        const fileName = `${dateStamp} SOMONE Cockpit Generator ${cleanName}.xlsx`;
+        const fileName = `${dateStamp} SOMONE Cockpit Generator ${cleanName} ${lang} ${timeStamp}.xlsx`;
 
         a.download = fileName;
         document.body.appendChild(a);

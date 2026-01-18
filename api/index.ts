@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '15.1.1';
+const APP_VERSION = '15.1.2';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -4189,17 +4189,21 @@ INSTRUCTIONS:
       try {
         const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-        // Générer l'horodatage en heure de Paris (format YYYYMMDD)
+        // Générer l'horodatage en heure de Paris (format YYYYMMDD et HHMMSS)
         const now = new Date();
         const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
         const year = parisTime.getFullYear();
         const month = String(parisTime.getMonth() + 1).padStart(2, '0');
         const day = String(parisTime.getDate()).padStart(2, '0');
+        const hours = String(parisTime.getHours()).padStart(2, '0');
+        const minutes = String(parisTime.getMinutes()).padStart(2, '0');
+        const seconds = String(parisTime.getSeconds()).padStart(2, '0');
         const dateStamp = `${year}${month}${day}`; // YYYYMMDD
+        const timeStamp = `${hours}${minutes}${seconds}`; // HHMMSS
 
-        // Format du nom : "YYYYMMDD SOMONE Cockpit Generator NomMaquette.xlsx"
+        // Format du nom : "YYYYMMDD SOMONE Cockpit Generator NomMaquette LANG HHMMSS.xlsx"
         const cleanName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ');
-        const fileName = `${dateStamp} SOMONE Cockpit Generator ${cleanName}`;
+        const fileName = `${dateStamp} SOMONE Cockpit Generator ${cleanName} ${requestedLang} ${timeStamp}`;
         const encodedFileName = encodeURIComponent(fileName).replace(/'/g, '%27');
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
