@@ -8,6 +8,7 @@ interface FullDomainViewProps {
   domain: Domain;
   onBack: () => void;
   onElementClick?: (elementId: string) => void;
+  onCategoryClick?: (categoryId: string) => void; // Pour naviguer vers la vue catégorie
   readOnly?: boolean;
   domains?: Domain[]; // Pour le calcul de l'héritage
 }
@@ -20,6 +21,7 @@ export default function FullDomainView({
   domain, 
   onBack, 
   onElementClick,
+  onCategoryClick,
   readOnly = false,
   domains 
 }: FullDomainViewProps) {
@@ -112,16 +114,23 @@ export default function FullDomainView({
       <div className="space-y-8">
         {categoriesWithSubElements.map((category) => (
           <div key={category.id} className="space-y-4">
-            {/* En-tête de la catégorie */}
+            {/* En-tête de la catégorie (nom cliquable pour voir la vue catégorie) */}
             <div className="flex items-center gap-3 pb-2 border-b-2 border-[#1E3A5F]">
               {category.icon && (
                 <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">
                   <MuiIcon name={category.icon} size={24} className="text-white" />
                 </div>
               )}
-              <h2 className="text-2xl font-bold text-[#1E3A5F]">
-                {category.name}
-              </h2>
+              <button
+                onClick={() => onCategoryClick?.(category.id)}
+                className="group flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
+                title="Cliquez pour voir la vue catégorie détaillée"
+              >
+                <h2 className="text-2xl font-bold text-[#1E3A5F] group-hover:underline decoration-2 underline-offset-4">
+                  {category.name}
+                </h2>
+                <MuiIcon name="ChevronRight" size={24} className="text-[#64748B] group-hover:text-[#1E3A5F] transition-colors" />
+              </button>
               <span className="ml-auto text-sm text-[#64748B] bg-[#F5F7FA] px-3 py-1 rounded-full border border-[#E2E8F0]">
                 {category.elements.reduce((sum, el) => sum + getSubElementsForElement(el).length, 0)} indicateur{category.elements.reduce((sum, el) => sum + getSubElementsForElement(el).length, 0) > 1 ? 's' : ''}
               </span>
