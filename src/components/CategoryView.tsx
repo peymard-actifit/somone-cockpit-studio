@@ -9,6 +9,7 @@ interface CategoryViewProps {
   domain: Domain;
   onBack: () => void;
   onElementClick?: (elementId: string) => void;
+  onDomainClick?: () => void; // Pour naviguer vers la vue domaine complète
   readOnly?: boolean;
   domains?: Domain[]; // Pour le calcul de l'héritage
 }
@@ -22,6 +23,7 @@ export default function CategoryView({
   domain, 
   onBack, 
   onElementClick,
+  onDomainClick,
   readOnly = false,
   domains 
 }: CategoryViewProps) {
@@ -95,11 +97,18 @@ export default function CategoryView({
         </h1>
       </div>
 
-      {/* Nom du domaine en sous-titre */}
+      {/* Nom du domaine en sous-titre (cliquable pour voir la vue domaine complète) */}
       <div className="mb-8 p-4 bg-white rounded-xl border border-[#E2E8F0] shadow-sm">
-        <h2 className="text-xl font-semibold text-[#1E3A5F]">
-          {domain.name}
-        </h2>
+        <button
+          onClick={() => onDomainClick?.()}
+          className="group flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
+          title="Cliquez pour voir tous les indicateurs du domaine"
+        >
+          <h2 className="text-xl font-semibold text-[#1E3A5F] group-hover:underline decoration-2 underline-offset-4">
+            {domain.name}
+          </h2>
+          <MuiIcon name="ChevronRight" size={20} className="text-[#64748B] group-hover:text-[#1E3A5F] transition-colors" />
+        </button>
       </div>
 
       {/* Liste des éléments avec leurs sous-éléments */}

@@ -334,6 +334,11 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
           domain={domain}
           onBack={() => setSelectedCategoryId(null)}
           onElementClick={onElementClick}
+          onDomainClick={() => {
+            // Fermer la vue catégorie et ouvrir la vue domaine complète
+            setSelectedCategoryId(null);
+            setShowFullDomainView(true);
+          }}
           readOnly={readOnly}
           domains={cockpit?.domains}
         />
