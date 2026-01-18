@@ -1,12 +1,12 @@
 // SOMONE Cockpit Studio - API Backend
-// Session init: 2026-01-15 - Initialisation session Cursor avec audit complet
+// Session init: 2026-01-18 - Initialisation session Cursor avec audit complet
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
 import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '14.28.0';
+const APP_VERSION = '14.28.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
