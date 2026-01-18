@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '15.1.4';
+const APP_VERSION = '15.1.5';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3704,6 +3704,92 @@ INSTRUCTIONS:
         return `${prefix}.${slug || 'unnamed'}`;
       };
 
+      // ========== GESTION DES LIAISONS (linkedGroupId) ==========
+      // Map pour stocker les IDs par linkedGroupId (éléments liés partagent le même ID)
+      const linkedElementIds = new Map<string, string>(); // linkedGroupId -> ID généré
+      const linkedSubElementIds = new Map<string, string>(); // linkedGroupId -> ID généré
+      
+      // Compteurs pour les suffixes d'IDs non liés
+      const usedElementIds = new Set<string>();
+      const usedSubElementIds = new Set<string>();
+      
+      // Fonction pour obtenir l'ID d'un élément (respecte les liaisons)
+      const getElementId = (element: any, domainSlug: string, categorySlug: string): string => {
+        const elementSlug = toSlug(element.name);
+        const baseId = `d-${domainSlug}-c-${categorySlug}-e-${elementSlug}`;
+        
+        // Si l'élément est lié, utiliser/créer l'ID partagé
+        if (element.linkedGroupId) {
+          if (linkedElementIds.has(element.linkedGroupId)) {
+            return linkedElementIds.get(element.linkedGroupId)!;
+          }
+          // Premier élément du groupe → créer l'ID
+          let finalId = baseId;
+          if (usedElementIds.has(baseId)) {
+            let suffix = 1;
+            while (usedElementIds.has(`${baseId}-${String(suffix).padStart(3, '0')}`)) {
+              suffix++;
+            }
+            finalId = `${baseId}-${String(suffix).padStart(3, '0')}`;
+          }
+          usedElementIds.add(finalId);
+          linkedElementIds.set(element.linkedGroupId, finalId);
+          return finalId;
+        }
+        
+        // Élément non lié → ID unique
+        if (usedElementIds.has(baseId)) {
+          let suffix = 1;
+          let uniqueId = `${baseId}-${String(suffix).padStart(3, '0')}`;
+          while (usedElementIds.has(uniqueId)) {
+            suffix++;
+            uniqueId = `${baseId}-${String(suffix).padStart(3, '0')}`;
+          }
+          usedElementIds.add(uniqueId);
+          return uniqueId;
+        }
+        usedElementIds.add(baseId);
+        return baseId;
+      };
+      
+      // Fonction pour obtenir l'ID d'un sous-élément (respecte les liaisons)
+      const getSubElementId = (subElement: any): string => {
+        const baseId = toId(subElement.name, 'se');
+        
+        // Si le sous-élément est lié, utiliser/créer l'ID partagé
+        if (subElement.linkedGroupId) {
+          if (linkedSubElementIds.has(subElement.linkedGroupId)) {
+            return linkedSubElementIds.get(subElement.linkedGroupId)!;
+          }
+          // Premier sous-élément du groupe → créer l'ID
+          let finalId = baseId;
+          if (usedSubElementIds.has(baseId)) {
+            let suffix = 1;
+            while (usedSubElementIds.has(`${baseId}-${String(suffix).padStart(3, '0')}`)) {
+              suffix++;
+            }
+            finalId = `${baseId}-${String(suffix).padStart(3, '0')}`;
+          }
+          usedSubElementIds.add(finalId);
+          linkedSubElementIds.set(subElement.linkedGroupId, finalId);
+          return finalId;
+        }
+        
+        // Sous-élément non lié → ID unique
+        if (usedSubElementIds.has(baseId)) {
+          let suffix = 1;
+          let uniqueId = `${baseId}-${String(suffix).padStart(3, '0')}`;
+          while (usedSubElementIds.has(uniqueId)) {
+            suffix++;
+            uniqueId = `${baseId}-${String(suffix).padStart(3, '0')}`;
+          }
+          usedSubElementIds.add(uniqueId);
+          return uniqueId;
+        }
+        usedSubElementIds.add(baseId);
+        return baseId;
+      };
+
       // ========== 1. ONGLET DOMAINS ==========
       // Colonnes: Label, Id, Order, Icon, Enabled
       let domainsData = publishableDomains.map((d: any, idx: number) => ({
@@ -3792,6 +3878,7 @@ INSTRUCTIONS:
 
       // ========== 5. ONGLET ITEMS (= Sous-éléments) ==========
       // Colonnes: Id, Key, Label, Order, Template, Subcategory, Icon, Type, Formula, Preprocessing Inventory Field, Enabled, Displayed Value Display
+      // Les sous-éléments liés (même linkedGroupId) partagent le même ID
       let itemsData: any[] = [];
       let itemOrderCounter = 1;
       publishableDomains.forEach((d: any) => {
@@ -3799,8 +3886,10 @@ INSTRUCTIONS:
           (c.elements || []).forEach((e: any) => {
             (e.subCategories || []).forEach((sc: any) => {
               (sc.subElements || []).forEach((se: any) => {
+                // Utiliser getSubElementId pour respecter les liaisons
+                const subElementId = getSubElementId(se);
                 itemsData.push({
-                  'Id': toId(se.name, 'se'), // Cohérent, pas de suffixe
+                  'Id': subElementId,
                   'Key': generateItemKey(se.name, 'se'),
                   'Label': se.name,
                   'Order': itemOrderCounter++,
@@ -3858,6 +3947,7 @@ INSTRUCTIONS:
 
       // ========== 8. ONGLET ELEMENTS ==========
       // Colonnes: Template, Label, Category, Id, Domain, Order, Enabled
+      // Les éléments liés (même linkedGroupId) partagent le même ID
       let elementsData: any[] = [];
       let elemOrderCounter = 1;
       publishableDomains.forEach((d: any) => {
@@ -3865,15 +3955,14 @@ INSTRUCTIONS:
         (d.categories || []).forEach((c: any) => {
           const categorySlug = toSlug(c.name);
           (c.elements || []).forEach((e: any) => {
-            const elementSlug = toSlug(e.name);
-            // Id format: d-domaine-c-categorie-e-element
-            const elementId = `d-${domainSlug}-c-${categorySlug}-e-${elementSlug}`;
+            // Utiliser getElementId pour respecter les liaisons
+            const elementId = getElementId(e, domainSlug, categorySlug);
             elementsData.push({
-              'Template': e.template ? toId(e.template, 't') : '', // Format t-nom-en-minuscules
+              'Template': e.template ? toId(e.template, 't') : '',
               'Label': e.name,
-              'Category': toId(c.name, 'c'), // Pas de suffixe numérique
+              'Category': toId(c.name, 'c'),
               'Id': elementId,
-              'Domain': toId(d.name, 'd'), // Pas de suffixe numérique
+              'Domain': toId(d.name, 'd'),
               'Order': elemOrderCounter++,
               'Enabled': 'FAUX',
             });
