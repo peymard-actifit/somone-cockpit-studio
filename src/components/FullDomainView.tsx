@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Domain, Element, Category } from '../types';
+import type { Domain, Element } from '../types';
 import { STATUS_COLORS, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
 import SubElementTile from './SubElementTile';
