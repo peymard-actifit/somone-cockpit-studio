@@ -143,14 +143,6 @@ export default function MapCategoryElementsView({
                 />
               </div>
 
-              {/* Description si présente */}
-              {element.description && (
-                <div className="px-4 pb-3 pt-0">
-                  <p className="text-xs text-[#64748B] line-clamp-2">
-                    {element.description}
-                  </p>
-                </div>
-              )}
             </button>
           );
         })}
