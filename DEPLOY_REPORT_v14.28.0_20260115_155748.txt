@@ -1,0 +1,36 @@
+﻿=== RAPPORT DE DEPLOIEMENT ===
+Date: 2026-01-15 15:57:48
+Version: 14.28.0
+Type: minor (ajout de fonctionnalite)
+
+=== NOUVELLE FONCTIONNALITE ===
+Vue Categorie : affichage des sous-elements regroupes par elements
+
+Cette vue permet de :
+- Cliquer sur une categorie dans la vue standard
+- Voir tous les sous-elements de la categorie regroupes par elements
+- Naviguer vers la vue element en cliquant sur un element
+- Retourner a la vue domaine avec le bouton retour
+
+Impact :
+- Fonctionne dans le studio (mode edition)
+- Fonctionne dans les cockpits publies (mode lecture)
+- Les cockpits existants beneficient automatiquement de cette vue
+
+=== FICHIERS MODIFIES ===
+- src/components/CategoryView.tsx (nouveau)
+- src/components/CategorySection.tsx (header cliquable)
+- src/components/DomainView.tsx (gestion de la vue categorie)
+
+=== ETAPES EXECUTEES ===
+1. Verification des changements: OK
+2. Increment de version: 14.27.2 -> 14.28.0
+3. Commit et Push GitHub: OK
+4. Compilation (build): OK
+5. Deploiement Vercel: OK
+
+=== URLS DE DEPLOIEMENT ===
+Production: https://somone-cockpit-studio.vercel.app
+
+=== RESULTAT ===
+Deploiement reussi - Version 14.28.0 en production
