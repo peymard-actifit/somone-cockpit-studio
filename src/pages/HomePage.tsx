@@ -784,7 +784,8 @@ export default function HomePage() {
       if (success) {
         setShowToggleAdminModal(false);
         setAdminCode('');
-        // Le store met à jour automatiquement le user
+        // Recharger les cockpits pour mettre à jour la liste selon les nouvelles permissions
+        await fetchCockpits();
       }
       return;
     }
@@ -797,7 +798,8 @@ export default function HomePage() {
     if (success) {
       setShowToggleAdminModal(false);
       setAdminCode('');
-      // Le store met à jour automatiquement le user
+      // Recharger les cockpits pour voir tous les cockpits en mode admin
+      await fetchCockpits();
     }
   };
 
