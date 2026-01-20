@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
@@ -529,14 +529,6 @@ export default function HomePage() {
     }
   };
   
-  // Helper pour obtenir le nom d'affichage d'un utilisateur par son ID
-  const getUserDisplayName = useCallback((userId: string): string => {
-    const foundUser = allUsers.find(u => u.id === userId);
-    if (foundUser) {
-      return foundUser.name || foundUser.username;
-    }
-    return `Utilisateur ${userId.substring(0, 8)}...`;
-  }, [allUsers]);
   
   // Répertoire courant (pour la navigation)
   const currentFolder = currentFolderId ? folders.find(f => f.id === currentFolderId) : null;
