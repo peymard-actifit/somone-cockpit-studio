@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '15.6.0';
+const APP_VERSION = '15.6.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2510,11 +2510,26 @@ INSTRUCTIONS:
       const db = await getDb();
       if (!db.folders) db.folders = [];
       
-      // Utilisateur normal: ses répertoires uniquement
-      // Admin: tous les répertoires (mais on les sépare côté frontend)
-      const folders = currentUser.isAdmin
-        ? db.folders
-        : db.folders.filter(f => f.userId === currentUser.id);
+      let folders;
+      if (currentUser.isAdmin) {
+        // Admin: tous les répertoires
+        folders = db.folders;
+      } else {
+        // Utilisateur normal: ses répertoires + répertoires contenant des maquettes partagées avec lui
+        const sharedCockpits = db.cockpits.filter(c => 
+          c.data?.sharedWith && 
+          Array.isArray(c.data.sharedWith) && 
+          c.data.sharedWith.includes(currentUser.id)
+        );
+        const sharedFolderIds = [...new Set(sharedCockpits
+          .filter(c => c.data?.folderId)
+          .map(c => c.data.folderId)
+        )];
+        
+        folders = db.folders.filter(f => 
+          f.userId === currentUser.id || sharedFolderIds.includes(f.id)
+        );
+      }
       
       return res.json(folders.sort((a, b) => (a.order || 0) - (b.order || 0)));
     }
