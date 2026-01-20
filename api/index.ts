@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '15.3.0';
+const APP_VERSION = '15.4.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1258,6 +1258,17 @@ function verifyToken(token: string): { id: string; isAdmin: boolean } | null {
   return verifyTokenSimple(token);
 }
 
+// Vérification d'accès à un cockpit (propriétaire, admin, ou partagé avec)
+function canAccessCockpit(cockpit: CockpitData, user: User): boolean {
+  if (user.isAdmin) return true;
+  if (cockpit.userId === user.id) return true;
+  // Vérifier si le cockpit est partagé avec cet utilisateur
+  if (cockpit.data?.sharedWith && Array.isArray(cockpit.data.sharedWith) && cockpit.data.sharedWith.includes(user.id)) {
+    return true;
+  }
+  return false;
+}
+
 // CORS headers
 function setCorsHeaders(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -2464,7 +2475,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
@@ -2639,7 +2650,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
       
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
       
@@ -2775,7 +2786,7 @@ INSTRUCTIONS:
       }
 
       // Vérifier les permissions : seul le propriétaire ou un admin peut modifier
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
@@ -2965,7 +2976,7 @@ INSTRUCTIONS:
 
       const cockpit = db.cockpits[cockpitIndex];
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
@@ -3019,7 +3030,7 @@ INSTRUCTIONS:
           console.log(`[Duplicate]   📷 Total images: ${Math.round(totalImageSize/1024)}KB (${(totalImageSize/1024/1024).toFixed(2)}MB)`);
         }
 
-        if (!currentUser.isAdmin && original.userId !== currentUser.id) {
+        if (!canAccessCockpit(original, currentUser)) {
           return res.status(403).json({ error: 'Accès non autorisé' });
         }
 
@@ -3123,7 +3134,7 @@ INSTRUCTIONS:
         const cockpit = db.cockpits.find(c => c.id === cockpitId);
         if (cockpit) {
           // Vérifier les permissions
-          if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+          if (!canAccessCockpit(cockpit, currentUser)) {
             return; // Ignorer les cockpits non autorisés
           }
 
@@ -3151,7 +3162,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
@@ -3290,7 +3301,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
@@ -3318,7 +3329,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         console.log(`[Welcome Message] Accès non autorisé pour ${currentUser.email}`);
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
@@ -3658,7 +3669,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
@@ -4326,7 +4337,7 @@ INSTRUCTIONS:
           if (!cockpit) {
             return res.status(404).json({ error: 'Maquette non trouvée' });
           }
-          if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+          if (!canAccessCockpit(cockpit, currentUser)) {
             return res.status(403).json({ error: 'Accès non autorisé' });
           }
 
@@ -4411,7 +4422,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
@@ -4520,7 +4531,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
@@ -4580,7 +4591,7 @@ INSTRUCTIONS:
         return res.status(404).json({ error: 'Maquette non trouvée' });
       }
 
-      if (!currentUser.isAdmin && cockpit.userId !== currentUser.id) {
+      if (!canAccessCockpit(cockpit, currentUser)) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 

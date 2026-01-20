@@ -546,8 +546,10 @@ export default function HomePage() {
   const otherUsersFolders = useMemo(() => {
     if (!user?.isAdmin) return [];
     
-    // Récupérer les userIds des cockpits qui ne sont pas à nous
-    const otherUserIds = [...new Set(cockpits.filter(c => c.userId !== user?.id).map(c => c.userId))];
+    // Récupérer les userIds des cockpits qui ne sont pas à nous (exclure les partagées, on les gère séparément)
+    const otherUserIds = [...new Set(cockpits
+      .filter(c => c.userId !== user?.id && !c.sharedWith?.includes(user?.id || ''))
+      .map(c => c.userId))];
     
     return otherUserIds.map(userId => {
       // Utiliser userId tronqué comme nom d'affichage
@@ -556,10 +558,20 @@ export default function HomePage() {
         id: `user-${userId}`,
         userId,
         name: displayName,
-        cockpitsCount: cockpits.filter(c => c.userId === userId).length,
+        cockpitsCount: cockpits.filter(c => c.userId === userId && !c.sharedWith?.includes(user?.id || '')).length,
       };
     });
   }, [cockpits, user?.id, user?.isAdmin]);
+  
+  // Maquettes partagées avec l'utilisateur courant (par d'autres utilisateurs)
+  const sharedWithMeCockpits = useMemo(() => {
+    if (!user?.id) return [];
+    // Maquettes où l'utilisateur est dans sharedWith mais n'est pas le propriétaire
+    return cockpits.filter(c => 
+      c.userId !== user.id && 
+      c.sharedWith?.includes(user.id)
+    );
+  }, [cockpits, user?.id]);
   
   // Nom du compte actuellement visualisé (pour le breadcrumb)
   const viewingUserName = useMemo(() => {
@@ -1204,6 +1216,70 @@ export default function HomePage() {
                 />
               ))}
               
+              {/* Maquettes partagées avec moi (à la racine uniquement) */}
+              {!currentFolderId && !viewingUserId && sharedWithMeCockpits.length > 0 && (
+                <>
+                  {/* Séparateur visuel avec titre */}
+                  <div className="col-span-full mt-4 mb-2 flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-100 rounded-lg">
+                      <MuiIcon name="Share" size={16} className="text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-700">Partagées avec moi</span>
+                      <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs font-bold rounded-full">
+                        {sharedWithMeCockpits.length}
+                      </span>
+                    </div>
+                    <div className="flex-1 h-px bg-purple-200"></div>
+                  </div>
+                  {sharedWithMeCockpits.map((cockpit) => (
+                    <div
+                      key={`shared-${cockpit.id}`}
+                      className="group bg-purple-50 border-2 border-purple-200 rounded-xl overflow-hidden transition-all duration-300 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-200/30 cursor-pointer"
+                      onClick={() => navigate(`/studio/${cockpit.id}`)}
+                    >
+                      {/* En-tête */}
+                      <div className="p-2.5 border-b border-purple-200 bg-gradient-to-r from-purple-100/50 to-transparent">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-purple-200">
+                            <MuiIcon name="Share" size={16} className="text-purple-600" />
+                          </div>
+                          <h3 className="flex-1 text-sm font-semibold text-purple-900 truncate" title={cockpit.name}>
+                            {cockpit.name}
+                          </h3>
+                          {cockpit.isPublished && (
+                            <div className="p-1 bg-green-100 rounded">
+                              <MuiIcon name="Public" size={12} className="text-green-600" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {/* Contenu */}
+                      <div className="p-2.5">
+                        <div className="flex items-center gap-1.5 text-[10px] text-purple-600 mb-2">
+                          <MuiIcon name="AccountCircle" size={12} />
+                          <span className="truncate">Partagée par {cockpit.userId.substring(0, 8)}...</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-purple-500">
+                          <div className="flex items-center gap-1">
+                            <MuiIcon name="Layers" size={10} />
+                            <span>{cockpit.domains?.length || 0} domaine{(cockpit.domains?.length || 0) !== 1 ? 's' : ''}</span>
+                          </div>
+                          <span className="text-purple-300">•</span>
+                          <span>{formatDate(cockpit.updatedAt)}</span>
+                        </div>
+                        {/* Bouton Ouvrir */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/studio/${cockpit.id}`); }}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-purple-200 hover:bg-purple-300 text-purple-700 rounded-lg transition-colors text-xs font-medium"
+                        >
+                          <MuiIcon name="Edit" size={14} />
+                          Ouvrir et modifier
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
               {/* Répertoires des autres comptes (pour admins, à la racine uniquement) */}
               {!currentFolderId && !viewingUserId && user?.isAdmin && otherUsersFolders.map((userFolder) => (
                 <div
