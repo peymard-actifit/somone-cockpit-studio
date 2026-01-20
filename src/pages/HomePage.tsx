@@ -490,6 +490,9 @@ export default function HomePage() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  
+  // État pour visualiser les maquettes d'un autre utilisateur (mode admin)
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCockpits();
@@ -501,15 +504,19 @@ export default function HomePage() {
   // Répertoire courant (pour la navigation)
   const currentFolder = currentFolderId ? folders.find(f => f.id === currentFolderId) : null;
   
-  // Filtrer les cockpits selon le répertoire courant
+  // Filtrer les cockpits selon le répertoire courant ou le compte visualisé (admin)
   const filteredCockpits = useMemo(() => {
+    // Mode admin : visualisation des maquettes d'un autre utilisateur
+    if (viewingUserId && user?.isAdmin) {
+      return cockpits.filter(c => c.userId === viewingUserId);
+    }
     if (currentFolderId) {
       // Dans un répertoire : afficher les maquettes de ce répertoire
       return cockpits.filter(c => c.folderId === currentFolderId);
     }
     // À la racine : afficher les maquettes sans répertoire
     return cockpits.filter(c => !c.folderId && c.userId === user?.id);
-  }, [cockpits, currentFolderId, user?.id]);
+  }, [cockpits, currentFolderId, user?.id, viewingUserId, user?.isAdmin]);
 
   // Trier les cockpits filtrés par ordre (si défini) ou par date de mise à jour
   const sortedCockpits = useMemo(() => {
@@ -537,13 +544,25 @@ export default function HomePage() {
     // Récupérer les userIds des cockpits qui ne sont pas à nous
     const otherUserIds = [...new Set(cockpits.filter(c => c.userId !== user?.id).map(c => c.userId))];
     
-    return otherUserIds.map(userId => ({
-      id: `user-${userId}`,
-      userId,
-      name: `Compte ${userId.substring(0, 8)}...`,
-      cockpitsCount: cockpits.filter(c => c.userId === userId).length,
-    }));
+    return otherUserIds.map(userId => {
+      // Essayer de trouver un nom d'utilisateur depuis les cockpits (ownerName si disponible)
+      const userCockpit = cockpits.find(c => c.userId === userId);
+      const displayName = userCockpit?.ownerName || `Compte ${userId.substring(0, 8)}...`;
+      return {
+        id: `user-${userId}`,
+        userId,
+        name: displayName,
+        cockpitsCount: cockpits.filter(c => c.userId === userId).length,
+      };
+    });
   }, [cockpits, user?.id, user?.isAdmin]);
+  
+  // Nom du compte actuellement visualisé (pour le breadcrumb)
+  const viewingUserName = useMemo(() => {
+    if (!viewingUserId) return null;
+    const folder = otherUsersFolders.find(f => f.userId === viewingUserId);
+    return folder?.name || `Compte ${viewingUserId.substring(0, 8)}...`;
+  }, [viewingUserId, otherUsersFolders]);
 
   const fetchSystemPrompt = async () => {
     try {
@@ -933,8 +952,11 @@ export default function HomePage() {
             {/* Breadcrumb avec zone de drop */}
             <div className="flex items-center gap-2 mb-1">
               <DroppableBreadcrumb 
-                isActive={!!currentFolderId} 
-                onNavigate={() => setCurrentFolder(null)}
+                isActive={!!currentFolderId || !!viewingUserId} 
+                onNavigate={() => {
+                  setCurrentFolder(null);
+                  setViewingUserId(null);
+                }}
                 isDragging={!!draggedCockpitId}
               />
               {currentFolder && (
@@ -943,18 +965,45 @@ export default function HomePage() {
                   <h2 className="text-2xl font-bold text-[#1E3A5F]">{currentFolder.name}</h2>
                 </>
               )}
+              {viewingUserId && viewingUserName && (
+                <>
+                  <MuiIcon name="ChevronRight" size={24} className="text-slate-400" />
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-lg bg-purple-100">
+                      <MuiIcon name="AccountCircle" size={20} className="text-purple-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-purple-700">{viewingUserName}</h2>
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                      Mode Admin
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
             <p className="text-slate-400">
-              {currentFolderId 
-                ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
-                : `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} disponible${filteredCockpits.length !== 1 ? 's' : ''}`
+              {viewingUserId 
+                ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} de ce compte (mode admin)`
+                : currentFolderId 
+                  ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
+                  : `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} disponible${filteredCockpits.length !== 1 ? 's' : ''}`
               }
             </p>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Bouton Retour (quand on visualise un autre compte) */}
+            {viewingUserId && (
+              <button
+                onClick={() => setViewingUserId(null)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
+                title="Retourner à mes maquettes"
+              >
+                <MuiIcon name="ArrowBack" size={18} />
+                Retour
+              </button>
+            )}
             {/* Bouton Informations (admin uniquement, à la racine) */}
-            {!currentFolderId && user?.isAdmin && (
+            {!currentFolderId && !viewingUserId && user?.isAdmin && (
               <button
                 onClick={() => {
                   setShowStatsModal(true);
@@ -968,7 +1017,7 @@ export default function HomePage() {
               </button>
             )}
             {/* Bouton Mes cockpits publiés (uniquement à la racine) */}
-            {!currentFolderId && user?.id && (
+            {!currentFolderId && !viewingUserId && user?.id && (
               <button
                 onClick={() => {
                   const url = `${window.location.origin}/public/user/${user.id}`;
@@ -981,8 +1030,8 @@ export default function HomePage() {
                 Publications
               </button>
             )}
-            {/* Bouton Nouveau répertoire (uniquement à la racine) */}
-            {!currentFolderId && (
+            {/* Bouton Nouveau répertoire (uniquement à la racine de nos maquettes) */}
+            {!currentFolderId && !viewingUserId && (
               <button
                 onClick={() => {
                   setNewFolderName('');
@@ -994,39 +1043,44 @@ export default function HomePage() {
                 Répertoire
               </button>
             )}
-            <input
-              type="file"
-              accept=".json"
-              ref={importFileInputRef}
-              onChange={handleImport}
-              className="hidden"
-              id="import-cockpit-input"
-            />
-            <label
-              htmlFor="import-cockpit-input"
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-green-500/25 cursor-pointer text-sm"
-            >
-              <MuiIcon name="Upload" size={18} />
-              Import
-            </label>
-            <button
-              onClick={() => {
-                setShowSystemPromptModal(true);
-                fetchSystemPrompt();
-              }}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-violet-500/25 text-sm"
-              title="Configurer le prompt système de l'IA"
-            >
-              <MuiIcon name="Psychology" size={18} />
-              IA
-            </button>
-            <button
-              onClick={() => setShowNewModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25 text-sm"
-            >
-              <MuiIcon name="Plus" size={18} />
-              Nouvelle
-            </button>
+            {/* Boutons de création uniquement quand on est sur nos propres maquettes */}
+            {!viewingUserId && (
+              <>
+                <input
+                  type="file"
+                  accept=".json"
+                  ref={importFileInputRef}
+                  onChange={handleImport}
+                  className="hidden"
+                  id="import-cockpit-input"
+                />
+                <label
+                  htmlFor="import-cockpit-input"
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-green-500/25 cursor-pointer text-sm"
+                >
+                  <MuiIcon name="Upload" size={18} />
+                  Import
+                </label>
+                <button
+                  onClick={() => {
+                    setShowSystemPromptModal(true);
+                    fetchSystemPrompt();
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-violet-500/25 text-sm"
+                  title="Configurer le prompt système de l'IA"
+                >
+                  <MuiIcon name="Psychology" size={18} />
+                  IA
+                </button>
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25 text-sm"
+                >
+                  <MuiIcon name="Plus" size={18} />
+                  Nouvelle
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -1037,8 +1091,8 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Empty State */}
-        {!isLoading && filteredCockpits.length === 0 && userFolders.length === 0 && !currentFolderId && (
+        {/* Empty State - Mes maquettes */}
+        {!isLoading && filteredCockpits.length === 0 && userFolders.length === 0 && !currentFolderId && !viewingUserId && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MuiIcon name="Dashboard" size={40} className="text-slate-600" />
@@ -1055,6 +1109,24 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Empty State - Visualisation d'un autre compte */}
+        {!isLoading && filteredCockpits.length === 0 && viewingUserId && (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 bg-purple-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <MuiIcon name="AccountCircle" size={40} className="text-purple-400" />
+            </div>
+            <h3 className="text-xl font-medium text-white mb-2">Aucune maquette</h3>
+            <p className="text-slate-400 mb-6">Ce compte n'a pas encore de maquettes</p>
+            <button
+              onClick={() => setViewingUserId(null)}
+              className="inline-flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-xl transition-colors"
+            >
+              <MuiIcon name="ArrowBack" size={20} />
+              Retourner à mes maquettes
+            </button>
+          </div>
+        )}
+
         {/* Grid avec Drag & Drop (Répertoires + Maquettes) */}
           <SortableContext
             items={[
@@ -1064,8 +1136,8 @@ export default function HomePage() {
             strategy={verticalListSortingStrategy}
           >
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {/* Répertoires de l'utilisateur (uniquement à la racine) */}
-              {!currentFolderId && userFolders.map((folder) => (
+              {/* Répertoires de l'utilisateur (uniquement à la racine de nos maquettes) */}
+              {!currentFolderId && !viewingUserId && userFolders.map((folder) => (
                 <FolderCard
                   key={folder.id}
                   folder={folder}
@@ -1105,13 +1177,13 @@ export default function HomePage() {
               ))}
               
               {/* Répertoires des autres comptes (pour admins, à la racine uniquement) */}
-              {!currentFolderId && user?.isAdmin && otherUsersFolders.map((userFolder) => (
+              {!currentFolderId && !viewingUserId && user?.isAdmin && otherUsersFolders.map((userFolder) => (
                 <div
                   key={userFolder.id}
                   className="group bg-purple-50 border border-purple-200 rounded-xl overflow-hidden transition-all duration-300 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-200/30 cursor-pointer"
                   onClick={() => {
-                    // TODO: Navigation vers les maquettes de ce compte
-                    alert(`Affichage des ${userFolder.cockpitsCount} maquettes du compte ${userFolder.userId}`);
+                    // Ouvrir la vue des maquettes de ce compte
+                    setViewingUserId(userFolder.userId);
                   }}
                 >
                   <div className="p-2.5 border-b border-purple-200">
