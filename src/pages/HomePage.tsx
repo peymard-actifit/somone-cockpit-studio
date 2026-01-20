@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
@@ -502,13 +502,41 @@ export default function HomePage() {
   
   // État pour visualiser les maquettes partagées par un utilisateur spécifique
   const [viewingSharedByUserId, setViewingSharedByUserId] = useState<string | null>(null);
+  
+  // Liste des utilisateurs (pour afficher les noms dans les tuiles violettes)
+  const [allUsers, setAllUsers] = useState<Array<{ id: string; username: string; name?: string; isAdmin: boolean }>>([]);
 
   useEffect(() => {
     fetchCockpits();
     fetchFolders();
     fetchSystemPrompt();
+    fetchAllUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Ne pas inclure les fonctions dans les dépendances pour éviter les rechargements inutiles
+  
+  // Récupérer la liste des utilisateurs pour afficher leurs noms
+  const fetchAllUsers = async () => {
+    try {
+      const response = await fetch('/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllUsers(data);
+      }
+    } catch (error) {
+      console.error('Erreur récupération utilisateurs:', error);
+    }
+  };
+  
+  // Helper pour obtenir le nom d'affichage d'un utilisateur par son ID
+  const getUserDisplayName = useCallback((userId: string): string => {
+    const foundUser = allUsers.find(u => u.id === userId);
+    if (foundUser) {
+      return foundUser.name || foundUser.username;
+    }
+    return `Utilisateur ${userId.substring(0, 8)}...`;
+  }, [allUsers]);
   
   // Répertoire courant (pour la navigation)
   const currentFolder = currentFolderId ? folders.find(f => f.id === currentFolderId) : null;
@@ -563,8 +591,11 @@ export default function HomePage() {
       .map(c => c.userId))];
     
     return otherUserIds.map(userId => {
-      // Utiliser userId tronqué comme nom d'affichage
-      const displayName = `Compte ${userId.substring(0, 8)}...`;
+      // Chercher le nom de l'utilisateur
+      const foundUser = allUsers.find(u => u.id === userId);
+      const displayName = foundUser 
+        ? (foundUser.name || foundUser.username)
+        : `Utilisateur ${userId.substring(0, 8)}...`;
       return {
         id: `user-${userId}`,
         userId,
@@ -572,7 +603,7 @@ export default function HomePage() {
         cockpitsCount: cockpits.filter(c => c.userId === userId && !c.sharedWith?.includes(user?.id || '')).length,
       };
     });
-  }, [cockpits, user?.id, user?.isAdmin]);
+  }, [cockpits, user?.id, user?.isAdmin, allUsers]);
   
   // Regroupement des maquettes partagées par utilisateur qui partage
   const sharedByUsersFolders = useMemo(() => {
@@ -588,7 +619,11 @@ export default function HomePage() {
     const userIds = [...new Set(sharedCockpits.map(c => c.userId))];
     
     return userIds.map(userId => {
-      const displayName = `Partagé par ${userId.substring(0, 8)}...`;
+      // Chercher le nom de l'utilisateur
+      const foundUser = allUsers.find(u => u.id === userId);
+      const displayName = foundUser 
+        ? (foundUser.name || foundUser.username)
+        : `Utilisateur ${userId.substring(0, 8)}...`;
       return {
         id: `shared-by-${userId}`,
         userId,
@@ -596,21 +631,29 @@ export default function HomePage() {
         cockpitsCount: sharedCockpits.filter(c => c.userId === userId).length,
       };
     });
-  }, [cockpits, user?.id]);
+  }, [cockpits, user?.id, allUsers]);
   
   // Nom de l'utilisateur qui partage actuellement visualisé (pour le breadcrumb)
   const viewingSharedByUserName = useMemo(() => {
     if (!viewingSharedByUserId) return null;
+    // D'abord chercher dans sharedByUsersFolders
     const folder = sharedByUsersFolders.find(f => f.userId === viewingSharedByUserId);
-    return folder?.name || `Partagé par ${viewingSharedByUserId.substring(0, 8)}...`;
-  }, [viewingSharedByUserId, sharedByUsersFolders]);
+    if (folder) return folder.name;
+    // Sinon chercher directement dans allUsers
+    const foundUser = allUsers.find(u => u.id === viewingSharedByUserId);
+    return foundUser ? (foundUser.name || foundUser.username) : `Utilisateur ${viewingSharedByUserId.substring(0, 8)}...`;
+  }, [viewingSharedByUserId, sharedByUsersFolders, allUsers]);
   
   // Nom du compte actuellement visualisé (pour le breadcrumb)
   const viewingUserName = useMemo(() => {
     if (!viewingUserId) return null;
+    // D'abord chercher dans otherUsersFolders
     const folder = otherUsersFolders.find(f => f.userId === viewingUserId);
-    return folder?.name || `Compte ${viewingUserId.substring(0, 8)}...`;
-  }, [viewingUserId, otherUsersFolders]);
+    if (folder) return folder.name;
+    // Sinon chercher directement dans allUsers
+    const foundUser = allUsers.find(u => u.id === viewingUserId);
+    return foundUser ? (foundUser.name || foundUser.username) : `Utilisateur ${viewingUserId.substring(0, 8)}...`;
+  }, [viewingUserId, otherUsersFolders, allUsers]);
 
   const fetchSystemPrompt = async () => {
     try {
