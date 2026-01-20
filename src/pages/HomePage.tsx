@@ -598,15 +598,6 @@ export default function HomePage() {
     });
   }, [cockpits, user?.id]);
   
-  // Maquettes partagées par un utilisateur spécifique (quand on navigue dans un "dossier" de partage)
-  const sharedByUserCockpits = useMemo(() => {
-    if (!viewingSharedByUserId || !user?.id) return [];
-    return cockpits.filter(c => 
-      c.userId === viewingSharedByUserId && 
-      c.sharedWith?.includes(user.id)
-    );
-  }, [cockpits, viewingSharedByUserId, user?.id]);
-  
   // Nom de l'utilisateur qui partage actuellement visualisé (pour le breadcrumb)
   const viewingSharedByUserName = useMemo(() => {
     if (!viewingSharedByUserId) return null;
