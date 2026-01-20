@@ -18,6 +18,7 @@ function FolderCard({
   cockpitsCount,
   isUserFolder = true, // true = répertoire de l'utilisateur, false = répertoire d'un autre compte (admin)
   isDraggingCockpit = false, // true si une maquette est en cours de drag
+  showActions = true, // Afficher les actions (renommer/supprimer)
 }: {
   folder: Folder;
   onClick: () => void;
@@ -26,6 +27,7 @@ function FolderCard({
   cockpitsCount: number;
   isUserFolder?: boolean;
   isDraggingCockpit?: boolean;
+  showActions?: boolean;
 }) {
   const {
     attributes,
@@ -105,12 +107,16 @@ function FolderCard({
           <span>{cockpitsCount} maquette{cockpitsCount !== 1 ? 's' : ''}</span>
         </div>
 
-        {/* Actions (seulement pour les dossiers utilisateur) */}
-        {isUserFolder && (
+        {/* Actions */}
+        {showActions && (
           <div className="flex items-center gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); onRename(); }}
-              className="flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded transition-colors text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-700"
+              className={`flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded transition-colors text-[10px] ${
+                isUserFolder 
+                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-700' 
+                  : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
+              }`}
             >
               <MuiIcon name="Edit" size={12} />
               Renommer
@@ -506,17 +512,15 @@ export default function HomePage() {
   
   // Filtrer les cockpits selon le répertoire courant ou le compte visualisé (admin)
   const filteredCockpits = useMemo(() => {
-    // Mode admin : visualisation des maquettes d'un autre utilisateur
-    if (viewingUserId && user?.isAdmin) {
-      return cockpits.filter(c => c.userId === viewingUserId);
-    }
+    const targetUserId = viewingUserId || user?.id;
+    
     if (currentFolderId) {
       // Dans un répertoire : afficher les maquettes de ce répertoire
       return cockpits.filter(c => c.folderId === currentFolderId);
     }
-    // À la racine : afficher les maquettes sans répertoire
-    return cockpits.filter(c => !c.folderId && c.userId === user?.id);
-  }, [cockpits, currentFolderId, user?.id, viewingUserId, user?.isAdmin]);
+    // À la racine (du compte courant ou visualisé) : afficher les maquettes sans répertoire
+    return cockpits.filter(c => !c.folderId && c.userId === targetUserId);
+  }, [cockpits, currentFolderId, user?.id, viewingUserId]);
 
   // Trier les cockpits filtrés par ordre (si défini) ou par date de mise à jour
   const sortedCockpits = useMemo(() => {
@@ -530,12 +534,13 @@ export default function HomePage() {
     });
   }, [filteredCockpits]);
 
-  // Répertoires de l'utilisateur (triés)
+  // Répertoires de l'utilisateur courant OU de l'utilisateur visualisé (mode admin)
   const userFolders = useMemo(() => {
+    const targetUserId = viewingUserId || user?.id;
     return folders
-      .filter(f => f.userId === user?.id)
+      .filter(f => f.userId === targetUserId)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [folders, user?.id]);
+  }, [folders, user?.id, viewingUserId]);
   
   // Pour les admins : répertoires virtuels pour les autres comptes
   const otherUsersFolders = useMemo(() => {
@@ -958,33 +963,49 @@ export default function HomePage() {
                 }}
                 isDragging={!!draggedCockpitId}
               />
-              {currentFolder && (
-                <>
-                  <MuiIcon name="ChevronRight" size={24} className="text-slate-400" />
-                  <h2 className="text-2xl font-bold text-[#1E3A5F]">{currentFolder.name}</h2>
-                </>
-              )}
               {viewingUserId && viewingUserName && (
                 <>
                   <MuiIcon name="ChevronRight" size={24} className="text-slate-400" />
-                  <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setCurrentFolder(null)}
+                    className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  >
                     <div className="p-1 rounded-lg bg-purple-100">
                       <MuiIcon name="AccountCircle" size={20} className="text-purple-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-purple-700">{viewingUserName}</h2>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                    <h2 className={`text-2xl font-bold ${currentFolder ? 'text-purple-500 cursor-pointer' : 'text-purple-700'}`}>
+                      {viewingUserName}
+                    </h2>
+                    {!currentFolder && (
+                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                        Mode Admin
+                      </span>
+                    )}
+                  </button>
+                </>
+              )}
+              {currentFolder && (
+                <>
+                  <MuiIcon name="ChevronRight" size={24} className="text-slate-400" />
+                  <h2 className={`text-2xl font-bold ${viewingUserId ? 'text-purple-700' : 'text-[#1E3A5F]'}`}>
+                    {currentFolder.name}
+                  </h2>
+                  {viewingUserId && (
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full ml-2">
                       Mode Admin
                     </span>
-                  </div>
+                  )}
                 </>
               )}
             </div>
             <p className="text-slate-400">
-              {viewingUserId 
-                ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} de ce compte (mode admin)`
-                : currentFolderId 
-                  ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
-                  : `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} disponible${filteredCockpits.length !== 1 ? 's' : ''}`
+              {viewingUserId && currentFolderId
+                ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire (mode admin)`
+                : viewingUserId 
+                  ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} à la racine de ce compte (mode admin)`
+                  : currentFolderId 
+                    ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
+                    : `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} disponible${filteredCockpits.length !== 1 ? 's' : ''}`
               }
             </p>
           </div>
@@ -993,12 +1014,20 @@ export default function HomePage() {
             {/* Bouton Retour (quand on visualise un autre compte) */}
             {viewingUserId && (
               <button
-                onClick={() => setViewingUserId(null)}
+                onClick={() => {
+                  if (currentFolderId) {
+                    // Si on est dans un répertoire, retourner à la racine du compte visualisé
+                    setCurrentFolder(null);
+                  } else {
+                    // Sinon, quitter le mode visualisation
+                    setViewingUserId(null);
+                  }
+                }}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
-                title="Retourner à mes maquettes"
+                title={currentFolderId ? "Retourner à la racine de ce compte" : "Retourner à mes maquettes"}
               >
                 <MuiIcon name="ArrowBack" size={18} />
-                Retour
+                {currentFolderId ? "Racine" : "Mes maquettes"}
               </button>
             )}
             {/* Bouton Informations (admin uniquement, à la racine) */}
@@ -1108,14 +1137,14 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Empty State - Visualisation d'un autre compte */}
-        {!isLoading && filteredCockpits.length === 0 && viewingUserId && (
+        {/* Empty State - Visualisation d'un autre compte (seulement si pas de répertoires ni maquettes) */}
+        {!isLoading && filteredCockpits.length === 0 && userFolders.length === 0 && viewingUserId && !currentFolderId && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-purple-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MuiIcon name="AccountCircle" size={40} className="text-purple-400" />
             </div>
             <h3 className="text-xl font-medium text-white mb-2">Aucune maquette</h3>
-            <p className="text-slate-400 mb-6">Ce compte n'a pas encore de maquettes</p>
+            <p className="text-slate-400 mb-6">Ce compte n'a pas encore de maquettes ni de répertoires</p>
             <button
               onClick={() => setViewingUserId(null)}
               className="inline-flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-xl transition-colors"
@@ -1135,8 +1164,8 @@ export default function HomePage() {
             strategy={verticalListSortingStrategy}
           >
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {/* Répertoires de l'utilisateur (uniquement à la racine de nos maquettes) */}
-              {!currentFolderId && !viewingUserId && userFolders.map((folder) => (
+              {/* Répertoires de l'utilisateur (uniquement à la racine - nos maquettes OU celles d'un autre en mode admin) */}
+              {!currentFolderId && userFolders.map((folder) => (
                 <FolderCard
                   key={folder.id}
                   folder={folder}
@@ -1152,7 +1181,7 @@ export default function HomePage() {
                     }
                   }}
                   cockpitsCount={cockpits.filter(c => c.folderId === folder.id).length}
-                  isUserFolder={true}
+                  isUserFolder={!viewingUserId}
                   isDraggingCockpit={!!draggedCockpitId}
                 />
               ))}
