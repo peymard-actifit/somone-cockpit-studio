@@ -545,9 +545,8 @@ export default function HomePage() {
     const otherUserIds = [...new Set(cockpits.filter(c => c.userId !== user?.id).map(c => c.userId))];
     
     return otherUserIds.map(userId => {
-      // Essayer de trouver un nom d'utilisateur depuis les cockpits (ownerName si disponible)
-      const userCockpit = cockpits.find(c => c.userId === userId);
-      const displayName = userCockpit?.ownerName || `Compte ${userId.substring(0, 8)}...`;
+      // Utiliser userId tronqué comme nom d'affichage
+      const displayName = `Compte ${userId.substring(0, 8)}...`;
       return {
         id: `user-${userId}`,
         userId,
