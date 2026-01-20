@@ -537,10 +537,18 @@ export default function HomePage() {
   const filteredCockpits = useMemo(() => {
     // Mode visualisation des maquettes partagées par un utilisateur
     if (viewingSharedByUserId && user?.id) {
-      return cockpits.filter(c => 
+      // Toutes les maquettes partagées par cet utilisateur avec nous
+      const sharedCockpits = cockpits.filter(c => 
         c.userId === viewingSharedByUserId && 
         c.sharedWith?.includes(user.id)
       );
+      
+      if (currentFolderId) {
+        // Dans un répertoire partagé : afficher les maquettes partagées de ce répertoire
+        return sharedCockpits.filter(c => c.folderId === currentFolderId);
+      }
+      // À la racine des partages : afficher les maquettes partagées sans répertoire
+      return sharedCockpits.filter(c => !c.folderId);
     }
     
     const targetUserId = viewingUserId || user?.id;
@@ -572,6 +580,28 @@ export default function HomePage() {
       .filter(f => f.userId === targetUserId)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [folders, user?.id, viewingUserId]);
+  
+  // Répertoires partagés : répertoires de l'utilisateur qui partage contenant des maquettes partagées avec nous
+  const sharedUserFolders = useMemo(() => {
+    if (!viewingSharedByUserId || !user?.id) return [];
+    
+    // Maquettes partagées par cet utilisateur avec nous
+    const sharedCockpits = cockpits.filter(c => 
+      c.userId === viewingSharedByUserId && 
+      c.sharedWith?.includes(user.id)
+    );
+    
+    // IDs des répertoires qui contiennent des maquettes partagées
+    const sharedFolderIds = [...new Set(sharedCockpits
+      .filter(c => c.folderId)
+      .map(c => c.folderId)
+    )];
+    
+    // Filtrer les répertoires de l'utilisateur qui contiennent des maquettes partagées
+    return folders
+      .filter(f => f.userId === viewingSharedByUserId && sharedFolderIds.includes(f.id))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [folders, cockpits, viewingSharedByUserId, user?.id]);
   
   // Pour les admins : répertoires virtuels pour les autres comptes
   const otherUsersFolders = useMemo(() => {
@@ -1069,23 +1099,28 @@ export default function HomePage() {
               {viewingSharedByUserId && viewingSharedByUserName && (
                 <>
                   <MuiIcon name="ChevronRight" size={24} className="text-slate-400" />
-                  <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setCurrentFolder(null); }}
+                    className="flex items-center gap-2 hover:bg-purple-50 rounded-lg px-2 py-1 transition-colors"
+                  >
                     <div className="p-1 rounded-lg bg-purple-100">
                       <MuiIcon name="Share" size={20} className="text-purple-600" />
                     </div>
                     <h2 className="text-2xl font-bold text-purple-700">
                       {viewingSharedByUserName}
                     </h2>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                      Partagé
-                    </span>
-                  </div>
+                    {!currentFolder && (
+                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                        Partagé
+                      </span>
+                    )}
+                  </button>
                 </>
               )}
               {currentFolder && (
                 <>
                   <MuiIcon name="ChevronRight" size={24} className="text-slate-400" />
-                  <h2 className={`text-2xl font-bold ${viewingUserId ? 'text-purple-700' : 'text-[#1E3A5F]'}`}>
+                  <h2 className={`text-2xl font-bold ${viewingUserId || viewingSharedByUserId ? 'text-purple-700' : 'text-[#1E3A5F]'}`}>
                     {currentFolder.name}
                   </h2>
                   {viewingUserId && (
@@ -1093,19 +1128,26 @@ export default function HomePage() {
                       Mode Admin
                     </span>
                   )}
+                  {viewingSharedByUserId && (
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full ml-2">
+                      Partagé
+                    </span>
+                  )}
                 </>
               )}
             </div>
             <p className="text-slate-400">
-              {viewingSharedByUserId
-                ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} partagée${filteredCockpits.length !== 1 ? 's' : ''} avec vous`
-                : viewingUserId && currentFolderId
-                  ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire (mode admin)`
-                  : viewingUserId 
-                    ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} à la racine de ce compte (mode admin)`
-                    : currentFolderId 
-                      ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
-                      : `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} disponible${filteredCockpits.length !== 1 ? 's' : ''}`
+              {viewingSharedByUserId && currentFolderId
+                ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} partagée${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
+                : viewingSharedByUserId
+                  ? `${sharedUserFolders.length > 0 ? `${sharedUserFolders.length} répertoire${sharedUserFolders.length !== 1 ? 's' : ''} • ` : ''}${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} partagée${filteredCockpits.length !== 1 ? 's' : ''} avec vous`
+                  : viewingUserId && currentFolderId
+                    ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire (mode admin)`
+                    : viewingUserId 
+                      ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} à la racine de ce compte (mode admin)`
+                      : currentFolderId 
+                        ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
+                        : `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} disponible${filteredCockpits.length !== 1 ? 's' : ''}`
               }
             </p>
           </div>
@@ -1114,12 +1156,20 @@ export default function HomePage() {
             {/* Bouton Retour (quand on visualise des maquettes partagées) */}
             {viewingSharedByUserId && (
               <button
-                onClick={() => setViewingSharedByUserId(null)}
+                onClick={() => {
+                  if (currentFolderId) {
+                    // Revenir à la racine des partages de cet utilisateur
+                    setCurrentFolder(null);
+                  } else {
+                    // Quitter le mode partage
+                    setViewingSharedByUserId(null);
+                  }
+                }}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
-                title="Retourner à mes maquettes"
+                title={currentFolderId ? `Retourner aux partages de ${viewingSharedByUserName}` : "Retourner à mes maquettes"}
               >
                 <MuiIcon name="ArrowBack" size={18} />
-                Mes maquettes
+                {currentFolderId ? viewingSharedByUserName : 'Mes maquettes'}
               </button>
             )}
             {/* Bouton Retour (quand on visualise un autre compte - mode admin) */}
@@ -1297,6 +1347,21 @@ export default function HomePage() {
                 />
               ))}
               
+              {/* Répertoires partagés (quand on visualise les maquettes partagées par quelqu'un, à la racine) */}
+              {!currentFolderId && viewingSharedByUserId && sharedUserFolders.map((folder) => (
+                <FolderCard
+                  key={`shared-folder-${folder.id}`}
+                  folder={folder}
+                  onClick={() => setCurrentFolder(folder.id)}
+                  onRename={() => {}}
+                  onDelete={async () => {}}
+                  cockpitsCount={cockpits.filter(c => c.folderId === folder.id && c.sharedWith?.includes(user?.id || '')).length}
+                  isUserFolder={false}
+                  isDraggingCockpit={false}
+                  showActions={false}
+                />
+              ))}
+              
               {/* Maquettes (pas en mode visualisation de partages) */}
               {!viewingSharedByUserId && sortedCockpits.map((cockpit) => (
                 <SortableCockpitCard
@@ -1366,48 +1431,22 @@ export default function HomePage() {
                 </>
               )}
               
-              {/* Maquettes partagées par un utilisateur spécifique (quand on a cliqué sur une tuile de partage) */}
-              {viewingSharedByUserId && filteredCockpits.map((cockpit) => (
-                <div
-                  key={`shared-view-${cockpit.id}`}
-                  className="group bg-purple-50 border-2 border-purple-200 rounded-xl overflow-hidden transition-all duration-300 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-200/30 cursor-pointer"
-                  onClick={() => navigate(`/studio/${cockpit.id}`)}
-                >
-                  {/* En-tête */}
-                  <div className="p-2.5 border-b border-purple-200 bg-gradient-to-r from-purple-100/50 to-transparent">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-purple-200">
-                        <MuiIcon name="Description" size={16} className="text-purple-600" />
-                      </div>
-                      <h3 className="flex-1 text-sm font-semibold text-purple-900 truncate" title={cockpit.name}>
-                        {cockpit.name}
-                      </h3>
-                      {cockpit.isPublished && (
-                        <div className="p-1 bg-green-100 rounded">
-                          <MuiIcon name="Public" size={12} className="text-green-600" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {/* Contenu */}
-                  <div className="p-2.5">
-                    <div className="flex items-center gap-2 text-[10px] text-purple-500 mb-2">
-                      <div className="flex items-center gap-1">
-                        <MuiIcon name="Layers" size={10} />
-                        <span>{cockpit.domains?.length || 0} domaine{(cockpit.domains?.length || 0) !== 1 ? 's' : ''}</span>
-                      </div>
-                      <span className="text-purple-300">•</span>
-                      <span>{formatDate(cockpit.updatedAt)}</span>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); navigate(`/studio/${cockpit.id}`); }}
-                      className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-purple-200 hover:bg-purple-300 text-purple-700 rounded-lg transition-colors text-xs font-medium"
-                    >
-                      <MuiIcon name="Edit" size={14} />
-                      Ouvrir et modifier
-                    </button>
-                  </div>
-                </div>
+              {/* Maquettes partagées par un utilisateur spécifique (quand on a cliqué sur une tuile de partage) - affichées comme nos propres maquettes */}
+              {viewingSharedByUserId && sortedCockpits.map((cockpit) => (
+                <SortableCockpitCard
+                  key={cockpit.id}
+                  cockpit={cockpit}
+                  navigate={navigate}
+                  handleUnpublish={handleUnpublish}
+                  getPublicBaseUrl={getPublicBaseUrl}
+                  openPublishModal={openPublishModal}
+                  openEditWelcomeModal={openEditWelcomeModal}
+                  setNewName={setNewName}
+                  setShowDuplicateModal={setShowDuplicateModal}
+                  handleExportClick={handleExportClick}
+                  setShowDeleteModal={setShowDeleteModal}
+                  formatDate={formatDate}
+                />
               ))}
 
               {/* Répertoires des autres comptes (pour admins, à la racine uniquement) */}
