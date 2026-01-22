@@ -8,6 +8,7 @@ import ElementView from '../components/ElementView';
 import EditorPanel from '../components/EditorPanel';
 import AIPromptInput from '../components/AIPromptInput';
 import TranslationButton from '../components/TranslationButton';
+import MindMapView from '../components/MindMapView';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY } from '../config/version';
 
@@ -109,6 +110,7 @@ export default function StudioPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedSubElementId, setSelectedSubElementId] = useState<string | null>(null);
+  const [showMindMap, setShowMindMap] = useState(false); // Vue éclatée
 
   useEffect(() => {
     if (cockpitId) {
@@ -219,6 +221,16 @@ export default function StudioPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Bouton Vue éclatée (Mind Map) */}
+          <button
+            onClick={() => setShowMindMap(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
+            title="Vue éclatée de la maquette"
+          >
+            <MuiIcon name="AccountTree" size={16} />
+            <span className="text-sm font-medium">Vue éclatée</span>
+          </button>
+
           {/* Bouton de traduction */}
           <TranslationButton cockpitId={currentCockpit.id} />
 
@@ -302,6 +314,14 @@ export default function StudioPage() {
             </span>
           </div>
         </div>
+      )}
+
+      {/* Vue éclatée (Mind Map) */}
+      {showMindMap && (
+        <MindMapView
+          cockpit={currentCockpit}
+          onClose={() => setShowMindMap(false)}
+        />
       )}
     </div>
   );
