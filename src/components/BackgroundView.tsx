@@ -1001,9 +1001,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         <StatusSummary elements={positionedElements} domains={domains} compact />
       </div>
 
-      {/* Filtre de catégories */}
+      {/* Filtre de catégories - positionné sous l'encart header */}
       {domain.categories && domain.categories.length > 0 && (
-        <div className="absolute top-28 left-4 z-20 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        <div className="absolute top-44 left-4 z-20 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden" style={{ maxHeight: 'calc(100vh - 250px)' }}>
           <button
             onClick={() => setShowCategoryFilter(!showCategoryFilter)}
             className="w-full px-4 py-2 flex items-center justify-between gap-2 hover:bg-[#F5F7FA] transition-colors"

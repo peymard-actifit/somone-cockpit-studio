@@ -19,6 +19,7 @@ function PublicCockpitContent() {
   const [error, setError] = useState<string | null>(null);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
   const [showMindMap, setShowMindMap] = useState(false);
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const { trackEvent } = useTracking();
 
   useEffect(() => {
@@ -133,6 +134,11 @@ function PublicCockpitContent() {
   
   // Déterminer si on utilise la vue originale
   const useOriginalView = cockpit.useOriginalView === true;
+  
+  // Déterminer si on est sur une vue Map ou Background (pour masquer les bandeaux)
+  const isMapOrBackgroundView = currentDomain && 
+    (currentDomain.templateType === 'map' || currentDomain.templateType === 'background') &&
+    !currentElementId; // Pas en mode vue élément
 
   // Trouver l'élément courant si on est en vue élément
   let currentElement: Element | null = null;
@@ -353,8 +359,26 @@ function PublicCockpitContent() {
 
   return (
     <div className="h-screen bg-cockpit-bg-dark flex flex-col overflow-hidden">
-      {/* Header - conditionnel selon useOriginalView */}
-      {useOriginalView ? renderOriginalHeader() : renderStandardHeader()}
+      {/* Zone de survol invisible pour faire réapparaître le header (vues Map/Background) */}
+      {isMapOrBackgroundView && !isHeaderHovered && (
+        <div 
+          className="fixed top-0 left-0 right-0 h-2 z-[60] cursor-pointer"
+          onMouseEnter={() => setIsHeaderHovered(true)}
+        />
+      )}
+      
+      {/* Header - conditionnel selon useOriginalView et masqué sur Map/Background */}
+      <div 
+        className={`transition-all duration-300 ${
+          isMapOrBackgroundView && !isHeaderHovered 
+            ? 'transform -translate-y-full absolute top-0 left-0 right-0 z-50' 
+            : ''
+        }`}
+        onMouseEnter={() => isMapOrBackgroundView && setIsHeaderHovered(true)}
+        onMouseLeave={() => isMapOrBackgroundView && setIsHeaderHovered(false)}
+      >
+        {useOriginalView ? renderOriginalHeader() : renderStandardHeader()}
+      </div>
 
       {/* Contenu principal */}
       <main className="flex-1 overflow-auto flex flex-col" style={{ minHeight: 0 }}>
@@ -401,18 +425,20 @@ function PublicCockpitContent() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-cockpit-bg-card border-t border-slate-700/50 flex-shrink-0">
-        {/* Bandeau défilant */}
-        {cockpit.scrollingBanner && (
-          <div className="bg-white py-2 overflow-hidden">
-            <div className="animate-marquee whitespace-nowrap">
-              <span className="text-sm text-black mx-4">{cockpit.scrollingBanner}</span>
-              <span className="text-sm text-black mx-4">{cockpit.scrollingBanner}</span>
+      {/* Footer - masqué sur les vues Map/Background */}
+      {!isMapOrBackgroundView && (
+        <footer className="bg-cockpit-bg-card border-t border-slate-700/50 flex-shrink-0">
+          {/* Bandeau défilant */}
+          {cockpit.scrollingBanner && (
+            <div className="bg-white py-2 overflow-hidden">
+              <div className="animate-marquee whitespace-nowrap">
+                <span className="text-sm text-black mx-4">{cockpit.scrollingBanner}</span>
+                <span className="text-sm text-black mx-4">{cockpit.scrollingBanner}</span>
+              </div>
             </div>
-          </div>
-        )}
-      </footer>
+          )}
+        </footer>
+      )}
 
       {/* Vue éclatée (Mind Map) */}
       {showMindMap && (
