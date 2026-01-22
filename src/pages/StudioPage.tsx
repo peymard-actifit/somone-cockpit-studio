@@ -196,6 +196,16 @@ export default function StudioPage() {
     setSelectedSubElementId(null); // Réinitialiser la sélection de sous-élément
   };
 
+  // Navigation depuis la vue éclatée vers un domaine
+  const handleNavigateToDomain = (domainId: string) => {
+    setCurrentDomain(domainId);
+    setCurrentElement(null); // Pas d'élément sélectionné, on voit la vue du domaine
+    setShowMindMap(false);
+    setCameFromMindMap(true);
+    setShowEditor(false); // Fermer le panneau d'édition pour voir la vue domaine
+    setSelectedSubElementId(null);
+  };
+
   // Navigation depuis la vue éclatée vers un élément
   const handleNavigateToElement = (domainId: string, elementId: string) => {
     setCurrentDomain(domainId);
@@ -371,6 +381,7 @@ export default function StudioPage() {
             setShowMindMap(false);
             setCameFromMindMap(false);
           }}
+          onNavigateToDomain={handleNavigateToDomain}
           onNavigateToElement={handleNavigateToElement}
           onNavigateToSubElement={handleNavigateToSubElement}
           savedState={mindMapState}

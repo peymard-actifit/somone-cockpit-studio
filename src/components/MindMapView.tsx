@@ -7,6 +7,7 @@ import AlertPopup from './AlertPopup';
 interface MindMapViewProps {
   cockpit: Cockpit;
   onClose: () => void;
+  onNavigateToDomain?: (domainId: string) => void;
   onNavigateToElement?: (domainId: string, elementId: string) => void;
   onNavigateToSubElement?: (domainId: string, elementId: string, subElementId: string) => void;
   // État sauvegardé pour revenir à la même position
@@ -49,6 +50,7 @@ interface MindMapLink {
 export default function MindMapView({ 
   cockpit, 
   onClose, 
+  onNavigateToDomain,
   onNavigateToElement,
   onNavigateToSubElement,
   savedState,
@@ -56,6 +58,10 @@ export default function MindMapView({
 }: MindMapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  
+  // Timer pour distinguer clic simple et double-clic
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clickedNodeRef = useRef<MindMapNode | null>(null);
 
   // État du zoom et position (initialisé depuis l'état sauvegardé si disponible)
   const [scale, setScale] = useState(savedState?.scale ?? 1);
@@ -105,7 +111,7 @@ export default function MindMapView({
     const centerX = containerSize.width / 2;
     const centerY = containerSize.height / 2;
 
-    // Mode focus sur un domaine
+    // Mode focus sur un domaine - affiche le domaine avec tous ses éléments ET sous-éléments
     if (focusedNodeId && focusedNodeType === 'domain') {
       const domain = cockpit.domains.find(d => d.id === focusedNodeId);
       if (!domain) return { nodes: [], links: [] };
@@ -131,11 +137,13 @@ export default function MindMapView({
       const elementCount = allElements.length;
 
       if (elementCount > 0) {
-        const elementRadius = Math.min(containerSize.width, containerSize.height) * 0.35;
+        const elementRadius = Math.min(containerSize.width, containerSize.height) * 0.30;
+        const subElementRadius = elementRadius * 0.45;
+        
         allElements.forEach((element, index) => {
           const angle = (2 * Math.PI * index) / elementCount - Math.PI / 2;
-          const x = centerX + Math.cos(angle) * elementRadius;
-          const y = centerY + Math.sin(angle) * elementRadius;
+          const elementX = centerX + Math.cos(angle) * elementRadius;
+          const elementY = centerY + Math.sin(angle) * elementRadius;
 
           const effectiveStatus = getEffectiveStatus(element, cockpit.domains);
           const elementColor = STATUS_COLORS[effectiveStatus]?.hex || STATUS_COLORS.ok.hex;
@@ -144,8 +152,8 @@ export default function MindMapView({
             id: element.id,
             type: 'element',
             name: element.name,
-            x,
-            y,
+            x: elementX,
+            y: elementY,
             color: elementColor,
             data: element,
             parentId: domain.id,
@@ -158,6 +166,47 @@ export default function MindMapView({
             color: elementColor,
             label: element.category.name,
           });
+
+          // Ajouter les sous-éléments de chaque élément
+          const allSubElements = element.subCategories.flatMap(subCat =>
+            subCat.subElements.map(se => ({ ...se, subCategory: subCat }))
+          );
+          const subElementCount = allSubElements.length;
+
+          if (subElementCount > 0) {
+            const subStartAngle = angle - Math.PI / 4;
+            const subEndAngle = angle + Math.PI / 4;
+            const subAngleStep = subElementCount > 1 ? (subEndAngle - subStartAngle) / (subElementCount - 1) : 0;
+
+            allSubElements.forEach((subElement, subIndex) => {
+              const subAngle = subElementCount === 1 
+                ? angle 
+                : subStartAngle + subAngleStep * subIndex;
+              const subX = elementX + Math.cos(subAngle) * subElementRadius;
+              const subY = elementY + Math.sin(subAngle) * subElementRadius;
+
+              const subElementColor = STATUS_COLORS[subElement.status]?.hex || STATUS_COLORS.ok.hex;
+
+              nodes.push({
+                id: subElement.id,
+                type: 'subElement',
+                name: subElement.name,
+                x: subX,
+                y: subY,
+                color: subElementColor,
+                data: subElement,
+                parentId: element.id,
+                linkLabel: subElement.subCategory.name,
+              });
+
+              links.push({
+                sourceId: element.id,
+                targetId: subElement.id,
+                color: subElementColor,
+                label: subElement.subCategory.name,
+              });
+            });
+          }
         });
       }
 
@@ -456,8 +505,15 @@ export default function MindMapView({
     setIsDragging(false);
   };
 
-  // Double-clic sur un nœud
+  // Double-clic sur un nœud - annule le clic simple et fait le focus/expand
   const handleNodeDoubleClick = (node: MindMapNode) => {
+    // Annuler le timer du clic simple
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+    clickedNodeRef.current = null;
+    
     if (node.type === 'cockpit') {
       // Retour à la vue globale
       setFocusedNodeId(null);
@@ -568,36 +624,60 @@ export default function MindMapView({
     return null;
   }, [cockpit.domains]);
 
-  // Clic simple sur un nœud (navigation vers la vue standard)
-  const handleNodeClick = useCallback((node: MindMapNode, e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (node.type === 'element' && onNavigateToElement) {
+  // Exécuter la navigation (clic simple confirmé)
+  const executeNavigation = useCallback((node: MindMapNode) => {
+    // Sauvegarder l'état actuel avant de naviguer
+    const saveState = () => {
+      onSaveState?.({
+        focusedNodeId,
+        focusedNodeType,
+        scale,
+        position,
+      });
+    };
+
+    if (node.type === 'domain' && onNavigateToDomain) {
+      saveState();
+      onNavigateToDomain(node.id);
+    } else if (node.type === 'element' && onNavigateToElement) {
       const domainId = findDomainIdForElement(node.id);
       if (domainId) {
-        // Sauvegarder l'état actuel avant de naviguer
-        onSaveState?.({
-          focusedNodeId,
-          focusedNodeType,
-          scale,
-          position,
-        });
+        saveState();
         onNavigateToElement(domainId, node.id);
       }
     } else if (node.type === 'subElement' && onNavigateToSubElement) {
       const path = findPathForSubElement(node.id);
       if (path) {
-        // Sauvegarder l'état actuel avant de naviguer
-        onSaveState?.({
-          focusedNodeId,
-          focusedNodeType,
-          scale,
-          position,
-        });
+        saveState();
         onNavigateToSubElement(path.domainId, path.elementId, node.id);
       }
     }
-  }, [onNavigateToElement, onNavigateToSubElement, findDomainIdForElement, findPathForSubElement, focusedNodeId, focusedNodeType, scale, position, onSaveState]);
+  }, [onNavigateToDomain, onNavigateToElement, onNavigateToSubElement, findDomainIdForElement, findPathForSubElement, focusedNodeId, focusedNodeType, scale, position, onSaveState]);
+
+  // Clic simple sur un nœud - utilise un délai pour distinguer du double-clic
+  const handleNodeClick = useCallback((node: MindMapNode, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Ne pas naviguer pour le cockpit (centre)
+    if (node.type === 'cockpit') return;
+    
+    // Sauvegarder le nœud cliqué
+    clickedNodeRef.current = node;
+    
+    // Annuler le timer précédent s'il existe
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+    }
+    
+    // Démarrer un nouveau timer - si pas de double-clic dans 250ms, exécuter la navigation
+    clickTimerRef.current = setTimeout(() => {
+      if (clickedNodeRef.current && clickedNodeRef.current.id === node.id) {
+        executeNavigation(node);
+      }
+      clickedNodeRef.current = null;
+      clickTimerRef.current = null;
+    }, 250);
+  }, [executeNavigation]);
 
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-br from-[#0F1729] via-[#1E3A5F] to-[#0F1729]">
@@ -626,10 +706,17 @@ export default function MindMapView({
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Légende */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg backdrop-blur-sm">
-              <span className="text-xs text-white/60">Double-clic:</span>
-              <span className="text-xs text-white">Zoomer/Centrer</span>
+            {/* Légende des interactions */}
+            <div className="flex items-center gap-4 px-4 py-2 bg-white/10 rounded-lg backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/60">Clic:</span>
+                <span className="text-xs text-white">Voir détail</span>
+              </div>
+              <div className="w-px h-4 bg-white/20" />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/60">Double-clic:</span>
+                <span className="text-xs text-white">Développer ici</span>
+              </div>
             </div>
           </div>
         </div>
