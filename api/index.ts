@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.1.3';
+const APP_VERSION = '16.2.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -190,12 +190,17 @@ const generateId = () => {
 // ============================================
 
 // Limites pour les images
+// IMPORTANT: Vercel limite les requêtes à 4.5MB, donc on limite les images à 1.5MB
+// pour permettre plusieurs images et les autres données du cockpit
 const IMAGE_CONFIG = {
-  MAX_SIZE_MB: 10,           // Taille max en MB
-  MAX_SIZE_BYTES: 10 * 1024 * 1024,
+  MAX_SIZE_MB: 1.5,          // Taille max en MB (réduction pour respecter limite Vercel)
+  MAX_SIZE_BYTES: 1.5 * 1024 * 1024,
   ALLOWED_FORMATS: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
   MIN_SIZE_BYTES: 100,       // Taille min pour éviter les données corrompues
 };
+
+// Limite globale du payload (Vercel = 4.5MB, on prend une marge)
+const MAX_PAYLOAD_SIZE_MB = 4.0;
 
 // Mode production (désactive les logs verbeux)
 const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
@@ -2807,6 +2812,20 @@ INSTRUCTIONS:
 
       const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView, templateIcons, clientUpdatedAt } = req.body;
       const now = new Date().toISOString();
+
+      // Vérification de la taille totale du payload
+      const payloadSize = JSON.stringify(req.body).length;
+      const payloadSizeMB = payloadSize / 1024 / 1024;
+      log.debug(`[PUT] Taille du payload reçu: ${payloadSizeMB.toFixed(2)} MB`);
+      
+      if (payloadSizeMB > MAX_PAYLOAD_SIZE_MB) {
+        log.error(`[PUT] ❌ Payload trop volumineux: ${payloadSizeMB.toFixed(2)} MB (limite: ${MAX_PAYLOAD_SIZE_MB} MB)`);
+        return res.status(413).json({ 
+          error: `Le cockpit est trop volumineux (${payloadSizeMB.toFixed(2)} MB). Limite: ${MAX_PAYLOAD_SIZE_MB} MB. Réduisez la taille des images.`,
+          payloadSize: payloadSizeMB,
+          maxSize: MAX_PAYLOAD_SIZE_MB
+        });
+      }
 
       // Vérification de conflit (optimistic locking)
       if (clientUpdatedAt && hasConflict(cockpit.updatedAt, clientUpdatedAt)) {

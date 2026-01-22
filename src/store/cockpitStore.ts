@@ -543,6 +543,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         clientUpdatedAt: currentCockpit.updatedAt,
       };
 
+      // Vérifier la taille du payload AVANT envoi (limite Vercel ~4.5MB)
+      const payloadStr = JSON.stringify(payload);
+      const payloadSizeMB = payloadStr.length / 1024 / 1024;
+      
+      // Vercel limite les requêtes à 4.5MB
+      const MAX_PAYLOAD_SIZE_MB = 4.0; // Marge de sécurité
+      if (payloadSizeMB > MAX_PAYLOAD_SIZE_MB) {
+        console.error(`[Auto-save] ❌ Payload trop volumineux: ${payloadSizeMB.toFixed(2)} MB (limite: ${MAX_PAYLOAD_SIZE_MB} MB)`);
+        console.warn('[Auto-save] 💡 Conseil: Réduisez la taille des images ou utilisez des URL externes');
+        // Ne pas sauvegarder mais garder le backup local
+        offlineSync.backupCockpit(currentCockpit);
+        return;
+      }
+
       // Toujours sauvegarder une copie locale (backup)
       offlineSync.backupCockpit(currentCockpit);
 
@@ -564,12 +578,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify(payload),
+          body: payloadStr,
         });
 
         if (response.status === 409) {
           console.warn('[Auto-save] Conflit détecté, rechargement du cockpit...');
           get().fetchCockpit(currentCockpit.id);
+        } else if (response.status === 413) {
+          console.error(`[Auto-save] ❌ Erreur 413 - Payload trop grand (${payloadSizeMB.toFixed(2)} MB)`);
         } else if (!response.ok) {
           throw new Error(`Erreur serveur: ${response.status}`);
         } else {
@@ -617,6 +633,26 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       payload.zones = (currentCockpit as any).zones;
     }
 
+    // Vérifier la taille du payload AVANT envoi (limite Vercel ~4.5MB)
+    const payloadStr = JSON.stringify(payload);
+    const payloadSizeMB = payloadStr.length / 1024 / 1024;
+    console.log(`[forceSave] 📦 Taille du payload: ${payloadSizeMB.toFixed(2)} MB`);
+    
+    // Vercel limite les requêtes à 4.5MB
+    const MAX_PAYLOAD_SIZE_MB = 4.0; // Marge de sécurité
+    if (payloadSizeMB > MAX_PAYLOAD_SIZE_MB) {
+      console.error(`[forceSave] ❌ Payload trop volumineux: ${payloadSizeMB.toFixed(2)} MB (limite: ${MAX_PAYLOAD_SIZE_MB} MB)`);
+      // Détailler la taille par domaine pour aider au debug
+      (currentCockpit.domains || []).forEach((d: any, i: number) => {
+        const domainStr = JSON.stringify(d);
+        const domainSizeMB = domainStr.length / 1024 / 1024;
+        const hasImage = d.backgroundImage && d.backgroundImage.length > 0;
+        const imageSizeMB = hasImage ? d.backgroundImage.length / 1024 / 1024 : 0;
+        console.log(`[forceSave]   Domaine ${i + 1} "${d.name}": ${domainSizeMB.toFixed(2)} MB (image: ${imageSizeMB.toFixed(2)} MB)`);
+      });
+      return false;
+    }
+
     // Toujours sauvegarder une copie locale
     offlineSync.backupCockpit(currentCockpit);
 
@@ -631,14 +667,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     }
 
     try {
-
       const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: payloadStr,
       });
 
       if (!response.ok) {
@@ -650,10 +685,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           await get().fetchCockpit(currentCockpit.id);
           return false;
         }
+        // Gérer les erreurs de payload trop grand
+        if (response.status === 413) {
+          console.error(`[forceSave] ❌ Payload trop grand (413): ${payloadSizeMB.toFixed(2)} MB`);
+          return false;
+        }
         console.error('[forceSave] Erreur serveur:', response.status, errorData);
         return false;
       }
 
+      console.log(`[forceSave] ✅ Sauvegarde réussie (${payloadSizeMB.toFixed(2)} MB)`);
       // Succès : nettoyer le backup local
       offlineSync.clearBackup(currentCockpit.id);
       return true;

@@ -14,13 +14,14 @@ import { CSS } from '@dnd-kit/utilities';
 import LinkElementModal from './LinkElementModal';
 
 // Fonction pour compresser une image (évite les erreurs 413 Payload Too Large de Vercel)
-async function compressImage(file: File, maxSizeMB: number = 3, maxDimension: number = 4096): Promise<string> {
+// IMPORTANT: Vercel limite les requêtes à 4.5MB, donc on compresse agressivement
+async function compressImage(file: File, maxSizeMB: number = 1.5, maxDimension: number = 2048): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        // Calculer les nouvelles dimensions
+        // Calculer les nouvelles dimensions (max 2048px pour économiser de la place)
         let { width, height } = img;
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
@@ -46,24 +47,34 @@ async function compressImage(file: File, maxSizeMB: number = 3, maxDimension: nu
         ctx.drawImage(img, 0, 0, width, height);
 
         // Compresser progressivement jusqu'à atteindre la taille cible
-        let quality = 0.9;
+        let quality = 0.85;
         let result = canvas.toDataURL('image/jpeg', quality);
         const targetSize = maxSizeMB * 1024 * 1024;
 
         while (result.length > targetSize && quality > 0.1) {
-          quality -= 0.1;
+          quality -= 0.05;
           result = canvas.toDataURL('image/jpeg', quality);
           console.log(`[Compression] Qualité ${(quality * 100).toFixed(0)}% → ${(result.length / 1024 / 1024).toFixed(2)} MB`);
         }
 
-        // Si toujours trop grand, réduire les dimensions
+        // Si toujours trop grand, réduire les dimensions encore plus
         if (result.length > targetSize) {
-          const scale = Math.sqrt(targetSize / result.length) * 0.9;
+          const scale = Math.sqrt(targetSize / result.length) * 0.85;
           canvas.width = Math.round(width * scale);
           canvas.height = Math.round(height * scale);
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          result = canvas.toDataURL('image/jpeg', 0.8);
+          result = canvas.toDataURL('image/jpeg', 0.7);
           console.log(`[Compression] Redimensionné à ${canvas.width}x${canvas.height} → ${(result.length / 1024 / 1024).toFixed(2)} MB`);
+        }
+
+        // Dernière tentative si encore trop grand
+        if (result.length > targetSize) {
+          const finalScale = 0.5;
+          canvas.width = Math.round(width * finalScale);
+          canvas.height = Math.round(height * finalScale);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          result = canvas.toDataURL('image/jpeg', 0.6);
+          console.log(`[Compression] Compression finale à ${canvas.width}x${canvas.height} → ${(result.length / 1024 / 1024).toFixed(2)} MB`);
         }
 
         console.log(`[Compression] ✅ Image compressée: ${(result.length / 1024 / 1024).toFixed(2)} MB (original: ${(file.size / 1024 / 1024).toFixed(2)} MB)`);
@@ -1754,7 +1765,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         console.log(`[EditorPanel] 📸 Upload image élément originale: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
                         
                         // Compresser l'image pour éviter les erreurs 413 (limite Vercel ~4.5MB)
-                        const base64 = await compressImage(file, 3, 4096);
+                        // Compression aggressive: max 1.5MB et 2048px
+                        const base64 = await compressImage(file);
                         const base64SizeMB = base64.length / 1024 / 1024;
                         
                         console.log(`[EditorPanel] 📸 Image élément compressée: ${base64SizeMB.toFixed(2)} MB`);
@@ -1763,7 +1775,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         // Forcer la sauvegarde immédiate
                         const saved = await forceSave();
                         if (!saved) {
-                          alert('Attention: L\'image a été chargée mais la sauvegarde a échoué.');
+                          alert(`⚠️ L'image a été chargée (${base64SizeMB.toFixed(2)} MB) mais la sauvegarde a échoué.\n\nCela peut être dû à la taille totale du cockpit. Essayez de réduire la taille de l'image ou de supprimer des images non utilisées.`);
                         }
                       } catch (err: any) {
                         console.error('[EditorPanel] ❌ Erreur compression:', err);
@@ -2798,11 +2810,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           console.log(`[EditorPanel] 📸 Upload image originale: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
                           
                           // Compresser l'image pour éviter les erreurs 413 (limite Vercel ~4.5MB)
-                          // On cible 3MB max pour laisser de la marge pour le reste de la requête
-                          const base64 = await compressImage(file, 3, 4096);
+                          // Compression aggressive: max 1.5MB et 2048px pour laisser de la marge
+                          const base64 = await compressImage(file);
                           const base64SizeMB = base64.length / 1024 / 1024;
                           
-                          console.log(`[EditorPanel] 📸 Image compressée: ${base64SizeMB.toFixed(2)} MB`);
+                          console.log(`[EditorPanel] 📸 Image domaine compressée: ${base64SizeMB.toFixed(2)} MB`);
                           setImageUrl(base64);
                           updateDomain(domain.id, { backgroundImage: base64 });
 
@@ -2812,7 +2824,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                             console.log('[EditorPanel] ✅ Image sauvegardée avec succès');
                           } else {
                             console.error('[EditorPanel] ❌ Échec de la sauvegarde de l\'image');
-                            alert('Attention: L\'image a été chargée mais la sauvegarde a échoué. Veuillez réessayer.');
+                            alert(`⚠️ L'image a été chargée (${base64SizeMB.toFixed(2)} MB) mais la sauvegarde a échoué.\n\nCela peut être dû à:\n- La taille totale du cockpit (limite ~4MB)\n- Un problème de connexion\n\nSolutions:\n1. Réessayez la sauvegarde\n2. Utilisez une image plus petite\n3. Supprimez des images non utilisées`);
                           }
                         } catch (err: any) {
                           console.error('[EditorPanel] ❌ Erreur compression:', err);
