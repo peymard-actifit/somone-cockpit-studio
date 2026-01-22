@@ -1199,8 +1199,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
           <MuiIcon name="Remove" size={20} />
         </button>
-        <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Réinitialiser">
-          <MuiIcon name="Maximize" size={20} />
+        <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
+          <MuiIcon name="FitScreen" size={20} />
         </button>
       </div>
 

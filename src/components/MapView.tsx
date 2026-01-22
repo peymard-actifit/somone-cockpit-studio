@@ -315,6 +315,89 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     setScale(1);
     setPosition({ x: 0, y: 0 });
   };
+  
+  // Fit to content - Calculer le zoom optimal pour voir tous les points
+  const fitToContent = useCallback(() => {
+    const container = containerRef.current;
+    const imageContainer = imageContainerRef.current;
+    if (!container || !imageContainer) {
+      // Pas encore chargé, utiliser le reset view
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      return;
+    }
+
+    const points = domain.mapElements || [];
+    
+    // Si pas de points, juste réinitialiser
+    if (points.length === 0) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      return;
+    }
+
+    // Dimensions du conteneur
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Dimensions de l'image
+    const imageRect = imageContainer.getBoundingClientRect();
+    const imageWidth = imageRect.width / scale;
+    const imageHeight = imageRect.height / scale;
+    
+    // Calculer le bounding box des points (en utilisant gpsToPosition)
+    let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+    let hasValidPoints = false;
+    
+    for (const point of points) {
+      const pos = gpsToPosition(point.gps);
+      if (pos) {
+        hasValidPoints = true;
+        minX = Math.min(minX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxX = Math.max(maxX, pos.x);
+        maxY = Math.max(maxY, pos.y);
+      }
+    }
+    
+    if (!hasValidPoints) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      return;
+    }
+
+    // Ajouter une marge de 10% autour des points
+    const marginX = (maxX - minX) * 0.1 || imageWidth * 0.1;
+    const marginY = (maxY - minY) * 0.1 || imageHeight * 0.1;
+    minX = Math.max(0, minX - marginX);
+    minY = Math.max(0, minY - marginY);
+    maxX = Math.min(100, maxX + marginX);
+    maxY = Math.min(100, maxY + marginY);
+
+    // Dimensions du bounding box en pixels
+    const contentWidth = ((maxX - minX) / 100) * imageWidth;
+    const contentHeight = ((maxY - minY) / 100) * imageHeight;
+    
+    // Calculer le zoom pour remplir le conteneur avec le contenu (avec marge)
+    const scaleX = (containerWidth * 0.9) / contentWidth;
+    const scaleY = (containerHeight * 0.9) / contentHeight;
+    const newScale = Math.min(Math.max(MIN_ZOOM, Math.min(scaleX, scaleY)), MAX_ZOOM);
+
+    // Calculer le centre du contenu
+    const contentCenterX = ((minX + maxX) / 2 / 100) * imageWidth;
+    const contentCenterY = ((minY + maxY) / 2 / 100) * imageHeight;
+
+    // Calculer la position pour centrer le contenu
+    const containerCenterX = containerWidth / 2;
+    const containerCenterY = containerHeight / 2;
+    
+    const newPosX = containerCenterX - contentCenterX * newScale;
+    const newPosY = containerCenterY - contentCenterY * newScale;
+
+    setScale(newScale);
+    setPosition({ x: newPosX, y: newPosY });
+  }, [domain.mapElements, scale]);
 
   // Début du drag
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -1092,8 +1175,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
           <MuiIcon name="Remove" size={20} />
         </button>
-        <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Réinitialiser">
-          <MuiIcon name="Maximize" size={20} />
+        <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
+          <MuiIcon name="FitScreen" size={20} />
         </button>
       </div>
 
