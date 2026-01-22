@@ -137,8 +137,12 @@ export default function MindMapView({
       const elementCount = allElements.length;
 
       if (elementCount > 0) {
-        const elementRadius = Math.min(containerSize.width, containerSize.height) * 0.30;
-        const subElementRadius = elementRadius * 0.45;
+        // Calcul dynamique des rayons basé sur le nombre d'éléments
+        const baseRadius = Math.min(containerSize.width, containerSize.height);
+        // Plus il y a d'éléments, plus le rayon des éléments est grand
+        const elementRadius = baseRadius * (0.25 + Math.min(0.15, elementCount * 0.01));
+        // Rayon pour les sous-éléments - assez grand pour être visible
+        const subElementRadius = baseRadius * 0.12;
         
         allElements.forEach((element, index) => {
           const angle = (2 * Math.PI * index) / elementCount - Math.PI / 2;
@@ -174,8 +178,10 @@ export default function MindMapView({
           const subElementCount = allSubElements.length;
 
           if (subElementCount > 0) {
-            const subStartAngle = angle - Math.PI / 4;
-            const subEndAngle = angle + Math.PI / 4;
+            // Arc de 90° (PI/2) centré sur la direction de l'élément vers l'extérieur
+            const arcSpan = Math.PI / 2;
+            const subStartAngle = angle - arcSpan / 2;
+            const subEndAngle = angle + arcSpan / 2;
             const subAngleStep = subElementCount > 1 ? (subEndAngle - subStartAngle) / (subElementCount - 1) : 0;
 
             allSubElements.forEach((subElement, subIndex) => {
