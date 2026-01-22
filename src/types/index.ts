@@ -102,6 +102,7 @@ export interface Domain {
   // Données pour la vue "Stats"
   statsData?: StatsData;
   publiable?: boolean;  // Si le domaine doit être publié (défaut: true)
+  updatedAt?: string;  // Date de dernière mise à jour
 }
 
 // Catégorie (groupe d'éléments)

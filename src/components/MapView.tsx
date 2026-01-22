@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import type { Domain, TileStatus, MapBounds, GpsCoords, MapElement } from '../types';
+import type { Domain, TileStatus, MapBounds, GpsCoords, MapElement, Element } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
@@ -8,6 +8,7 @@ import { MuiIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
 import BulkEditMapModal from './BulkEditMapModal';
 import MapCategoryElementsView from './MapCategoryElementsView';
+import StatusSummary, { formatLastUpdate } from './StatusSummary';
 
 // Liste des icônes populaires pour les points de carte
 const POPULAR_MAP_ICONS = [
@@ -881,13 +882,18 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     <div className="relative h-full bg-[#F5F7FA] overflow-hidden flex flex-col">
       {/* Header */}
       <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
-        <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
-          <MuiIcon name="Place" size={20} className="text-[#1E3A5F]" />
-          {domain.name}
-        </h2>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
+            <MuiIcon name="Place" size={20} className="text-[#1E3A5F]" />
+            {domain.name}
+          </h2>
+          <span className="text-xs text-[#94A3B8] whitespace-nowrap">
+            maj le : {formatLastUpdate(domain.updatedAt)}
+          </span>
+        </div>
         <div className="flex items-center gap-2 mt-1">
           <p className="text-sm text-[#64748B]">
-            {(domain.mapElements?.length || 0)} point(s) sur la carte
+            {(domain.mapElements?.length || 0)} élément(s) positionné(s)
             {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
           </p>
           {!_readOnly && (domain.mapElements?.length || 0) > 0 && (
@@ -900,6 +906,26 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             </button>
           )}
         </div>
+        {/* Résumé des statuts par criticité basé sur les éléments liés aux points */}
+        {(() => {
+          // Récupérer les éléments liés aux points de la carte
+          const linkedElements: Element[] = [];
+          const mapElements = domain.mapElements || [];
+          for (const point of mapElements) {
+            if (point.elementId) {
+              for (const cat of domain.categories) {
+                const el = cat.elements.find(e => e.id === point.elementId);
+                if (el) {
+                  linkedElements.push(el);
+                  break;
+                }
+              }
+            }
+          }
+          return linkedElements.length > 0 ? (
+            <StatusSummary elements={linkedElements} domains={_domainsProp} compact />
+          ) : null;
+        })()}
         {!_readOnly && !hasMapBounds && mapImageUrl && (
           <p className="text-xs text-[#FFB74D] mt-1 flex items-center gap-1">
             <MuiIcon name="Warning" size={12} />

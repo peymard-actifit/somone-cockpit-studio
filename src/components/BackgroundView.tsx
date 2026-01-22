@@ -5,6 +5,7 @@ import IconPicker, { MuiIcon, isCustomIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
 import BulkEditModal from './BulkEditModal';
 import MapCategoryElementsView from './MapCategoryElementsView';
+import StatusSummary, { formatLastUpdate } from './StatusSummary';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -972,10 +973,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
       {/* Header - Style PDF SOMONE mode clair */}
       <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
-        <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
-          <MuiIcon name="Image" size={20} className="text-[#1E3A5F]" />
-          {domain.name}
-        </h2>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
+            <MuiIcon name="Image" size={20} className="text-[#1E3A5F]" />
+            {domain.name}
+          </h2>
+          <span className="text-xs text-[#94A3B8] whitespace-nowrap">
+            maj le : {formatLastUpdate(domain.updatedAt)}
+          </span>
+        </div>
         <div className="flex items-center gap-2 mt-1">
           <p className="text-sm text-[#64748B]">
             {positionedElements.length} élément(s) positionné(s)
@@ -991,6 +997,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             </button>
           )}
         </div>
+        {/* Résumé des statuts par criticité */}
+        <StatusSummary elements={positionedElements} domains={domains} compact />
       </div>
 
       {/* Filtre de catégories */}

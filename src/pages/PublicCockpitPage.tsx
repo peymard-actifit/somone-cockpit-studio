@@ -4,6 +4,7 @@ import type { Cockpit, Element, Category } from '../types';
 import { MuiIcon } from '../components/IconPicker';
 import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
+import MindMapView from '../components/MindMapView';
 import PublicAIChat from '../components/PublicAIChat';
 import { VERSION_DISPLAY } from '../config/version';
 import { getDomainWorstStatus, STATUS_COLORS } from '../types';
@@ -17,6 +18,7 @@ function PublicCockpitContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
+  const [showMindMap, setShowMindMap] = useState(false);
   const { trackEvent } = useTracking();
 
   useEffect(() => {
@@ -222,6 +224,16 @@ function PublicCockpitContent() {
             
             {/* DROITE : Assistant IA et infos */}
             <div className="flex items-center gap-4 flex-shrink-0">
+              {/* Bouton Vue éclatée */}
+              <button
+                onClick={() => setShowMindMap(true)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
+                title="Vue éclatée de la maquette"
+              >
+                <MuiIcon name="AccountTree" size={16} />
+                <span className="text-sm font-medium">Vue éclatée</span>
+              </button>
+              
               {/* Assistant IA stylisé */}
               {publicId && cockpit && (
                 <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
@@ -268,6 +280,16 @@ function PublicCockpitContent() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Bouton Vue éclatée */}
+            <button
+              onClick={() => setShowMindMap(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
+              title="Vue éclatée de la maquette"
+            >
+              <MuiIcon name="AccountTree" size={16} />
+              <span className="text-sm font-medium">Vue éclatée</span>
+            </button>
+            
             {/* Assistant IA */}
             {publicId && cockpit && (
               <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
@@ -391,6 +413,29 @@ function PublicCockpitContent() {
           </div>
         )}
       </footer>
+
+      {/* Vue éclatée (Mind Map) */}
+      {showMindMap && (
+        <MindMapView
+          cockpit={cockpit}
+          onClose={() => setShowMindMap(false)}
+          onNavigateToDomain={(domainId) => {
+            setCurrentDomainId(domainId);
+            setCurrentElementId(null);
+            setShowMindMap(false);
+          }}
+          onNavigateToElement={(domainId, elementId) => {
+            setCurrentDomainId(domainId);
+            setCurrentElementId(elementId);
+            setShowMindMap(false);
+          }}
+          onNavigateToSubElement={(domainId, elementId, _subElementId) => {
+            setCurrentDomainId(domainId);
+            setCurrentElementId(elementId);
+            setShowMindMap(false);
+          }}
+        />
+      )}
 
       {/* Popup Message d'accueil */}
       {showWelcomeMessage && (cockpit as any).welcomeMessage && (
