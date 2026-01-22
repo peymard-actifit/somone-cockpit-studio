@@ -790,6 +790,18 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
   const [localClustering, setLocalClustering] = useState(getInitialClustering);
 
+  // États pour afficher/masquer l'encart domaine et les catégories
+  const getInitialShowDomainInfo = (): boolean => {
+    const localValue = localStorage.getItem(`showDomainInfo-${domain.id}`);
+    return localValue !== null ? localValue === 'true' : true; // Par défaut true
+  };
+  const getInitialShowCategories = (): boolean => {
+    const localValue = localStorage.getItem(`showCategories-${domain.id}`);
+    return localValue !== null ? localValue === 'true' : true; // Par défaut true
+  };
+  const [showDomainInfo, setShowDomainInfo] = useState(getInitialShowDomainInfo);
+  const [showCategories, setShowCategories] = useState(getInitialShowCategories);
+
   // Synchroniser avec le domaine quand il change
   useEffect(() => {
     if (_readOnly) {
@@ -971,39 +983,47 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
   return (
     <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
-      {/* Header - Style PDF SOMONE mode clair */}
-      <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
-            <MuiIcon name="Image" size={20} className="text-[#1E3A5F]" />
-            {domain.name}
-          </h2>
-          <span className="text-xs text-[#94A3B8] whitespace-nowrap">
-            maj le : {formatLastUpdate(domain.updatedAt)}
-          </span>
+      {/* Header - Style PDF SOMONE mode clair (conditionnel) */}
+      {showDomainInfo && (
+        <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-xl font-bold text-[#1E3A5F] flex items-center gap-2">
+              <MuiIcon name="Image" size={20} className="text-[#1E3A5F]" />
+              {domain.name}
+            </h2>
+            <span className="text-xs text-[#94A3B8] whitespace-nowrap">
+              maj le : {formatLastUpdate(domain.updatedAt)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-sm text-[#64748B]">
+              {positionedElements.length} élément(s) positionné(s)
+              {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
+            </p>
+            {!_readOnly && positionedElements.length > 0 && (
+              <button
+                onClick={() => setShowBulkEditModal(true)}
+                className="p-1 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded transition-colors"
+                title="Édition en masse"
+              >
+                <MuiIcon name="EditNote" size={16} />
+              </button>
+            )}
+          </div>
+          {/* Résumé des statuts par criticité */}
+          <StatusSummary elements={positionedElements} domains={domains} compact />
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <p className="text-sm text-[#64748B]">
-            {positionedElements.length} élément(s) positionné(s)
-            {selectedCategories.length > 0 && ` (filtre: ${selectedCategories.length} cat.)`}
-          </p>
-          {!_readOnly && positionedElements.length > 0 && (
-            <button
-              onClick={() => setShowBulkEditModal(true)}
-              className="p-1 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded transition-colors"
-              title="Édition en masse"
-            >
-              <MuiIcon name="EditNote" size={16} />
-            </button>
-          )}
-        </div>
-        {/* Résumé des statuts par criticité */}
-        <StatusSummary elements={positionedElements} domains={domains} compact />
-      </div>
+      )}
 
-      {/* Filtre de catégories - positionné sous l'encart header */}
-      {domain.categories && domain.categories.length > 0 && (
-        <div className="absolute top-44 left-4 z-20 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+      {/* Filtre de catégories - positionné sous l'encart header (conditionnel) */}
+      {showCategories && domain.categories && domain.categories.length > 0 && (
+        <div 
+          className="absolute left-4 z-20 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden" 
+          style={{ 
+            top: showDomainInfo ? '11rem' : '1rem', // Positionner selon si l'encart domaine est visible
+            maxHeight: 'calc(100vh - 250px)' 
+          }}
+        >
           <button
             onClick={() => setShowCategoryFilter(!showCategoryFilter)}
             className="w-full px-4 py-2 flex items-center justify-between gap-2 hover:bg-[#F5F7FA] transition-colors"
@@ -1090,8 +1110,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
       </div>
 
-      {/* Toggle regroupement - Visible dans le studio et les cockpits publiés */}
-      <div className="absolute top-40 right-4 z-30 bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
+      {/* Panneau de toggles - Visible dans le studio et les cockpits publiés */}
+      <div className="absolute top-40 right-4 z-30 bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md space-y-1.5">
+        {/* Toggle regroupement */}
         <div className="flex items-center gap-1.5">
           <MuiIcon name="Layers" size={12} className="text-[#1E3A5F]" />
           <button
@@ -1115,6 +1136,50 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${localClustering ? 'translate-x-3.5' : 'translate-x-0.5'
+                }`}
+            />
+          </button>
+        </div>
+        
+        {/* Toggle affichage encart domaine */}
+        <div className="flex items-center gap-1.5">
+          <MuiIcon name="Info" size={12} className="text-[#1E3A5F]" />
+          <button
+            onClick={() => {
+              const newValue = !showDomainInfo;
+              setShowDomainInfo(newValue);
+              localStorage.setItem(`showDomainInfo-${domain.id}`, String(newValue));
+            }}
+            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${showDomainInfo ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+              }`}
+            role="switch"
+            aria-checked={showDomainInfo}
+            title={showDomainInfo ? 'Masquer infos domaine' : 'Afficher infos domaine'}
+          >
+            <span
+              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${showDomainInfo ? 'translate-x-3.5' : 'translate-x-0.5'
+                }`}
+            />
+          </button>
+        </div>
+        
+        {/* Toggle affichage catégories */}
+        <div className="flex items-center gap-1.5">
+          <MuiIcon name="Category" size={12} className="text-[#1E3A5F]" />
+          <button
+            onClick={() => {
+              const newValue = !showCategories;
+              setShowCategories(newValue);
+              localStorage.setItem(`showCategories-${domain.id}`, String(newValue));
+            }}
+            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${showCategories ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+              }`}
+            role="switch"
+            aria-checked={showCategories}
+            title={showCategories ? 'Masquer catégories' : 'Afficher catégories'}
+          >
+            <span
+              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${showCategories ? 'translate-x-3.5' : 'translate-x-0.5'
                 }`}
             />
           </button>
