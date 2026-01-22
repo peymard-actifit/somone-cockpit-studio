@@ -517,19 +517,29 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   triggerAutoSave: () => {
-    const { autoSaveTimeout, currentCockpit } = get();
+    const { autoSaveTimeout } = get();
 
     if (autoSaveTimeout) {
       clearTimeout(autoSaveTimeout);
     }
 
     const timeout = setTimeout(async () => {
-      if (!currentCockpit) return;
+      // IMPORTANT: Récupérer l'état ACTUEL au moment de l'exécution du timeout
+      // et non la version capturée au moment de l'appel de triggerAutoSave
+      const currentState = get();
+      const currentCockpit = currentState.currentCockpit;
+      const zones = currentState.zones;
+      
+      if (!currentCockpit) {
+        console.warn('[Auto-save] Pas de cockpit à sauvegarder');
+        return;
+      }
 
       const token = useAuthStore.getState().token;
-      
-      // Récupérer les zones depuis le state
-      const zones = get().zones;
+      if (!token) {
+        console.warn('[Auto-save] Pas de token d\'authentification');
+        return;
+      }
       
       const payload: any = {
         name: currentCockpit.name,
@@ -546,6 +556,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       // Vérifier la taille du payload AVANT envoi (limite Vercel ~4.5MB)
       const payloadStr = JSON.stringify(payload);
       const payloadSizeMB = payloadStr.length / 1024 / 1024;
+      
+      console.log(`[Auto-save] 📦 Sauvegarde en cours... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines)`);
       
       // Vercel limite les requêtes à 4.5MB
       const MAX_PAYLOAD_SIZE_MB = 4.0; // Marge de sécurité
@@ -582,19 +594,21 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         });
 
         if (response.status === 409) {
-          console.warn('[Auto-save] Conflit détecté, rechargement du cockpit...');
+          console.warn('[Auto-save] ⚠️ Conflit détecté, rechargement du cockpit...');
           get().fetchCockpit(currentCockpit.id);
         } else if (response.status === 413) {
           console.error(`[Auto-save] ❌ Erreur 413 - Payload trop grand (${payloadSizeMB.toFixed(2)} MB)`);
         } else if (!response.ok) {
-          throw new Error(`Erreur serveur: ${response.status}`);
+          const errorText = await response.text().catch(() => 'Unknown error');
+          console.error(`[Auto-save] ❌ Erreur serveur: ${response.status} - ${errorText}`);
         } else {
+          console.log(`[Auto-save] ✅ Sauvegarde réussie`);
           // Succès : nettoyer le backup local
           offlineSync.clearBackup(currentCockpit.id);
         }
       } catch (error: any) {
         // Erreur réseau : passer en mode offline
-        console.warn('[Auto-save] Erreur réseau, passage en mode offline:', error.message);
+        console.warn('[Auto-save] ⚠️ Erreur réseau, passage en mode offline:', error.message);
         offlineSync.enqueue(currentCockpit.id, 'update', payload);
       }
     }, 1000);
@@ -924,8 +938,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   reorderDomains: (domainIds: string[]) => {
+    console.log('[reorderDomains] 🔄 Réorganisation des domaines:', domainIds);
+    
     set((state) => {
-      if (!state.currentCockpit) return state;
+      if (!state.currentCockpit) {
+        console.warn('[reorderDomains] Pas de cockpit courant');
+        return state;
+      }
 
       // Créer un map pour un accès rapide aux domaines par ID
       const domainMap = new Map(state.currentCockpit.domains.map(d => [d.id, d]));
@@ -943,14 +962,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const missingDomains = state.currentCockpit.domains.filter(d => !domainIds.includes(d.id));
       reorderedDomains.push(...missingDomains.map((d, index) => ({ ...d, order: reorderedDomains.length + index })));
 
+      const sortedDomains = reorderedDomains.sort((a, b) => a.order - b.order);
+      console.log('[reorderDomains] ✅ Nouvel ordre:', sortedDomains.map(d => `${d.order}:${d.name}`).join(', '));
+
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: reorderedDomains.sort((a, b) => a.order - b.order),
+          domains: sortedDomains,
           updatedAt: new Date().toISOString(),
         },
       };
     });
+    
+    // Déclencher l'auto-save
+    console.log('[reorderDomains] 📤 Déclenchement auto-save...');
     get().triggerAutoSave();
   },
 
