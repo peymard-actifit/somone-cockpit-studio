@@ -103,6 +103,7 @@ export default function StudioPage() {
     isLoading,
     error,
     setCurrentElement,
+    setCurrentDomain,
     recentChanges
   } = useCockpitStore();
 
@@ -111,6 +112,15 @@ export default function StudioPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [selectedSubElementId, setSelectedSubElementId] = useState<string | null>(null);
   const [showMindMap, setShowMindMap] = useState(false); // Vue éclatée
+  
+  // État pour la navigation depuis la vue éclatée
+  const [cameFromMindMap, setCameFromMindMap] = useState(false);
+  const [mindMapState, setMindMapState] = useState<{
+    focusedNodeId: string | null;
+    focusedNodeType: 'cockpit' | 'domain' | 'element' | 'subElement' | null;
+    scale: number;
+    position: { x: number; y: number };
+  } | undefined>(undefined);
 
   useEffect(() => {
     if (cockpitId) {
@@ -186,17 +196,54 @@ export default function StudioPage() {
     setSelectedSubElementId(null); // Réinitialiser la sélection de sous-élément
   };
 
+  // Navigation depuis la vue éclatée vers un élément
+  const handleNavigateToElement = (domainId: string, elementId: string) => {
+    setCurrentDomain(domainId);
+    setCurrentElement(elementId);
+    setShowMindMap(false);
+    setCameFromMindMap(true);
+    setShowEditor(true);
+    setSelectedSubElementId(null);
+  };
+
+  // Navigation depuis la vue éclatée vers un sous-élément
+  const handleNavigateToSubElement = (domainId: string, elementId: string, subElementId: string) => {
+    setCurrentDomain(domainId);
+    setCurrentElement(elementId);
+    setShowMindMap(false);
+    setCameFromMindMap(true);
+    setShowEditor(true);
+    setSelectedSubElementId(subElementId);
+  };
+
+  // Retour à la vue éclatée
+  const handleReturnToMindMap = () => {
+    setCameFromMindMap(false);
+    setShowMindMap(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F7FA] flex flex-col">
       {/* Header - Style PDF SOMONE bleu marine */}
       <header className="bg-[#1E3A5F] px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/')}
-            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          >
-            <MuiIcon name="ArrowLeft" size={20} />
-          </button>
+          {cameFromMindMap ? (
+            <button
+              onClick={handleReturnToMindMap}
+              className="flex items-center gap-2 px-3 py-2 text-cyan-300 hover:text-white hover:bg-cyan-600/50 rounded-lg transition-colors"
+              title="Retour à la vue éclatée"
+            >
+              <MuiIcon name="ArrowLeft" size={20} />
+              <span className="text-sm font-medium">Vue éclatée</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <MuiIcon name="ArrowLeft" size={20} />
+            </button>
+          )}
 
           <div>
             <h1 className="text-lg font-semibold text-white">{currentCockpit.name}</h1>
@@ -320,7 +367,14 @@ export default function StudioPage() {
       {showMindMap && (
         <MindMapView
           cockpit={currentCockpit}
-          onClose={() => setShowMindMap(false)}
+          onClose={() => {
+            setShowMindMap(false);
+            setCameFromMindMap(false);
+          }}
+          onNavigateToElement={handleNavigateToElement}
+          onNavigateToSubElement={handleNavigateToSubElement}
+          savedState={mindMapState}
+          onSaveState={setMindMapState}
         />
       )}
     </div>

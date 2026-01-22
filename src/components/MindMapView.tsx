@@ -7,6 +7,21 @@ import AlertPopup from './AlertPopup';
 interface MindMapViewProps {
   cockpit: Cockpit;
   onClose: () => void;
+  onNavigateToElement?: (domainId: string, elementId: string) => void;
+  onNavigateToSubElement?: (domainId: string, elementId: string, subElementId: string) => void;
+  // État sauvegardé pour revenir à la même position
+  savedState?: {
+    focusedNodeId: string | null;
+    focusedNodeType: NodeType | null;
+    scale: number;
+    position: { x: number; y: number };
+  };
+  onSaveState?: (state: {
+    focusedNodeId: string | null;
+    focusedNodeType: NodeType | null;
+    scale: number;
+    position: { x: number; y: number };
+  }) => void;
 }
 
 // Types pour les nœuds du mind map
@@ -31,19 +46,26 @@ interface MindMapLink {
   label?: string;
 }
 
-export default function MindMapView({ cockpit, onClose }: MindMapViewProps) {
+export default function MindMapView({ 
+  cockpit, 
+  onClose, 
+  onNavigateToElement,
+  onNavigateToSubElement,
+  savedState,
+  onSaveState 
+}: MindMapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  // État du zoom et position
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  // État du zoom et position (initialisé depuis l'état sauvegardé si disponible)
+  const [scale, setScale] = useState(savedState?.scale ?? 1);
+  const [position, setPosition] = useState(savedState?.position ?? { x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // État du focus (null = vue globale, sinon ID du domaine ou élément au centre)
-  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
-  const [focusedNodeType, setFocusedNodeType] = useState<NodeType | null>(null);
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(savedState?.focusedNodeId ?? null);
+  const [focusedNodeType, setFocusedNodeType] = useState<NodeType | null>(savedState?.focusedNodeType ?? null);
 
   // État pour l'alerte popup
   const [alertPopup, setAlertPopup] = useState<{
@@ -518,6 +540,65 @@ export default function MindMapView({ cockpit, onClose }: MindMapViewProps) {
     return () => clearTimeout(timer);
   }, []);
 
+  // Trouver le domainId pour un élément
+  const findDomainIdForElement = useCallback((elementId: string): string | null => {
+    for (const domain of cockpit.domains) {
+      for (const cat of domain.categories) {
+        if (cat.elements.some(e => e.id === elementId)) {
+          return domain.id;
+        }
+      }
+    }
+    return null;
+  }, [cockpit.domains]);
+
+  // Trouver le domainId et elementId pour un sous-élément
+  const findPathForSubElement = useCallback((subElementId: string): { domainId: string; elementId: string } | null => {
+    for (const domain of cockpit.domains) {
+      for (const cat of domain.categories) {
+        for (const el of cat.elements) {
+          for (const subCat of el.subCategories) {
+            if (subCat.subElements.some(se => se.id === subElementId)) {
+              return { domainId: domain.id, elementId: el.id };
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }, [cockpit.domains]);
+
+  // Clic simple sur un nœud (navigation vers la vue standard)
+  const handleNodeClick = useCallback((node: MindMapNode, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (node.type === 'element' && onNavigateToElement) {
+      const domainId = findDomainIdForElement(node.id);
+      if (domainId) {
+        // Sauvegarder l'état actuel avant de naviguer
+        onSaveState?.({
+          focusedNodeId,
+          focusedNodeType,
+          scale,
+          position,
+        });
+        onNavigateToElement(domainId, node.id);
+      }
+    } else if (node.type === 'subElement' && onNavigateToSubElement) {
+      const path = findPathForSubElement(node.id);
+      if (path) {
+        // Sauvegarder l'état actuel avant de naviguer
+        onSaveState?.({
+          focusedNodeId,
+          focusedNodeType,
+          scale,
+          position,
+        });
+        onNavigateToSubElement(path.domainId, path.elementId, node.id);
+      }
+    }
+  }, [onNavigateToElement, onNavigateToSubElement, findDomainIdForElement, findPathForSubElement, focusedNodeId, focusedNodeType, scale, position, onSaveState]);
+
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-br from-[#0F1729] via-[#1E3A5F] to-[#0F1729]">
       {/* Header */}
@@ -686,6 +767,7 @@ export default function MindMapView({ cockpit, onClose }: MindMapViewProps) {
                   style={{
                     transition: isAnimating ? 'none' : 'transform 0.3s ease-out',
                   }}
+                  onClick={(e) => handleNodeClick(node, e)}
                   onDoubleClick={() => handleNodeDoubleClick(node)}
                 >
                   {/* Cercle externe (glow) */}
@@ -706,34 +788,6 @@ export default function MindMapView({ cockpit, onClose }: MindMapViewProps) {
                     filter="url(#shadow)"
                     className="transition-all duration-200 hover:brightness-125"
                   />
-
-                  {/* Icône pour le cockpit */}
-                  {node.type === 'cockpit' && (
-                    <g transform={`translate(0, -${nodeSize * 0.15})`}>
-                      <text
-                        fill="white"
-                        fontSize={nodeSize * 0.4}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        🎯
-                      </text>
-                    </g>
-                  )}
-
-                  {/* Icône pour les domaines */}
-                  {node.type === 'domain' && (
-                    <g transform={`translate(0, -${nodeSize * 0.1})`}>
-                      <text
-                        fill="white"
-                        fontSize={nodeSize * 0.35}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        📊
-                      </text>
-                    </g>
-                  )}
 
                   {/* Indicateur d'alerte pour les sous-éléments */}
                   {node.type === 'subElement' && (node.data as SubElement)?.alert && (
