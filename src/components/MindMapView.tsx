@@ -731,10 +731,10 @@ export default function MindMapView({
       {/* Contrôles de zoom */}
       <div className="absolute top-20 right-4 z-20 flex flex-col gap-1 bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden">
         <button onClick={zoomIn} className="p-3 text-white hover:bg-white/20 transition-colors" title="Zoomer">
-          <MuiIcon name="Plus" size={20} />
+          <MuiIcon name="Add" size={20} />
         </button>
         <button onClick={zoomOut} className="p-3 text-white hover:bg-white/20 border-t border-white/10 transition-colors" title="Dézoomer">
-          <MuiIcon name="Minus" size={20} />
+          <MuiIcon name="Remove" size={20} />
         </button>
         <button onClick={resetView} className="p-3 text-white hover:bg-white/20 border-t border-white/10 transition-colors" title="Réinitialiser">
           <MuiIcon name="CenterFocusStrong" size={20} />
