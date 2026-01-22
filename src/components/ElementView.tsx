@@ -3,9 +3,14 @@ import { useCockpitStore } from '../store/cockpitStore';
 import SubCategorySection from './SubCategorySection';
 import SubElementTile from './SubElementTile';
 import { MuiIcon } from './IconPicker';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 import LinkElementModal from './LinkElementModal';
+
+// Constantes pour le zoom
+const MIN_ZOOM = 0.3;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 0.1;
 
 interface ElementViewProps {
   element: Element;
@@ -39,6 +44,135 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
     type: 'element' | 'subElement';
   }>>([]);
   const [draggingOverSubCategoryId, setDraggingOverSubCategoryId] = useState<string | null>(null);
+  
+  // ============================================================================
+  // ZOOM - Refs et états pour le zoom interne de la vue élément
+  // ============================================================================
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Fonction pour charger l'état de zoom sauvegardé
+  const loadSavedZoom = (elementId: string): number => {
+    const savedZoom = localStorage.getItem(`elementView-zoom-${elementId}`);
+    if (savedZoom) {
+      const parsed = parseFloat(savedZoom);
+      if (!isNaN(parsed) && parsed >= MIN_ZOOM && parsed <= MAX_ZOOM) {
+        return parsed;
+      }
+    }
+    return 1;
+  };
+  
+  const hasSavedZoom = (elementId: string): boolean => {
+    return localStorage.getItem(`elementView-zoom-${elementId}`) !== null;
+  };
+  
+  const [scale, setScale] = useState(() => loadSavedZoom(element.id));
+  const lastElementIdRef = useRef<string>(element.id);
+  const needsFitToContentRef = useRef<boolean>(!hasSavedZoom(element.id));
+  const hasFittedRef = useRef<boolean>(false);
+  
+  // État pour auto-hide des contrôles en mode lecture seule
+  const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
+  
+  // Calculer le zoom optimal pour afficher tout le contenu
+  const fitToContent = useCallback(() => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+    
+    // Temporairement remettre le scale à 1 pour mesurer
+    const originalScale = scale;
+    content.style.transform = 'scale(1)';
+    content.style.width = '100%';
+    content.style.minHeight = '100%';
+    
+    void content.offsetHeight;
+    
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    const contentWidth = content.scrollWidth;
+    const contentHeight = content.scrollHeight;
+    
+    content.style.transform = `scale(${originalScale})`;
+    content.style.width = `${100 / originalScale}%`;
+    content.style.minHeight = `${100 / originalScale}%`;
+    
+    if (contentWidth <= containerWidth && contentHeight <= containerHeight) {
+      setScale(1);
+      return;
+    }
+    
+    const scaleX = (containerWidth * 0.95) / contentWidth;
+    const scaleY = (containerHeight * 0.95) / contentHeight;
+    const optimalScale = Math.min(scaleX, scaleY);
+    
+    const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, optimalScale));
+    setScale(newScale);
+  }, [scale]);
+  
+  // Restaurer/réinitialiser le zoom quand l'élément change
+  useEffect(() => {
+    if (lastElementIdRef.current !== element.id) {
+      if (hasSavedZoom(element.id)) {
+        setScale(loadSavedZoom(element.id));
+        needsFitToContentRef.current = false;
+      } else {
+        setScale(1);
+        needsFitToContentRef.current = true;
+        hasFittedRef.current = false;
+      }
+      lastElementIdRef.current = element.id;
+    }
+  }, [element.id]);
+  
+  // Fit-to-content automatique au premier chargement
+  useEffect(() => {
+    if (needsFitToContentRef.current && !hasFittedRef.current) {
+      const timer = setTimeout(() => {
+        fitToContent();
+        hasFittedRef.current = true;
+        needsFitToContentRef.current = false;
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [fitToContent]);
+  
+  // Sauvegarder le zoom quand il change
+  useEffect(() => {
+    if (hasFittedRef.current || hasSavedZoom(element.id)) {
+      localStorage.setItem(`elementView-zoom-${element.id}`, String(scale));
+    }
+  }, [scale, element.id]);
+  
+  // Fonctions de zoom
+  const zoomIn = useCallback(() => setScale(prev => Math.min(MAX_ZOOM, prev + ZOOM_STEP)), []);
+  const zoomOut = useCallback(() => setScale(prev => Math.max(MIN_ZOOM, prev - ZOOM_STEP)), []);
+  const resetZoom = useCallback(() => fitToContent(), [fitToContent]);
+  
+  // Zoom avec la molette (Ctrl + molette)
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+    setScale(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)));
+  }, []);
+  
+  // Empêcher le zoom du navigateur
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const preventBrowserZoom = (e: WheelEvent) => {
+      if (e.ctrlKey) e.preventDefault();
+    };
+    container.addEventListener('wheel', preventBrowserZoom, { passive: false });
+    return () => container.removeEventListener('wheel', preventBrowserZoom);
+  }, []);
+  
+  // ============================================================================
   // Préférences d'espacement (indépendantes par élément)
   const storageKey = `element_${element.id}`;
   const [verticalSubCategoryWidth, setVerticalSubCategoryWidth] = useState(() => {
@@ -250,14 +384,63 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
 
 
   return (
-    <div className="min-h-full bg-[#F5F7FA] relative">
-      {/* Image de fond en mode BEHIND (en dessous) - sticky pour rester dans la zone visible */}
-      {element.backgroundImage && (!element.backgroundMode || element.backgroundMode === 'behind') && (
-        <div className="sticky top-0 h-0 z-0">
-          <div className="h-[calc(100vh-120px)] overflow-hidden pointer-events-none">
-            <img
-              src={element.backgroundImage}
-              alt=""
+    <div 
+      ref={containerRef}
+      className="h-full bg-[#F5F7FA] relative overflow-auto"
+      onWheel={handleWheel}
+    >
+      {/* Zone de déclenchement pour les contrôles de droite (mode lecture seule) */}
+      {readOnly && !isRightControlsHovered && (
+        <div 
+          className="fixed top-0 right-0 w-16 h-full z-50"
+          onMouseEnter={() => setIsRightControlsHovered(true)}
+        />
+      )}
+
+      {/* Contrôles de zoom - avec auto-hide en mode lecture seule */}
+      <div 
+        className={`fixed top-20 right-6 z-40 flex flex-col gap-3 transition-all duration-300 ${
+          readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
+        }`}
+        onMouseEnter={() => readOnly && setIsRightControlsHovered(true)}
+        onMouseLeave={() => readOnly && setIsRightControlsHovered(false)}
+      >
+        {/* Boutons de zoom */}
+        <div className="flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+          <button onClick={zoomIn} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer (Ctrl + molette)">
+            <MuiIcon name="Add" size={20} />
+          </button>
+          <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer (Ctrl + molette)">
+            <MuiIcon name="Remove" size={20} />
+          </button>
+          <button onClick={resetZoom} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title="Ajuster à la fenêtre">
+            <MuiIcon name="FitScreen" size={20} />
+          </button>
+        </div>
+
+        {/* Indicateur de zoom */}
+        <div className="bg-white rounded-lg px-3 py-2 border border-[#E2E8F0] shadow-md text-center">
+          <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
+        </div>
+      </div>
+
+      {/* Contenu zoomable */}
+      <div 
+        ref={contentRef}
+        className="min-h-full origin-top-left transition-transform duration-100"
+        style={{ 
+          transform: `scale(${scale})`,
+          width: `${100 / scale}%`,
+          minHeight: `${100 / scale}%`
+        }}
+      >
+        {/* Image de fond en mode BEHIND (en dessous) - sticky pour rester dans la zone visible */}
+        {element.backgroundImage && (!element.backgroundMode || element.backgroundMode === 'behind') && (
+          <div className="sticky top-0 h-0 z-0">
+            <div className="h-[calc(100vh-120px)] overflow-hidden pointer-events-none">
+              <img
+                src={element.backgroundImage}
+                alt=""
               className="w-full h-full object-contain"
               style={{
                 opacity: element.backgroundImageOpacity !== undefined ? element.backgroundImageOpacity / 100 : 1
@@ -594,20 +777,21 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
         </div>
       </div>
 
-      {/* Modal de liaison pour les sous-éléments du même nom */}
-      {showLinkModal && (
-        <LinkElementModal
-          type="subElement"
-          newItemName={pendingSubElementName}
-          existingMatches={existingMatches}
-          onLink={handleCreateLinked}
-          onIndependent={handleCreateIndependent}
-          onCancel={() => {
-            setShowLinkModal(false);
-            setNewSubElementName('');
-          }}
-        />
-      )}
+        {/* Modal de liaison pour les sous-éléments du même nom */}
+        {showLinkModal && (
+          <LinkElementModal
+            type="subElement"
+            newItemName={pendingSubElementName}
+            existingMatches={existingMatches}
+            onLink={handleCreateLinked}
+            onIndependent={handleCreateIndependent}
+            onCancel={() => {
+              setShowLinkModal(false);
+              setNewSubElementName('');
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
