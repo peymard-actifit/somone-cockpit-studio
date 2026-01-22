@@ -731,6 +731,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           domains: [...state.currentCockpit.domains, newDomain],
           updatedAt: new Date().toISOString(),
         },
+        // Sélectionner automatiquement le nouveau domaine créé
+        currentDomainId: newDomain.id,
       };
     });
     get().triggerAutoSave();
