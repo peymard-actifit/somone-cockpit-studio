@@ -10,6 +10,7 @@ import GridView from './GridView';
 import AlertsView from './AlertsView';
 import StatsView from './StatsView';
 import LibraryView from './LibraryView';
+import ZoomableContainer from './ZoomableContainer';
 import { MuiIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
 import { useState, useEffect, useMemo } from 'react';
@@ -171,7 +172,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'hours-tracking') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <HoursTrackingView domain={domain} readOnly={readOnly} />
+        <ZoomableContainer domainId={domain.id}>
+          <HoursTrackingView domain={domain} readOnly={readOnly} />
+        </ZoomableContainer>
       </div>
     );
   }
@@ -180,7 +183,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'grid') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <GridView domain={domain} onElementClick={onElementClick} readOnly={readOnly} viewMode={gridViewMode} domains={cockpit?.domains} />
+        <ZoomableContainer domainId={domain.id}>
+          <GridView domain={domain} onElementClick={onElementClick} readOnly={readOnly} viewMode={gridViewMode} domains={cockpit?.domains} />
+        </ZoomableContainer>
       </div>
     );
   }
@@ -190,7 +195,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <AlertsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
+        <ZoomableContainer domainId={domain.id}>
+          <AlertsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
+        </ZoomableContainer>
       </div>
     );
   }
@@ -200,7 +207,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <StatsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
+        <ZoomableContainer domainId={domain.id}>
+          <StatsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
+        </ZoomableContainer>
       </div>
     );
   }
@@ -210,7 +219,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <LibraryView domain={domain} cockpit={cockpit} readOnly={readOnly} />
+        <ZoomableContainer domainId={domain.id}>
+          <LibraryView domain={domain} cockpit={cockpit} readOnly={readOnly} />
+        </ZoomableContainer>
       </div>
     );
   }
@@ -309,18 +320,20 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (showFullDomainView) {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <FullDomainView
-          domain={domain}
-          onBack={() => setShowFullDomainView(false)}
-          onElementClick={onElementClick}
-          onCategoryClick={(categoryId) => {
-            // Fermer la vue domaine complète et ouvrir la vue catégorie
-            setShowFullDomainView(false);
-            setSelectedCategoryId(categoryId);
-          }}
-          readOnly={readOnly}
-          domains={cockpit?.domains}
-        />
+        <ZoomableContainer domainId={`${domain.id}-full`}>
+          <FullDomainView
+            domain={domain}
+            onBack={() => setShowFullDomainView(false)}
+            onElementClick={onElementClick}
+            onCategoryClick={(categoryId) => {
+              // Fermer la vue domaine complète et ouvrir la vue catégorie
+              setShowFullDomainView(false);
+              setSelectedCategoryId(categoryId);
+            }}
+            readOnly={readOnly}
+            domains={cockpit?.domains}
+          />
+        </ZoomableContainer>
       </div>
     );
   }
@@ -329,29 +342,32 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (selectedCategory) {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <CategoryView
-          category={selectedCategory}
-          domain={domain}
-          onBack={() => setSelectedCategoryId(null)}
-          onElementClick={onElementClick}
-          onDomainClick={() => {
-            // Fermer la vue catégorie et ouvrir la vue domaine complète
-            setSelectedCategoryId(null);
-            setShowFullDomainView(true);
-          }}
-          readOnly={readOnly}
-          domains={cockpit?.domains}
-        />
+        <ZoomableContainer domainId={`${domain.id}-cat-${selectedCategory.id}`}>
+          <CategoryView
+            category={selectedCategory}
+            domain={domain}
+            onBack={() => setSelectedCategoryId(null)}
+            onElementClick={onElementClick}
+            onDomainClick={() => {
+              // Fermer la vue catégorie et ouvrir la vue domaine complète
+              setSelectedCategoryId(null);
+              setShowFullDomainView(true);
+            }}
+            readOnly={readOnly}
+            domains={cockpit?.domains}
+          />
+        </ZoomableContainer>
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-full bg-[#F5F7FA] relative"
-    >
-      {/* Image de fond en mode BEHIND (en dessous) */}
-      {domain.backgroundImage && (!domain.backgroundMode || domain.backgroundMode === 'behind') && (
+    <ZoomableContainer domainId={domain.id} className="bg-[#F5F7FA]">
+      <div
+        className="min-h-full relative"
+      >
+        {/* Image de fond en mode BEHIND (en dessous) */}
+        {domain.backgroundImage && (!domain.backgroundMode || domain.backgroundMode === 'behind') && (
         <div className="sticky top-0 h-0 z-0">
           <div className="h-[calc(100vh-120px)] overflow-hidden pointer-events-none">
             <img
@@ -702,20 +718,21 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
       </div>
 
       {/* Modal de liaison pour les éléments du même nom */}
-      {showLinkModal && (
-        <LinkElementModal
-          type="element"
-          newItemName={pendingElementName}
-          existingMatches={existingMatches}
-          onLink={handleCreateLinked}
-          onIndependent={handleCreateIndependent}
-          onCancel={() => {
-            setShowLinkModal(false);
-            setNewElementName('');
-          }}
-        />
-      )}
-    </div>
+        {showLinkModal && (
+          <LinkElementModal
+            type="element"
+            newItemName={pendingElementName}
+            existingMatches={existingMatches}
+            onLink={handleCreateLinked}
+            onIndependent={handleCreateIndependent}
+            onCancel={() => {
+              setShowLinkModal(false);
+              setNewElementName('');
+            }}
+          />
+        )}
+      </div>
+    </ZoomableContainer>
   );
 }
 
