@@ -1087,10 +1087,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       {/* Contrôles de zoom */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
         <button onClick={zoomIn} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer">
-          <MuiIcon name="Plus" size={20} />
+          <MuiIcon name="Add" size={20} />
         </button>
         <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
-          <MuiIcon name="Minus" size={20} />
+          <MuiIcon name="Remove" size={20} />
         </button>
         <button onClick={resetView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Réinitialiser">
           <MuiIcon name="Maximize" size={20} />

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { MuiIcon } from './IconPicker';
 
-const MIN_ZOOM = 0.5;
+const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.1;
 
@@ -16,6 +16,7 @@ interface ZoomableContainerProps {
  * Conteneur zoomable pour les vues qui ne gèrent pas leur propre zoom.
  * Le zoom est sauvegardé par domaine dans le localStorage.
  * Indépendant du zoom du navigateur.
+ * Au premier affichage, calcule automatiquement le zoom optimal pour tout afficher.
  */
 export default function ZoomableContainer({ 
   children, 
@@ -25,6 +26,12 @@ export default function ZoomableContainer({
 }: ZoomableContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Vérifier si un zoom est sauvegardé
+  const hasSavedZoom = (id: string): boolean => {
+    const savedZoom = localStorage.getItem(`zoomableView-${id}`);
+    return savedZoom !== null;
+  };
   
   // Charger l'état sauvegardé depuis localStorage
   const loadSavedZoom = (id: string): number => {
@@ -40,24 +47,96 @@ export default function ZoomableContainer({
 
   const [scale, setScale] = useState(() => loadSavedZoom(domainId));
   const lastDomainIdRef = useRef<string>(domainId);
+  const needsFitToContentRef = useRef<boolean>(!hasSavedZoom(domainId));
+  const hasFittedRef = useRef<boolean>(false);
+
+  // Calculer le zoom optimal pour afficher tout le contenu
+  const fitToContent = useCallback(() => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+
+    // Temporairement remettre le scale à 1 pour mesurer la taille réelle du contenu
+    const originalScale = scale;
+    content.style.transform = 'scale(1)';
+    content.style.width = '100%';
+    content.style.minHeight = '100%';
+    
+    // Forcer un reflow pour obtenir les bonnes dimensions
+    void content.offsetHeight;
+    
+    // Dimensions du conteneur (viewport disponible)
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Dimensions du contenu (scrollWidth/scrollHeight incluent le contenu débordant)
+    const contentWidth = content.scrollWidth;
+    const contentHeight = content.scrollHeight;
+    
+    // Restaurer le scale original pour l'instant
+    content.style.transform = `scale(${originalScale})`;
+    content.style.width = `${100 / originalScale}%`;
+    content.style.minHeight = `${100 / originalScale}%`;
+    
+    // Si le contenu est plus petit que le conteneur, pas besoin de dézoomer
+    if (contentWidth <= containerWidth && contentHeight <= containerHeight) {
+      setScale(1);
+      return;
+    }
+    
+    // Calculer le zoom pour que tout rentre avec une marge de 5%
+    const scaleX = (containerWidth * 0.95) / contentWidth;
+    const scaleY = (containerHeight * 0.95) / contentHeight;
+    const optimalScale = Math.min(scaleX, scaleY);
+    
+    // Appliquer le zoom calculé (dans les limites)
+    const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, optimalScale));
+    setScale(newScale);
+  }, [scale]);
 
   // Restaurer le zoom quand on change de domaine
   useEffect(() => {
     if (lastDomainIdRef.current !== domainId) {
-      setScale(loadSavedZoom(domainId));
+      if (hasSavedZoom(domainId)) {
+        setScale(loadSavedZoom(domainId));
+        needsFitToContentRef.current = false;
+      } else {
+        setScale(1);
+        needsFitToContentRef.current = true;
+        hasFittedRef.current = false;
+      }
       lastDomainIdRef.current = domainId;
     }
   }, [domainId]);
 
-  // Sauvegarder le zoom quand il change
+  // Fit-to-content automatique au premier chargement (si pas de zoom sauvegardé)
   useEffect(() => {
-    localStorage.setItem(`zoomableView-${domainId}`, String(scale));
+    if (needsFitToContentRef.current && !hasFittedRef.current) {
+      // Petit délai pour s'assurer que le contenu est bien rendu
+      const timer = setTimeout(() => {
+        fitToContent();
+        hasFittedRef.current = true;
+        needsFitToContentRef.current = false;
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [fitToContent]);
+
+  // Sauvegarder le zoom quand il change (mais pas lors du fit initial)
+  useEffect(() => {
+    if (hasFittedRef.current || hasSavedZoom(domainId)) {
+      localStorage.setItem(`zoomableView-${domainId}`, String(scale));
+    }
   }, [scale, domainId]);
 
   // Zoom avec les boutons
   const zoomIn = useCallback(() => setScale(prev => Math.min(MAX_ZOOM, prev + ZOOM_STEP)), []);
   const zoomOut = useCallback(() => setScale(prev => Math.max(MIN_ZOOM, prev - ZOOM_STEP)), []);
-  const resetZoom = useCallback(() => setScale(1), []);
+  const resetZoom = useCallback(() => {
+    // Fit-to-content au lieu de juste remettre à 1
+    fitToContent();
+  }, [fitToContent]);
 
   // Zoom avec la molette
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -113,9 +192,9 @@ export default function ZoomableContainer({
             <button 
               onClick={resetZoom} 
               className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" 
-              title="Réinitialiser le zoom"
+              title="Ajuster à la fenêtre"
             >
-              <MuiIcon name="Maximize" size={20} />
+              <MuiIcon name="FitScreen" size={20} />
             </button>
           </div>
 
