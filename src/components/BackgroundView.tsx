@@ -900,6 +900,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   };
   const [showDomainInfo, setShowDomainInfo] = useState(getInitialShowDomainInfo);
   const [showCategories, setShowCategories] = useState(getInitialShowCategories);
+  
+  // État pour le masquage auto des contrôles de droite en mode publié
+  const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
 
   // Synchroniser avec le domaine quand il change
   useEffect(() => {
@@ -1119,8 +1122,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         <div 
           className="absolute left-4 z-20 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden" 
           style={{ 
-            top: showDomainInfo ? '11rem' : '1rem', // Positionner selon si l'encart domaine est visible
-            maxHeight: 'calc(100vh - 250px)' 
+            top: showDomainInfo ? '13rem' : '1rem', // Positionner avec plus d'espace sous l'encart domaine
+            maxHeight: 'calc(100vh - 280px)',
+            maxWidth: 'calc(100vw - 200px)' // Laisser de l'espace pour les contrôles de droite
           }}
         >
           <button
@@ -1191,97 +1195,114 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         </div>
       )}
 
-      {/* Contrôles de zoom */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
-        <button onClick={zoomIn} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer">
-          <MuiIcon name="Add" size={20} />
-        </button>
-        <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
-          <MuiIcon name="Remove" size={20} />
-        </button>
-        <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
-          <MuiIcon name="FitScreen" size={20} />
-        </button>
-      </div>
+      {/* Zone de déclenchement pour les contrôles de droite (mode publié uniquement) */}
+      {_readOnly && !isRightControlsHovered && (
+        <div 
+          className="absolute top-0 right-0 w-16 h-full z-50"
+          onMouseEnter={() => setIsRightControlsHovered(true)}
+        />
+      )}
 
-      {/* Indicateur de zoom */}
-      <div className="absolute top-4 right-20 z-20 bg-white rounded-lg px-3 py-2 border border-[#E2E8F0] shadow-md">
-        <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
-      </div>
-
-      {/* Panneau de toggles - Visible dans le studio et les cockpits publiés */}
-      <div className="absolute top-40 right-4 z-30 bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md space-y-1.5">
-        {/* Toggle regroupement */}
-        <div className="flex items-center gap-1.5">
-          <MuiIcon name="Layers" size={12} className="text-[#1E3A5F]" />
-          <button
-            onClick={() => {
-              const newValue = !localClustering;
-              setLocalClustering(newValue);
-
-              if (_readOnly) {
-                // En mode readOnly, sauvegarder dans localStorage
-                localStorage.setItem(`clustering-${domain.id}`, String(newValue));
-              } else {
-                // En mode studio, sauvegarder dans le domaine
-                updateDomain(domain.id, { enableClustering: newValue });
-              }
-            }}
-            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${localClustering ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-              }`}
-            role="switch"
-            aria-checked={localClustering}
-            title={localClustering ? 'Désactiver le regroupement' : 'Activer le regroupement'}
-          >
-            <span
-              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${localClustering ? 'translate-x-3.5' : 'translate-x-0.5'
-                }`}
-            />
+      {/* Conteneur des contrôles de droite - avec auto-hide en mode publié */}
+      <div 
+        className={`absolute top-4 right-6 z-30 flex flex-col gap-3 transition-all duration-300 ${
+          _readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
+        }`}
+        onMouseEnter={() => _readOnly && setIsRightControlsHovered(true)}
+        onMouseLeave={() => _readOnly && setIsRightControlsHovered(false)}
+      >
+        {/* Contrôles de zoom */}
+        <div className="flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+          <button onClick={zoomIn} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer">
+            <MuiIcon name="Add" size={20} />
+          </button>
+          <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
+            <MuiIcon name="Remove" size={20} />
+          </button>
+          <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title="Ajuster à la fenêtre">
+            <MuiIcon name="FitScreen" size={20} />
           </button>
         </div>
-        
-        {/* Toggle affichage encart domaine */}
-        <div className="flex items-center gap-1.5">
-          <MuiIcon name="Info" size={12} className="text-[#1E3A5F]" />
-          <button
-            onClick={() => {
-              const newValue = !showDomainInfo;
-              setShowDomainInfo(newValue);
-              localStorage.setItem(`showDomainInfo-${domain.id}`, String(newValue));
-            }}
-            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${showDomainInfo ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-              }`}
-            role="switch"
-            aria-checked={showDomainInfo}
-            title={showDomainInfo ? 'Masquer infos domaine' : 'Afficher infos domaine'}
-          >
-            <span
-              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${showDomainInfo ? 'translate-x-3.5' : 'translate-x-0.5'
-                }`}
-            />
-          </button>
+
+        {/* Indicateur de zoom */}
+        <div className="bg-white rounded-lg px-3 py-2 border border-[#E2E8F0] shadow-md text-center">
+          <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
         </div>
-        
-        {/* Toggle affichage catégories */}
-        <div className="flex items-center gap-1.5">
-          <MuiIcon name="Category" size={12} className="text-[#1E3A5F]" />
-          <button
-            onClick={() => {
-              const newValue = !showCategories;
-              setShowCategories(newValue);
-              localStorage.setItem(`showCategories-${domain.id}`, String(newValue));
-            }}
-            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${showCategories ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-              }`}
-            role="switch"
-            aria-checked={showCategories}
-            title={showCategories ? 'Masquer catégories' : 'Afficher catégories'}
-          >
-            <span
-              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${showCategories ? 'translate-x-3.5' : 'translate-x-0.5'
+
+        {/* Panneau de toggles */}
+        <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md space-y-1.5">
+          {/* Toggle regroupement */}
+          <div className="flex items-center gap-1.5">
+            <MuiIcon name="Layers" size={12} className="text-[#1E3A5F]" />
+            <button
+              onClick={() => {
+                const newValue = !localClustering;
+                setLocalClustering(newValue);
+
+                if (_readOnly) {
+                  // En mode readOnly, sauvegarder dans localStorage
+                  localStorage.setItem(`clustering-${domain.id}`, String(newValue));
+                } else {
+                  // En mode studio, sauvegarder dans le domaine
+                  updateDomain(domain.id, { enableClustering: newValue });
+                }
+              }}
+              className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${localClustering ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
                 }`}
-            />
-          </button>
+              role="switch"
+              aria-checked={localClustering}
+              title={localClustering ? 'Désactiver le regroupement' : 'Activer le regroupement'}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${localClustering ? 'translate-x-3.5' : 'translate-x-0.5'
+                  }`}
+              />
+            </button>
+          </div>
+          
+          {/* Toggle affichage encart domaine */}
+          <div className="flex items-center gap-1.5">
+            <MuiIcon name="Info" size={12} className="text-[#1E3A5F]" />
+            <button
+              onClick={() => {
+                const newValue = !showDomainInfo;
+                setShowDomainInfo(newValue);
+                localStorage.setItem(`showDomainInfo-${domain.id}`, String(newValue));
+              }}
+              className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${showDomainInfo ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                }`}
+              role="switch"
+              aria-checked={showDomainInfo}
+              title={showDomainInfo ? 'Masquer infos domaine' : 'Afficher infos domaine'}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${showDomainInfo ? 'translate-x-3.5' : 'translate-x-0.5'
+                  }`}
+              />
+            </button>
+          </div>
+          
+          {/* Toggle affichage catégories */}
+          <div className="flex items-center gap-1.5">
+            <MuiIcon name="Category" size={12} className="text-[#1E3A5F]" />
+            <button
+              onClick={() => {
+                const newValue = !showCategories;
+                setShowCategories(newValue);
+                localStorage.setItem(`showCategories-${domain.id}`, String(newValue));
+              }}
+              className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${showCategories ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                }`}
+              role="switch"
+              aria-checked={showCategories}
+              title={showCategories ? 'Masquer catégories' : 'Afficher catégories'}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${showCategories ? 'translate-x-3.5' : 'translate-x-0.5'
+                  }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
