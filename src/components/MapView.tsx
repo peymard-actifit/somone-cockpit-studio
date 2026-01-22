@@ -53,6 +53,23 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement, lastClonedMapElementId, clearLastClonedMapElementId } = useCockpitStore();
   const { token } = useAuthStore();
 
+  // Fonction pour charger l'état sauvegardé depuis localStorage
+  const loadSavedViewState = (domainId: string) => {
+    const viewStateKey = `mapView-${domainId}`;
+    const savedState = localStorage.getItem(viewStateKey);
+    if (savedState) {
+      try {
+        const { scale: savedScale, position: savedPosition } = JSON.parse(savedState);
+        if (typeof savedScale === 'number' && savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number') {
+          return { scale: savedScale, position: savedPosition, hasSavedState: true };
+        }
+      } catch (e) {
+        console.warn('[MapView] Erreur lors de la restauration du zoom/position:', e);
+      }
+    }
+    return { scale: 1, position: { x: 0, y: 0 }, hasSavedState: false };
+  };
+
   // Ã‰tat de l'analyse IA
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{
@@ -62,11 +79,16 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     description?: string;
   } | null>(null);
 
-  // Ã‰tat du zoom et position
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  // Ã‰tat du zoom et position - initialisé depuis localStorage
+  const [scale, setScale] = useState(() => loadSavedViewState(domain.id).scale);
+  const [position, setPosition] = useState(() => loadSavedViewState(domain.id).position);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  // Ref pour suivre si on doit restaurer l'état sauvegardé quand le domaine change
+  const lastDomainIdRef = useRef<string>(domain.id);
+  const lastBackgroundImageRef = useRef<string | undefined>(domain.backgroundImage);
+  const hasFittedToScreenRef = useRef<boolean>(loadSavedViewState(domain.id).hasSavedState);
 
   // Ã‰tat pour le drag d'un point
   const [draggingPointId, setDraggingPointId] = useState<string | null>(null);
@@ -775,6 +797,41 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       setLocalClustering(domain.enableClustering !== false);
     }
   }, [domain.id, domain.enableClustering, _readOnly]);
+
+  // Restaurer l'état sauvegardé quand on change de domaine
+  useEffect(() => {
+    if (lastDomainIdRef.current !== domain.id) {
+      const savedState = loadSavedViewState(domain.id);
+      if (savedState.hasSavedState) {
+        // Restaurer l'état sauvegardé
+        setScale(savedState.scale);
+        setPosition(savedState.position);
+        hasFittedToScreenRef.current = true;
+      } else {
+        // Pas d'état sauvegardé - réinitialiser pour fit-to-screen
+        setScale(1);
+        setPosition({ x: 0, y: 0 });
+        hasFittedToScreenRef.current = false;
+      }
+      lastDomainIdRef.current = domain.id;
+      lastBackgroundImageRef.current = domain.backgroundImage;
+    }
+    // Si l'image change réellement, réinitialiser
+    else if (lastBackgroundImageRef.current !== domain.backgroundImage &&
+      lastBackgroundImageRef.current !== undefined &&
+      domain.backgroundImage !== undefined) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      hasFittedToScreenRef.current = false;
+      lastBackgroundImageRef.current = domain.backgroundImage;
+    }
+  }, [domain.id, domain.backgroundImage]);
+
+  // Sauvegarder le zoom et la position quand ils changent
+  useEffect(() => {
+    const viewStateKey = `mapView-${domain.id}`;
+    localStorage.setItem(viewStateKey, JSON.stringify({ scale, position }));
+  }, [scale, position, domain.id]);
 
   // Calculer les clusters de points en fonction du niveau de zoom
   const calculateClusters = (): { clusters: PointCluster[]; singlePoints: MapElement[] } => {

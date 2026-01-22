@@ -61,14 +61,17 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       try {
         const { scale: savedScale, position: savedPosition } = JSON.parse(savedState);
         if (typeof savedScale === 'number' && savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number') {
-          return { scale: savedScale, position: savedPosition };
+          return { scale: savedScale, position: savedPosition, hasSavedState: true };
         }
       } catch (e) {
         console.warn('[BackgroundView] Erreur lors de la restauration du zoom/position:', e);
       }
     }
-    return { scale: 1, position: { x: 0, y: 0 } };
+    return { scale: 1, position: { x: 0, y: 0 }, hasSavedState: false };
   };
+  
+  // Ref pour suivre si on doit faire un fit-to-content au premier chargement
+  const needsFitToContentRef = useRef<boolean>(!loadSavedViewState(domain.id).hasSavedState);
 
   // Ã‰tat du zoom et position (comme MapView) - initialisé depuis localStorage
   // Utiliser une fonction d'initialisation pour éviter de recalculer à chaque render
@@ -229,8 +232,16 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     // Au premier montage ou changement de domaine, restaurer depuis localStorage
     if (lastDomainIdRef.current !== domain.id) {
       const savedState = loadSavedViewState(domain.id);
-      setScale(savedState.scale);
-      setPosition(savedState.position);
+      if (savedState.hasSavedState) {
+        setScale(savedState.scale);
+        setPosition(savedState.position);
+        needsFitToContentRef.current = false;
+      } else {
+        // Pas d'état sauvegardé - on va faire un fit-to-content
+        setScale(1);
+        setPosition({ x: 0, y: 0 });
+        needsFitToContentRef.current = true;
+      }
       lastDomainIdRef.current = domain.id;
       lastBackgroundImageRef.current = domain.backgroundImage;
     }
@@ -239,9 +250,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     else if (lastBackgroundImageRef.current !== domain.backgroundImage &&
       lastBackgroundImageRef.current !== undefined &&
       domain.backgroundImage !== undefined) {
-      // C'est un vrai changement d'image (utilisateur a changé l'image), réinitialiser
+      // C'est un vrai changement d'image (utilisateur a changé l'image), réinitialiser et refaire fit-to-content
       setScale(1);
       setPosition({ x: 0, y: 0 });
+      needsFitToContentRef.current = true;
       lastBackgroundImageRef.current = domain.backgroundImage;
     }
     // Sinon, on ne fait rien - on garde l'état actuel même si le composant se remonte
@@ -385,6 +397,93 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setScale(1);
     setPosition({ x: 0, y: 0 });
   };
+  
+  // Fit to content - Calculer le zoom optimal pour voir tous les éléments
+  const fitToContent = useCallback(() => {
+    const container = containerRef.current;
+    if (!container || !imageBounds) {
+      // Pas encore chargé, utiliser le reset view
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      return;
+    }
+
+    // Si pas d'éléments positionnés, juste réinitialiser
+    if (positionedElements.length === 0) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      return;
+    }
+
+    // Calculer le bounding box des éléments (en % de l'image, 0-100)
+    let minX = 100, minY = 100, maxX = 0, maxY = 0;
+    for (const el of positionedElements) {
+      if (el.positionX !== undefined && el.positionY !== undefined) {
+        const elWidth = el.width || 5;
+        const elHeight = el.height || 5;
+        minX = Math.min(minX, el.positionX);
+        minY = Math.min(minY, el.positionY);
+        maxX = Math.max(maxX, el.positionX + elWidth);
+        maxY = Math.max(maxY, el.positionY + elHeight);
+      }
+    }
+
+    // Ajouter une marge de 5%
+    const margin = 5;
+    minX = Math.max(0, minX - margin);
+    minY = Math.max(0, minY - margin);
+    maxX = Math.min(100, maxX + margin);
+    maxY = Math.min(100, maxY + margin);
+
+    // Dimensions du bounding box en % de l'image
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+
+    // Dimensions du conteneur
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+
+    // Dimensions de l'image affichée
+    const imageWidth = imageBounds.width;
+    const imageHeight = imageBounds.height;
+
+    // Calculer les dimensions du contenu en pixels (à scale=1)
+    const contentPixelWidth = (contentWidth / 100) * imageWidth;
+    const contentPixelHeight = (contentHeight / 100) * imageHeight;
+
+    // Calculer le zoom pour remplir le conteneur avec le contenu (avec marge)
+    const scaleX = (containerWidth * 0.9) / contentPixelWidth;
+    const scaleY = (containerHeight * 0.9) / contentPixelHeight;
+    const newScale = Math.min(Math.max(MIN_ZOOM, Math.min(scaleX, scaleY)), MAX_ZOOM);
+
+    // Calculer le centre du contenu en pixels (dans le système de coordonnées de l'image)
+    const contentCenterX = imageBounds.x + ((minX + maxX) / 2 / 100) * imageWidth;
+    const contentCenterY = imageBounds.y + ((minY + maxY) / 2 / 100) * imageHeight;
+
+    // Calculer la position pour centrer le contenu
+    // Avec transform-origin: center, le centre du conteneur reste fixe
+    const containerCenterX = containerWidth / 2;
+    const containerCenterY = containerHeight / 2;
+    
+    const newPosX = containerCenterX - contentCenterX * newScale;
+    const newPosY = containerCenterY - contentCenterY * newScale;
+
+    setScale(newScale);
+    setPosition({ x: newPosX, y: newPosY });
+  }, [imageBounds, positionedElements]);
+
+  // Fit-to-content automatique au premier chargement (si pas d'état sauvegardé)
+  useEffect(() => {
+    if (needsFitToContentRef.current && imageBounds && positionedElements.length > 0) {
+      // Petit délai pour s'assurer que tout est bien rendu
+      const timer = setTimeout(() => {
+        fitToContent();
+        needsFitToContentRef.current = false;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [imageBounds, positionedElements.length, fitToContent]);
 
   // Calculer la position et taille réelle de l'image dans le conteneur transformé (avec object-contain)
   // Les bounds sont calculés dans le système de coordonnées du conteneur transformé (imageContainerRef)
