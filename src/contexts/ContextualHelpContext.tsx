@@ -31,23 +31,25 @@ export function useContextualHelp() {
   return context;
 }
 
-// Fonction pour obtenir la clé d'aide au survol (limitée à quelques niveaux)
-// Ne remonte que de 4 niveaux max pour être précis sur l'élément survolé
+// Fonction pour obtenir la clé d'aide au survol (très limitée pour précision)
+// Ne remonte que de 2 niveaux max - l'élément survolé et son parent direct
 function getHoverHelpKey(element: HTMLElement): string | null {
-  let current: HTMLElement | null = element;
-  let levels = 0;
-  const maxLevels = 4; // Maximum de niveaux à remonter
-  
-  while (current && levels < maxLevels) {
-    const helpKey = current.getAttribute('data-help-key');
-    if (helpKey) {
-      return helpKey;
-    }
-    current = current.parentElement;
-    levels++;
+  // Vérifier l'élément lui-même
+  const helpKey = element.getAttribute('data-help-key');
+  if (helpKey) {
+    return helpKey;
   }
   
-  return null; // Pas de clé trouvée dans la proximité immédiate
+  // Vérifier le parent direct uniquement
+  const parent = element.parentElement;
+  if (parent) {
+    const parentKey = parent.getAttribute('data-help-key');
+    if (parentKey) {
+      return parentKey;
+    }
+  }
+  
+  return null; // Pas de clé trouvée sur l'élément ou son parent direct
 }
 
 // Fonction pour générer une clé contextuelle à partir d'un élément DOM (pour le clic droit)
