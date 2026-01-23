@@ -56,9 +56,9 @@ export default function MapCategoryElementsView({
     return STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
   };
 
-  // Compter les sous-éléments d'un élément
+  // Compter les sous-éléments d'un élément - protection pour les tableaux
   const getSubElementCount = (element: Element) => {
-    return element.subCategories.reduce((total, sc) => total + sc.subElements.length, 0);
+    return (element.subCategories || []).reduce((total, sc) => total + (sc.subElements || []).length, 0);
   };
 
   return (

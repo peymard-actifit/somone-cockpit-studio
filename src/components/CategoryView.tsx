@@ -53,15 +53,15 @@ export default function CategoryView({
     return 'gap-6';
   };
 
-  // Collecter tous les sous-éléments de chaque élément
+  // Collecter tous les sous-éléments de chaque élément - protection pour les tableaux
   const getSubElementsForElement = (element: Element) => {
     const subElements: Array<{
       subElement: typeof element.subCategories[0]['subElements'][0];
       subCategoryName: string;
     }> = [];
     
-    for (const subCategory of element.subCategories) {
-      for (const subElement of subCategory.subElements) {
+    for (const subCategory of (element.subCategories || [])) {
+      for (const subElement of (subCategory.subElements || [])) {
         subElements.push({
           subElement,
           subCategoryName: subCategory.name
@@ -111,9 +111,9 @@ export default function CategoryView({
         </button>
       </div>
 
-      {/* Liste des éléments avec leurs sous-éléments */}
+      {/* Liste des éléments avec leurs sous-éléments - protection pour les tableaux */}
       <div className="space-y-6">
-        {category.elements.map((element) => {
+        {(category.elements || []).map((element) => {
           const subElements = getSubElementsForElement(element);
           const elementColors = getElementColors(element);
           
@@ -176,8 +176,8 @@ export default function CategoryView({
           );
         })}
 
-        {/* Message si aucun élément avec des sous-éléments */}
-        {category.elements.every(el => getSubElementsForElement(el).length === 0) && (
+        {/* Message si aucun élément avec des sous-éléments - protection pour les tableaux */}
+        {(category.elements || []).every(el => getSubElementsForElement(el).length === 0) && (
           <div className="text-center py-12 text-[#64748B]">
             <MuiIcon name="Info" size={48} className="mx-auto mb-4 opacity-50" />
             <p className="text-lg">Cette catégorie n'a pas encore de sous-éléments.</p>

@@ -353,8 +353,10 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
 
   // Séparer les sous-catégories horizontales et verticales
   // Les sous-catégories sans orientation définie sont considérées comme horizontales
-  const horizontalSubCategories = forceVerticalSubCategories ? [] : element.subCategories.filter(sc => sc.orientation !== 'vertical');
-  const verticalSubCategories = forceVerticalSubCategories ? element.subCategories : element.subCategories.filter(sc => sc.orientation === 'vertical');
+  // Protection: s'assurer que element.subCategories existe
+  const subCategories = element.subCategories || [];
+  const horizontalSubCategories = forceVerticalSubCategories ? [] : subCategories.filter(sc => sc.orientation !== 'vertical');
+  const verticalSubCategories = forceVerticalSubCategories ? subCategories : subCategories.filter(sc => sc.orientation === 'vertical');
 
   // Préférence pour le mode inline des sous-catégories horizontales (grille CSS)
   const [horizontalSubCategoriesInline, setHorizontalSubCategoriesInline] = useState(() => {

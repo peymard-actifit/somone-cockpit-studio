@@ -295,7 +295,7 @@ export default function CategorySection({ category, onElementClick, onCategoryCl
           </button>
         )}
         <div className={`flex flex-row flex-wrap ${getGapClass(horizontalSpacing)}`}>
-          {category.elements.map((element, index) => (
+          {(category.elements || []).map((element, index) => (
             <ElementTile
               key={element.id}
               element={element}
@@ -303,7 +303,7 @@ export default function CategorySection({ category, onElementClick, onCategoryCl
               readOnly={readOnly}
               categoryId={category.id}
               index={index}
-              totalElements={category.elements.length}
+              totalElements={(category.elements || []).length}
               onReorder={(draggedElementId, targetIndex) => {
                 if (!readOnly) {
                   reorderElement(draggedElementId, category.id, targetIndex);

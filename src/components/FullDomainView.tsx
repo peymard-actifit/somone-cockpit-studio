@@ -52,14 +52,15 @@ export default function FullDomainView({
   };
 
   // Collecter tous les sous-éléments d'un élément (sans découpage par sous-catégorie)
+  // Protection: s'assurer que les tableaux existent
   const getSubElementsForElement = (element: Element) => {
     const subElements: Array<{
       subElement: typeof element.subCategories[0]['subElements'][0];
       subCategoryName: string;
     }> = [];
     
-    for (const subCategory of element.subCategories) {
-      for (const subElement of subCategory.subElements) {
+    for (const subCategory of (element.subCategories || [])) {
+      for (const subElement of (subCategory.subElements || [])) {
         subElements.push({
           subElement,
           subCategoryName: subCategory.name
@@ -76,16 +77,16 @@ export default function FullDomainView({
     return STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
   };
 
-  // Compter le total de sous-éléments dans le domaine
-  const totalSubElements = domain.categories.reduce((total, category) => {
-    return total + category.elements.reduce((catTotal, element) => {
+  // Compter le total de sous-éléments dans le domaine - protection pour les tableaux
+  const totalSubElements = (domain.categories || []).reduce((total, category) => {
+    return total + (category.elements || []).reduce((catTotal, element) => {
       return catTotal + getSubElementsForElement(element).length;
     }, 0);
   }, 0);
 
-  // Filtrer les catégories qui ont au moins un sous-élément
-  const categoriesWithSubElements = domain.categories.filter(category => 
-    category.elements.some(element => getSubElementsForElement(element).length > 0)
+  // Filtrer les catégories qui ont au moins un sous-élément - protection pour les tableaux
+  const categoriesWithSubElements = (domain.categories || []).filter(category => 
+    (category.elements || []).some(element => getSubElementsForElement(element).length > 0)
   );
 
   return (
@@ -132,13 +133,13 @@ export default function FullDomainView({
                 <MuiIcon name="ChevronRight" size={24} className="text-[#64748B] group-hover:text-[#1E3A5F] transition-colors" />
               </button>
               <span className="ml-auto text-sm text-[#64748B] bg-[#F5F7FA] px-3 py-1 rounded-full border border-[#E2E8F0]">
-                {category.elements.reduce((sum, el) => sum + getSubElementsForElement(el).length, 0)} indicateur{category.elements.reduce((sum, el) => sum + getSubElementsForElement(el).length, 0) > 1 ? 's' : ''}
+                {(category.elements || []).reduce((sum, el) => sum + getSubElementsForElement(el).length, 0)} indicateur{(category.elements || []).reduce((sum, el) => sum + getSubElementsForElement(el).length, 0) > 1 ? 's' : ''}
               </span>
             </div>
 
-            {/* Éléments de cette catégorie */}
+            {/* Éléments de cette catégorie - protection pour les tableaux */}
             <div className="space-y-4">
-              {category.elements.map((element) => {
+              {(category.elements || []).map((element) => {
                 const subElements = getSubElementsForElement(element);
                 const elementColors = getElementColors(element);
                 
