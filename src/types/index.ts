@@ -330,9 +330,9 @@ export function getInheritedStatus(element: { subCategories: Array<{ subElements
   let worstStatus: TileStatus = 'ok';
   let worstPriority = STATUS_PRIORITY_MAP['ok'];
 
-  // Parcourir tous les sous-éléments pour trouver le statut le plus critique
-  for (const subCategory of element.subCategories) {
-    for (const subElement of subCategory.subElements) {
+  // Parcourir tous les sous-éléments pour trouver le statut le plus critique - protection pour les tableaux
+  for (const subCategory of (element.subCategories || [])) {
+    for (const subElement of (subCategory.subElements || [])) {
       // Ignorer les statuts 'herite' dans le calcul
       if (subElement.status === 'herite') continue;
 
@@ -407,6 +407,7 @@ export type DomainForStatusCalc = {
 
 // Fonction pour calculer le statut le plus critique d'un domaine
 // Le paramètre visitedDomainIds permet d'éviter les références circulaires
+// PROTECTION: Toutes les boucles utilisent || [] pour éviter les erreurs sur undefined
 export function getDomainWorstStatus(
   domain: DomainForStatusCalc,
   allDomains?: DomainForStatusCalc[],
@@ -421,9 +422,9 @@ export function getDomainWorstStatus(
   let worstStatus: TileStatus = 'ok';
   let worstPriority = STATUS_PRIORITY_MAP['ok'];
 
-  // Parcourir tous les éléments dans toutes les catégories
-  for (const category of domain.categories) {
-    for (const element of category.elements) {
+  // Parcourir tous les éléments dans toutes les catégories - protection pour les tableaux
+  for (const category of (domain.categories || [])) {
+    for (const element of (category.elements || [])) {
       // Calculer le statut effectif de l'élément (gère l'héritage et l'héritage domaine)
       // Passer le Set des domaines visités pour détecter les cycles
       const effectiveStatus = getEffectiveStatus(element, allDomains, visited);
@@ -434,9 +435,9 @@ export function getDomainWorstStatus(
         worstStatus = effectiveStatus;
       }
 
-      // Parcourir aussi tous les sous-éléments directement (au cas où)
-      for (const subCategory of element.subCategories) {
-        for (const subElement of subCategory.subElements) {
+      // Parcourir aussi tous les sous-éléments directement (au cas où) - protection pour les tableaux
+      for (const subCategory of (element.subCategories || [])) {
+        for (const subElement of (subCategory.subElements || [])) {
           if (subElement.status === 'herite') continue;
           const subPriority = STATUS_PRIORITY_MAP[subElement.status] || 0;
           if (subPriority > worstPriority) {
@@ -450,7 +451,7 @@ export function getDomainWorstStatus(
 
   // Parcourir aussi les mapElements si le domaine est de type map
   if (domain.mapElements) {
-    for (const mapElement of domain.mapElements) {
+    for (const mapElement of (domain.mapElements || [])) {
       const priority = STATUS_PRIORITY_MAP[mapElement.status] || 0;
       if (priority > worstPriority) {
         worstPriority = priority;
