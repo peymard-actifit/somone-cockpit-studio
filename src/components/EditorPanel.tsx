@@ -875,7 +875,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 domain: domain?.name || '',
                 category: element?.name || '',
                 element: element?.name || '',
-                subCategory: element?.subCategories.find(sc => sc.subElements.some(se => se.id === selectedSubElement.id))?.name || ''
+                subCategory: (element?.subCategories || []).find(sc => (sc.subElements || []).some(se => se.id === selectedSubElement.id))?.name || ''
               }}
               readOnly={true}
             />

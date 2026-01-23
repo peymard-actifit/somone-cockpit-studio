@@ -365,9 +365,9 @@ export default function AIPromptInput() {
     setAttachedFile(null);
   };
 
-  // Fonctions utilitaires pour trouver des IDs par nom
+  // Fonctions utilitaires pour trouver des IDs par nom - protection pour les tableaux
   const findDomainByName = (name: string) => {
-    return currentCockpit?.domains.find(d => 
+    return (currentCockpit?.domains || []).find(d => 
       d.name.toLowerCase() === name.toLowerCase()
     );
   };
@@ -521,8 +521,8 @@ export default function AIPromptInput() {
             }
           }
           if (!categoryId && currentDomainId) {
-            const domain = currentCockpit?.domains.find(d => d.id === currentDomainId);
-            categoryId = domain?.categories[0]?.id;
+            const domain = (currentCockpit?.domains || []).find(d => d.id === currentDomainId);
+            categoryId = (domain?.categories || [])[0]?.id;
           }
           
           if (categoryId) {
@@ -542,8 +542,8 @@ export default function AIPromptInput() {
             }
           }
           if (!categoryId && currentDomainId) {
-            const domain = currentCockpit?.domains.find(d => d.id === currentDomainId);
-            categoryId = domain?.categories[0]?.id;
+            const domain = (currentCockpit?.domains || []).find(d => d.id === currentDomainId);
+            categoryId = (domain?.categories || [])[0]?.id;
           }
           
           if (categoryId && names.length > 0) {
@@ -1344,13 +1344,13 @@ export default function AIPromptInput() {
         const result = executeAction(action);
         results.push(result);
         
-        // Si une catégorie a été créée, stocker son ID
+        // Si une catégorie a été créée, stocker son ID - protection pour les tableaux
         if (action.type === 'addCategory' && action.params.name) {
           // Trouver l'ID de la catégorie créée
           const domainId = action.params.domainId || currentDomainId;
           if (domainId) {
-            const domain = currentCockpit?.domains.find(d => d.id === domainId);
-            const category = domain?.categories.find(c => c.name === action.params.name);
+            const domain = (currentCockpit?.domains || []).find(d => d.id === domainId);
+            const category = (domain?.categories || []).find(c => c.name === action.params.name);
             if (category) {
               createdIds.categories.set(action.params.name, category.id);
               console.log(`🤖 [AIPromptInput] Catégorie "${action.params.name}" créée avec ID: ${category.id}`);
