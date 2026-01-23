@@ -1831,7 +1831,7 @@ export default function AIPromptInput() {
               className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-colors"
               title="Attacher un fichier (PDF, Excel, Word, PowerPoint, Images, CSV, JSON, TXT...)"
             >
-              <MuiIcon name="Plus" size={16} />
+              <MuiIcon name="Add" size={16} />
             </button>
             
             <input

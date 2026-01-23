@@ -315,7 +315,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
                 }
               `}
             >
-              <MuiIcon name="Plus" size={20} />
+              <MuiIcon name="Add" size={20} />
               <span className="text-sm font-medium">Ajouter</span>
             </button>
           ) : (

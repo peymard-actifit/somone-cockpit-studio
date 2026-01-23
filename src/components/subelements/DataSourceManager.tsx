@@ -276,7 +276,7 @@ export default function DataSourceManager({ subElement, sources, onUpdate }: Dat
           onClick={handleAdd}
           className="px-3 py-1.5 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-lg text-xs font-medium flex items-center gap-1"
         >
-          <MuiIcon name="Plus" size={14} />
+          <MuiIcon name="Add" size={14} />
           <span>Ajouter</span>
         </button>
       </div>

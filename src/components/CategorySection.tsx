@@ -321,7 +321,7 @@ export default function CategorySection({ category, onElementClick, onCategoryCl
                 onClick={() => setIsAddingElement(true)}
                 className="flex items-center justify-center gap-2 border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] rounded-xl transition-colors bg-[#F5F7FA]/50 px-8 py-6 min-w-[180px] min-h-[120px]"
               >
-                <MuiIcon name="Plus" size={24} />
+                <MuiIcon name="Add" size={24} />
                 <span className="font-medium">Ajouter un élément</span>
               </button>
             ) : (

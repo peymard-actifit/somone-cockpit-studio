@@ -1303,7 +1303,7 @@ export default function HomePage() {
                   onClick={() => setShowNewModal(true)}
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25 text-sm"
                 >
-                  <MuiIcon name="Plus" size={18} />
+                  <MuiIcon name="Add" size={18} />
                   Nouvelle
                 </button>
               </>
@@ -1330,7 +1330,7 @@ export default function HomePage() {
               onClick={() => setShowNewModal(true)}
               className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-colors"
             >
-              <MuiIcon name="Plus" size={20} />
+              <MuiIcon name="Add" size={20} />
               Créer une maquette
             </button>
           </div>

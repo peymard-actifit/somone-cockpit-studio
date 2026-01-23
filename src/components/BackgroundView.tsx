@@ -1132,7 +1132,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             className="w-full px-4 py-2 flex items-center justify-between gap-2 hover:bg-[#F5F7FA] transition-colors"
           >
             <span className="text-sm font-medium text-[#1E3A5F] flex items-center gap-2">
-              <MuiIcon name="Filter" size={16} />
+              <MuiIcon name="FilterList" size={16} />
               Catégories
             </span>
             <MuiIcon name={showCategoryFilter ? 'ChevronUp' : 'ChevronDown'} size={16} className="text-[#64748B]" />
@@ -1763,7 +1763,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             className="flex items-center gap-2 px-4 py-3 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             title={!domain.backgroundImage ? 'Configurez d\'abord une image de fond' : 'Dessinez un rectangle pour ajouter un élément'}
           >
-            <MuiIcon name="Plus" size={20} />
+            <MuiIcon name="Add" size={20} />
             Ajouter un élément
           </button>
         </div>
@@ -2123,7 +2123,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 }
                 className="px-6 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                <MuiIcon name="Plus" size={16} />
+                <MuiIcon name="Add" size={16} />
                 Ajouter
               </button>
             </div>

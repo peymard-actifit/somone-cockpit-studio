@@ -3169,7 +3169,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 }}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-[#1E3A5F] bg-[#F5F7FA] hover:bg-[#E2E8F0] rounded-lg transition-colors border border-dashed border-[#CBD5E1]"
               >
-                <MuiIcon name="Plus" size={16} />
+                <MuiIcon name="Add" size={16} />
                 Ajouter une catégorie
               </button>
             </div>

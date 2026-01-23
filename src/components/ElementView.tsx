@@ -617,7 +617,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                             onClick={() => setAddingSubElementToSubCategory(subCategory.id)}
                             className="flex items-center justify-center gap-2 border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] rounded-xl transition-colors bg-white/50 py-4"
                           >
-                            <MuiIcon name="Plus" size={20} />
+                            <MuiIcon name="Add" size={20} />
                             <span className="text-sm font-medium">Ajouter</span>
                           </button>
                         )}
@@ -696,7 +696,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                 onClick={() => setIsAddingSubCategory(true)}
                 className="mt-8 flex items-center gap-3 px-6 py-4 border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] rounded-xl transition-colors w-full justify-center bg-[#F5F7FA]/50"
               >
-                <MuiIcon name="Plus" size={24} />
+                <MuiIcon name="Add" size={24} />
                 <span className="font-semibold">Ajouter une sous-catégorie</span>
               </button>
             ) : (
