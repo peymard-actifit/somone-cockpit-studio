@@ -9,6 +9,8 @@ interface ContextualHelp {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+  updatedBy?: string;
+  updatedByUsername?: string;
 }
 
 interface ContextualHelpContextType {
@@ -521,15 +523,11 @@ Exemples:
             {helpContent && !isEditing && (
               <div className="px-4 py-1.5 border-t border-slate-100 text-[10px] text-slate-300 flex items-center justify-between">
                 <span>Mis à jour le {new Date(helpContent.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                {isAdmin && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={startEditing}
-                      className="text-slate-400 hover:text-slate-600 flex items-center gap-1"
-                    >
-                      <MuiIcon name="Edit" size={10} />
-                      Modifier
-                    </button>
+                <div className="flex items-center gap-2">
+                  {helpContent.updatedByUsername && (
+                    <span>{helpContent.updatedByUsername}</span>
+                  )}
+                  {isAdmin && (
                     <button
                       onClick={async () => {
                         if (currentKey && window.confirm('Supprimer cette aide contextuelle ?')) {
@@ -539,13 +537,13 @@ Exemples:
                           }
                         }
                       }}
-                      className="text-red-400 hover:text-red-600 flex items-center gap-1"
+                      className="text-red-400 hover:text-red-600"
                       title="Supprimer l'aide"
                     >
                       <MuiIcon name="Delete" size={10} />
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.5.3';
+const APP_VERSION = '16.5.4';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -195,6 +195,8 @@ interface ContextualHelp {
   createdAt: string;
   updatedAt: string;
   createdBy: string; // ID de l'admin qui a créé l'aide
+  updatedBy?: string; // ID de l'admin qui a fait la dernière modification
+  updatedByUsername?: string; // Username de l'admin qui a fait la dernière modification
 }
 
 interface Database {
@@ -2030,6 +2032,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Mettre à jour
         db.contextualHelps[existingIndex].content = content;
         db.contextualHelps[existingIndex].updatedAt = new Date().toISOString();
+        db.contextualHelps[existingIndex].updatedBy = currentUser.id;
+        db.contextualHelps[existingIndex].updatedByUsername = currentUser.username;
       } else {
         // Créer
         const newHelp: ContextualHelp = {
@@ -2038,7 +2042,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           content,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          createdBy: currentUser.id
+          createdBy: currentUser.id,
+          updatedBy: currentUser.id,
+          updatedByUsername: currentUser.username
         };
         db.contextualHelps.push(newHelp);
       }
