@@ -23,6 +23,8 @@ interface MindMapViewProps {
     scale: number;
     position: { x: number; y: number };
   }) => void;
+  // Mode lecture seule (cockpits publiés) - active l'auto-hide des contrôles
+  readOnly?: boolean;
 }
 
 // Types pour les nœuds du mind map
@@ -54,7 +56,8 @@ export default function MindMapView({
   onNavigateToElement,
   onNavigateToSubElement,
   savedState,
-  onSaveState 
+  onSaveState,
+  readOnly = false
 }: MindMapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -68,6 +71,9 @@ export default function MindMapView({
   const [position, setPosition] = useState(savedState?.position ?? { x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  // État pour l'auto-hide des contrôles en mode lecture seule
+  const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
 
   // État du focus (null = vue globale, sinon ID du domaine ou élément au centre)
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(savedState?.focusedNodeId ?? null);
@@ -728,22 +734,39 @@ export default function MindMapView({
         </div>
       </div>
 
-      {/* Contrôles de zoom */}
-      <div className="absolute top-20 right-4 z-20 flex flex-col gap-1 bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden">
-        <button onClick={zoomIn} className="p-3 text-white hover:bg-white/20 transition-colors" title="Zoomer">
-          <MuiIcon name="Add" size={20} />
-        </button>
-        <button onClick={zoomOut} className="p-3 text-white hover:bg-white/20 border-t border-white/10 transition-colors" title="Dézoomer">
-          <MuiIcon name="Remove" size={20} />
-        </button>
-        <button onClick={resetView} className="p-3 text-white hover:bg-white/20 border-t border-white/10 transition-colors" title="Réinitialiser">
-          <MuiIcon name="CenterFocusStrong" size={20} />
-        </button>
-      </div>
+      {/* Zone de déclenchement pour les contrôles de droite (mode lecture seule) */}
+      {readOnly && !isRightControlsHovered && (
+        <div 
+          className="absolute top-0 right-0 w-16 h-full z-30"
+          onMouseEnter={() => setIsRightControlsHovered(true)}
+        />
+      )}
 
-      {/* Indicateur de zoom */}
-      <div className="absolute top-20 right-20 z-20 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-        <span className="text-sm font-medium text-white">{Math.round(scale * 100)}%</span>
+      {/* Contrôles de zoom - avec auto-hide en mode lecture seule */}
+      <div 
+        className={`absolute top-20 right-4 z-20 flex flex-col gap-3 transition-all duration-300 ${
+          readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
+        }`}
+        onMouseEnter={() => readOnly && setIsRightControlsHovered(true)}
+        onMouseLeave={() => readOnly && setIsRightControlsHovered(false)}
+      >
+        {/* Boutons de zoom */}
+        <div className="flex flex-col gap-1 bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden">
+          <button onClick={zoomIn} className="p-3 text-white hover:bg-white/20 transition-colors" title="Zoomer">
+            <MuiIcon name="Add" size={20} />
+          </button>
+          <button onClick={zoomOut} className="p-3 text-white hover:bg-white/20 border-t border-white/10 transition-colors" title="Dézoomer">
+            <MuiIcon name="Remove" size={20} />
+          </button>
+          <button onClick={resetView} className="p-3 text-white hover:bg-white/20 border-t border-white/10 transition-colors" title="Réinitialiser">
+            <MuiIcon name="CenterFocusStrong" size={20} />
+          </button>
+        </div>
+
+        {/* Indicateur de zoom */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 text-center">
+          <span className="text-sm font-medium text-white">{Math.round(scale * 100)}%</span>
+        </div>
       </div>
 
       {/* Info mode focus */}

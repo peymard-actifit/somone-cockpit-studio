@@ -460,6 +460,7 @@ function PublicCockpitContent() {
             setCurrentElementId(elementId);
             setShowMindMap(false);
           }}
+          readOnly={true}
         />
       )}
 

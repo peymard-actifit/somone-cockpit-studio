@@ -10,6 +10,7 @@ interface ZoomableContainerProps {
   domainId: string;
   className?: string;
   showControls?: boolean;
+  readOnly?: boolean; // Mode lecture seule (cockpits publiés) - active l'auto-hide
 }
 
 /**
@@ -17,12 +18,14 @@ interface ZoomableContainerProps {
  * Le zoom est sauvegardé par domaine dans le localStorage.
  * Indépendant du zoom du navigateur.
  * Au premier affichage, calcule automatiquement le zoom optimal pour tout afficher.
+ * En mode readOnly, les contrôles sont masqués et réapparaissent au survol du bord droit.
  */
 export default function ZoomableContainer({ 
   children, 
   domainId, 
   className = '',
-  showControls = true 
+  showControls = true,
+  readOnly = false
 }: ZoomableContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -49,6 +52,9 @@ export default function ZoomableContainer({
   const lastDomainIdRef = useRef<string>(domainId);
   const needsFitToContentRef = useRef<boolean>(!hasSavedZoom(domainId));
   const hasFittedRef = useRef<boolean>(false);
+  
+  // État pour l'auto-hide des contrôles en mode lecture seule
+  const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
 
   // Calculer le zoom optimal pour afficher tout le contenu
   const fitToContent = useCallback(() => {
@@ -171,10 +177,25 @@ export default function ZoomableContainer({
       className={`relative h-full overflow-auto ${className}`}
       onWheel={handleWheel}
     >
-      {/* Contrôles de zoom */}
+      {/* Zone de déclenchement pour les contrôles de droite (mode lecture seule) */}
+      {readOnly && !isRightControlsHovered && (
+        <div 
+          className="absolute top-0 right-0 w-16 h-full z-40"
+          onMouseEnter={() => setIsRightControlsHovered(true)}
+        />
+      )}
+
+      {/* Contrôles de zoom - avec auto-hide en mode lecture seule */}
       {showControls && (
-        <>
-          <div className="absolute top-4 right-4 z-30 flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+        <div 
+          className={`absolute top-4 right-4 z-30 flex flex-col gap-3 transition-all duration-300 ${
+            readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
+          }`}
+          onMouseEnter={() => readOnly && setIsRightControlsHovered(true)}
+          onMouseLeave={() => readOnly && setIsRightControlsHovered(false)}
+        >
+          {/* Boutons de zoom */}
+          <div className="flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
             <button 
               onClick={zoomIn} 
               className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" 
@@ -199,10 +220,10 @@ export default function ZoomableContainer({
           </div>
 
           {/* Indicateur de zoom */}
-          <div className="absolute top-4 right-20 z-30 bg-white rounded-lg px-3 py-2 border border-[#E2E8F0] shadow-md">
+          <div className="bg-white rounded-lg px-3 py-2 border border-[#E2E8F0] shadow-md text-center">
             <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
           </div>
-        </>
+        </div>
       )}
 
       {/* Contenu zoomable */}
