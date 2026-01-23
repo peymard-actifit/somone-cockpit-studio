@@ -278,17 +278,6 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     setEditContent('');
   }, []);
 
-  // Get formatted key for display
-  const getFormattedKey = (key: string) => {
-    return key
-      .replace(/^studio-/, '')
-      .replace(/-/g, ' ')
-      .replace(/\./g, ' › ')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
-
   return (
     <ContextualHelpContext.Provider value={{ showHelp, enableGlobalContextMenu, disableGlobalContextMenu }}>
       {children}
@@ -308,41 +297,28 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
             style={{ left: position.x, top: position.y }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#1E3A5F] to-[#2C4A6E] text-white">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <MuiIcon name="Help" size={20} />
-                <div className="min-w-0 flex-1">
-                  <span className="font-medium text-sm block truncate" title={currentKey}>
-                    Aide contextuelle
-                  </span>
-                  <span className="text-xs text-white/70 block truncate" title={currentKey}>
-                    {getFormattedKey(currentKey)}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 ml-2">
-                {isAdmin && !isEditing && (
-                  <button
-                    onClick={startEditing}
-                    className="p-1.5 hover:bg-white/10 rounded transition-colors"
-                    title="Modifier l'aide"
-                  >
-                    <MuiIcon name="Edit" size={18} />
-                  </button>
-                )}
+            {/* Boutons en haut à droite */}
+            <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+              {isAdmin && !isEditing && helpContent?.content && (
                 <button
-                  onClick={closeHelp}
-                  className="p-1.5 hover:bg-white/10 rounded transition-colors"
-                  title="Fermer"
+                  onClick={startEditing}
+                  className="p-1.5 bg-white/80 hover:bg-slate-100 rounded-full transition-colors shadow-sm"
+                  title="Modifier l'aide"
                 >
-                  <MuiIcon name="Close" size={18} />
+                  <MuiIcon name="Edit" size={16} className="text-slate-500" />
                 </button>
-              </div>
+              )}
+              <button
+                onClick={closeHelp}
+                className="p-1.5 bg-white/80 hover:bg-slate-100 rounded-full transition-colors shadow-sm"
+                title="Fermer"
+              >
+                <MuiIcon name="Close" size={16} className="text-slate-500" />
+              </button>
             </div>
             
             {/* Content */}
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-auto p-4 pt-3">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <MuiIcon name="HourglassEmpty" size={24} className="animate-spin text-slate-400" />
@@ -391,17 +367,13 @@ Exemples:
                 </div>
               ) : helpContent?.content ? (
                 <div 
-                  className="prose prose-sm max-w-none text-slate-700 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4"
+                  className="prose prose-sm max-w-none text-slate-700 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 pr-8"
                   dangerouslySetInnerHTML={{ __html: helpContent.content }}
                 />
               ) : (
-                <div className="text-center py-8">
-                  <MuiIcon name="HelpOutline" size={48} className="text-slate-200 mx-auto mb-3" />
-                  <p className="text-sm text-slate-500 mb-1">
-                    Aucune aide disponible pour cet élément.
-                  </p>
-                  <p className="text-xs text-slate-400 mb-4">
-                    Clé: {currentKey}
+                <div className="text-center py-6">
+                  <p className="text-sm text-slate-400 mb-3">
+                    Aucune aide disponible.
                   </p>
                   {isAdmin && (
                     <button
@@ -416,26 +388,19 @@ Exemples:
               )}
             </div>
             
-            {/* Footer */}
+            {/* Footer discret */}
             {helpContent && !isEditing && (
-              <div className="px-4 py-2 bg-slate-50 border-t text-xs text-slate-400 flex items-center justify-between">
+              <div className="px-4 py-1.5 border-t border-slate-100 text-[10px] text-slate-300 flex items-center justify-between">
                 <span>Mis à jour le {new Date(helpContent.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                 {isAdmin && (
                   <button
                     onClick={startEditing}
-                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    className="text-slate-400 hover:text-slate-600 flex items-center gap-1"
                   >
-                    <MuiIcon name="Edit" size={12} />
+                    <MuiIcon name="Edit" size={10} />
                     Modifier
                   </button>
                 )}
-              </div>
-            )}
-            
-            {/* Hint footer for non-admin */}
-            {!helpContent && !isEditing && !isAdmin && (
-              <div className="px-4 py-2 bg-slate-50 border-t text-xs text-slate-400">
-                Demandez à un administrateur d'ajouter l'aide pour cet élément.
               </div>
             )}
           </div>
