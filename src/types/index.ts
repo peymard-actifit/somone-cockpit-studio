@@ -69,6 +69,13 @@ export interface Cockpit {
   templateIcons?: TemplateIcons;
   // Aide contextuelle au survol
   showHelpOnHover?: boolean;  // Si true, affiche l'aide contextuelle au survol des éléments
+  // Aides contextuelles locales à la maquette (exportées avec la maquette)
+  contextualHelps?: Array<{
+    elementKey: string;
+    content: string;
+    updatedAt: string;
+    updatedByUsername?: string;
+  }>;
 }
 
 // Coordonnées GPS

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
+import { useContextualHelp } from '../contexts/ContextualHelpContext';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY, APP_VERSION } from '../config/version';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, useDroppable } from '@dnd-kit/core';
@@ -385,6 +386,17 @@ export default function HomePage() {
     folders, fetchFolders, createFolder, updateFolder, deleteFolder, reorderFolders, currentFolderId, setCurrentFolder, moveCockpitToFolder,
     isLoading 
   } = useCockpitStore();
+  const { enableGlobalContextMenu, disableGlobalContextMenu, enableHoverHelp, disableHoverHelp } = useContextualHelp();
+
+  // Activer l'aide contextuelle sur la page d'accueil
+  useEffect(() => {
+    enableGlobalContextMenu();
+    enableHoverHelp();
+    return () => {
+      disableGlobalContextMenu();
+      disableHoverHelp();
+    };
+  }, [enableGlobalContextMenu, disableGlobalContextMenu, enableHoverHelp, disableHoverHelp]);
 
   // Capteurs pour le drag & drop
   const sensors = useSensors(
@@ -944,9 +956,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cockpit-bg-dark via-slate-900 to-cockpit-bg-dark">
+    <div className="min-h-screen bg-gradient-to-br from-cockpit-bg-dark via-slate-900 to-cockpit-bg-dark" data-help-key="home-page">
       {/* Header */}
-      <header className="bg-cockpit-nav-bg/80 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50">
+      <header className="bg-cockpit-nav-bg/80 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50" data-help-key="home-header">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <MuiIcon name="Dashboard" size={32} className="text-blue-400" />
