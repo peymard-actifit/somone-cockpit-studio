@@ -216,11 +216,12 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
   }, [domainStorageKey]);
 
   // Collect all unique subcategories (for COLUMNS) - triees selon l'ordre defini
+  // Protection: s'assurer que les tableaux existent
   const allSubCategories = useMemo(() => {
     const subCatMap = new Map<string, { name: string; icon?: string; id?: string; elementId?: string }>();
-    for (const category of domain.categories) {
-      for (const element of category.elements) {
-        for (const subCat of element.subCategories) {
+    for (const category of (domain.categories || [])) {
+      for (const element of (category.elements || [])) {
+        for (const subCat of (element.subCategories || [])) {
           if (!subCatMap.has(subCat.name)) {
             subCatMap.set(subCat.name, { name: subCat.name, icon: subCat.icon, id: subCat.id, elementId: element.id });
           }
@@ -266,17 +267,18 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
   };
 
   // Organize data: category (row) -> subcategory (col) -> subElements (ancienne structure)
+  // Protection: s'assurer que les tableaux existent
   const gridData = useMemo(() => {
     const data: Map<string, Map<string, (SubElement & { _elementId: string; _elementName: string; _subCategoryId: string })[]>> = new Map();
-    for (const category of domain.categories) {
+    for (const category of (domain.categories || [])) {
       const categoryData: Map<string, (SubElement & { _elementId: string; _elementName: string; _subCategoryId: string })[]> = new Map();
       for (const subCatInfo of allSubCategories) {
         categoryData.set(subCatInfo.name, []);
       }
-      for (const element of category.elements) {
-        for (const subCat of element.subCategories) {
+      for (const element of (category.elements || [])) {
+        for (const subCat of (element.subCategories || [])) {
           const existing = categoryData.get(subCat.name) || [];
-          existing.push(...subCat.subElements.map(se => ({
+          existing.push(...(subCat.subElements || []).map(se => ({
             ...se,
             _elementId: element.id,
             _elementName: element.name,
@@ -292,19 +294,20 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
 
   // NOUVELLE STRUCTURE: element (row) -> subcategory (col) -> subElements
   // Pour la vue avec éléments verticaux et sous-éléments à droite
+  // Protection: s'assurer que les tableaux existent
   const elementGridData = useMemo(() => {
     const data: Map<string, Map<string, (SubElement & { _elementId: string; _elementName: string; _subCategoryId: string })[]>> = new Map();
-    for (const category of domain.categories) {
-      for (const element of category.elements) {
+    for (const category of (domain.categories || [])) {
+      for (const element of (category.elements || [])) {
         const elementData: Map<string, (SubElement & { _elementId: string; _elementName: string; _subCategoryId: string })[]> = new Map();
         // Initialiser toutes les colonnes de sous-catégories
         for (const subCatInfo of allSubCategories) {
           elementData.set(subCatInfo.name, []);
         }
         // Remplir avec les sous-éléments de cet élément
-        for (const subCat of element.subCategories) {
+        for (const subCat of (element.subCategories || [])) {
           const existing = elementData.get(subCat.name) || [];
-          existing.push(...subCat.subElements.map(se => ({
+          existing.push(...(subCat.subElements || []).map(se => ({
             ...se,
             _elementId: element.id,
             _elementName: element.name,

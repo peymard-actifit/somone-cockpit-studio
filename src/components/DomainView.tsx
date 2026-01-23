@@ -114,8 +114,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
 
   // Séparer les catégories horizontales et verticales (utilisé pour le calcul useMemo)
   // Les catégories sans orientation sont considérées comme horizontales par défaut
-  const horizontalCategories = domain.categories.filter(c => c.orientation !== 'vertical');
-  const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
+  // Protection: s'assurer que domain.categories existe
+  const horizontalCategories = (domain.categories || []).filter(c => c.orientation !== 'vertical');
+  const verticalCategories = (domain.categories || []).filter(c => c.orientation === 'vertical');
 
   // Préférence pour le mode inline des catégories horizontales (grille CSS)
   const storageKey = domain.id ? `domain_${domain.id}` : 'global';
@@ -313,7 +314,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
 
   // Trouver la catégorie sélectionnée pour la vue Catégorie
   const selectedCategory: Category | undefined = selectedCategoryId 
-    ? domain.categories.find(c => c.id === selectedCategoryId)
+    ? (domain.categories || []).find(c => c.id === selectedCategoryId)
     : undefined;
 
   // Afficher la vue Domaine Complète si demandée

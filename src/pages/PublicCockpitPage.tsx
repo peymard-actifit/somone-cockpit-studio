@@ -130,7 +130,9 @@ function PublicCockpitContent() {
 
   if (!cockpit) return null;
 
-  const currentDomain = cockpit.domains.find(d => d.id === currentDomainId);
+  // Protection: s'assurer que cockpit.domains existe
+  const domains = cockpit.domains || [];
+  const currentDomain = domains.find(d => d.id === currentDomainId);
   
   // Déterminer si on utilise la vue originale
   const useOriginalView = cockpit.useOriginalView === true;
@@ -141,11 +143,12 @@ function PublicCockpitContent() {
     !currentElementId; // Pas en mode vue élément
 
   // Trouver l'élément courant si on est en vue élément
+  // Protection: s'assurer que les tableaux existent
   let currentElement: Element | null = null;
   let currentCategory: Category | null = null;
   if (currentElementId && currentDomain) {
-    for (const cat of currentDomain.categories) {
-      const el = cat.elements.find(e => e.id === currentElementId);
+    for (const cat of (currentDomain.categories || [])) {
+      const el = (cat.elements || []).find(e => e.id === currentElementId);
       if (el) {
         currentElement = el;
         currentCategory = cat;
@@ -194,8 +197,8 @@ function PublicCockpitContent() {
             
             {/* CENTRE : Onglets domaines - centrés */}
             <div className="flex items-center justify-center gap-1">
-              {cockpit.domains.map((domain) => {
-                const worstStatus = getDomainWorstStatus(domain as any, cockpit.domains as any);
+              {domains.map((domain) => {
+                const worstStatus = getDomainWorstStatus(domain as any, domains as any);
                 const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
                 const hasAlert = worstStatus !== 'ok';
                 const isActive = currentDomainId === domain.id;
@@ -313,9 +316,9 @@ function PublicCockpitContent() {
       <div className="bg-slate-800/30 border-t border-slate-700/30">
         <div className="px-6">
           <div className="flex gap-1 overflow-x-auto py-1">
-            {cockpit.domains.map((domain) => {
+            {domains.map((domain) => {
               // Calculer le statut le plus critique du domaine
-              const worstStatus = getDomainWorstStatus(domain as any, cockpit.domains as any);
+              const worstStatus = getDomainWorstStatus(domain as any, domains as any);
               const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
               const hasAlert = worstStatus !== 'ok';
               const isActive = currentDomainId === domain.id;

@@ -117,12 +117,15 @@ export default function MindMapView({
     const centerX = containerSize.width / 2;
     const centerY = containerSize.height / 2;
 
+    // Protection: vérifier que cockpit.domains existe
+    const domains = cockpit?.domains || [];
+
     // Mode focus sur un domaine - affiche le domaine avec tous ses éléments ET sous-éléments
     if (focusedNodeId && focusedNodeType === 'domain') {
-      const domain = cockpit.domains.find(d => d.id === focusedNodeId);
+      const domain = domains.find(d => d.id === focusedNodeId);
       if (!domain) return { nodes: [], links: [] };
 
-      const worstStatus = getDomainWorstStatus(domain, cockpit.domains);
+      const worstStatus = getDomainWorstStatus(domain, domains);
       const domainColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
 
       // Domaine au centre
@@ -136,9 +139,9 @@ export default function MindMapView({
         data: domain,
       });
 
-      // Éléments autour du domaine
-      const allElements = domain.categories.flatMap(cat => 
-        cat.elements.map(el => ({ ...el, category: cat }))
+      // Éléments autour du domaine - protection pour categories et elements
+      const allElements = (domain.categories || []).flatMap(cat => 
+        (cat.elements || []).map(el => ({ ...el, category: cat }))
       );
       const elementCount = allElements.length;
 
@@ -177,9 +180,9 @@ export default function MindMapView({
             label: element.category.name,
           });
 
-          // Ajouter les sous-éléments de chaque élément
-          const allSubElements = element.subCategories.flatMap(subCat =>
-            subCat.subElements.map(se => ({ ...se, subCategory: subCat }))
+          // Ajouter les sous-éléments de chaque élément - protection pour subCategories et subElements
+          const allSubElements = (element.subCategories || []).flatMap(subCat =>
+            (subCat.subElements || []).map(se => ({ ...se, subCategory: subCat }))
           );
           const subElementCount = allSubElements.length;
 
@@ -231,9 +234,9 @@ export default function MindMapView({
       let foundDomain: Domain | null = null;
       let foundCategory: Category | null = null;
 
-      for (const domain of cockpit.domains) {
-        for (const cat of domain.categories) {
-          const el = cat.elements.find(e => e.id === focusedNodeId);
+      for (const domain of domains) {
+        for (const cat of (domain.categories || [])) {
+          const el = (cat.elements || []).find(e => e.id === focusedNodeId);
           if (el) {
             foundElement = el;
             foundDomain = domain;
@@ -246,7 +249,7 @@ export default function MindMapView({
 
       if (!foundElement || !foundDomain || !foundCategory) return { nodes: [], links: [] };
 
-      const effectiveStatus = getEffectiveStatus(foundElement, cockpit.domains);
+      const effectiveStatus = getEffectiveStatus(foundElement, domains);
       const elementColor = STATUS_COLORS[effectiveStatus]?.hex || STATUS_COLORS.ok.hex;
 
       // Élément au centre
@@ -260,9 +263,9 @@ export default function MindMapView({
         data: foundElement,
       });
 
-      // Sous-éléments autour de l'élément
-      const allSubElements = foundElement.subCategories.flatMap(subCat =>
-        subCat.subElements.map(se => ({ ...se, subCategory: subCat }))
+      // Sous-éléments autour de l'élément - protection pour subCategories et subElements
+      const allSubElements = (foundElement.subCategories || []).flatMap(subCat =>
+        (subCat.subElements || []).map(se => ({ ...se, subCategory: subCat }))
       );
       const subElementCount = allSubElements.length;
 
@@ -310,7 +313,7 @@ export default function MindMapView({
     });
 
     // Calculer la disposition des domaines
-    const domainCount = cockpit.domains.length;
+    const domainCount = domains.length;
     if (domainCount === 0) return { nodes, links };
 
     // Rayon pour les domaines (adapté à la taille du conteneur)
@@ -318,13 +321,13 @@ export default function MindMapView({
     // Rayon pour les éléments
     const elementRadius = Math.min(containerSize.width, containerSize.height) * 0.15;
 
-    cockpit.domains.forEach((domain, domainIndex) => {
+    domains.forEach((domain, domainIndex) => {
       const domainAngle = (2 * Math.PI * domainIndex) / domainCount - Math.PI / 2;
       const domainX = centerX + Math.cos(domainAngle) * domainRadius;
       const domainY = centerY + Math.sin(domainAngle) * domainRadius;
 
       // Calculer le statut du domaine
-      const worstStatus = getDomainWorstStatus(domain, cockpit.domains);
+      const worstStatus = getDomainWorstStatus(domain, domains);
       const domainColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
 
       nodes.push({
@@ -344,9 +347,9 @@ export default function MindMapView({
         color: domainColor,
       });
 
-      // Ajouter les éléments de chaque domaine
-      const allElements = domain.categories.flatMap(cat => 
-        cat.elements.map(el => ({ ...el, category: cat }))
+      // Ajouter les éléments de chaque domaine - protection pour categories et elements
+      const allElements = (domain.categories || []).flatMap(cat => 
+        (cat.elements || []).map(el => ({ ...el, category: cat }))
       );
       const elementCount = allElements.length;
 
@@ -363,7 +366,7 @@ export default function MindMapView({
           const elementX = domainX + Math.cos(elementAngle) * elementRadius;
           const elementY = domainY + Math.sin(elementAngle) * elementRadius;
 
-          const effectiveStatus = getEffectiveStatus(element, cockpit.domains);
+          const effectiveStatus = getEffectiveStatus(element, domains);
           const elementColor = STATUS_COLORS[effectiveStatus]?.hex || STATUS_COLORS.ok.hex;
 
           nodes.push({
@@ -385,9 +388,9 @@ export default function MindMapView({
             label: element.category.name,
           });
 
-          // Ajouter les sous-éléments de chaque élément
-          const allSubElements = element.subCategories.flatMap(subCat =>
-            subCat.subElements.map(se => ({ ...se, subCategory: subCat }))
+          // Ajouter les sous-éléments de chaque élément - protection pour subCategories et subElements
+          const allSubElements = (element.subCategories || []).flatMap(subCat =>
+            (subCat.subElements || []).map(se => ({ ...se, subCategory: subCat }))
           );
           const subElementCount = allSubElements.length;
 
