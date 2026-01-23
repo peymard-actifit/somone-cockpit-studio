@@ -689,8 +689,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 
   // Créer un Element à partir d'un point de carte
   const createElementFromPoint = (point: MapElement) => {
-    // Chercher ou créer une catégorie "Points de carte" dans le domaine
-    let mapCategory = domain.categories.find(c => c.name === 'Points de carte');
+    // Chercher ou créer une catégorie "Points de carte" dans le domaine - protection pour les tableaux
+    let mapCategory = (domain.categories || []).find(c => c.name === 'Points de carte');
 
     if (!mapCategory) {
       // Créer la catégorie si elle n'existe pas
@@ -927,9 +927,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     if (selectedCategories.length > 0) {
       points = points.filter(point => {
         if (!point.elementId) return false; // Si pas d'élément lié, ne pas afficher quand filtre actif
-        // Trouver la catégorie de l'élément lié
-        const elementCategory = domain.categories.find(c => 
-          c.elements.some(e => e.id === point.elementId)
+        // Trouver la catégorie de l'élément lié - protection pour les tableaux
+        const elementCategory = (domain.categories || []).find(c => 
+          (c.elements || []).some(e => e.id === point.elementId)
         );
         return elementCategory && selectedCategories.includes(elementCategory.id);
       });

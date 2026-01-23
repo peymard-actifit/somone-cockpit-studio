@@ -222,8 +222,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     }
     // Si aucune catégorie sélectionnée, afficher tous les éléments
     if (selectedCategories.length === 0) return true;
-    // Sinon, filtrer par catégorie
-    const elementCategory = domain.categories.find(c => c.elements.some(el => el.id === e.id));
+    // Sinon, filtrer par catégorie - protection pour les tableaux
+    const elementCategory = (domain.categories || []).find(c => (c.elements || []).some(el => el.id === e.id));
     return elementCategory && selectedCategories.includes(elementCategory.id);
   });
 
@@ -743,8 +743,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     // Mode "nouvelle catégorie"
     if (newElementForm.categoryMode === 'new' && newElementForm.newCategoryName.trim()) {
       const categoryName = newElementForm.newCategoryName.trim();
-      // Vérifier si la catégorie existe déjà
-      const existingCategory = domain.categories.find(c => c.name === categoryName);
+      // Vérifier si la catégorie existe déjà - protection pour les tableaux
+      const existingCategory = (domain.categories || []).find(c => c.name === categoryName);
       if (existingCategory) {
         createElementInCategory(existingCategory.id);
       } else {
@@ -765,9 +765,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     // Mode "catégorie existante"
     let categoryId = newElementForm.categoryId;
 
-    // Si pas de catégorie sélectionnée, créer une catégorie par défaut
+    // Si pas de catégorie sélectionnée, créer une catégorie par défaut - protection pour les tableaux
     if (!categoryId) {
-      let defaultCategory = domain.categories.find(c => c.name === 'Ã‰léments');
+      let defaultCategory = (domain.categories || []).find(c => c.name === 'Ã‰léments');
       if (!defaultCategory) {
         addCategory(domain.id, 'Ã‰léments', 'horizontal');
         // Attendre la création

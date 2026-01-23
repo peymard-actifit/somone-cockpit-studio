@@ -517,9 +517,9 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
 
   // Effet pour creer automatiquement un element dans les categories vides
   React.useEffect(() => {
-    // Pour la nouvelle categorie ajoutee
+    // Pour la nouvelle categorie ajoutee - protection pour les tableaux
     if (lastAddedCategoryName) {
-      const newCategory = domain.categories.find(c => c.name === lastAddedCategoryName && c.elements.length === 0);
+      const newCategory = (domain.categories || []).find(c => c.name === lastAddedCategoryName && (c.elements || []).length === 0);
       if (newCategory) {
         addElement(newCategory.id, 'Element 1');
         setLastAddedCategoryName(null);
@@ -582,12 +582,12 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
 
     const name = newSubElementName.trim();
 
-    // Trouver ou creer la sous-categorie dans le premier element de cette categorie
-    const category = domain.categories.find(c => c.id === categoryId);
-    if (!category || category.elements.length === 0) return;
+    // Trouver ou creer la sous-categorie dans le premier element de cette categorie - protection pour les tableaux
+    const category = (domain.categories || []).find(c => c.id === categoryId);
+    if (!category || (category.elements || []).length === 0) return;
 
     const firstElement = category.elements[0];
-    const subCat = firstElement.subCategories.find(sc => sc.name === subCatName);
+    const subCat = (firstElement.subCategories || []).find(sc => sc.name === subCatName);
 
     if (subCat) {
       // Vérifier s'il existe des sous-éléments avec le même nom
@@ -1047,11 +1047,11 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                                   </button>
                                 </td>
 
-                                {/* Cellules des sous-éléments par sous-catégorie */}
+                                {/* Cellules des sous-éléments par sous-catégorie - protection pour les tableaux */}
                                 {allSubCategories.map((subCat) => {
                                   const elementData = elementGridData.get(element.id);
                                   const subElements = elementData?.get(subCat.name) || [];
-                                  const subCatObj = element.subCategories.find(sc => sc.name === subCat.name);
+                                  const subCatObj = (element.subCategories || []).find(sc => sc.name === subCat.name);
                                   const subCatId = subCatObj?.id;
                                   const isAdding = addingSubElementAt?.catId === element.id && addingSubElementAt?.subCatName === subCat.name;
                                   const colWidth = subCatColumnWidths[subCat.name] || 120;
@@ -1248,13 +1248,13 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
               </div>
             )}
 
-            {/* Mode existant: liste des elements */}
+            {/* Mode existant: liste des elements - protection pour les tableaux */}
             {assignMode === 'existing' && targetCategoryId && (
               <div className="mb-4">
                 <label className="block text-sm text-[#64748B] mb-1">Element cible</label>
                 {(() => {
-                  const targetCategory = domain.categories.find(c => c.id === targetCategoryId);
-                  if (!targetCategory || targetCategory.elements.length === 0) {
+                  const targetCategory = (domain.categories || []).find(c => c.id === targetCategoryId);
+                  if (!targetCategory || (targetCategory.elements || []).length === 0) {
                     return <p className="text-sm text-[#94A3B8] italic">Aucun element dans cette categorie</p>;
                   }
                   return (
@@ -1264,7 +1264,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                       className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
                     >
                       <option value="">-- Selectionnez un element --</option>
-                      {targetCategory.elements.map(el => (
+                      {(targetCategory.elements || []).map(el => (
                         <option key={el.id} value={el.id}>{el.name}</option>
                       ))}
                     </select>

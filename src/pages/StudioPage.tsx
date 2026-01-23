@@ -175,13 +175,14 @@ export default function StudioPage() {
     );
   }
 
-  const currentDomain = currentCockpit.domains.find(d => d.id === currentDomainId);
+  // Protection pour les tableaux
+  const currentDomain = (currentCockpit?.domains || []).find(d => d.id === currentDomainId);
 
-  // Trouver l'élément actuel à travers les catégories
+  // Trouver l'élément actuel à travers les catégories - protection pour les tableaux
   let currentElement = null;
   if (currentElementId && currentDomain) {
-    for (const category of currentDomain.categories) {
-      const found = category.elements.find(e => e.id === currentElementId);
+    for (const category of (currentDomain.categories || [])) {
+      const found = (category.elements || []).find(e => e.id === currentElementId);
       if (found) {
         currentElement = found;
         break;
