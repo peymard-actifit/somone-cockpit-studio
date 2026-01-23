@@ -130,6 +130,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const [hoverTooltip, setHoverTooltip] = useState<{ content: string; x: number; y: number } | null>(null);
   const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const helpCacheRef = React.useRef<Map<string, string | null>>(new Map());
+  const currentHoverKeyRef = React.useRef<string | null>(null);
 
   const isAdmin = user?.isAdmin === true;
 
@@ -319,38 +320,59 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     // Ignore if popup is open or on inputs
     if (isOpen || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
       setHoverTooltip(null);
+      currentHoverKeyRef.current = null;
       return;
-    }
-    
-    // Clear previous timeout
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
     }
     
     // Get contextual key
     const contextKey = getContextualKey(target);
     
+    // If same key as before, just update position if tooltip is visible
+    if (contextKey === currentHoverKeyRef.current) {
+      if (hoverTooltip) {
+        setHoverTooltip(prev => prev ? {
+          ...prev,
+          x: event.clientX + 15,
+          y: event.clientY + 15
+        } : null);
+      }
+      return;
+    }
+    
+    // New element - clear previous timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    
+    // Update current key
+    currentHoverKeyRef.current = contextKey;
+    
+    // Hide previous tooltip immediately when changing elements
+    setHoverTooltip(null);
+    
     // Delay to avoid too many requests
     hoverTimeoutRef.current = setTimeout(async () => {
+      // Check if we're still on the same element
+      if (currentHoverKeyRef.current !== contextKey) return;
+      
       const content = await checkHelpExists(contextKey);
-      if (content) {
+      if (content && currentHoverKeyRef.current === contextKey) {
         setHoverTooltip({
           content,
           x: event.clientX + 15,
           y: event.clientY + 15
         });
-      } else {
-        setHoverTooltip(null);
       }
     }, 500); // 500ms delay before showing tooltip
-  }, [isOpen, checkHelpExists]);
+  }, [isOpen, checkHelpExists, hoverTooltip]);
 
-  // Hide tooltip on mouse leave or when moving fast
-  const handleMouseOut = useCallback(() => {
+  // Hide tooltip on mouse leave document
+  const handleMouseLeave = useCallback(() => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
     setHoverTooltip(null);
+    currentHoverKeyRef.current = null;
   }, []);
 
   // Attach/detach global listener
@@ -367,16 +389,16 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   useEffect(() => {
     if (hoverEnabled) {
       document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseout', handleMouseOut);
+      document.addEventListener('mouseleave', handleMouseLeave);
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseout', handleMouseOut);
+        document.removeEventListener('mouseleave', handleMouseLeave);
         if (hoverTimeoutRef.current) {
           clearTimeout(hoverTimeoutRef.current);
         }
       };
     }
-  }, [hoverEnabled, handleMouseMove, handleMouseOut]);
+  }, [hoverEnabled, handleMouseMove, handleMouseLeave]);
 
   // Close popup
   const closeHelp = useCallback(() => {
