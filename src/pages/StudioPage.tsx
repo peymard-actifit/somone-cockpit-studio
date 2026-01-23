@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCockpitStore, RecentChange } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
+import { useContextualHelp } from '../contexts/ContextualHelpContext';
 import Navbar from '../components/Navbar';
 import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
@@ -94,6 +95,7 @@ export default function StudioPage() {
   const { cockpitId } = useParams<{ cockpitId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { enableGlobalContextMenu, disableGlobalContextMenu } = useContextualHelp();
   const {
     currentCockpit,
     currentDomainId,
@@ -121,6 +123,14 @@ export default function StudioPage() {
     scale: number;
     position: { x: number; y: number };
   } | undefined>(undefined);
+
+  // Activer l'aide contextuelle par clic droit dans le studio
+  useEffect(() => {
+    enableGlobalContextMenu();
+    return () => {
+      disableGlobalContextMenu();
+    };
+  }, [enableGlobalContextMenu, disableGlobalContextMenu]);
 
   useEffect(() => {
     if (cockpitId) {

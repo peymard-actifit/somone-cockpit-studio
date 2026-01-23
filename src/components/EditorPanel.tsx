@@ -830,8 +830,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const subElementActiveSection = activeSection || 'status';
 
     return (
-      <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg">
-        <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+      <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg" data-help-key="editor-menu-sous-element" id="editor-panel">
+        <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]" data-help-key="editor-sous-element-header">
           <div className="flex items-start justify-between">
             <div>
               <button
@@ -840,6 +840,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   setActiveSection(null);
                 }}
                 className="flex items-center gap-2 text-[#64748B] hover:text-[#1E3A5F] mb-2"
+                data-help-key="editor-bouton-retour"
               >
                 <div className="rotate-180"><MuiIcon name="ChevronRightIcon" size={16} /></div>
                 Retour
@@ -1307,8 +1308,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   // Édition d'un élément
   if (element) {
     return (
-      <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg">
-        <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+      <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg" data-help-key="editor-menu-element" id="editor-panel">
+        <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]" data-help-key="editor-element-header">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition élément</h3>
@@ -2601,8 +2602,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   // Édition d'un domaine
   if (domain) {
     return (
-      <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg">
-        <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+      <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] overflow-y-auto shadow-lg" data-help-key="editor-menu-domaine" id="editor-panel">
+        <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]" data-help-key="editor-domaine-header">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition domaine</h3>
@@ -4488,14 +4489,19 @@ interface SectionProps {
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  helpKey?: string;
 }
 
-function Section({ title, iconName, isOpen, onToggle, children }: SectionProps) {
+function Section({ title, iconName, isOpen, onToggle, children, helpKey }: SectionProps) {
+  // Générer une clé d'aide automatique basée sur le titre si non fournie
+  const autoHelpKey = helpKey || `editor-section-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`;
+  
   return (
-    <div className="border-b border-[#E2E8F0]">
+    <div className="border-b border-[#E2E8F0]" data-help-key={autoHelpKey}>
       <button
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F5F7FA] transition-colors"
+        data-help-key={autoHelpKey}
       >
         <MuiIcon name={iconName} size={16} className="text-[#94A3B8]" />
         <span className="flex-1 text-sm font-medium text-[#1E3A5F]">{title}</span>
@@ -4507,7 +4513,7 @@ function Section({ title, iconName, isOpen, onToggle, children }: SectionProps) 
       </button>
 
       {isOpen && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4" data-help-key={`${autoHelpKey}-content`}>
           {children}
         </div>
       )}

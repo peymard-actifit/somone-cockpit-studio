@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { MuiIcon } from '../components/IconPicker';
 
@@ -13,7 +13,8 @@ interface ContextualHelp {
 
 interface ContextualHelpContextType {
   showHelp: (elementKey: string, event: React.MouseEvent) => void;
-  registerHelpElement: (elementKey: string, element: HTMLElement | null) => void;
+  enableGlobalContextMenu: () => void;
+  disableGlobalContextMenu: () => void;
 }
 
 const ContextualHelpContext = createContext<ContextualHelpContextType | null>(null);
@@ -24,6 +25,87 @@ export function useContextualHelp() {
     throw new Error('useContextualHelp must be used within a ContextualHelpProvider');
   }
   return context;
+}
+
+// Fonction pour générer une clé contextuelle à partir d'un élément DOM
+function getContextualKey(element: HTMLElement): string {
+  const parts: string[] = [];
+  
+  // Chercher des attributs data-help-key spécifiques
+  let current: HTMLElement | null = element;
+  while (current) {
+    const helpKey = current.getAttribute('data-help-key');
+    if (helpKey) {
+      return helpKey;
+    }
+    current = current.parentElement;
+  }
+  
+  // Sinon, construire une clé basée sur la structure
+  current = element;
+  
+  // Chercher des indices contextuels
+  while (current && parts.length < 5) {
+    // Section du panneau d'édition
+    if (current.hasAttribute('data-section')) {
+      parts.unshift(`section-${current.getAttribute('data-section')}`);
+    }
+    
+    // Boutons avec titre ou aria-label
+    if (current.tagName === 'BUTTON') {
+      const title = current.getAttribute('title') || current.getAttribute('aria-label');
+      if (title) {
+        parts.unshift(`button-${title.toLowerCase().replace(/\s+/g, '-')}`);
+      }
+    }
+    
+    // Inputs avec label
+    if (current.tagName === 'INPUT' || current.tagName === 'SELECT' || current.tagName === 'TEXTAREA') {
+      const id = current.getAttribute('id');
+      const name = current.getAttribute('name');
+      const placeholder = current.getAttribute('placeholder');
+      if (id) parts.unshift(`input-${id}`);
+      else if (name) parts.unshift(`input-${name}`);
+      else if (placeholder) parts.unshift(`input-${placeholder.toLowerCase().replace(/\s+/g, '-').slice(0, 30)}`);
+    }
+    
+    // Labels
+    if (current.tagName === 'LABEL') {
+      const text = current.textContent?.trim().slice(0, 30);
+      if (text) parts.unshift(`label-${text.toLowerCase().replace(/\s+/g, '-')}`);
+    }
+    
+    // Menus et sous-menus
+    if (current.classList.contains('menu') || current.getAttribute('role') === 'menu') {
+      parts.unshift('menu');
+    }
+    
+    // Panneaux spécifiques
+    if (current.id === 'editor-panel') parts.unshift('editor');
+    if (current.id === 'navbar') parts.unshift('navbar');
+    if (current.id === 'domain-view') parts.unshift('domain-view');
+    if (current.id === 'element-view') parts.unshift('element-view');
+    
+    // Classes significatives
+    const significantClasses = ['editor-section', 'domain-tab', 'category-section', 'element-tile', 'sub-element-tile'];
+    for (const cls of significantClasses) {
+      if (current.classList.contains(cls)) {
+        parts.unshift(cls);
+        break;
+      }
+    }
+    
+    current = current.parentElement;
+  }
+  
+  // Si on n'a rien trouvé, utiliser le tag et les premières classes
+  if (parts.length === 0) {
+    const tag = element.tagName.toLowerCase();
+    const classes = Array.from(element.classList).slice(0, 2).join('-');
+    return `studio-${tag}${classes ? `-${classes}` : ''}`;
+  }
+  
+  return `studio-${parts.join('-')}`;
 }
 
 interface ContextualHelpProviderProps {
@@ -39,6 +121,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [globalEnabled, setGlobalEnabled] = useState(false);
 
   const isAdmin = user?.isAdmin === true;
 
@@ -100,9 +183,25 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     event.preventDefault();
     event.stopPropagation();
     
-    // Position the popup near the click
-    const x = Math.min(event.clientX, window.innerWidth - 400);
-    const y = Math.min(event.clientY, window.innerHeight - 300);
+    // Position the popup near the click, ensure it stays on screen
+    const popupWidth = 400;
+    const popupHeight = 350;
+    let x = event.clientX + 10;
+    let y = event.clientY + 10;
+    
+    // Adjust if too close to right edge
+    if (x + popupWidth > window.innerWidth) {
+      x = event.clientX - popupWidth - 10;
+    }
+    
+    // Adjust if too close to bottom edge
+    if (y + popupHeight > window.innerHeight) {
+      y = event.clientY - popupHeight - 10;
+    }
+    
+    // Ensure minimum position
+    x = Math.max(10, x);
+    y = Math.max(10, y);
     
     setPosition({ x, y });
     setCurrentKey(elementKey);
@@ -112,21 +211,41 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     fetchHelp(elementKey);
   }, [fetchHelp]);
 
-  // Register an element to respond to right-click
-  const registerHelpElement = useCallback((elementKey: string, element: HTMLElement | null) => {
-    if (!element) return;
+  // Global context menu handler
+  const handleGlobalContextMenu = useCallback((event: MouseEvent) => {
+    // Ne pas intercepter si on est sur un input/textarea en mode édition
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      // Permettre le menu contextuel standard pour copier/coller
+      return;
+    }
     
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      showHelp(elementKey, e as unknown as React.MouseEvent);
-    };
+    event.preventDefault();
     
-    element.addEventListener('contextmenu', handleContextMenu);
+    // Générer la clé contextuelle basée sur l'élément cliqué
+    const contextKey = getContextualKey(target);
     
-    return () => {
-      element.removeEventListener('contextmenu', handleContextMenu);
-    };
+    showHelp(contextKey, event as unknown as React.MouseEvent);
   }, [showHelp]);
+
+  // Enable/disable global context menu
+  const enableGlobalContextMenu = useCallback(() => {
+    setGlobalEnabled(true);
+  }, []);
+
+  const disableGlobalContextMenu = useCallback(() => {
+    setGlobalEnabled(false);
+  }, []);
+
+  // Attach/detach global listener
+  useEffect(() => {
+    if (globalEnabled) {
+      document.addEventListener('contextmenu', handleGlobalContextMenu);
+      return () => {
+        document.removeEventListener('contextmenu', handleGlobalContextMenu);
+      };
+    }
+  }, [globalEnabled, handleGlobalContextMenu]);
 
   // Close popup
   const closeHelp = useCallback(() => {
@@ -153,18 +272,25 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     }
   }, [currentKey, editContent, saveHelp]);
 
+  // Cancel editing
+  const cancelEditing = useCallback(() => {
+    setIsEditing(false);
+    setEditContent('');
+  }, []);
+
   // Get formatted key for display
   const getFormattedKey = (key: string) => {
     return key
-      .replace(/\./g, ' › ')
+      .replace(/^studio-/, '')
       .replace(/-/g, ' ')
+      .replace(/\./g, ' › ')
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
   return (
-    <ContextualHelpContext.Provider value={{ showHelp, registerHelpElement }}>
+    <ContextualHelpContext.Provider value={{ showHelp, enableGlobalContextMenu, disableGlobalContextMenu }}>
       {children}
       
       {/* Help Popup */}
@@ -178,26 +304,31 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
           
           {/* Popup */}
           <div
-            className="fixed z-[9999] bg-white rounded-xl shadow-2xl border border-slate-200 w-96 max-h-[80vh] overflow-hidden flex flex-col"
+            className="fixed z-[9999] bg-white rounded-xl shadow-2xl border border-slate-200 w-[400px] max-h-[80vh] overflow-hidden flex flex-col"
             style={{ left: position.x, top: position.y }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-[#1E3A5F] text-white">
-              <div className="flex items-center gap-2">
-                <MuiIcon name="Help" size={18} />
-                <span className="font-medium text-sm truncate" title={currentKey}>
-                  {getFormattedKey(currentKey)}
-                </span>
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#1E3A5F] to-[#2C4A6E] text-white">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <MuiIcon name="Help" size={20} />
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-sm block truncate" title={currentKey}>
+                    Aide contextuelle
+                  </span>
+                  <span className="text-xs text-white/70 block truncate" title={currentKey}>
+                    {getFormattedKey(currentKey)}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 ml-2">
                 {isAdmin && !isEditing && (
                   <button
                     onClick={startEditing}
                     className="p-1.5 hover:bg-white/10 rounded transition-colors"
                     title="Modifier l'aide"
                   >
-                    <MuiIcon name="Edit" size={16} />
+                    <MuiIcon name="Edit" size={18} />
                   </button>
                 )}
                 <button
@@ -205,7 +336,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
                   className="p-1.5 hover:bg-white/10 rounded transition-colors"
                   title="Fermer"
                 >
-                  <MuiIcon name="Close" size={16} />
+                  <MuiIcon name="Close" size={18} />
                 </button>
               </div>
             </div>
@@ -218,47 +349,66 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
                 </div>
               ) : isEditing ? (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-500">
-                    Vous pouvez utiliser du HTML pour formater l'aide.
-                  </p>
+                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-700">
+                    <MuiIcon name="Info" size={14} />
+                    <span>Utilisez du HTML pour formater. Ex: &lt;b&gt;gras&lt;/b&gt;, &lt;ul&gt;&lt;li&gt;liste&lt;/li&gt;&lt;/ul&gt;</span>
+                  </div>
                   <textarea
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
                     className="w-full h-48 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="<p>Entrez l'aide contextuelle ici...</p>"
+                    placeholder="<p>Entrez l'aide contextuelle ici...</p>
+
+Exemples:
+<p>Description de la fonctionnalité.</p>
+<ul>
+  <li>Point 1</li>
+  <li>Point 2</li>
+</ul>"
+                    autoFocus
                   />
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      onClick={saveAndClose}
-                      disabled={isLoading}
-                      className="px-3 py-1.5 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2a4a6f] transition-colors disabled:opacity-50"
-                    >
-                      Enregistrer
-                    </button>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">
+                      Clé: {currentKey}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={cancelEditing}
+                        className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={saveAndClose}
+                        disabled={isLoading}
+                        className="px-4 py-1.5 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2a4a6f] transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        <MuiIcon name="Save" size={14} />
+                        Enregistrer
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : helpContent?.content ? (
                 <div 
-                  className="prose prose-sm max-w-none text-slate-700"
+                  className="prose prose-sm max-w-none text-slate-700 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4"
                   dangerouslySetInnerHTML={{ __html: helpContent.content }}
                 />
               ) : (
                 <div className="text-center py-8">
-                  <MuiIcon name="Info" size={32} className="text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">
+                  <MuiIcon name="HelpOutline" size={48} className="text-slate-200 mx-auto mb-3" />
+                  <p className="text-sm text-slate-500 mb-1">
                     Aucune aide disponible pour cet élément.
+                  </p>
+                  <p className="text-xs text-slate-400 mb-4">
+                    Clé: {currentKey}
                   </p>
                   {isAdmin && (
                     <button
                       onClick={startEditing}
-                      className="mt-3 px-4 py-2 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2a4a6f] transition-colors"
+                      className="px-4 py-2 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2a4a6f] transition-colors flex items-center gap-2 mx-auto"
                     >
+                      <MuiIcon name="Add" size={16} />
                       Créer l'aide
                     </button>
                   )}
@@ -268,8 +418,24 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
             
             {/* Footer */}
             {helpContent && !isEditing && (
+              <div className="px-4 py-2 bg-slate-50 border-t text-xs text-slate-400 flex items-center justify-between">
+                <span>Mis à jour le {new Date(helpContent.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                {isAdmin && (
+                  <button
+                    onClick={startEditing}
+                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    <MuiIcon name="Edit" size={12} />
+                    Modifier
+                  </button>
+                )}
+              </div>
+            )}
+            
+            {/* Hint footer for non-admin */}
+            {!helpContent && !isEditing && !isAdmin && (
               <div className="px-4 py-2 bg-slate-50 border-t text-xs text-slate-400">
-                Dernière mise à jour : {new Date(helpContent.updatedAt).toLocaleDateString('fr-FR')}
+                Demandez à un administrateur d'ajouter l'aide pour cet élément.
               </div>
             )}
           </div>

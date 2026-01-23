@@ -60,6 +60,7 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
       style={style}
       {...attributes}
       onClick={onSelect}
+      data-help-key={`navbar-onglet-domaine-${domain.name.toLowerCase().replace(/\s+/g, '-')}`}
       className={`
         group relative flex items-center gap-2 px-6 py-3 
         text-sm font-semibold
@@ -261,8 +262,8 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-[#1E3A5F]">
-      <div className="flex items-center">
+    <nav className="bg-[#1E3A5F]" data-help-key="navbar" id="navbar">
+      <div className="flex items-center" data-help-key="navbar-domaines">
         {/* Domaines - Style bandeau PDF SOMONE avec drag and drop */}
         <DndContext
           sensors={sensors}
