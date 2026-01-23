@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.5.2';
+const APP_VERSION = '16.5.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2047,6 +2047,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const help = db.contextualHelps.find(h => h.elementKey === elementKey);
       return res.json({ help });
+    }
+
+    // Supprimer l'aide contextuelle (admin uniquement)
+    if (path.match(/^\/contextual-help\/[^/]+$/) && method === 'DELETE') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const elementKey = decodeURIComponent(path.split('/')[2]);
+
+      // Initialiser le tableau si nécessaire
+      if (!db.contextualHelps) {
+        db.contextualHelps = [];
+      }
+
+      // Chercher et supprimer l'aide
+      const existingIndex = db.contextualHelps.findIndex(h => h.elementKey === elementKey);
+
+      if (existingIndex >= 0) {
+        db.contextualHelps.splice(existingIndex, 1);
+        await saveDb(db);
+        return res.json({ success: true, message: 'Aide contextuelle supprimée' });
+      }
+
+      return res.status(404).json({ error: 'Aide contextuelle non trouvée' });
     }
 
     // =====================

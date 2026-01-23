@@ -184,6 +184,33 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     return false;
   }, [token, isAdmin]);
 
+  // Delete help content
+  const deleteHelp = useCallback(async (elementKey: string) => {
+    if (!token || !isAdmin) return false;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/contextual-help/${encodeURIComponent(elementKey)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        // Vider le cache pour cette clé
+        helpCacheRef.current.delete(elementKey);
+        setHelpContent(null);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error deleting contextual help:', error);
+    } finally {
+      setIsLoading(false);
+    }
+    return false;
+  }, [token, isAdmin]);
+
   // Show help popup
   const showHelp = useCallback((elementKey: string, event: React.MouseEvent) => {
     event.preventDefault();
@@ -495,13 +522,29 @@ Exemples:
               <div className="px-4 py-1.5 border-t border-slate-100 text-[10px] text-slate-300 flex items-center justify-between">
                 <span>Mis à jour le {new Date(helpContent.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                 {isAdmin && (
-                  <button
-                    onClick={startEditing}
-                    className="text-slate-400 hover:text-slate-600 flex items-center gap-1"
-                  >
-                    <MuiIcon name="Edit" size={10} />
-                    Modifier
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={startEditing}
+                      className="text-slate-400 hover:text-slate-600 flex items-center gap-1"
+                    >
+                      <MuiIcon name="Edit" size={10} />
+                      Modifier
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (currentKey && window.confirm('Supprimer cette aide contextuelle ?')) {
+                          const success = await deleteHelp(currentKey);
+                          if (success) {
+                            closeHelp();
+                          }
+                        }
+                      }}
+                      className="text-red-400 hover:text-red-600 flex items-center gap-1"
+                      title="Supprimer l'aide"
+                    >
+                      <MuiIcon name="Delete" size={10} />
+                    </button>
+                  </div>
                 )}
               </div>
             )}
