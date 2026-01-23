@@ -553,14 +553,14 @@ Exemples:
       {/* Hover Tooltip */}
       {hoverTooltip && !isOpen && (
         <div
-          className="fixed z-[9997] bg-slate-800 text-white text-sm px-3 py-2 rounded-lg shadow-lg max-w-xs pointer-events-none"
+          className="fixed z-[9997] bg-slate-800 text-white text-sm px-3 py-2 rounded-lg shadow-lg max-w-md max-h-[50vh] overflow-y-auto pointer-events-none"
           style={{ 
-            left: Math.min(hoverTooltip.x, window.innerWidth - 320), 
-            top: Math.min(hoverTooltip.y, window.innerHeight - 100) 
+            left: Math.min(hoverTooltip.x, window.innerWidth - 420), 
+            top: Math.min(hoverTooltip.y, window.innerHeight - 200) 
           }}
         >
           <div 
-            className="[&>p]:mb-1 [&>ul]:list-disc [&>ul]:pl-3 [&>ol]:list-decimal [&>ol]:pl-3 line-clamp-4"
+            className="[&>p]:mb-1 [&>ul]:list-disc [&>ul]:pl-3 [&>ol]:list-decimal [&>ol]:pl-3"
             dangerouslySetInnerHTML={{ __html: hoverTooltip.content }}
           />
         </div>

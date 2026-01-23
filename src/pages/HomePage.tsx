@@ -305,6 +305,7 @@ function SortableCockpitCard({
                 onClick={onUnpublish}
                 className="flex items-center justify-center gap-0.5 px-1.5 py-1 rounded transition-colors text-[10px] bg-red-500/20 hover:bg-red-500/30 text-red-400"
                 disabled={isUnpublishing}
+                data-help-key="home-card-btn-unpublish"
               >
                 {isUnpublishing ? (
                   <div className="animate-spin"><MuiIcon name="Refresh" size={12} /></div>
@@ -322,6 +323,7 @@ function SortableCockpitCard({
                   }}
                   className="p-1 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 rounded transition-colors"
                   title="Ouvrir la version publiée"
+                  data-help-key="home-card-btn-open-published"
                 >
                   <MuiIcon name="OpenInBrowser" size={12} />
                 </button>
@@ -331,6 +333,7 @@ function SortableCockpitCard({
             <button
               onClick={() => openPublishModal(cockpit.id)}
               className="flex items-center justify-center gap-0.5 px-1.5 py-1 rounded transition-colors text-[10px] bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
+              data-help-key="home-card-btn-publish"
             >
               <MuiIcon name="Globe" size={12} />
               Publier
@@ -345,6 +348,7 @@ function SortableCockpitCard({
                 : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/50'
             }`}
             title={cockpit.welcomeMessage ? "Modifier le message d'accueil" : "Ajouter un message d'accueil"}
+            data-help-key="home-card-btn-welcome"
           >
             <MuiIcon name="Campaign" size={12} />
           </button>
@@ -355,6 +359,7 @@ function SortableCockpitCard({
             }}
             className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded transition-colors"
             title="Dupliquer"
+            data-help-key="home-card-btn-duplicate"
           >
             <MuiIcon name="ContentCopy" size={12} />
           </button>
@@ -362,6 +367,7 @@ function SortableCockpitCard({
             onClick={() => handleExportClick(cockpit.id)}
             className="p-1 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded transition-colors"
             title="Exporter"
+            data-help-key="home-card-btn-export"
           >
             <MuiIcon name="Download" size={12} />
           </button>
@@ -369,6 +375,7 @@ function SortableCockpitCard({
             onClick={() => setShowDeleteModal(cockpit.id)}
             className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
             title="Supprimer"
+            data-help-key="home-card-btn-delete"
           >
             <MuiIcon name="Delete" size={12} />
           </button>
@@ -1236,6 +1243,7 @@ export default function HomePage() {
                 }}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-500 hover:from-slate-500 hover:to-slate-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-slate-500/25 text-sm"
                 title="Statistiques d'utilisation du studio"
+                data-help-key="home-btn-infos"
               >
                 <MuiIcon name="Analytics" size={18} />
                 Infos
@@ -1247,6 +1255,7 @@ export default function HomePage() {
                 onClick={() => setShowUserManagement(true)}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-500/25 text-sm"
                 title="Gérer les utilisateurs du studio"
+                data-help-key="home-btn-users"
               >
                 <MuiIcon name="Group" size={18} />
                 Utilisateurs
@@ -1261,6 +1270,7 @@ export default function HomePage() {
                 }}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
                 title="Voir et partager la liste de vos cockpits publiés"
+                data-help-key="home-btn-publications"
               >
                 <MuiIcon name="Share" size={18} />
                 Publications
@@ -1274,6 +1284,7 @@ export default function HomePage() {
                   setShowNewFolderModal(true);
                 }}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-amber-500/25 text-sm"
+                data-help-key="home-btn-new-folder"
               >
                 <MuiIcon name="CreateNewFolder" size={18} />
                 Répertoire
@@ -1293,6 +1304,7 @@ export default function HomePage() {
                 <label
                   htmlFor="import-cockpit-input"
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-green-500/25 cursor-pointer text-sm"
+                  data-help-key="home-btn-import"
                 >
                   <MuiIcon name="Upload" size={18} />
                   Import
@@ -1306,6 +1318,7 @@ export default function HomePage() {
                     }}
                     className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-violet-500/25 text-sm"
                     title="Configurer le prompt système de l'IA"
+                    data-help-key="home-btn-ia"
                   >
                     <MuiIcon name="Psychology" size={18} />
                     IA
@@ -1314,6 +1327,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setShowNewModal(true)}
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25 text-sm"
+                  data-help-key="home-btn-new-cockpit"
                 >
                   <MuiIcon name="Add" size={18} />
                   Nouvelle
