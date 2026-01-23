@@ -158,7 +158,7 @@ export default function MindMapView({
           const elementX = centerX + Math.cos(angle) * elementRadius;
           const elementY = centerY + Math.sin(angle) * elementRadius;
 
-          const effectiveStatus = getEffectiveStatus(element, cockpit.domains);
+          const effectiveStatus = getEffectiveStatus(element, domains);
           const elementColor = STATUS_COLORS[effectiveStatus]?.hex || STATUS_COLORS.ok.hex;
 
           nodes.push({
@@ -563,14 +563,14 @@ export default function MindMapView({
       // Double-clic sur un sous-élément avec alerte
       const subElement = node.data as SubElement;
       if (subElement?.alert) {
-        // Trouver le chemin complet
+        // Trouver le chemin complet - protection pour les tableaux
         let breadcrumb = { domain: '', category: '', element: '', subCategory: '' };
         
-        for (const domain of cockpit.domains) {
-          for (const cat of domain.categories) {
-            for (const el of cat.elements) {
-              for (const subCat of el.subCategories) {
-                const se = subCat.subElements.find(s => s.id === subElement.id);
+        for (const domain of (cockpit?.domains || [])) {
+          for (const cat of (domain.categories || [])) {
+            for (const el of (cat.elements || [])) {
+              for (const subCat of (el.subCategories || [])) {
+                const se = (subCat.subElements || []).find(s => s.id === subElement.id);
                 if (se) {
                   breadcrumb = {
                     domain: domain.name,
@@ -611,25 +611,25 @@ export default function MindMapView({
     return () => clearTimeout(timer);
   }, []);
 
-  // Trouver le domainId pour un élément
+  // Trouver le domainId pour un élément - protection pour les tableaux
   const findDomainIdForElement = useCallback((elementId: string): string | null => {
-    for (const domain of cockpit.domains) {
-      for (const cat of domain.categories) {
-        if (cat.elements.some(e => e.id === elementId)) {
+    for (const domain of (cockpit?.domains || [])) {
+      for (const cat of (domain.categories || [])) {
+        if ((cat.elements || []).some(e => e.id === elementId)) {
           return domain.id;
         }
       }
     }
     return null;
-  }, [cockpit.domains]);
+  }, [cockpit?.domains]);
 
-  // Trouver le domainId et elementId pour un sous-élément
+  // Trouver le domainId et elementId pour un sous-élément - protection pour les tableaux
   const findPathForSubElement = useCallback((subElementId: string): { domainId: string; elementId: string } | null => {
-    for (const domain of cockpit.domains) {
-      for (const cat of domain.categories) {
-        for (const el of cat.elements) {
-          for (const subCat of el.subCategories) {
-            if (subCat.subElements.some(se => se.id === subElementId)) {
+    for (const domain of (cockpit?.domains || [])) {
+      for (const cat of (domain.categories || [])) {
+        for (const el of (cat.elements || [])) {
+          for (const subCat of (el.subCategories || [])) {
+            if ((subCat.subElements || []).some(se => se.id === subElementId)) {
               return { domainId: domain.id, elementId: el.id };
             }
           }
@@ -997,21 +997,21 @@ export default function MindMapView({
         </div>
       </div>
 
-      {/* Statistiques en bas à droite */}
+      {/* Statistiques en bas à droite - protection pour les tableaux */}
       <div className="absolute bottom-4 right-4 z-20 bg-white/10 backdrop-blur-sm rounded-xl p-4">
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
           <div className="text-white/60">Domaines</div>
-          <div className="text-white font-medium">{cockpit.domains.length}</div>
+          <div className="text-white font-medium">{(cockpit?.domains || []).length}</div>
           <div className="text-white/60">Éléments</div>
           <div className="text-white font-medium">
-            {cockpit.domains.reduce((sum, d) => sum + d.categories.reduce((s, c) => s + c.elements.length, 0), 0)}
+            {(cockpit?.domains || []).reduce((sum, d) => sum + (d.categories || []).reduce((s, c) => s + (c.elements || []).length, 0), 0)}
           </div>
           <div className="text-white/60">Sous-éléments</div>
           <div className="text-white font-medium">
-            {cockpit.domains.reduce((sum, d) => 
-              sum + d.categories.reduce((s, c) => 
-                s + c.elements.reduce((se, e) => 
-                  se + e.subCategories.reduce((sse, sc) => sse + sc.subElements.length, 0), 0), 0), 0)}
+            {(cockpit?.domains || []).reduce((sum, d) => 
+              sum + (d.categories || []).reduce((s, c) => 
+                s + (c.elements || []).reduce((se, e) => 
+                  se + (e.subCategories || []).reduce((sse, sc) => sse + (sc.subElements || []).length, 0), 0), 0), 0)}
           </div>
         </div>
       </div>

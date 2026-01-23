@@ -343,12 +343,15 @@ export default function StatsView({ domain, cockpit, readOnly = false }: StatsVi
   const statsData = domain.statsData || DEFAULT_STATS_DATA;
   const columnWidth = statsData.columnWidth || 100;
 
+  // Protection: s'assurer que cockpit.domains existe
+  const cockpitDomains = cockpit?.domains || [];
+
   // Récupérer les incidents selon la source configurée
   const incidents = useMemo(() => {
     // Si "all" ou non défini, prendre toutes les alertes de tous les domaines Alertes
     if (!statsData.alertsDomainId || statsData.alertsDomainId === 'all') {
       const allIncidents: Incident[] = [];
-      cockpit.domains.forEach(d => {
+      cockpitDomains.forEach(d => {
         if (d.templateType === 'alerts' && d.alertsData?.incidents) {
           allIncidents.push(...d.alertsData.incidents);
         }
@@ -356,12 +359,12 @@ export default function StatsView({ domain, cockpit, readOnly = false }: StatsVi
       return allIncidents;
     }
     // Sinon, chercher le domaine spécifique
-    const alertsDomain = cockpit.domains.find(d => d.id === statsData.alertsDomainId);
+    const alertsDomain = cockpitDomains.find(d => d.id === statsData.alertsDomainId);
     return alertsDomain?.alertsData?.incidents || [];
-  }, [cockpit.domains, statsData.alertsDomainId]);
+  }, [cockpitDomains, statsData.alertsDomainId]);
 
   // Vérifier s'il y a au moins un domaine Alertes
-  const hasAlertsDomain = cockpit.domains.some(d => d.templateType === 'alerts');
+  const hasAlertsDomain = cockpitDomains.some(d => d.templateType === 'alerts');
 
   // Générer les périodes
   const periods = useMemo(() =>

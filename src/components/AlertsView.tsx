@@ -253,38 +253,41 @@ export default function AlertsView({ domain, cockpit, readOnly = false }: Alerts
     mineur: incidents.filter(i => i.severity === 'mineur').length,
   }), [incidents]);
 
+  // Protection: s'assurer que cockpit.domains existe
+  const cockpitDomains = cockpit?.domains || [];
+
   // Options pour les sélecteurs en cascade
-  const domainOptions = cockpit.domains.filter(d => d.id !== domain.id);
+  const domainOptions = cockpitDomains.filter(d => d.id !== domain.id);
 
   const categoryOptions = useMemo(() => {
     if (!selectedDomainForNew) return [];
-    const targetDomain = cockpit.domains.find(d => d.id === selectedDomainForNew);
+    const targetDomain = cockpitDomains.find(d => d.id === selectedDomainForNew);
     return targetDomain?.categories || [];
-  }, [cockpit.domains, selectedDomainForNew]);
+  }, [cockpitDomains, selectedDomainForNew]);
 
   const elementOptions = useMemo(() => {
     if (!selectedCategoryForNew) return [];
-    const targetDomain = cockpit.domains.find(d => d.id === selectedDomainForNew);
-    const targetCategory = targetDomain?.categories.find(c => c.id === selectedCategoryForNew);
+    const targetDomain = cockpitDomains.find(d => d.id === selectedDomainForNew);
+    const targetCategory = (targetDomain?.categories || []).find(c => c.id === selectedCategoryForNew);
     return targetCategory?.elements || [];
-  }, [cockpit.domains, selectedDomainForNew, selectedCategoryForNew]);
+  }, [cockpitDomains, selectedDomainForNew, selectedCategoryForNew]);
 
   const subCategoryOptions = useMemo(() => {
     if (!selectedElementForNew) return [];
-    const targetDomain = cockpit.domains.find(d => d.id === selectedDomainForNew);
-    const targetCategory = targetDomain?.categories.find(c => c.id === selectedCategoryForNew);
-    const targetElement = targetCategory?.elements.find(e => e.id === selectedElementForNew);
+    const targetDomain = cockpitDomains.find(d => d.id === selectedDomainForNew);
+    const targetCategory = (targetDomain?.categories || []).find(c => c.id === selectedCategoryForNew);
+    const targetElement = (targetCategory?.elements || []).find(e => e.id === selectedElementForNew);
     return targetElement?.subCategories || [];
-  }, [cockpit.domains, selectedDomainForNew, selectedCategoryForNew, selectedElementForNew]);
+  }, [cockpitDomains, selectedDomainForNew, selectedCategoryForNew, selectedElementForNew]);
 
   const subElementOptions = useMemo(() => {
     if (!selectedSubCategoryForNew) return [];
-    const targetDomain = cockpit.domains.find(d => d.id === selectedDomainForNew);
-    const targetCategory = targetDomain?.categories.find(c => c.id === selectedCategoryForNew);
-    const targetElement = targetCategory?.elements.find(e => e.id === selectedElementForNew);
-    const targetSubCategory = targetElement?.subCategories.find(sc => sc.id === selectedSubCategoryForNew);
+    const targetDomain = cockpitDomains.find(d => d.id === selectedDomainForNew);
+    const targetCategory = (targetDomain?.categories || []).find(c => c.id === selectedCategoryForNew);
+    const targetElement = (targetCategory?.elements || []).find(e => e.id === selectedElementForNew);
+    const targetSubCategory = (targetElement?.subCategories || []).find(sc => sc.id === selectedSubCategoryForNew);
     return targetSubCategory?.subElements || [];
-  }, [cockpit.domains, selectedDomainForNew, selectedCategoryForNew, selectedElementForNew, selectedSubCategoryForNew]);
+  }, [cockpitDomains, selectedDomainForNew, selectedCategoryForNew, selectedElementForNew, selectedSubCategoryForNew]);
 
   // Gestion du redimensionnement du séparateur
   const handleSplitMouseDown = (e: React.MouseEvent) => {
@@ -362,15 +365,15 @@ export default function AlertsView({ domain, cockpit, readOnly = false }: Alerts
     };
   }, [resizingColumn]);
 
-  // Ajouter un nouvel incident
+  // Ajouter un nouvel incident - protection pour les tableaux
   const handleAddIncident = () => {
     if (!newIncident.severity || !newIncident.startDate) return;
 
-    const targetDomain = cockpit.domains.find(d => d.id === selectedDomainForNew);
-    const targetCategory = targetDomain?.categories.find(c => c.id === selectedCategoryForNew);
-    const targetElement = targetCategory?.elements.find(e => e.id === selectedElementForNew);
-    const targetSubCategory = targetElement?.subCategories.find(sc => sc.id === selectedSubCategoryForNew);
-    const targetSubElement = targetSubCategory?.subElements.find(se => se.id === newIncident.targetSubElementId);
+    const targetDomain = cockpitDomains.find(d => d.id === selectedDomainForNew);
+    const targetCategory = (targetDomain?.categories || []).find(c => c.id === selectedCategoryForNew);
+    const targetElement = (targetCategory?.elements || []).find(e => e.id === selectedElementForNew);
+    const targetSubCategory = (targetElement?.subCategories || []).find(sc => sc.id === selectedSubCategoryForNew);
+    const targetSubElement = (targetSubCategory?.subElements || []).find(se => se.id === newIncident.targetSubElementId);
 
     addIncident(domain.id, {
       severity: newIncident.severity as IncidentSeverity,

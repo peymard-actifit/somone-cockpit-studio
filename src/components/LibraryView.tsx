@@ -28,13 +28,16 @@ export default function LibraryView({ cockpit }: LibraryViewProps) {
     return (cockpit as any).zones || [];
   }, [cockpit]);
 
+  // Protection: s'assurer que cockpit.domains existe
+  const cockpitDomains = cockpit?.domains || [];
+
   // Récupérer tous les templates uniques et leurs icônes
   const allTemplates = useMemo(() => {
     const templateMap = new Map<string, { icon?: string; elementCount: number }>();
     const templateIcons = (cockpit as any).templateIcons || {};
 
-    // Parcourir tous les domaines pour trouver les templates
-    cockpit.domains.forEach(d => {
+    // Parcourir tous les domaines pour trouver les templates - protection pour les tableaux
+    cockpitDomains.forEach(d => {
       // Templates depuis le domaine (ancien système)
       if (d.templateName && !templateMap.has(d.templateName)) {
         templateMap.set(d.templateName, { 
@@ -95,8 +98,8 @@ export default function LibraryView({ cockpit }: LibraryViewProps) {
     zones.forEach((zone: Zone) => {
       const zoneTemplates: TemplateInfo[] = [];
 
-      // Trouver les éléments dans cette zone et leurs templates
-      cockpit.domains.forEach(d => {
+      // Trouver les éléments dans cette zone et leurs templates - protection pour les tableaux
+      cockpitDomains.forEach(d => {
         (d.categories || []).forEach(c => {
           (c.elements || []).forEach(e => {
             if (e.zone === zone.name && e.template) {

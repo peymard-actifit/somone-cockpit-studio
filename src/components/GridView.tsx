@@ -326,11 +326,11 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
     const { active } = event;
     setActiveId(active.id as string);
 
-    // Trouver le sous-élément actif
-    for (const category of domain.categories) {
-      for (const element of category.elements) {
-        for (const subCat of element.subCategories) {
-          const found = subCat.subElements.find(se => se.id === active.id);
+    // Trouver le sous-élément actif - protection pour les tableaux
+    for (const category of (domain.categories || [])) {
+      for (const element of (category.elements || [])) {
+        for (const subCat of (element.subCategories || [])) {
+          const found = (subCat.subElements || []).find(se => se.id === active.id);
           if (found) {
             setActiveSubElement({
               ...found,
@@ -365,11 +365,11 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
       const targetElementId = parts[1];
       const targetSubCatName = parts.slice(2).join('_');
 
-      // Trouver la sous-catégorie cible
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
+      // Trouver la sous-catégorie cible - protection pour les tableaux
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
           if (element.id === targetElementId) {
-            const targetSubCat = element.subCategories.find(sc => sc.name === targetSubCatName);
+            const targetSubCat = (element.subCategories || []).find(sc => sc.name === targetSubCatName);
             if (targetSubCat && sourceSubCatId && sourceSubCatId !== targetSubCat.id) {
               moveSubElement(active.id as string, sourceSubCatId, targetSubCat.id);
             }
@@ -378,11 +378,11 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
         }
       }
     } else {
-      // Drop sur un autre sous-élément - trouver sa sous-catégorie
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
-          for (const subCat of element.subCategories) {
-            if (subCat.subElements.find(se => se.id === overId)) {
+      // Drop sur un autre sous-élément - trouver sa sous-catégorie - protection pour les tableaux
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
+          for (const subCat of (element.subCategories || [])) {
+            if ((subCat.subElements || []).find(se => se.id === overId)) {
               if (sourceSubCatId && sourceSubCatId !== subCat.id) {
                 moveSubElement(active.id as string, sourceSubCatId, subCat.id);
               }
@@ -527,9 +527,9 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
       }
     }
 
-    // Pour toutes les categories existantes sans element
-    for (const category of domain.categories) {
-      if (category.elements.length === 0) {
+    // Pour toutes les categories existantes sans element - protection pour les tableaux
+    for (const category of (domain.categories || [])) {
+      if ((category.elements || []).length === 0) {
         addElement(category.id, 'Element 1');
         break; // Un seul a la fois pour eviter boucle infinie
       }
@@ -548,10 +548,10 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
   const handleAddSubCategory = () => {
     if (!newSubCategoryName.trim()) return;
 
-    // Trouver le premier element disponible dans toutes les categories
+    // Trouver le premier element disponible dans toutes les categories - protection pour les tableaux
     let targetElementId: string | null = null;
-    for (const category of domain.categories) {
-      if (category.elements.length > 0) {
+    for (const category of (domain.categories || [])) {
+      if ((category.elements || []).length > 0) {
         targetElementId = category.elements[0].id;
         break;
       }
@@ -559,8 +559,9 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
 
     if (!targetElementId) {
       // Aucun element disponible - creer d'abord un element dans la premiere categorie
-      if (domain.categories.length > 0) {
-        addElement(domain.categories[0].id, 'Element 1');
+      const categories = domain.categories || [];
+      if (categories.length > 0) {
+        addElement(categories[0].id, 'Element 1');
         // On ne peut pas ajouter la sous-categorie immediatement car l'element n'est pas encore cree
         // On garde le modal ouvert pour que l'utilisateur reessaie
         alert('Un element a ete cree automatiquement. Cliquez a nouveau pour ajouter la sous-categorie.');
@@ -691,12 +692,12 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
     setShowLinkModal(false);
   };
 
-  // Find subcategory ID for a given category and subcategory name
+  // Find subcategory ID for a given category and subcategory name - protection pour les tableaux
   const findSubCatId = (categoryId: string, subCatName: string): string | null => {
-    const category = domain.categories.find(c => c.id === categoryId);
+    const category = (domain.categories || []).find(c => c.id === categoryId);
     if (!category) return null;
-    for (const element of category.elements) {
-      const subCat = element.subCategories.find(sc => sc.name === subCatName);
+    for (const element of (category.elements || [])) {
+      const subCat = (element.subCategories || []).find(sc => sc.name === subCatName);
       if (subCat) return subCat.id;
     }
     return null;
