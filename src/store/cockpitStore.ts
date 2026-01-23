@@ -843,19 +843,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const newDomainId = generateId();
 
       // Dupliquer les catégories avec nouveaux IDs
-      const newCategories = domain.categories.map(category => {
+      const newCategories = (domain.categories || []).map(category => {
         const newCategoryId = generateId();
 
         // Dupliquer les éléments avec nouveaux IDs
-        const newElements = category.elements.map(element => {
+        const newElements = (category.elements || []).map(element => {
           const newElementId = generateId();
 
           // Dupliquer les sous-catégories avec nouveaux IDs
-          const newSubCategories = element.subCategories.map(subCategory => {
+          const newSubCategories = (element.subCategories || []).map(subCategory => {
             const newSubCategoryId = generateId();
 
             // Dupliquer les sous-éléments avec nouveaux IDs
-            const newSubElements = subCategory.subElements.map(subElement => ({
+            const newSubElements = (subCategory.subElements || []).map(subElement => ({
               ...subElement,
               id: generateId(),
               linkedGroupId: undefined, // Supprimer les liaisons
@@ -1014,8 +1014,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let categoryName = updates.name || 'Catégorie';
     const cockpit = get().currentCockpit;
     if (cockpit) {
-      for (const d of cockpit.domains) {
-        const cat = d.categories.find(c => c.id === categoryId);
+      for (const d of (cockpit.domains || [])) {
+        const cat = (d.categories || []).find(c => c.id === categoryId);
         if (cat) { categoryName = updates.name || cat.name; break; }
       }
     }
@@ -1027,7 +1027,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c =>
+            categories: (d.categories || []).map(c =>
               c.id === categoryId ? { ...c, ...updates } : c
             ),
           })),
@@ -1047,7 +1047,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.filter(c => c.id !== categoryId),
+            categories: (d.categories || []).filter(c => c.id !== categoryId),
           })),
           updatedAt: new Date().toISOString(),
         },
@@ -1064,7 +1064,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       if (!domain) return state;
 
       // Créer un map pour un accès rapide aux catégories par ID
-      const categoryMap = new Map(domain.categories.map(c => [c.id, c]));
+      const categoryMap = new Map((domain.categories || []).map(c => [c.id, c]));
 
       // Reconstruire le tableau des catégories dans le nouvel ordre
       const reorderedCategories = categoryIds
@@ -1076,7 +1076,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         .filter((c): c is Category => c !== null);
 
       // Ajouter les catégories qui n'étaient pas dans la liste (au cas où)
-      const missingCategories = domain.categories.filter(c => !categoryIds.includes(c.id));
+      const missingCategories = (domain.categories || []).filter(c => !categoryIds.includes(c.id));
       reorderedCategories.push(...missingCategories.map((c, index) => ({ ...c, order: reorderedCategories.length + index })));
 
       return {
@@ -1114,7 +1114,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => {
+            categories: (d.categories || []).map(c => {
               if (c.id !== categoryId) return c;
               const newOrder = c.elements.length;
               return {
@@ -1136,9 +1136,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let currentElement: Element | null = null;
     const cockpit = get().currentCockpit;
     if (cockpit) {
-      outer: for (const d of cockpit.domains) {
-        for (const c of d.categories) {
-          const el = c.elements.find(e => e.id === elementId);
+      outer: for (const d of (cockpit.domains || [])) {
+        for (const c of (d.categories || [])) {
+          const el = (c.elements || []).find(e => e.id === elementId);
           if (el) {
             elementName = updates.name || el.name;
             currentElement = el;
@@ -1155,9 +1155,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e =>
+              elements: (c.elements || []).map(e =>
                 e.id === elementId ? { ...e, ...updates } : e
               ),
             })),
@@ -1180,17 +1180,17 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             ...state.currentCockpit,
             domains: state.currentCockpit.domains.map(d => ({
               ...d,
-              categories: d.categories.map(c => ({
+              categories: (d.categories || []).map(c => ({
                 ...c,
-                elements: c.elements.map(e =>
+                elements: (c.elements || []).map(e =>
                   e.id === elementId 
                     ? { 
                         ...e, 
                         linkedGroupId: undefined,
                         // Délier aussi tous les sous-éléments
-                        subCategories: e.subCategories.map(sc => ({
+                        subCategories: (e.subCategories || []).map(sc => ({
                           ...sc,
-                          subElements: sc.subElements.map(se => ({
+                          subElements: (sc.subElements || []).map(se => ({
                             ...se,
                             linkedGroupId: undefined
                           }))
@@ -1232,8 +1232,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
         // Trouver et mettre à jour tous les éléments du même groupe
         for (const d of updatedCockpit.domains) {
-          for (const c of d.categories) {
-            for (const e of c.elements) {
+          for (const c of (d.categories || [])) {
+            for (const e of (c.elements || [])) {
               if (e.id !== elementId && e.linkedGroupId === linkedGroupId) {
                 // Appeler updateElement avec _propagating = true pour éviter la boucle infinie
                 get().updateElement(e.id, syncUpdates, true);
@@ -1253,9 +1253,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.filter(e => e.id !== elementId),
+              elements: (c.elements || []).filter(e => e.id !== elementId),
             })),
           })),
           updatedAt: new Date().toISOString(),
@@ -1271,9 +1271,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const cockpit = get().currentCockpit;
     let sourceElement: Element | null = null;
     if (cockpit) {
-      for (const d of cockpit.domains) {
-        for (const c of d.categories) {
-          const found = c.elements.find(e => e.id === elementId);
+      for (const d of (cockpit.domains || [])) {
+        for (const c of (d.categories || [])) {
+          const found = (c.elements || []).find(e => e.id === elementId);
           if (found) {
             sourceElement = found;
             break;
@@ -1299,9 +1299,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => {
+              elements: (c.elements || []).map(e => {
                 if (e.id !== elementId) return e;
                 const newOrder = e.subCategories.length;
                 return {
@@ -1323,11 +1323,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const updatedCockpit = get().currentCockpit;
       if (updatedCockpit) {
         for (const d of updatedCockpit.domains) {
-          for (const c of d.categories) {
-            for (const e of c.elements) {
+          for (const c of (d.categories || [])) {
+            for (const e of (c.elements || [])) {
               if (e.id !== elementId && e.linkedGroupId === linkedGroupId) {
                 // Vérifier que cette sous-catégorie n'existe pas déjà dans l'élément lié
-                const existingSubCat = e.subCategories.find(sc => sc.name === name);
+                const existingSubCat = (e.subCategories || []).find(sc => sc.name === name);
                 if (!existingSubCat) {
                   get().addSubCategory(e.id, name, orientation, true);
                 }
@@ -1346,10 +1346,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let parentElement: Element | null = null;
     const cockpit = get().currentCockpit;
     if (cockpit) {
-      outer: for (const d of cockpit.domains) {
-        for (const c of d.categories) {
-          for (const e of c.elements) {
-            const sc = e.subCategories.find(s => s.id === subCategoryId);
+      outer: for (const d of (cockpit.domains || [])) {
+        for (const c of (d.categories || [])) {
+          for (const e of (c.elements || [])) {
+            const sc = (e.subCategories || []).find(s => s.id === subCategoryId);
             if (sc) {
               subCatName = updates.name || sc.name;
               currentSubCategory = sc;
@@ -1368,11 +1368,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc =>
+                subCategories: (e.subCategories || []).map(sc =>
                   sc.id === subCategoryId ? { ...sc, ...updates } : sc
                 ),
               })),
@@ -1402,11 +1402,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
         // Trouver et mettre à jour les sous-catégories correspondantes dans les éléments liés
         for (const d of updatedCockpit.domains) {
-          for (const c of d.categories) {
-            for (const e of c.elements) {
+          for (const c of (d.categories || [])) {
+            for (const e of (c.elements || [])) {
               if (e.id !== parentElement.id && e.linkedGroupId === linkedGroupId) {
                 // Trouver la sous-catégorie correspondante par nom
-                const correspondingSubCat = e.subCategories.find(sc => sc.name === originalSubCatName);
+                const correspondingSubCat = (e.subCategories || []).find(sc => sc.name === originalSubCatName);
                 if (correspondingSubCat) {
                   get().updateSubCategory(correspondingSubCat.id, syncUpdates, true);
                 }
@@ -1426,11 +1426,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.filter(sc => sc.id !== subCategoryId),
+                subCategories: (e.subCategories || []).filter(sc => sc.id !== subCategoryId),
               })),
             })),
           })),
@@ -1450,8 +1450,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       let targetDomain: Domain | null = null;
 
       for (const domain of state.currentCockpit.domains) {
-        for (const category of domain.categories) {
-          const element = category.elements.find(e => e.id === elementId);
+        for (const category of (domain.categories || [])) {
+          const element = (category.elements || []).find(e => e.id === elementId);
           if (element) {
             targetElement = element;
             targetDomain = domain;
@@ -1464,7 +1464,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       if (!targetElement || !targetDomain) return state;
 
       // Créer un map pour un accès rapide aux sous-catégories par ID
-      const subCategoryMap = new Map(targetElement.subCategories.map(sc => [sc.id, sc]));
+      const subCategoryMap = new Map((targetElement.subCategories || []).map(sc => [sc.id, sc]));
 
       // Reconstruire le tableau des sous-catégories dans le nouvel ordre
       const reorderedSubCategories = subCategoryIds
@@ -1476,7 +1476,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         .filter((sc): sc is SubCategory => sc !== null);
 
       // Ajouter les sous-catégories qui n'étaient pas dans la liste (au cas où)
-      const missingSubCategories = targetElement.subCategories.filter(sc => !subCategoryIds.includes(sc.id));
+      const missingSubCategories = (targetElement.subCategories || []).filter(sc => !subCategoryIds.includes(sc.id));
       reorderedSubCategories.push(...missingSubCategories.map((sc, index) => ({ ...sc, order: reorderedSubCategories.length + index })));
 
       return {
@@ -1486,9 +1486,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             d.id === targetDomain!.id
               ? {
                 ...d,
-                categories: d.categories.map(c => ({
+                categories: (d.categories || []).map(c => ({
                   ...c,
-                  elements: c.elements.map(e =>
+                  elements: (c.elements || []).map(e =>
                     e.id === elementId
                       ? {
                         ...e,
@@ -1513,10 +1513,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let sourceElement: Element | null = null;
     let sourceSubCategory: SubCategory | null = null;
     if (cockpit) {
-      outer: for (const d of cockpit.domains) {
-        for (const c of d.categories) {
-          for (const e of c.elements) {
-            const sc = e.subCategories.find(s => s.id === subCategoryId);
+      outer: for (const d of (cockpit.domains || [])) {
+        for (const c of (d.categories || [])) {
+          for (const e of (c.elements || [])) {
+            const sc = (e.subCategories || []).find(s => s.id === subCategoryId);
             if (sc) {
               sourceElement = e;
               sourceSubCategory = sc;
@@ -1542,11 +1542,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc => {
+                subCategories: (e.subCategories || []).map(sc => {
                   if (sc.id !== subCategoryId) return sc;
                   const newOrder = sc.subElements.length;
                   return {
@@ -1570,14 +1570,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const updatedCockpit = get().currentCockpit;
       if (updatedCockpit) {
         for (const d of updatedCockpit.domains) {
-          for (const c of d.categories) {
-            for (const e of c.elements) {
+          for (const c of (d.categories || [])) {
+            for (const e of (c.elements || [])) {
               if (e.id !== sourceElement.id && e.linkedGroupId === linkedGroupId) {
                 // Trouver la sous-catégorie correspondante dans l'élément lié (par le nom)
-                const correspondingSubCat = e.subCategories.find(sc => sc.name === subCategoryName);
+                const correspondingSubCat = (e.subCategories || []).find(sc => sc.name === subCategoryName);
                 if (correspondingSubCat) {
                   // Vérifier que ce sous-élément n'existe pas déjà
-                  const existingSubEl = correspondingSubCat.subElements.find(se => se.name === name);
+                  const existingSubEl = (correspondingSubCat.subElements || []).find(se => se.name === name);
                   if (!existingSubEl) {
                     get().addSubElement(correspondingSubCat.id, name, true);
                   }
@@ -1596,11 +1596,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let currentSubElement: SubElement | null = null;
     const cockpit = get().currentCockpit;
     if (cockpit) {
-      outer: for (const d of cockpit.domains) {
-        for (const c of d.categories) {
-          for (const e of c.elements) {
-            for (const sc of e.subCategories) {
-              const se = sc.subElements.find(s => s.id === subElementId);
+      outer: for (const d of (cockpit.domains || [])) {
+        for (const c of (d.categories || [])) {
+          for (const e of (c.elements || [])) {
+            for (const sc of (e.subCategories || [])) {
+              const se = (sc.subElements || []).find(s => s.id === subElementId);
               if (se) {
                 subElName = updates.name || se.name;
                 currentSubElement = se;
@@ -1619,13 +1619,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc => ({
+                subCategories: (e.subCategories || []).map(sc => ({
                   ...sc,
-                  subElements: sc.subElements.map(se =>
+                  subElements: (sc.subElements || []).map(se =>
                     se.id === subElementId ? { ...se, ...updates } : se
                   ),
                 })),
@@ -1649,13 +1649,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             ...state.currentCockpit,
             domains: state.currentCockpit.domains.map(d => ({
               ...d,
-              categories: d.categories.map(c => ({
+              categories: (d.categories || []).map(c => ({
                 ...c,
-                elements: c.elements.map(e => ({
+                elements: (c.elements || []).map(e => ({
                   ...e,
-                  subCategories: e.subCategories.map(sc => ({
+                  subCategories: (e.subCategories || []).map(sc => ({
                     ...sc,
-                    subElements: sc.subElements.map(se =>
+                    subElements: (sc.subElements || []).map(se =>
                       se.id === subElementId ? { ...se, linkedGroupId: undefined } : se
                     ),
                   })),
@@ -1690,10 +1690,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         if (currentSubElement.linkedGroupId) {
           const linkedGroupId = updates.linkedGroupId || currentSubElement.linkedGroupId;
           for (const d of updatedCockpit.domains) {
-            for (const c of d.categories) {
-              for (const e of c.elements) {
-                for (const sc of e.subCategories) {
-                  for (const se of sc.subElements) {
+            for (const c of (d.categories || [])) {
+              for (const e of (c.elements || [])) {
+                for (const sc of (e.subCategories || [])) {
+                  for (const se of (sc.subElements || [])) {
                     if (se.id !== subElementId && se.linkedGroupId === linkedGroupId) {
                       get().updateSubElement(se.id, syncUpdates, true);
                     }
@@ -1708,9 +1708,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         // Trouver l'élément parent du sous-élément actuel
         let parentElement: Element | null = null;
         for (const d of updatedCockpit.domains) {
-          for (const c of d.categories) {
-            for (const e of c.elements) {
-              for (const sc of e.subCategories) {
+          for (const c of (d.categories || [])) {
+            for (const e of (c.elements || [])) {
+              for (const sc of (e.subCategories || [])) {
                 if (sc.subElements.some(se => se.id === subElementId)) {
                   parentElement = e;
                   break;
@@ -1727,12 +1727,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         if (parentElement?.linkedGroupId) {
           const subElementName = currentSubElement.name.toLowerCase();
           for (const d of updatedCockpit.domains) {
-            for (const c of d.categories) {
-              for (const e of c.elements) {
+            for (const c of (d.categories || [])) {
+              for (const e of (c.elements || [])) {
                 // Trouver les éléments liés au même groupe (mais pas le même élément)
                 if (e.id !== parentElement.id && e.linkedGroupId === parentElement.linkedGroupId) {
-                  for (const sc of e.subCategories) {
-                    for (const se of sc.subElements) {
+                  for (const sc of (e.subCategories || [])) {
+                    for (const se of (sc.subElements || [])) {
                       // Trouver le sous-élément de même nom et le mettre à jour
                       if (se.name.toLowerCase() === subElementName && se.id !== subElementId) {
                         get().updateSubElement(se.id, syncUpdates, true);
@@ -1756,13 +1756,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc => ({
+                subCategories: (e.subCategories || []).map(sc => ({
                   ...sc,
-                  subElements: sc.subElements.filter(se => se.id !== subElementId),
+                  subElements: (sc.subElements || []).filter(se => se.id !== subElementId),
                 })),
               })),
             })),
@@ -1784,9 +1784,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       // Trouver l'élément à déplacer dans tous les domaines
       for (const domain of state.currentCockpit.domains) {
-        for (const category of domain.categories) {
+        for (const category of (domain.categories || [])) {
           if (category.id === fromCategoryId) {
-            const element = category.elements.find(e => e.id === elementId);
+            const element = (category.elements || []).find(e => e.id === elementId);
             if (element) {
               elementToMove = element;
               break;
@@ -1804,12 +1804,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => {
+            categories: (d.categories || []).map(c => {
               if (c.id === fromCategoryId) {
                 // Retirer l'élément
                 return {
                   ...c,
-                  elements: c.elements.filter(e => e.id !== elementId),
+                  elements: (c.elements || []).filter(e => e.id !== elementId),
                 };
               }
               if (c.id === toCategoryId) {
@@ -1840,11 +1840,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       // Trouver le sous-élément à déplacer dans tous les domaines
       for (const domain of state.currentCockpit.domains) {
-        for (const category of domain.categories) {
-          for (const element of category.elements) {
-            for (const subCategory of element.subCategories) {
+        for (const category of (domain.categories || [])) {
+          for (const element of (category.elements || [])) {
+            for (const subCategory of (element.subCategories || [])) {
               if (subCategory.id === fromSubCategoryId) {
-                const subElement = subCategory.subElements.find(se => se.id === subElementId);
+                const subElement = (subCategory.subElements || []).find(se => se.id === subElementId);
                 if (subElement) {
                   subElementToMove = subElement;
                   break;
@@ -1866,16 +1866,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc => {
+                subCategories: (e.subCategories || []).map(sc => {
                   if (sc.id === fromSubCategoryId) {
                     // Retirer le sous-élément
                     return {
                       ...sc,
-                      subElements: sc.subElements.filter(se => se.id !== subElementId),
+                      subElements: (sc.subElements || []).filter(se => se.id !== subElementId),
                     };
                   }
                   if (sc.id === toSubCategoryId) {
@@ -1907,7 +1907,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => {
+            categories: (d.categories || []).map(c => {
               if (c.id !== categoryId) return c;
 
               const elements = [...c.elements];
@@ -1954,11 +1954,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc => {
+                subCategories: (e.subCategories || []).map(sc => {
                   if (sc.id !== subCategoryId) return sc;
 
                   const subElements = [...sc.subElements];
@@ -2170,8 +2170,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     // Trouver l'élément à cloner
     for (const domain of state.currentCockpit.domains) {
-      for (const category of domain.categories) {
-        const element = category.elements.find(e => e.id === elementId);
+      for (const category of (domain.categories || [])) {
+        const element = (category.elements || []).find(e => e.id === elementId);
         if (element) {
           elementToClone = element;
           categoryId = category.id;
@@ -2208,7 +2208,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         ...s.currentCockpit,
         domains: s.currentCockpit.domains.map(d => ({
           ...d,
-          categories: d.categories.map(c => {
+          categories: (d.categories || []).map(c => {
             if (c.id !== categoryId) return c;
             const newOrder = c.elements.length;
             return {
@@ -2238,9 +2238,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let elementToDuplicate: Element | null = null;
     let categoryId: string | null = null;
 
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        const element = category.elements.find(e => e.id === elementId);
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        const element = (category.elements || []).find(e => e.id === elementId);
         if (element) {
           elementToDuplicate = element;
           categoryId = category.id;
@@ -2266,10 +2266,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     };
 
     // Générer de nouveaux IDs pour les sous-catégories et sous-éléments
-    newElement.subCategories = newElement.subCategories.map((sc: SubCategory) => ({
+    newElement.subCategories = (newElement.subCategories || []).map((sc: SubCategory) => ({
       ...sc,
       id: generateId(),
-      subElements: sc.subElements.map((se: SubElement) => ({
+      subElements: (sc.subElements || []).map((se: SubElement) => ({
         ...se,
         id: generateId(),
         linkedGroupId: se.linkedGroupId || undefined, // Conserver ou non les liaisons des sous-éléments
@@ -2284,13 +2284,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => {
+            categories: (d.categories || []).map(c => {
               if (c.id !== categoryId) return c;
               const newOrder = c.elements.length;
               return {
                 ...c,
                 elements: [
-                  ...c.elements.map(e =>
+                  ...(c.elements || []).map(e =>
                     e.id === elementId
                       ? { ...e, linkedGroupId } // Mettre à jour l'élément d'origine
                       : e
@@ -2317,11 +2317,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let subElementToDuplicate: SubElement | null = null;
     let subCategoryId: string | null = null;
 
-    outer: for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
-          for (const subCategory of element.subCategories) {
-            const subElement = subCategory.subElements.find(se => se.id === subElementId);
+    outer: for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
+          for (const subCategory of (element.subCategories || [])) {
+            const subElement = (subCategory.subElements || []).find(se => se.id === subElementId);
             if (subElement) {
               subElementToDuplicate = subElement;
               subCategoryId = subCategory.id;
@@ -2354,17 +2354,17 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc => {
+                subCategories: (e.subCategories || []).map(sc => {
                   if (sc.id !== subCategoryId) return sc;
                   const newOrder = sc.subElements.length;
                   return {
                     ...sc,
                     subElements: [
-                      ...sc.subElements.map(se =>
+                      ...(sc.subElements || []).map(se =>
                         se.id === subElementId
                           ? { ...se, linkedGroupId } // Mettre à jour l'original
                           : se
@@ -2833,9 +2833,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const results: Array<{ element: Element; domainName: string; categoryName: string }> = [];
     const normalizedName = name.trim().toLowerCase();
 
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
           if (element.name.trim().toLowerCase() === normalizedName) {
             results.push({
               element,
@@ -2858,11 +2858,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const results: Array<{ subElement: SubElement; domainName: string; categoryName: string; elementName: string; subCategoryName: string }> = [];
     const normalizedName = name.trim().toLowerCase();
 
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
-          for (const subCategory of element.subCategories) {
-            for (const subElement of subCategory.subElements) {
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
+          for (const subCategory of (element.subCategories || [])) {
+            for (const subElement of (subCategory.subElements || [])) {
               if (subElement.name.trim().toLowerCase() === normalizedName) {
                 results.push({
                   subElement,
@@ -2890,13 +2890,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let sourceElement: Element | null = null;
     let targetElement: Element | null = null;
 
-    for (const d of cockpit.domains) {
-      for (const c of d.categories) {
-        const foundSource = c.elements.find(e => e.id === linkedGroupId || e.linkedGroupId === linkedGroupId);
+    for (const d of (cockpit.domains || [])) {
+      for (const c of (d.categories || [])) {
+        const foundSource = (c.elements || []).find(e => e.id === linkedGroupId || e.linkedGroupId === linkedGroupId);
         if (foundSource) {
           sourceElement = foundSource;
         }
-        const foundTarget = c.elements.find(e => e.id === elementId);
+        const foundTarget = (c.elements || []).find(e => e.id === elementId);
         if (foundTarget) {
           targetElement = foundTarget;
         }
@@ -2939,20 +2939,20 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => {
+              elements: (c.elements || []).map(e => {
                 // Traiter l'élément source
                 if (e.id === sourceElement!.id) {
                   // Ajouter les sous-catégories de target qui n'existent pas dans source
-                  const existingSubCatNames = e.subCategories.map(sc => sc.name.toLowerCase());
+                  const existingSubCatNames = (e.subCategories || []).map(sc => sc.name.toLowerCase());
                   const newSubCategories = targetElement!.subCategories
                     .filter(sc => !existingSubCatNames.includes(sc.name.toLowerCase()))
                     .map(sc => ({
                       ...sc,
                       id: generateId(),
                       elementId: e.id,
-                      subElements: sc.subElements.map(se => ({
+                      subElements: (sc.subElements || []).map(se => ({
                         ...se,
                         id: generateId(),
                         subCategoryId: '', // Sera mis à jour
@@ -2962,19 +2962,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
                   // Mettre à jour les subCategoryId des sous-éléments
                   newSubCategories.forEach(sc => {
-                    sc.subElements = sc.subElements.map(se => ({
+                    sc.subElements = (sc.subElements || []).map(se => ({
                       ...se,
                       subCategoryId: sc.id,
                     }));
                   });
 
                   // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
-                  const mergedSubCategories = e.subCategories.map(sc => {
-                    const matchingTargetSubCat = targetElement!.subCategories.find(
+                  const mergedSubCategories = (e.subCategories || []).map(sc => {
+                    const matchingTargetSubCat = (targetElement!.subCategories || []).find(
                       tsc => tsc.name.toLowerCase() === sc.name.toLowerCase()
                     );
                     if (matchingTargetSubCat) {
-                      const existingSubElNames = sc.subElements.map(se => se.name.toLowerCase());
+                      const existingSubElNames = (sc.subElements || []).map(se => se.name.toLowerCase());
                       const newSubElements = matchingTargetSubCat.subElements
                         .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
                         .map(se => ({
@@ -3000,14 +3000,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                 // Traiter l'élément cible
                 if (e.id === targetElement!.id) {
                   // Ajouter les sous-catégories de source qui n'existent pas dans target
-                  const existingSubCatNames = e.subCategories.map(sc => sc.name.toLowerCase());
+                  const existingSubCatNames = (e.subCategories || []).map(sc => sc.name.toLowerCase());
                   const newSubCategories = sourceElement!.subCategories
                     .filter(sc => !existingSubCatNames.includes(sc.name.toLowerCase()))
                     .map(sc => ({
                       ...sc,
                       id: generateId(),
                       elementId: e.id,
-                      subElements: sc.subElements.map(se => ({
+                      subElements: (sc.subElements || []).map(se => ({
                         ...se,
                         id: generateId(),
                         subCategoryId: '', // Sera mis à jour
@@ -3017,19 +3017,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
                   // Mettre à jour les subCategoryId des sous-éléments
                   newSubCategories.forEach(sc => {
-                    sc.subElements = sc.subElements.map(se => ({
+                    sc.subElements = (sc.subElements || []).map(se => ({
                       ...se,
                       subCategoryId: sc.id,
                     }));
                   });
 
                   // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
-                  const mergedSubCategories = e.subCategories.map(sc => {
-                    const matchingSourceSubCat = sourceElement!.subCategories.find(
+                  const mergedSubCategories = (e.subCategories || []).map(sc => {
+                    const matchingSourceSubCat = (sourceElement!.subCategories || []).find(
                       ssc => ssc.name.toLowerCase() === sc.name.toLowerCase()
                     );
                     if (matchingSourceSubCat) {
-                      const existingSubElNames = sc.subElements.map(se => se.name.toLowerCase());
+                      const existingSubElNames = (sc.subElements || []).map(se => se.name.toLowerCase());
                       const newSubElements = matchingSourceSubCat.subElements
                         .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
                         .map(se => ({
@@ -3070,21 +3070,21 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         let updatedTargetElement: Element | null = null;
         
         for (const d of updatedCockpit.domains) {
-          for (const c of d.categories) {
-            const foundSource = c.elements.find(e => e.id === sourceElement!.id);
+          for (const c of (d.categories || [])) {
+            const foundSource = (c.elements || []).find(e => e.id === sourceElement!.id);
             if (foundSource) updatedSourceElement = foundSource;
-            const foundTarget = c.elements.find(e => e.id === targetElement!.id);
+            const foundTarget = (c.elements || []).find(e => e.id === targetElement!.id);
             if (foundTarget) updatedTargetElement = foundTarget;
           }
         }
 
         if (updatedSourceElement && updatedTargetElement) {
           // Parcourir les sous-éléments de même nom et les lier
-          for (const sourceSc of updatedSourceElement.subCategories) {
-            for (const sourceSe of sourceSc.subElements) {
+          for (const sourceSc of (updatedSourceElement.subCategories || [])) {
+            for (const sourceSe of (sourceSc.subElements || [])) {
               // Trouver le sous-élément de même nom dans target
-              for (const targetSc of updatedTargetElement.subCategories) {
-                const matchingSe = targetSc.subElements.find(
+              for (const targetSc of (updatedTargetElement.subCategories || [])) {
+                const matchingSe = (targetSc.subElements || []).find(
                   se => se.name.toLowerCase() === sourceSe.name.toLowerCase()
                 );
                 if (matchingSe) {
@@ -3123,11 +3123,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     // Trouver le sous-élément source
     let sourceSubElement: SubElement | null = null;
-    outer: for (const d of cockpit.domains) {
-      for (const c of d.categories) {
-        for (const e of c.elements) {
-          for (const sc of e.subCategories) {
-            const found = sc.subElements.find(se => se.id === linkedGroupId || se.linkedGroupId === linkedGroupId);
+    outer: for (const d of (cockpit.domains || [])) {
+      for (const c of (d.categories || [])) {
+        for (const e of (c.elements || [])) {
+          for (const sc of (e.subCategories || [])) {
+            const found = (sc.subElements || []).find(se => se.id === linkedGroupId || se.linkedGroupId === linkedGroupId);
             if (found) {
               sourceSubElement = found;
               break outer;
@@ -3167,17 +3167,17 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e =>
+              elements: (c.elements || []).map(e =>
                 e.id === elementId 
                   ? { 
                       ...e, 
                       linkedGroupId: undefined,
                       // Délier aussi tous les sous-éléments
-                      subCategories: e.subCategories.map(sc => ({
+                      subCategories: (e.subCategories || []).map(sc => ({
                         ...sc,
-                        subElements: sc.subElements.map(se => ({
+                        subElements: (sc.subElements || []).map(se => ({
                           ...se,
                           linkedGroupId: undefined
                         }))
@@ -3203,13 +3203,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc => ({
+                subCategories: (e.subCategories || []).map(sc => ({
                   ...sc,
-                  subElements: sc.subElements.map(se =>
+                  subElements: (sc.subElements || []).map(se =>
                     se.id === subElementId ? { ...se, linkedGroupId: undefined } : se
                   ),
                 })),
@@ -3230,9 +3230,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     const results: Array<{ element: Element; domainId: string; domainName: string; categoryId: string; categoryName: string }> = [];
 
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
           results.push({
             element,
             domainId: domain.id,
@@ -3254,11 +3254,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     const results: Array<{ subElement: SubElement; domainId: string; domainName: string; categoryId: string; categoryName: string; elementId: string; elementName: string; subCategoryId: string; subCategoryName: string }> = [];
 
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
-          for (const subCategory of element.subCategories) {
-            for (const subElement of subCategory.subElements) {
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
+          for (const subCategory of (element.subCategories || [])) {
+            for (const subElement of (subCategory.subElements || [])) {
               results.push({
                 subElement,
                 domainId: domain.id,
@@ -3286,9 +3286,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     // Trouver l'élément et son linkedGroupId
     let targetElement: Element | null = null;
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        const el = category.elements.find(e => e.id === elementId);
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        const el = (category.elements || []).find(e => e.id === elementId);
         if (el) {
           targetElement = el;
           break;
@@ -3302,9 +3302,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     // Trouver tous les éléments avec le même linkedGroupId (sauf l'élément lui-même)
     const results: Array<{ element: Element; domainId: string; domainName: string; categoryId: string; categoryName: string }> = [];
 
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
           if (element.linkedGroupId === targetElement.linkedGroupId && element.id !== elementId) {
             results.push({
               element,
@@ -3328,11 +3328,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     // Trouver le sous-élément et son linkedGroupId
     let targetSubElement: SubElement | null = null;
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
-          for (const subCategory of element.subCategories) {
-            const subEl = subCategory.subElements.find(se => se.id === subElementId);
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
+          for (const subCategory of (element.subCategories || [])) {
+            const subEl = (subCategory.subElements || []).find(se => se.id === subElementId);
             if (subEl) {
               targetSubElement = subEl;
               break;
@@ -3350,11 +3350,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     // Trouver tous les sous-éléments avec le même linkedGroupId (sauf le sous-élément lui-même)
     const results: Array<{ subElement: SubElement; domainId: string; domainName: string; categoryId: string; categoryName: string; elementId: string; elementName: string; subCategoryId: string; subCategoryName: string }> = [];
 
-    for (const domain of cockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
-          for (const subCategory of element.subCategories) {
-            for (const subElement of subCategory.subElements) {
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
+          for (const subCategory of (element.subCategories || [])) {
+            for (const subElement of (subCategory.subElements || [])) {
               if (subElement.linkedGroupId === targetSubElement.linkedGroupId && subElement.id !== subElementId) {
                 results.push({
                   subElement,
@@ -3386,9 +3386,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let elementToMove: Element | null = null;
     let sourceCategoryId: string | null = null;
 
-    for (const d of cockpit.domains) {
-      for (const c of d.categories) {
-        const el = c.elements.find(e => e.id === elementId);
+    for (const d of (cockpit.domains || [])) {
+      for (const c of (d.categories || [])) {
+        const el = (c.elements || []).find(e => e.id === elementId);
         if (el) {
           elementToMove = el;
           sourceCategoryId = c.id;
@@ -3407,10 +3407,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => {
+            categories: (d.categories || []).map(c => {
               if (c.id === sourceCategoryId) {
                 // Retirer de la source
-                return { ...c, elements: c.elements.filter(e => e.id !== elementId) };
+                return { ...c, elements: (c.elements || []).filter(e => e.id !== elementId) };
               }
               if (c.id === targetCategoryId) {
                 // Ajouter à la destination
@@ -3436,11 +3436,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     let subElementToMove: SubElement | null = null;
     let sourceSubCategoryId: string | null = null;
 
-    outer: for (const d of cockpit.domains) {
-      for (const c of d.categories) {
-        for (const e of c.elements) {
-          for (const sc of e.subCategories) {
-            const se = sc.subElements.find(s => s.id === subElementId);
+    outer: for (const d of (cockpit.domains || [])) {
+      for (const c of (d.categories || [])) {
+        for (const e of (c.elements || [])) {
+          for (const sc of (e.subCategories || [])) {
+            const se = (sc.subElements || []).find(s => s.id === subElementId);
             if (se) {
               subElementToMove = se;
               sourceSubCategoryId = sc.id;
@@ -3460,14 +3460,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => ({
+              elements: (c.elements || []).map(e => ({
                 ...e,
-                subCategories: e.subCategories.map(sc => {
+                subCategories: (e.subCategories || []).map(sc => {
                   if (sc.id === sourceSubCategoryId) {
                     // Retirer de la source
-                    return { ...sc, subElements: sc.subElements.filter(se => se.id !== subElementId) };
+                    return { ...sc, subElements: (sc.subElements || []).filter(se => se.id !== subElementId) };
                   }
                   if (sc.id === targetSubCategoryId) {
                     // Ajouter à la destination
@@ -3495,11 +3495,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     // Trouver l'élément source et l'élément cible
     let sourceElement: Element | null = null;
     let targetElement: Element | null = null;
-    for (const d of cockpit.domains) {
-      for (const c of d.categories) {
-        const foundSource = c.elements.find(e => e.id === sourceElementId);
+    for (const d of (cockpit.domains || [])) {
+      for (const c of (d.categories || [])) {
+        const foundSource = (c.elements || []).find(e => e.id === sourceElementId);
         if (foundSource) sourceElement = foundSource;
-        const foundTarget = c.elements.find(e => e.id === targetElementId);
+        const foundTarget = (c.elements || []).find(e => e.id === targetElementId);
         if (foundTarget) targetElement = foundTarget;
       }
     }
@@ -3530,12 +3530,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           ...state.currentCockpit,
           domains: state.currentCockpit.domains.map(d => ({
             ...d,
-            categories: d.categories.map(c => ({
+            categories: (d.categories || []).map(c => ({
               ...c,
-              elements: c.elements.map(e => {
+              elements: (c.elements || []).map(e => {
                 // Traiter l'élément cible
                 if (e.id === targetElementId) {
-                  const existingSubCatNames = e.subCategories.map(sc => sc.name.toLowerCase());
+                  const existingSubCatNames = (e.subCategories || []).map(sc => sc.name.toLowerCase());
                   
                   // Créer les nouvelles sous-catégories (celles de source qui n'existent pas dans target)
                   const newSubCategories = sourceElement!.subCategories
@@ -3546,7 +3546,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                         ...sc,
                         id: newSubCatId,
                         elementId: targetElementId,
-                        subElements: sc.subElements.map(se => ({
+                        subElements: (sc.subElements || []).map(se => ({
                           ...se,
                           id: generateId(),
                           subCategoryId: newSubCatId,
@@ -3556,12 +3556,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                     });
 
                   // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
-                  const mergedSubCategories = e.subCategories.map(sc => {
-                    const matchingSourceSubCat = sourceElement!.subCategories.find(
+                  const mergedSubCategories = (e.subCategories || []).map(sc => {
+                    const matchingSourceSubCat = (sourceElement!.subCategories || []).find(
                       ssc => ssc.name.toLowerCase() === sc.name.toLowerCase()
                     );
                     if (matchingSourceSubCat) {
-                      const existingSubElNames = sc.subElements.map(se => se.name.toLowerCase());
+                      const existingSubElNames = (sc.subElements || []).map(se => se.name.toLowerCase());
                       const newSubElements = matchingSourceSubCat.subElements
                         .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
                         .map(se => ({
@@ -3586,7 +3586,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
                 // Traiter l'élément source (y ajouter les sous-catégories de target qui n'existent pas)
                 if (e.id === sourceElementId) {
-                  const existingSubCatNames = e.subCategories.map(sc => sc.name.toLowerCase());
+                  const existingSubCatNames = (e.subCategories || []).map(sc => sc.name.toLowerCase());
                   
                   // Créer les nouvelles sous-catégories (celles de target qui n'existent pas dans source)
                   const newSubCategories = targetElement!.subCategories
@@ -3597,7 +3597,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                         ...sc,
                         id: newSubCatId,
                         elementId: sourceElementId,
-                        subElements: sc.subElements.map(se => ({
+                        subElements: (sc.subElements || []).map(se => ({
                           ...se,
                           id: generateId(),
                           subCategoryId: newSubCatId,
@@ -3607,12 +3607,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                     });
 
                   // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
-                  const mergedSubCategories = e.subCategories.map(sc => {
-                    const matchingTargetSubCat = targetElement!.subCategories.find(
+                  const mergedSubCategories = (e.subCategories || []).map(sc => {
+                    const matchingTargetSubCat = (targetElement!.subCategories || []).find(
                       tsc => tsc.name.toLowerCase() === sc.name.toLowerCase()
                     );
                     if (matchingTargetSubCat) {
-                      const existingSubElNames = sc.subElements.map(se => se.name.toLowerCase());
+                      const existingSubElNames = (sc.subElements || []).map(se => se.name.toLowerCase());
                       const newSubElements = matchingTargetSubCat.subElements
                         .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
                         .map(se => ({
@@ -3653,11 +3653,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     // Trouver le sous-élément source
     let sourceSubElement: SubElement | null = null;
-    outer: for (const d of cockpit.domains) {
-      for (const c of d.categories) {
-        for (const e of c.elements) {
-          for (const sc of e.subCategories) {
-            const found = sc.subElements.find(se => se.id === sourceSubElementId);
+    outer: for (const d of (cockpit.domains || [])) {
+      for (const c of (d.categories || [])) {
+        for (const e of (c.elements || [])) {
+          for (const sc of (e.subCategories || [])) {
+            const found = (sc.subElements || []).find(se => se.id === sourceSubElementId);
             if (found) {
               sourceSubElement = found;
               break outer;
