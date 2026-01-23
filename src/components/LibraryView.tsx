@@ -148,7 +148,7 @@ export default function LibraryView({ cockpit }: LibraryViewProps) {
         return a.name.localeCompare(b.name);
       });
       result.push({
-        zone: { id: 'unzoned', name: 'Sans zone', icon: 'HelpOutline' } as Zone,
+        zone: { id: 'unzoned', name: 'Sans zone', icon: 'Block' } as Zone,
         templates: unzonedTemplates,
       });
     }

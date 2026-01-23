@@ -1782,7 +1782,7 @@ export default function AIPromptInput() {
           <div className="px-3 py-2 border-t border-slate-700 bg-slate-800/50">
             <div className="flex items-center gap-2 text-sm">
               <MuiIcon 
-                name={attachedFile.name.toLowerCase().endsWith('.pdf') ? 'FileText' : 'FileSpreadsheet'} 
+                name={attachedFile.name.toLowerCase().endsWith('.pdf') ? 'PictureAsPdf' : 'TableChart'} 
                 size={16} 
                 className={attachedFile.name.toLowerCase().endsWith('.pdf') ? 'text-red-400' : 'text-blue-400'} 
               />

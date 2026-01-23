@@ -12,10 +12,10 @@ import StatusSummary, { formatLastUpdate } from './StatusSummary';
 
 // Liste des icônes populaires pour les points de carte
 const POPULAR_MAP_ICONS = [
-  'Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Building2',
-  'MapPin', 'Navigation', 'Truck', 'Package', 'ShoppingCart', 'Users',
-  'Server', 'Database', 'Wifi', 'Radio', 'Cpu', 'HardDrive',
-  'AlertTriangle', 'Shield', 'Lock', 'Key', 'Eye', 'Camera',
+  'Store', 'Business', 'Factory', 'Warehouse', 'Home', 'Domain',
+  'Place', 'NearMe', 'LocalShipping', 'Inventory', 'ShoppingCart', 'People',
+  'Dns', 'Storage', 'Wifi', 'Radio', 'Memory', 'SdStorage',
+  'Warning', 'Shield', 'Lock', 'Key', 'Visibility', 'PhotoCamera',
 ];
 
 // Ordre de priorité des statuts (du plus critique au moins critique)
@@ -1593,7 +1593,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             if (!pos) return null;
 
             const colors = STATUS_COLORS[point.status] || STATUS_COLORS.ok;
-            const iconName = point.icon || 'MapPin';
+            const iconName = point.icon || 'Place';
             const hasLinkedElement = !!point.elementId;
 
             // Taille relative à l'image de la carte (comme BackgroundView qui utilise les dimensions définies)

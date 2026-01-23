@@ -11,16 +11,16 @@ interface DataSourceManagerProps {
 }
 
 const DATA_SOURCE_TYPES: Array<{ value: DataSourceType; label: string; icon: string }> = [
-  { value: 'excel', label: 'Excel', icon: 'FileSpreadsheet' },
-  { value: 'csv', label: 'CSV', icon: 'FileText' },
-  { value: 'json', label: 'JSON', icon: 'FileJson' },
+  { value: 'excel', label: 'Excel', icon: 'TableChart' },
+  { value: 'csv', label: 'CSV', icon: 'Description' },
+  { value: 'json', label: 'JSON', icon: 'DataObject' },
   { value: 'api', label: 'API', icon: 'Cloud' },
   { value: 'database', label: 'Base de données', icon: 'Storage' },
   { value: 'email', label: 'E-mail', icon: 'Mail' },
   { value: 'supervision', label: 'Supervision', icon: 'Assessment' },
   { value: 'hypervision', label: 'Hypervision', icon: 'Layers' },
-  { value: 'observability', label: 'Observabilité', icon: 'Eye' },
-  { value: 'other', label: 'Autre', icon: 'More' },
+  { value: 'observability', label: 'Observabilité', icon: 'Visibility' },
+  { value: 'other', label: 'Autre', icon: 'MoreHoriz' },
 ];
 
 const generateId = () => crypto.randomUUID();

@@ -2300,11 +2300,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[element.status]?.hex || '#9E9E9E' }} />
                   </button>
                   {[
-                    'Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Building2',
-                    'MapPin', 'Navigation', 'Truck', 'Package', 'ShoppingCart', 'Users',
-                    'Server', 'Database', 'Wifi', 'Radio', 'Cpu', 'HardDrive',
-                    'AlertTriangle', 'Shield', 'Lock', 'Key', 'Eye', 'Camera',
-                    'Zap', 'Activity', 'Thermometer', 'Droplet', 'Wind', 'Sun',
+                    'Store', 'Business', 'Factory', 'Warehouse', 'Home', 'Domain',
+                    'Place', 'NearMe', 'LocalShipping', 'Inventory', 'ShoppingCart', 'People',
+                    'Dns', 'Storage', 'Wifi', 'Radio', 'Memory', 'SdStorage',
+                    'Warning', 'Shield', 'Lock', 'Key', 'Visibility', 'PhotoCamera',
+                    'Bolt', 'Timeline', 'Thermostat', 'WaterDrop', 'Air', 'WbSunny',
                   ].map((iconName) => (
                     <button
                       key={iconName}
@@ -2434,11 +2434,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   <label className="block text-sm text-[#64748B] mb-2">Icône du point</label>
                   <div className="flex flex-wrap gap-2 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] max-h-32 overflow-y-auto">
                     {[
-                      'Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Building2',
-                      'MapPin', 'Navigation', 'Truck', 'Package', 'ShoppingCart', 'Users',
-                      'Server', 'Database', 'Wifi', 'Radio', 'Cpu', 'HardDrive',
-                      'AlertTriangle', 'Shield', 'Lock', 'Key', 'Eye', 'Camera',
-                      'Zap', 'Activity', 'Thermometer', 'Droplet', 'Wind', 'Sun',
+                      'Store', 'Business', 'Factory', 'Warehouse', 'Home', 'Domain',
+                      'Place', 'NearMe', 'LocalShipping', 'Inventory', 'ShoppingCart', 'People',
+                      'Dns', 'Storage', 'Wifi', 'Radio', 'Memory', 'SdStorage',
+                      'Warning', 'Shield', 'Lock', 'Key', 'Visibility', 'PhotoCamera',
+                      'Bolt', 'Timeline', 'Thermostat', 'WaterDrop', 'Air', 'WbSunny',
                     ].map((iconName) => (
                       <button
                         key={iconName}

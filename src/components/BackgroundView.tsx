@@ -14,11 +14,11 @@ const STATUS_PRIORITY: Record<TileStatus, number> = STATUS_PRIORITY_MAP;
 
 // Icônes populaires pour les éléments
 const POPULAR_ICONS = [
-  'Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Building2',
-  'MapPin', 'Navigation', 'Truck', 'Package', 'ShoppingCart', 'Users',
-  'Server', 'Database', 'Wifi', 'Radio', 'Cpu', 'HardDrive',
-  'AlertTriangle', 'Shield', 'Lock', 'Key', 'Eye', 'Camera',
-  'Zap', 'Activity', 'Thermometer', 'Droplet', 'Wind', 'Sun',
+  'Store', 'Business', 'Factory', 'Warehouse', 'Home', 'Domain',
+  'Place', 'NearMe', 'LocalShipping', 'Inventory', 'ShoppingCart', 'People',
+  'Dns', 'Storage', 'Wifi', 'Radio', 'Memory', 'SdStorage',
+  'Warning', 'Shield', 'Lock', 'Key', 'Visibility', 'PhotoCamera',
+  'Bolt', 'Timeline', 'Thermostat', 'WaterDrop', 'Air', 'WbSunny',
 ];
 
 // Interface pour un cluster d'éléments

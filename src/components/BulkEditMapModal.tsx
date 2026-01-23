@@ -167,7 +167,7 @@ function BulkEditMapRow({ element, statuses, popularIcons, onUpdate }: BulkEditM
           onClick={() => setShowIconPicker(!showIconPicker)}
           className="w-full px-2 py-1 border border-[#E2E8F0] rounded flex items-center justify-center hover:bg-[#F5F7FA]"
         >
-          <MuiIcon name={element.icon || 'MapPin'} size={16} className="text-[#1E3A5F]" />
+          <MuiIcon name={element.icon || 'Place'} size={16} className="text-[#1E3A5F]" />
         </button>
         {showIconPicker && (
           <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E2E8F0] rounded-lg shadow-lg p-2 grid grid-cols-5 gap-1 w-40">
