@@ -132,9 +132,10 @@ export default function StudioPage() {
     };
   }, [enableGlobalContextMenu, disableGlobalContextMenu]);
 
-  // Activer/désactiver l'aide au survol selon l'option du cockpit
+  // Activer/désactiver l'aide au survol selon l'option du cockpit (activé par défaut)
   useEffect(() => {
-    if (currentCockpit?.showHelpOnHover) {
+    // Par défaut (undefined), l'aide au survol est activée
+    if (currentCockpit?.showHelpOnHover !== false) {
       enableHoverHelp();
     } else {
       disableHoverHelp();
