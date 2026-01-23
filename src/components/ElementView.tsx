@@ -346,9 +346,9 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
     }
   };
 
-  // Trouver la catégorie parente
-  const parentCategory = domain?.categories.find(c =>
-    c.elements.some(e => e.id === element.id)
+  // Trouver la catégorie parente - protection pour les tableaux
+  const parentCategory = (domain?.categories || []).find(c =>
+    (c.elements || []).some(e => e.id === element.id)
   );
 
   // Séparer les sous-catégories horizontales et verticales

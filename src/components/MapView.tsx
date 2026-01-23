@@ -1064,13 +1064,13 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           </div>
           {/* Résumé des statuts par criticité basé sur les éléments liés aux points */}
           {(() => {
-            // Récupérer les éléments liés aux points de la carte
+            // Récupérer les éléments liés aux points de la carte - protection pour les tableaux
             const linkedElements: Element[] = [];
             const mapElements = domain.mapElements || [];
             for (const point of mapElements) {
               if (point.elementId) {
-                for (const cat of domain.categories) {
-                  const el = cat.elements.find(e => e.id === point.elementId);
+                for (const cat of (domain.categories || [])) {
+                  const el = (cat.elements || []).find(e => e.id === point.elementId);
                   if (el) {
                     linkedElements.push(el);
                     break;

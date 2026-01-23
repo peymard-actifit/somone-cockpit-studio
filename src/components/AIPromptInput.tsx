@@ -374,10 +374,10 @@ export default function AIPromptInput() {
   
   const findCategoryByName = (name: string, domainId?: string) => {
     const domains = domainId 
-      ? currentCockpit?.domains.filter(d => d.id === domainId)
-      : currentCockpit?.domains;
-    for (const domain of domains || []) {
-      const cat = domain.categories.find(c => 
+      ? (currentCockpit?.domains || []).filter(d => d.id === domainId)
+      : (currentCockpit?.domains || []);
+    for (const domain of domains) {
+      const cat = (domain.categories || []).find(c => 
         c.name.toLowerCase() === name.toLowerCase()
       );
       if (cat) return cat;
@@ -386,9 +386,9 @@ export default function AIPromptInput() {
   };
   
   const findElementByName = (name: string) => {
-    for (const domain of currentCockpit?.domains || []) {
-      for (const category of domain.categories) {
-        const el = category.elements.find(e => 
+    for (const domain of (currentCockpit?.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        const el = (category.elements || []).find(e => 
           e.name.toLowerCase() === name.toLowerCase()
         );
         if (el) return el;
@@ -398,11 +398,11 @@ export default function AIPromptInput() {
   };
   
   const findSubCategoryByName = (name: string, elementId?: string) => {
-    for (const domain of currentCockpit?.domains || []) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
+    for (const domain of (currentCockpit?.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
           if (elementId && element.id !== elementId) continue;
-          const sc = element.subCategories.find(sc => 
+          const sc = (element.subCategories || []).find(sc => 
             sc.name.toLowerCase() === name.toLowerCase()
           );
           if (sc) return sc;
@@ -413,11 +413,11 @@ export default function AIPromptInput() {
   };
   
   const findSubElementByName = (name: string) => {
-    for (const domain of currentCockpit?.domains || []) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
-          for (const subCategory of element.subCategories) {
-            const se = subCategory.subElements.find(se => 
+    for (const domain of (currentCockpit?.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
+          for (const subCategory of (element.subCategories || [])) {
+            const se = (subCategory.subElements || []).find(se => 
               se.name.toLowerCase() === name.toLowerCase()
             );
             if (se) return se;
@@ -428,18 +428,18 @@ export default function AIPromptInput() {
     return null;
   };
   
-  // Vérifier si un ID existe dans le cockpit
-  const domainExists = (id: string) => currentCockpit?.domains.some(d => d.id === id);
+  // Vérifier si un ID existe dans le cockpit - protection pour les tableaux
+  const domainExists = (id: string) => (currentCockpit?.domains || []).some(d => d.id === id);
   const categoryExists = (id: string) => {
-    for (const domain of currentCockpit?.domains || []) {
-      if (domain.categories.some(c => c.id === id)) return true;
+    for (const domain of (currentCockpit?.domains || [])) {
+      if ((domain.categories || []).some(c => c.id === id)) return true;
     }
     return false;
   };
   const elementExists = (id: string) => {
-    for (const domain of currentCockpit?.domains || []) {
-      for (const category of domain.categories) {
-        if (category.elements.some(e => e.id === id)) return true;
+    for (const domain of (currentCockpit?.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        if ((category.elements || []).some(e => e.id === id)) return true;
       }
     }
     return false;
@@ -462,7 +462,7 @@ export default function AIPromptInput() {
     try {
       switch (action.type) {
         case 'addDomain':
-          if (currentCockpit && currentCockpit.domains.length < 6) {
+          if (currentCockpit && (currentCockpit.domains || []).length < 6) {
             addDomain(action.params.name.toUpperCase());
             return `✅ Domaine "${action.params.name.toUpperCase()}" créé`;
           }
@@ -925,10 +925,10 @@ export default function AIPromptInput() {
           
           let fromCategoryId = action.params.fromCategoryId;
           if (!fromCategoryId || !categoryExists(fromCategoryId)) {
-            // Trouver la catégorie actuelle de l'élément
-            for (const domain of currentCockpit?.domains || []) {
-              for (const category of domain.categories) {
-                if (category.elements.some(e => e.id === elementId)) {
+            // Trouver la catégorie actuelle de l'élément - protection pour les tableaux
+            for (const domain of (currentCockpit?.domains || [])) {
+              for (const category of (domain.categories || [])) {
+                if ((category.elements || []).some(e => e.id === elementId)) {
                   fromCategoryId = category.id;
                   break;
                 }
@@ -980,12 +980,12 @@ export default function AIPromptInput() {
           
           let fromSubCategoryId = action.params.fromSubCategoryId;
           if (!fromSubCategoryId) {
-            // Trouver la sous-catégorie actuelle
-            for (const domain of currentCockpit?.domains || []) {
-              for (const category of domain.categories) {
-                for (const element of category.elements) {
-                  for (const subCategory of element.subCategories) {
-                    if (subCategory.subElements.some(se => se.id === subElementId)) {
+            // Trouver la sous-catégorie actuelle - protection pour les tableaux
+            for (const domain of (currentCockpit?.domains || [])) {
+              for (const category of (domain.categories || [])) {
+                for (const element of (category.elements || [])) {
+                  for (const subCategory of (element.subCategories || [])) {
+                    if ((subCategory.subElements || []).some(se => se.id === subElementId)) {
                       fromSubCategoryId = subCategory.id;
                       break;
                     }
@@ -1249,14 +1249,14 @@ export default function AIPromptInput() {
     }
   };
   
-  // Helper pour trouver un sous-élément par ID
+  // Helper pour trouver un sous-élément par ID - protection pour les tableaux
   const findSubElementById = (id: string): SubElement | undefined => {
     if (!currentCockpit) return undefined;
-    for (const domain of currentCockpit.domains) {
-      for (const category of domain.categories) {
-        for (const element of category.elements) {
-          for (const subCategory of element.subCategories) {
-            const found = subCategory.subElements.find(se => se.id === id);
+    for (const domain of (currentCockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        for (const element of (category.elements || [])) {
+          for (const subCategory of (element.subCategories || [])) {
+            const found = (subCategory.subElements || []).find(se => se.id === id);
             if (found) return found;
           }
         }
@@ -1394,24 +1394,25 @@ export default function AIPromptInput() {
 
   // Appeler l'API OpenAI avec l'historique complet
   const callOpenAI = async (userMessage: string, conversationHistory: Message[]): Promise<AIResponse> => {
+    // Protection: s'assurer que tous les tableaux existent pour éviter les erreurs .map() sur undefined
     const cockpitContext = {
       cockpitName: currentCockpit?.name,
       currentDomainId,
       currentElementId,
-      domains: currentCockpit?.domains.map(d => ({
+      domains: (currentCockpit?.domains || []).map(d => ({
         id: d.id,
         name: d.name,
-        categories: d.categories.map(c => ({
+        categories: (d.categories || []).map(c => ({
           id: c.id,
           name: c.name,
-          elements: c.elements.map(e => ({
+          elements: (c.elements || []).map(e => ({
             id: e.id,
             name: e.name,
             status: e.status,
-            subCategories: e.subCategories.map(sc => ({
+            subCategories: (e.subCategories || []).map(sc => ({
               id: sc.id,
               name: sc.name,
-                subElements: sc.subElements.map(se => ({
+                subElements: (sc.subElements || []).map(se => ({
                   id: se.id,
                   name: se.name,
                   status: se.status,
@@ -1552,12 +1553,12 @@ export default function AIPromptInput() {
   const parseLocalCommand = (userPrompt: string): string => {
     const lowerPrompt = userPrompt.toLowerCase();
     
-    // Ajouter un domaine
+    // Ajouter un domaine - protection pour les tableaux
     if (lowerPrompt.includes('ajoute') && lowerPrompt.includes('domaine')) {
       const match = userPrompt.match(/domaine\s+[«"']?([^»"']+)[»"']?/i);
       if (match) {
         const name = match[1].trim().replace(/[«»"']/g, '');
-        if (currentCockpit && currentCockpit.domains.length < 6) {
+        if (currentCockpit && (currentCockpit.domains || []).length < 6) {
           addDomain(name.toUpperCase());
           return `✅ Domaine "${name.toUpperCase()}" ajouté !`;
         }
