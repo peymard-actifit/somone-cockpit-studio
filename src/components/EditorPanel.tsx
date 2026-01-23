@@ -295,6 +295,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   } = useCockpitStore();
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
+  
+  // Vérifier si l'utilisateur est de type client (fonctionnalités restreintes)
+  const isClientUser = user?.userType === 'client';
 
   // État pour la liste des utilisateurs et le partage
   const [users, setUsers] = useState<Array<{ id: string; username: string; isAdmin: boolean }>>([]);
@@ -959,64 +962,101 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </button>
             </div>
 
-            {/* Liaison du sous-élément */}
-            <div className="border-t border-[#E2E8F0] pt-4 mt-4">
-              <label className="block text-sm text-[#64748B] mb-2">Liaison</label>
-              {selectedSubElement.linkedGroupId ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                    <MuiIcon name="Link" size={16} className="text-blue-600" />
-                    <span className="text-sm text-blue-800">Ce sous-élément est lié</span>
-                  </div>
-                  
-                  {/* Liste des sous-éléments liés */}
-                  {(() => {
-                    const linkedSubElements = getLinkedSubElements(selectedSubElement.id);
-                    if (linkedSubElements.length === 0) return null;
+            {/* Liaison du sous-élément - masqué pour les clients */}
+            {!isClientUser && (
+              <div className="border-t border-[#E2E8F0] pt-4 mt-4">
+                <label className="block text-sm text-[#64748B] mb-2">Liaison</label>
+                {selectedSubElement.linkedGroupId ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <MuiIcon name="Link" size={16} className="text-blue-600" />
+                      <span className="text-sm text-blue-800">Ce sous-élément est lié</span>
+                    </div>
                     
-                    return (
-                      <div className="space-y-2">
-                        <p className="text-xs text-[#64748B] font-medium">Lié avec :</p>
-                        <div className="space-y-1 max-h-40 overflow-y-auto">
-                          {linkedSubElements.map(item => (
-                            <div 
-                              key={item.subElement.id} 
-                              className="flex items-center justify-between gap-2 p-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg group hover:bg-blue-50 hover:border-blue-200 transition-colors"
-                            >
-                              <button
-                                onClick={() => {
-                                  // Naviguer vers ce sous-élément
-                                  setCurrentDomain(item.domainId);
-                                  setCurrentElement(item.elementId);
-                                  // Laisser le temps au changement de domaine/élément avant de sélectionner le sous-élément
-                                  setTimeout(() => {
-                                    setSelectedSubElement(item.subElement);
-                                  }, 50);
-                                }}
-                                className="flex-1 text-left text-xs text-[#1E3A5F] hover:text-blue-600 truncate"
-                                title={`${item.domainName} / ${item.categoryName} / ${item.elementName} / ${item.subCategoryName} / ${item.subElement.name}`}
+                    {/* Liste des sous-éléments liés */}
+                    {(() => {
+                      const linkedSubElements = getLinkedSubElements(selectedSubElement.id);
+                      if (linkedSubElements.length === 0) return null;
+                      
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-xs text-[#64748B] font-medium">Lié avec :</p>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {linkedSubElements.map(item => (
+                              <div 
+                                key={item.subElement.id} 
+                                className="flex items-center justify-between gap-2 p-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg group hover:bg-blue-50 hover:border-blue-200 transition-colors"
                               >
-                                <span className="text-[#64748B]">{item.domainName} / {item.categoryName} / {item.elementName} / </span>
-                                <span className="font-medium">{item.subElement.name}</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  unlinkSubElement(item.subElement.id);
-                                }}
-                                className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded opacity-0 group-hover:opacity-100 transition-all"
-                                title="Délier ce sous-élément"
-                              >
-                                <MuiIcon name="LinkOff" size={14} />
-                              </button>
-                            </div>
-                          ))}
+                                <button
+                                  onClick={() => {
+                                    // Naviguer vers ce sous-élément
+                                    setCurrentDomain(item.domainId);
+                                    setCurrentElement(item.elementId);
+                                    // Laisser le temps au changement de domaine/élément avant de sélectionner le sous-élément
+                                    setTimeout(() => {
+                                      setSelectedSubElement(item.subElement);
+                                    }, 50);
+                                  }}
+                                  className="flex-1 text-left text-xs text-[#1E3A5F] hover:text-blue-600 truncate"
+                                  title={`${item.domainName} / ${item.categoryName} / ${item.elementName} / ${item.subCategoryName} / ${item.subElement.name}`}
+                                >
+                                  <span className="text-[#64748B]">{item.domainName} / {item.categoryName} / {item.elementName} / </span>
+                                  <span className="font-medium">{item.subElement.name}</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    unlinkSubElement(item.subElement.id);
+                                  }}
+                                  className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                  title="Délier ce sous-élément"
+                                >
+                                  <MuiIcon name="LinkOff" size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })()}
-                  
-                  {/* Ajouter une nouvelle liaison */}
-                  <div className="pt-2 border-t border-[#E2E8F0]">
+                      );
+                    })()}
+                    
+                    {/* Ajouter une nouvelle liaison */}
+                    <div className="pt-2 border-t border-[#E2E8F0]">
+                      <select
+                        className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const targetId = e.target.value;
+                            linkSubElement(selectedSubElement.id, targetId);
+                            setSelectedSubElement({ ...selectedSubElement, linkedGroupId: targetId });
+                          }
+                        }}
+                      >
+                        <option value="">Lier à un autre sous-élément...</option>
+                        {getAllSubElements()
+                          .filter(item => item.subElement.id !== selectedSubElement.id && item.subElement.linkedGroupId !== selectedSubElement.linkedGroupId)
+                          .map(item => (
+                            <option key={item.subElement.id} value={item.subElement.linkedGroupId || item.subElement.id}>
+                              {item.domainName} / {item.categoryName} / {item.elementName} / {item.subCategoryName} / {item.subElement.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        unlinkSubElement(selectedSubElement.id);
+                        setSelectedSubElement({ ...selectedSubElement, linkedGroupId: undefined });
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
+                    >
+                      <MuiIcon name="LinkOff" size={16} />
+                      <span className="text-sm">Délier ce sous-élément de tous</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-[#94A3B8]">Ce sous-élément n'est pas lié.</p>
                     <select
                       className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
                       value=""
@@ -1030,7 +1070,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     >
                       <option value="">Lier à un autre sous-élément...</option>
                       {getAllSubElements()
-                        .filter(item => item.subElement.id !== selectedSubElement.id && item.subElement.linkedGroupId !== selectedSubElement.linkedGroupId)
+                        .filter(item => item.subElement.id !== selectedSubElement.id)
                         .map(item => (
                           <option key={item.subElement.id} value={item.subElement.linkedGroupId || item.subElement.id}>
                             {item.domainName} / {item.categoryName} / {item.elementName} / {item.subCategoryName} / {item.subElement.name}
@@ -1038,44 +1078,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         ))}
                     </select>
                   </div>
-                  
-                  <button
-                    onClick={() => {
-                      unlinkSubElement(selectedSubElement.id);
-                      setSelectedSubElement({ ...selectedSubElement, linkedGroupId: undefined });
-                    }}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
-                  >
-                    <MuiIcon name="LinkOff" size={16} />
-                    <span className="text-sm">Délier ce sous-élément de tous</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-xs text-[#94A3B8]">Ce sous-élément n'est pas lié.</p>
-                  <select
-                    className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const targetId = e.target.value;
-                        linkSubElement(selectedSubElement.id, targetId);
-                        setSelectedSubElement({ ...selectedSubElement, linkedGroupId: targetId });
-                      }
-                    }}
-                  >
-                    <option value="">Lier à un autre sous-élément...</option>
-                    {getAllSubElements()
-                      .filter(item => item.subElement.id !== selectedSubElement.id)
-                      .map(item => (
-                        <option key={item.subElement.id} value={item.subElement.linkedGroupId || item.subElement.id}>
-                          {item.domainName} / {item.categoryName} / {item.elementName} / {item.subCategoryName} / {item.subElement.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Changer la sous-catégorie */}
             {element && element.subCategories.length > 1 && (
@@ -1261,21 +1266,23 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           </Section>
         )}
 
-        {/* Sources et calculs */}
-        <Section
-          title="Sources et calculs"
-          iconName="Database"
-          isOpen={activeSection === 'sources-calculations'}
-          onToggle={() => toggleSection('sources-calculations')}
-        >
-          <SourcesAndCalculationsPanel
-            subElement={selectedSubElement}
-            onUpdate={(updates) => {
-              updateSubElement(selectedSubElement.id, updates);
-              setSelectedSubElement({ ...selectedSubElement, ...updates });
-            }}
-          />
-        </Section>
+        {/* Sources et calculs - masqué pour les clients */}
+        {!isClientUser && (
+          <Section
+            title="Sources et calculs"
+            iconName="Database"
+            isOpen={activeSection === 'sources-calculations'}
+            onToggle={() => toggleSection('sources-calculations')}
+          >
+            <SourcesAndCalculationsPanel
+              subElement={selectedSubElement}
+              onUpdate={(updates) => {
+                updateSubElement(selectedSubElement.id, updates);
+                setSelectedSubElement({ ...selectedSubElement, ...updates });
+              }}
+            />
+          </Section>
+        )}
 
         {/* Modal de liaison lors du changement de nom */}
         {showLinkModal && pendingNameChange && (
@@ -1437,60 +1444,92 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </div>
             </div>
 
-            {/* Liaison de l'élément */}
-            <div className="border-t border-[#E2E8F0] pt-4 mt-4">
-              <label className="block text-sm text-[#64748B] mb-2">Liaison</label>
-              {element.linkedGroupId ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                    <MuiIcon name="Link" size={16} className="text-blue-600" />
-                    <span className="text-sm text-blue-800">Cet élément est lié</span>
-                  </div>
-                  
-                  {/* Liste des éléments liés */}
-                  {(() => {
-                    const linkedElements = getLinkedElements(element.id);
-                    if (linkedElements.length === 0) return null;
+            {/* Liaison de l'élément - masqué pour les clients */}
+            {!isClientUser && (
+              <div className="border-t border-[#E2E8F0] pt-4 mt-4">
+                <label className="block text-sm text-[#64748B] mb-2">Liaison</label>
+                {element.linkedGroupId ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <MuiIcon name="Link" size={16} className="text-blue-600" />
+                      <span className="text-sm text-blue-800">Cet élément est lié</span>
+                    </div>
                     
-                    return (
-                      <div className="space-y-2">
-                        <p className="text-xs text-[#64748B] font-medium">Lié avec :</p>
-                        <div className="space-y-1 max-h-40 overflow-y-auto">
-                          {linkedElements.map(item => (
-                            <div 
-                              key={item.element.id} 
-                              className="flex items-center justify-between gap-2 p-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg group hover:bg-blue-50 hover:border-blue-200 transition-colors"
-                            >
-                              <button
-                                onClick={() => {
-                                  // Naviguer vers cet élément
-                                  setCurrentDomain(item.domainId);
-                                  setCurrentElement(item.element.id);
-                                }}
-                                className="flex-1 text-left text-xs text-[#1E3A5F] hover:text-blue-600 truncate"
-                                title={`${item.domainName} / ${item.categoryName} / ${item.element.name}`}
+                    {/* Liste des éléments liés */}
+                    {(() => {
+                      const linkedElements = getLinkedElements(element.id);
+                      if (linkedElements.length === 0) return null;
+                      
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-xs text-[#64748B] font-medium">Lié avec :</p>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {linkedElements.map(item => (
+                              <div 
+                                key={item.element.id} 
+                                className="flex items-center justify-between gap-2 p-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg group hover:bg-blue-50 hover:border-blue-200 transition-colors"
                               >
-                                <span className="text-[#64748B]">{item.domainName} / {item.categoryName} / </span>
-                                <span className="font-medium">{item.element.name}</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  unlinkElement(item.element.id);
-                                }}
-                                className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded opacity-0 group-hover:opacity-100 transition-all"
-                                title="Délier cet élément"
-                              >
-                                <MuiIcon name="LinkOff" size={14} />
-                              </button>
-                            </div>
-                          ))}
+                                <button
+                                  onClick={() => {
+                                    // Naviguer vers cet élément
+                                    setCurrentDomain(item.domainId);
+                                    setCurrentElement(item.element.id);
+                                  }}
+                                  className="flex-1 text-left text-xs text-[#1E3A5F] hover:text-blue-600 truncate"
+                                  title={`${item.domainName} / ${item.categoryName} / ${item.element.name}`}
+                                >
+                                  <span className="text-[#64748B]">{item.domainName} / {item.categoryName} / </span>
+                                  <span className="font-medium">{item.element.name}</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    unlinkElement(item.element.id);
+                                  }}
+                                  className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                  title="Délier cet élément"
+                                >
+                                  <MuiIcon name="LinkOff" size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })()}
-                  
-                  {/* Ajouter une nouvelle liaison */}
-                  <div className="pt-2 border-t border-[#E2E8F0]">
+                      );
+                    })()}
+                    
+                    {/* Ajouter une nouvelle liaison */}
+                    <div className="pt-2 border-t border-[#E2E8F0]">
+                      <select
+                        className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            linkElement(element.id, e.target.value);
+                          }
+                        }}
+                      >
+                        <option value="">Lier à un autre élément...</option>
+                        {getAllElements()
+                          .filter(item => item.element.id !== element.id && item.element.linkedGroupId !== element.linkedGroupId)
+                          .map(item => (
+                            <option key={item.element.id} value={item.element.linkedGroupId || item.element.id}>
+                              {item.domainName} / {item.categoryName} / {item.element.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    
+                    <button
+                      onClick={() => unlinkElement(element.id)}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
+                    >
+                      <MuiIcon name="LinkOff" size={16} />
+                      <span className="text-sm">Délier cet élément de tous</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-[#94A3B8]">Cet élément n'est pas lié.</p>
                     <select
                       className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
                       value=""
@@ -1502,7 +1541,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     >
                       <option value="">Lier à un autre élément...</option>
                       {getAllElements()
-                        .filter(item => item.element.id !== element.id && item.element.linkedGroupId !== element.linkedGroupId)
+                        .filter(item => item.element.id !== element.id)
                         .map(item => (
                           <option key={item.element.id} value={item.element.linkedGroupId || item.element.id}>
                             {item.domainName} / {item.categoryName} / {item.element.name}
@@ -1510,39 +1549,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         ))}
                     </select>
                   </div>
-                  
-                  <button
-                    onClick={() => unlinkElement(element.id)}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
-                  >
-                    <MuiIcon name="LinkOff" size={16} />
-                    <span className="text-sm">Délier cet élément de tous</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-xs text-[#94A3B8]">Cet élément n'est pas lié.</p>
-                  <select
-                    className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        linkElement(element.id, e.target.value);
-                      }
-                    }}
-                  >
-                    <option value="">Lier à un autre élément...</option>
-                    {getAllElements()
-                      .filter(item => item.element.id !== element.id)
-                      .map(item => (
-                        <option key={item.element.id} value={item.element.linkedGroupId || item.element.id}>
-                          {item.domainName} / {item.categoryName} / {item.element.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Changer ou créer une catégorie */}
             {domain && domain.categories.length >= 1 && (
@@ -1589,129 +1598,131 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </div>
             )}
 
-            {/* Template */}
-            <div className="border-t border-[#E2E8F0] pt-4 mt-4">
-              <label className="block text-sm text-[#64748B] mb-2">Template</label>
-              {(() => {
-                const allElements = getAllElements();
-                const existingTemplates = [...new Set(
-                  allElements
-                    .map(item => item.element.template)
-                    .filter((t): t is string => !!t)
-                )].sort();
-                
-                return (
-                  <div className="flex gap-2">
-                    <select
-                      value={element.template || ""}
-                      onChange={(e) => {
-                        const newTemplate = e.target.value;
-                        const oldTemplate = element.template;
-                        
-                        // Mettre à jour le template
-                        updateElement(element.id, { template: newTemplate || undefined });
-                        
-                        // Si on définit un nouveau template existant, copier la structure
-                        if (newTemplate && newTemplate !== oldTemplate) {
-                          const sourceElement = allElements.find(
-                            item => item.element.id !== element.id && item.element.template === newTemplate
-                          );
-                          if (sourceElement) {
-                            copyElementContent(element.id, sourceElement.element.id, false);
+            {/* Template - masqué pour les clients */}
+            {!isClientUser && (
+              <div className="border-t border-[#E2E8F0] pt-4 mt-4">
+                <label className="block text-sm text-[#64748B] mb-2">Template</label>
+                {(() => {
+                  const allElements = getAllElements();
+                  const existingTemplates = [...new Set(
+                    allElements
+                      .map(item => item.element.template)
+                      .filter((t): t is string => !!t)
+                  )].sort();
+                  
+                  return (
+                    <div className="flex gap-2">
+                      <select
+                        value={element.template || ""}
+                        onChange={(e) => {
+                          const newTemplate = e.target.value;
+                          const oldTemplate = element.template;
+                          
+                          // Mettre à jour le template
+                          updateElement(element.id, { template: newTemplate || undefined });
+                          
+                          // Si on définit un nouveau template existant, copier la structure
+                          if (newTemplate && newTemplate !== oldTemplate) {
+                            const sourceElement = allElements.find(
+                              item => item.element.id !== element.id && item.element.template === newTemplate
+                            );
+                            if (sourceElement) {
+                              copyElementContent(element.id, sourceElement.element.id, false);
+                            }
                           }
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-                    >
-                      <option value="">Aucun template</option>
-                      {existingTemplates.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => {
-                        const newTemplate = prompt('Nom du nouveau template:');
-                        if (newTemplate && newTemplate.trim()) {
-                          updateElement(element.id, { template: newTemplate.trim() });
-                        }
-                      }}
-                      className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg text-sm hover:bg-[#2d5a8f] transition-colors flex items-center gap-1"
-                      title="Créer un nouveau template"
-                    >
-                      <MuiIcon name="Add" size={16} />
-                    </button>
-                  </div>
-                );
-              })()}
-              <p className="text-xs text-[#94A3B8] mt-1">
-                Associer un template copie les sous-catégories et sous-éléments d'un élément existant avec le même template
-              </p>
-
-              {/* Icônes des templates */}
-              {(() => {
-                const allElements = getAllElements();
-                const existingTemplates = [...new Set(
-                  allElements
-                    .map(item => item.element.template)
-                    .filter((t): t is string => !!t)
-                )].sort();
-                
-                if (existingTemplates.length === 0) return null;
-                
-                return (
-                  <div className="border-t border-[#E2E8F0] pt-3 mt-3">
-                    <p className="text-xs text-[#64748B] mb-2">Icônes des templates</p>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {existingTemplates.map((templateName) => {
-                        const templateIcon = currentCockpit?.templateIcons?.[templateName];
-                        return (
-                          <div key={templateName} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg">
-                            <button
-                              onClick={() => {
-                                setIconPickerContext({ type: 'template', id: templateName });
-                                setShowIconPicker('template');
-                              }}
-                              className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0] hover:border-[#1E3A5F] transition-colors cursor-pointer"
-                              title="Choisir une icône"
-                            >
-                              {templateIcon ? (
-                                <MuiIcon name={templateIcon} size={18} className="text-[#1E3A5F]" />
-                              ) : (
-                                <MuiIcon name="Add" size={18} className="text-[#94A3B8]" />
-                              )}
-                            </button>
-                            <span className="flex-1 text-sm text-[#1E3A5F] truncate">{templateName}</span>
-                            {templateIcon && (
-                              <button
-                                onClick={() => updateTemplateIcon(templateName, undefined)}
-                                className="p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
-                                title="Supprimer l'icône"
-                              >
-                                <MuiIcon name="Close" size={14} />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
+                        }}
+                        className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                      >
+                        <option value="">Aucun template</option>
+                        {existingTemplates.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => {
+                          const newTemplate = prompt('Nom du nouveau template:');
+                          if (newTemplate && newTemplate.trim()) {
+                            updateElement(element.id, { template: newTemplate.trim() });
+                          }
+                        }}
+                        className="px-3 py-2 bg-[#1E3A5F] text-white rounded-lg text-sm hover:bg-[#2d5a8f] transition-colors flex items-center gap-1"
+                        title="Créer un nouveau template"
+                      >
+                        <MuiIcon name="Add" size={16} />
+                      </button>
                     </div>
+                  );
+                })()}
+                <p className="text-xs text-[#94A3B8] mt-1">
+                  Associer un template copie les sous-catégories et sous-éléments d'un élément existant avec le même template
+                </p>
 
-                    {/* Sélecteur d'icônes pour les templates */}
-                    {showIconPicker === 'template' && iconPickerContext?.type === 'template' && iconPickerContext.id && (
-                      <IconPicker
-                        value={currentCockpit?.templateIcons?.[iconPickerContext.id]}
-                        onChange={(iconName) => {
-                          updateTemplateIcon(iconPickerContext.id!, iconName);
-                        }}
-                        onClose={() => {
-                          setShowIconPicker(null);
-                          setIconPickerContext(null);
-                        }}
-                      />
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+                {/* Icônes des templates */}
+                {(() => {
+                  const allElements = getAllElements();
+                  const existingTemplates = [...new Set(
+                    allElements
+                      .map(item => item.element.template)
+                      .filter((t): t is string => !!t)
+                  )].sort();
+                  
+                  if (existingTemplates.length === 0) return null;
+                  
+                  return (
+                    <div className="border-t border-[#E2E8F0] pt-3 mt-3">
+                      <p className="text-xs text-[#64748B] mb-2">Icônes des templates</p>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {existingTemplates.map((templateName) => {
+                          const templateIcon = currentCockpit?.templateIcons?.[templateName];
+                          return (
+                            <div key={templateName} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg">
+                              <button
+                                onClick={() => {
+                                  setIconPickerContext({ type: 'template', id: templateName });
+                                  setShowIconPicker('template');
+                                }}
+                                className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0] hover:border-[#1E3A5F] transition-colors cursor-pointer"
+                                title="Choisir une icône"
+                              >
+                                {templateIcon ? (
+                                  <MuiIcon name={templateIcon} size={18} className="text-[#1E3A5F]" />
+                                ) : (
+                                  <MuiIcon name="Add" size={18} className="text-[#94A3B8]" />
+                                )}
+                              </button>
+                              <span className="flex-1 text-sm text-[#1E3A5F] truncate">{templateName}</span>
+                              {templateIcon && (
+                                <button
+                                  onClick={() => updateTemplateIcon(templateName, undefined)}
+                                  className="p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
+                                  title="Supprimer l'icône"
+                                >
+                                  <MuiIcon name="Close" size={14} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Sélecteur d'icônes pour les templates */}
+                      {showIconPicker === 'template' && iconPickerContext?.type === 'template' && iconPickerContext.id && (
+                        <IconPicker
+                          value={currentCockpit?.templateIcons?.[iconPickerContext.id]}
+                          onChange={(iconName) => {
+                            updateTemplateIcon(iconPickerContext.id!, iconName);
+                          }}
+                          onClose={() => {
+                            setShowIconPicker(null);
+                            setIconPickerContext(null);
+                          }}
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Sélecteur d'icônes */}
             {showIconPicker === 'icon' && (
@@ -2472,98 +2483,100 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           ) : null;
         })()}
 
-        {/* Zone */}
-        <Section
-          title="Zone"
-          iconName="MapPinIcon"
-          isOpen={activeSection === 'zone'}
-          onToggle={() => toggleSection('zone')}
-        >
-          <div className="space-y-3">
-            <select
-              value={element.zone || ''}
-              onChange={(e) => updateElement(element.id, { zone: e.target.value || undefined })}
-              className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-            >
-              <option value="">Aucune zone</option>
-              {zones.map((zone) => (
-                <option key={zone.id} value={zone.name}>{zone.name}</option>
-              ))}
-            </select>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={newZoneName}
-                onChange={(e) => setNewZoneName(e.target.value)}
-                placeholder="Nouvelle zone"
-                className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-              />
-              <button
-                onClick={() => {
-                  if (newZoneName.trim()) {
-                    addZone(newZoneName.trim());
-                    setNewZoneName('');
-                  }
-                }}
-                className="px-3 py-2 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-lg text-sm"
+        {/* Zone - masqué pour les clients */}
+        {!isClientUser && (
+          <Section
+            title="Zone"
+            iconName="MapPinIcon"
+            isOpen={activeSection === 'zone'}
+            onToggle={() => toggleSection('zone')}
+          >
+            <div className="space-y-3">
+              <select
+                value={element.zone || ''}
+                onChange={(e) => updateElement(element.id, { zone: e.target.value || undefined })}
+                className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               >
-                +
-              </button>
-            </div>
+                <option value="">Aucune zone</option>
+                {zones.map((zone) => (
+                  <option key={zone.id} value={zone.name}>{zone.name}</option>
+                ))}
+              </select>
 
-            {/* Liste des zones avec icônes */}
-            {zones.length > 0 && (
-              <div className="border-t border-[#E2E8F0] pt-3 mt-3">
-                <p className="text-xs text-[#64748B] mb-2">Icônes des zones</p>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {zones.map((zone) => (
-                    <div key={zone.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg">
-                      <button
-                        onClick={() => {
-                          setIconPickerContext({ type: 'zone', id: zone.id });
-                          setShowIconPicker('zone');
-                        }}
-                        className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0] hover:border-[#1E3A5F] transition-colors cursor-pointer"
-                        title="Choisir une icône"
-                      >
-                        {zone.icon ? (
-                          <MuiIcon name={zone.icon} size={18} className="text-[#1E3A5F]" />
-                        ) : (
-                          <MuiIcon name="Add" size={18} className="text-[#94A3B8]" />
-                        )}
-                      </button>
-                      <span className="flex-1 text-sm text-[#1E3A5F] truncate">{zone.name}</span>
-                      {zone.icon && (
-                        <button
-                          onClick={() => updateZone(zone.id, { icon: undefined })}
-                          className="p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
-                          title="Supprimer l'icône"
-                        >
-                          <MuiIcon name="Close" size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newZoneName}
+                  onChange={(e) => setNewZoneName(e.target.value)}
+                  placeholder="Nouvelle zone"
+                  className="flex-1 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
+                />
+                <button
+                  onClick={() => {
+                    if (newZoneName.trim()) {
+                      addZone(newZoneName.trim());
+                      setNewZoneName('');
+                    }
+                  }}
+                  className="px-3 py-2 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white rounded-lg text-sm"
+                >
+                  +
+                </button>
               </div>
-            )}
 
-            {/* Sélecteur d'icônes pour les zones */}
-            {showIconPicker === 'zone' && iconPickerContext?.type === 'zone' && iconPickerContext.id && (
-              <IconPicker
-                value={zones.find(z => z.id === iconPickerContext.id)?.icon}
-                onChange={(iconName) => {
-                  updateZone(iconPickerContext.id!, { icon: iconName });
-                }}
-                onClose={() => {
-                  setShowIconPicker(null);
-                  setIconPickerContext(null);
-                }}
-              />
-            )}
-          </div>
-        </Section>
+              {/* Liste des zones avec icônes */}
+              {zones.length > 0 && (
+                <div className="border-t border-[#E2E8F0] pt-3 mt-3">
+                  <p className="text-xs text-[#64748B] mb-2">Icônes des zones</p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {zones.map((zone) => (
+                      <div key={zone.id} className="flex items-center gap-2 p-2 bg-[#F5F7FA] rounded-lg">
+                        <button
+                          onClick={() => {
+                            setIconPickerContext({ type: 'zone', id: zone.id });
+                            setShowIconPicker('zone');
+                          }}
+                          className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0] hover:border-[#1E3A5F] transition-colors cursor-pointer"
+                          title="Choisir une icône"
+                        >
+                          {zone.icon ? (
+                            <MuiIcon name={zone.icon} size={18} className="text-[#1E3A5F]" />
+                          ) : (
+                            <MuiIcon name="Add" size={18} className="text-[#94A3B8]" />
+                          )}
+                        </button>
+                        <span className="flex-1 text-sm text-[#1E3A5F] truncate">{zone.name}</span>
+                        {zone.icon && (
+                          <button
+                            onClick={() => updateZone(zone.id, { icon: undefined })}
+                            className="p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
+                            title="Supprimer l'icône"
+                          >
+                            <MuiIcon name="Close" size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sélecteur d'icônes pour les zones */}
+              {showIconPicker === 'zone' && iconPickerContext?.type === 'zone' && iconPickerContext.id && (
+                <IconPicker
+                  value={zones.find(z => z.id === iconPickerContext.id)?.icon}
+                  onChange={(iconName) => {
+                    updateZone(iconPickerContext.id!, { icon: iconName });
+                  }}
+                  onClose={() => {
+                    setShowIconPicker(null);
+                    setIconPickerContext(null);
+                  }}
+                />
+              )}
+            </div>
+          </Section>
+        )}
 
         {/* Modal de liaison lors du changement de nom */}
         {showLinkModal && pendingNameChange && (
@@ -2755,14 +2768,14 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
           <div className="space-y-2">
             {[
               { type: 'standard' as TemplateType, label: 'Standard', desc: 'Catégories et éléments' },
-              { type: 'grid' as TemplateType, label: 'Grille', desc: 'Tuiles en grille simple' },
-              { type: 'map' as TemplateType, label: 'Carte', desc: 'Carte dynamique' },
+              { type: 'grid' as TemplateType, label: 'Grille', desc: 'Tuiles en grille simple', clientRestricted: true },
+              { type: 'map' as TemplateType, label: 'Carte', desc: 'Carte dynamique', clientRestricted: true },
               { type: 'background' as TemplateType, label: 'Image de fond', desc: 'Positionnement libre' },
-              { type: 'hours-tracking' as TemplateType, label: 'Suivi des heures', desc: 'Suivi des heures et coûts du projet' },
+              { type: 'hours-tracking' as TemplateType, label: 'Suivi des heures', desc: 'Suivi des heures et coûts du projet', clientRestricted: true },
               { type: 'alerts' as TemplateType, label: 'Alertes', desc: 'Liste d\'incidents et statistiques' },
               { type: 'stats' as TemplateType, label: 'Stats', desc: 'Graphiques de disponibilité' },
-              { type: 'library' as TemplateType, label: 'Bibliothèque', desc: 'Zones et templates supervisables' },
-            ].map(({ type, label, desc }) => (
+              { type: 'library' as TemplateType, label: 'Bibliothèque', desc: 'Zones et templates supervisables', clientRestricted: true },
+            ].filter(item => !isClientUser || !item.clientRestricted).map(({ type, label, desc }) => (
               <button
                 key={type}
                 onClick={() => updateDomain(domain.id, { templateType: type })}

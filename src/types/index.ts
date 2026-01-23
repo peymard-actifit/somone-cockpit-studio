@@ -18,12 +18,18 @@ export type TemplateType =
 // Orientation des catégories
 export type Orientation = 'horizontal' | 'vertical';
 
+// Types d'utilisateurs
+export type UserType = 'admin' | 'standard' | 'client';
+
 // Utilisateur
 export interface User {
   id: string;
   username: string;
   name?: string; // Nom d'affichage (ex: "Patrick Eymard")
-  isAdmin: boolean;
+  email?: string; // Email de l'utilisateur
+  isAdmin: boolean; // Conservé pour compatibilité - true si userType === 'admin'
+  userType: UserType; // Type d'utilisateur: admin, standard, client
+  canBecomeAdmin?: boolean; // Pour les utilisateurs standard: possibilité de passer admin (défaut: true)
   createdAt: string;
 }
 

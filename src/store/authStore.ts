@@ -1,6 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User } from '../types';
+import type { User, UserType } from '../types';
+
+// Type pour un utilisateur dans la liste (sans mot de passe)
+export interface UserListItem {
+  id: string;
+  username: string;
+  name?: string;
+  email?: string;
+  isAdmin: boolean;
+  userType: UserType;
+  canBecomeAdmin?: boolean;
+  createdAt: string;
+}
 
 interface AuthState {
   user: User | null;
@@ -16,6 +28,18 @@ interface AuthState {
   changeEmail: (email: string) => Promise<boolean>;
   toggleAdmin: (code: string) => Promise<boolean>;
   clearError: () => void;
+  
+  // Gestion des utilisateurs (admin uniquement)
+  fetchUsers: () => Promise<UserListItem[]>;
+  createUser: (data: { username: string; password: string; name?: string; email?: string; userType: UserType; canBecomeAdmin?: boolean }) => Promise<UserListItem | null>;
+  updateUser: (userId: string, data: { username?: string; password?: string; name?: string; email?: string; userType?: UserType; canBecomeAdmin?: boolean }) => Promise<UserListItem | null>;
+  deleteUser: (userId: string) => Promise<boolean>;
+  generateResetToken: (userId: string) => Promise<{ token: string; url: string; expiresAt: string } | null>;
+  
+  // Helpers
+  isClient: () => boolean;
+  isStandard: () => boolean;
+  canAccessAdminToggle: () => boolean;
 }
 
 const API_URL = '/api';
@@ -171,7 +195,14 @@ export const useAuthStore = create<AuthState>()(
             return false;
           }
           if (user) {
-            set({ user: { ...user, isAdmin: data.isAdmin }, isLoading: false });
+            set({ 
+              user: { 
+                ...user, 
+                isAdmin: data.isAdmin,
+                userType: data.userType || (data.isAdmin ? 'admin' : user.userType)
+              }, 
+              isLoading: false 
+            });
           }
           return true;
         } catch (error) {
@@ -181,6 +212,145 @@ export const useAuthStore = create<AuthState>()(
       },
 
       clearError: () => set({ error: null }),
+      
+      // Gestion des utilisateurs (admin uniquement)
+      fetchUsers: async () => {
+        const { token } = get();
+        try {
+          const response = await fetch(`${API_URL}/users`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            console.error('Erreur fetchUsers:', data.error);
+            return [];
+          }
+          return data.users || [];
+        } catch (error) {
+          console.error('Erreur fetchUsers:', error);
+          return [];
+        }
+      },
+
+      createUser: async (userData) => {
+        const { token } = get();
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_URL}/users`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(userData),
+          });
+          const data = await response.json();
+          set({ isLoading: false });
+          if (!response.ok) {
+            set({ error: data.error || 'Erreur lors de la création' });
+            return null;
+          }
+          return data.user;
+        } catch (error) {
+          set({ error: 'Erreur de connexion au serveur', isLoading: false });
+          return null;
+        }
+      },
+
+      updateUser: async (userId, userData) => {
+        const { token } = get();
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_URL}/users/${userId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(userData),
+          });
+          const data = await response.json();
+          set({ isLoading: false });
+          if (!response.ok) {
+            set({ error: data.error || 'Erreur lors de la modification' });
+            return null;
+          }
+          return data.user;
+        } catch (error) {
+          set({ error: 'Erreur de connexion au serveur', isLoading: false });
+          return null;
+        }
+      },
+
+      deleteUser: async (userId) => {
+        const { token } = get();
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${API_URL}/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          const data = await response.json();
+          set({ isLoading: false });
+          if (!response.ok) {
+            set({ error: data.error || 'Erreur lors de la suppression' });
+            return false;
+          }
+          return true;
+        } catch (error) {
+          set({ error: 'Erreur de connexion au serveur', isLoading: false });
+          return false;
+        }
+      },
+
+      generateResetToken: async (userId) => {
+        const { token } = get();
+        try {
+          const response = await fetch(`${API_URL}/users/${userId}/reset-token`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            console.error('Erreur generateResetToken:', data.error);
+            return null;
+          }
+          return {
+            token: data.token,
+            url: data.url,
+            expiresAt: data.expiresAt
+          };
+        } catch (error) {
+          console.error('Erreur generateResetToken:', error);
+          return null;
+        }
+      },
+
+      // Helpers
+      isClient: () => {
+        const { user } = get();
+        return user?.userType === 'client';
+      },
+
+      isStandard: () => {
+        const { user } = get();
+        return user?.userType === 'standard';
+      },
+
+      canAccessAdminToggle: () => {
+        const { user } = get();
+        if (!user) return false;
+        if (user.isAdmin) return true; // Les admins peuvent quitter le mode admin
+        if (user.userType === 'client') return false; // Les clients ne peuvent jamais
+        if (user.userType === 'standard' && user.canBecomeAdmin === false) return false;
+        return true; // Les standards avec canBecomeAdmin !== false peuvent
+      },
     }),
     {
       name: 'cockpit-auth',

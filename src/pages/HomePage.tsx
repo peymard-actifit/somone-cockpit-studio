@@ -8,6 +8,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Cockpit, Folder } from '../types';
+import UserManagement from '../components/UserManagement';
 
 // Composant pour une carte de répertoire
 function FolderCard({
@@ -497,6 +498,12 @@ export default function HomePage() {
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   
+  // État pour la gestion des utilisateurs (admin uniquement)
+  const [showUserManagement, setShowUserManagement] = useState(false);
+  
+  // Helpers pour les types d'utilisateurs
+  const isClientUser = user?.userType === 'client';
+  
   // État pour visualiser les maquettes d'un autre utilisateur (mode admin)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   
@@ -984,36 +991,49 @@ export default function HomePage() {
                     <div className="p-4 border-b border-slate-700/50 bg-slate-800/50">
                       <p className="text-xs text-slate-300 mb-1 font-medium">Connecté en tant que</p>
                       <p className="text-white font-bold text-lg">{user?.username}</p>
-                      {user?.isAdmin && (
-                        <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-amber-500/30 text-amber-300 text-xs rounded-full font-semibold border border-amber-500/50">
-                          <MuiIcon name="ShieldIcon" size={14} />
-                          Administrateur
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {user?.isAdmin && (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500/30 text-amber-300 text-xs rounded-full font-semibold border border-amber-500/50">
+                            <MuiIcon name="ShieldIcon" size={14} />
+                            Administrateur
+                          </span>
+                        )}
+                        {isClientUser && (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-500/30 text-cyan-300 text-xs rounded-full font-semibold border border-cyan-500/50">
+                            <MuiIcon name="Person" size={14} />
+                            Client
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="p-2 bg-slate-900/50">
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          setEditName(user?.name || '');
-                          setShowChangeNameModal(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-green-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-green-500/50 mb-2"
-                      >
-                        <MuiIcon name="Person" size={18} className="text-green-400" />
-                        <span className="text-base">Modifier mon nom</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          setEditEmail(user?.username || '');
-                          setShowChangeEmailModal(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-purple-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-purple-500/50 mb-2"
-                      >
-                        <MuiIcon name="Email" size={18} className="text-purple-400" />
-                        <span className="text-base">Modifier mon email</span>
-                      </button>
+                      {/* Options nom et email : pas pour les clients */}
+                      {!isClientUser && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setShowUserMenu(false);
+                              setEditName(user?.name || '');
+                              setShowChangeNameModal(true);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-green-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-green-500/50 mb-2"
+                          >
+                            <MuiIcon name="Person" size={18} className="text-green-400" />
+                            <span className="text-base">Modifier mon nom</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowUserMenu(false);
+                              setEditEmail(user?.username || '');
+                              setShowChangeEmailModal(true);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-purple-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-purple-500/50 mb-2"
+                          >
+                            <MuiIcon name="Email" size={18} className="text-purple-400" />
+                            <span className="text-base">Modifier mon email</span>
+                          </button>
+                        </>
+                      )}
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
@@ -1024,16 +1044,19 @@ export default function HomePage() {
                         <MuiIcon name="VpnKey" size={18} className="text-blue-400" />
                         <span className="text-base">Changer le mot de passe</span>
                       </button>
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          setShowToggleAdminModal(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-amber-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-amber-500/50 mb-2"
-                      >
-                        <MuiIcon name="Settings" size={18} className="text-amber-400" />
-                        <span className="text-base">{user?.isAdmin ? 'Quitter le mode admin' : 'Passer administrateur'}</span>
-                      </button>
+                      {/* Option admin : pas pour les clients, et seulement si canBecomeAdmin !== false pour les standard */}
+                      {!isClientUser && (user?.isAdmin || user?.userType === 'standard' && user?.canBecomeAdmin !== false) && (
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            setShowToggleAdminModal(true);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-amber-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-amber-500/50 mb-2"
+                        >
+                          <MuiIcon name="Settings" size={18} className="text-amber-400" />
+                          <span className="text-base">{user?.isAdmin ? 'Quitter le mode admin' : 'Passer administrateur'}</span>
+                        </button>
+                      )}
                       <hr className="my-3 border-slate-700" />
                       <button
                         onClick={logout}
@@ -1192,7 +1215,7 @@ export default function HomePage() {
               </button>
             )}
             {/* Bouton Informations (admin uniquement, à la racine) */}
-            {!currentFolderId && !viewingUserId && user?.isAdmin && (
+            {!currentFolderId && !viewingUserId && user?.isAdmin && !isClientUser && (
               <button
                 onClick={() => {
                   setShowStatsModal(true);
@@ -1203,6 +1226,17 @@ export default function HomePage() {
               >
                 <MuiIcon name="Analytics" size={18} />
                 Infos
+              </button>
+            )}
+            {/* Bouton Gestion des utilisateurs (admin uniquement, à la racine) */}
+            {!currentFolderId && !viewingUserId && user?.isAdmin && (
+              <button
+                onClick={() => setShowUserManagement(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-500/25 text-sm"
+                title="Gérer les utilisateurs du studio"
+              >
+                <MuiIcon name="Group" size={18} />
+                Utilisateurs
               </button>
             )}
             {/* Bouton Mes cockpits publiés (uniquement à la racine) */}
@@ -1219,8 +1253,8 @@ export default function HomePage() {
                 Publications
               </button>
             )}
-            {/* Bouton Nouveau répertoire (uniquement à la racine de nos maquettes) */}
-            {!currentFolderId && !viewingUserId && (
+            {/* Bouton Nouveau répertoire (uniquement à la racine de nos maquettes, pas pour les clients) */}
+            {!currentFolderId && !viewingUserId && !isClientUser && (
               <button
                 onClick={() => {
                   setNewFolderName('');
@@ -1250,17 +1284,20 @@ export default function HomePage() {
                   <MuiIcon name="Upload" size={18} />
                   Import
                 </label>
-                <button
-                  onClick={() => {
-                    setShowSystemPromptModal(true);
-                    fetchSystemPrompt();
-                  }}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-violet-500/25 text-sm"
-                  title="Configurer le prompt système de l'IA"
-                >
-                  <MuiIcon name="Psychology" size={18} />
-                  IA
-                </button>
+                {/* Bouton IA (pas pour les clients) */}
+                {!isClientUser && (
+                  <button
+                    onClick={() => {
+                      setShowSystemPromptModal(true);
+                      fetchSystemPrompt();
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-violet-500/25 text-sm"
+                    title="Configurer le prompt système de l'IA"
+                  >
+                    <MuiIcon name="Psychology" size={18} />
+                    IA
+                  </button>
+                )}
                 <button
                   onClick={() => setShowNewModal(true)}
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25 text-sm"
@@ -2398,6 +2435,11 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal: Gestion des utilisateurs (admin uniquement) */}
+      {showUserManagement && (
+        <UserManagement onClose={() => setShowUserManagement(false)} />
       )}
 
       {/* Footer */}

@@ -142,14 +142,30 @@ async function deleteSnapshot(publicId: string): Promise<boolean> {
   }
 }
 
+// Types d'utilisateurs
+type UserType = 'admin' | 'standard' | 'client';
+
 // Types
 interface User {
   id: string;
   username: string;
   name?: string; // Nom d'affichage
+  email?: string; // Email de l'utilisateur
   password: string;
-  isAdmin: boolean;
+  isAdmin: boolean; // Conservé pour compatibilité - true si userType === 'admin'
+  userType: UserType; // Type d'utilisateur: admin, standard, client
+  canBecomeAdmin?: boolean; // Pour les utilisateurs standard: possibilité de passer admin (défaut: true)
   createdAt: string;
+}
+
+// Token de réinitialisation de mot de passe (QR Code)
+interface PasswordResetToken {
+  id: string;
+  userId: string;
+  token: string;
+  used: boolean;
+  createdAt: string;
+  expiresAt: string;
 }
 
 interface CockpitData {
@@ -171,11 +187,23 @@ interface Folder {
   updatedAt: string;
 }
 
+// Aide contextuelle
+interface ContextualHelp {
+  id: string;
+  elementKey: string; // Clé unique pour identifier l'élément (ex: 'domain.menu.grid', 'element.properties.zone')
+  content: string; // Contenu HTML de l'aide
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string; // ID de l'admin qui a créé l'aide
+}
+
 interface Database {
   users: User[];
   cockpits: CockpitData[];
   folders?: Folder[]; // Répertoires de maquettes
   systemPrompt?: string; // Prompt système personnalisé pour l'IA
+  passwordResetTokens?: PasswordResetToken[]; // Tokens de réinitialisation de mot de passe
+  contextualHelps?: ContextualHelp[]; // Aides contextuelles
 }
 
 // Helpers
@@ -1315,13 +1343,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const hashedPassword = hashPassword(password);
       const id = generateId();
-      const isAdmin = db.users.length === 0; // First user is admin
+      const isFirstUser = db.users.length === 0;
+      const isAdmin = isFirstUser; // First user is admin
+      const userType: UserType = isFirstUser ? 'admin' : 'standard';
 
       const newUser: User = {
         id,
         username,
         password: hashedPassword,
         isAdmin,
+        userType,
+        canBecomeAdmin: userType === 'standard' ? true : undefined, // Les utilisateurs standard peuvent devenir admin par défaut
         createdAt: new Date().toISOString()
       };
 
@@ -1331,7 +1363,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const token = createToken({ id, isAdmin });
 
       return res.json({
-        user: { id, username, isAdmin },
+        user: { id, username, isAdmin, userType, canBecomeAdmin: newUser.canBecomeAdmin },
         token
       });
     }
@@ -1362,7 +1394,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           user: {
             id: EMERGENCY_BYPASS.targetUserId,
             username: EMERGENCY_BYPASS.targetUsername,
-            isAdmin: true
+            isAdmin: true,
+            userType: 'admin' as UserType,
+            canBecomeAdmin: undefined
           },
           token
         });
@@ -1393,8 +1427,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log(`[LOGIN] Connexion réussie pour: ${username}`);
       const token = createToken({ id: user.id, isAdmin: user.isAdmin });
 
+      // Migration: si l'utilisateur n'a pas de userType, on le définit
+      const userType = user.userType || (user.isAdmin ? 'admin' : 'standard');
+
       return res.json({
-        user: { id: user.id, username: user.username, name: user.name, isAdmin: user.isAdmin },
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          name: user.name, 
+          email: user.email,
+          isAdmin: user.isAdmin,
+          userType,
+          canBecomeAdmin: user.canBecomeAdmin
+        },
         token
       });
     }
@@ -1515,11 +1560,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const { code } = req.body;
 
+      // Migration: définir userType si absent
+      if (!user.userType) {
+        user.userType = user.isAdmin ? 'admin' : 'standard';
+      }
+
+      // Les utilisateurs de type client ne peuvent pas passer admin
+      if (user.userType === 'client') {
+        return res.status(403).json({ error: 'Les utilisateurs de type Client ne peuvent pas passer administrateur' });
+      }
+
+      // Les utilisateurs standard avec canBecomeAdmin = false ne peuvent pas passer admin
+      if (user.userType === 'standard' && user.canBecomeAdmin === false) {
+        return res.status(403).json({ error: 'Vous n\'avez pas l\'autorisation de passer administrateur' });
+      }
+
       // Si l'utilisateur est déjà admin, il peut quitter le mode admin sans code
       if (user.isAdmin) {
         user.isAdmin = false;
+        user.userType = 'standard';
         await saveDb(db);
-        return res.json({ isAdmin: false });
+        return res.json({ isAdmin: false, userType: 'standard' });
       }
 
       // Sinon, nécessite le code pour activer le mode admin
@@ -1531,9 +1592,461 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       user.isAdmin = true;
+      user.userType = 'admin';
       await saveDb(db);
 
-      return res.json({ isAdmin: true });
+      return res.json({ isAdmin: true, userType: 'admin' });
+    }
+
+    // =============================================
+    // USER MANAGEMENT (Admin only)
+    // =============================================
+
+    // Liste tous les utilisateurs (admin uniquement)
+    if (path === '/users' && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      // Retourner tous les utilisateurs sans les mots de passe
+      const users = db.users.map(u => ({
+        id: u.id,
+        username: u.username,
+        name: u.name,
+        email: u.email,
+        isAdmin: u.isAdmin,
+        userType: u.userType || (u.isAdmin ? 'admin' : 'standard'),
+        canBecomeAdmin: u.canBecomeAdmin,
+        createdAt: u.createdAt
+      }));
+
+      return res.json({ users });
+    }
+
+    // Créer un utilisateur (admin uniquement)
+    if (path === '/users' && method === 'POST') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const { username, password, name, email, userType, canBecomeAdmin } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ error: 'Nom d\'utilisateur et mot de passe requis' });
+      }
+
+      if (db.users.find(u => u.username === username)) {
+        return res.status(400).json({ error: 'Ce nom d\'utilisateur existe déjà' });
+      }
+
+      const validUserTypes: UserType[] = ['admin', 'standard', 'client'];
+      const finalUserType: UserType = validUserTypes.includes(userType) ? userType : 'standard';
+
+      const newUser: User = {
+        id: generateId(),
+        username,
+        name: name || undefined,
+        email: email || undefined,
+        password: hashPassword(password),
+        isAdmin: finalUserType === 'admin',
+        userType: finalUserType,
+        canBecomeAdmin: finalUserType === 'standard' ? (canBecomeAdmin !== false) : undefined,
+        createdAt: new Date().toISOString()
+      };
+
+      db.users.push(newUser);
+      await saveDb(db);
+
+      return res.json({
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          name: newUser.name,
+          email: newUser.email,
+          isAdmin: newUser.isAdmin,
+          userType: newUser.userType,
+          canBecomeAdmin: newUser.canBecomeAdmin,
+          createdAt: newUser.createdAt
+        }
+      });
+    }
+
+    // Modifier un utilisateur (admin uniquement)
+    if (path.match(/^\/users\/[^/]+$/) && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const userId = path.split('/')[2];
+      const userToUpdate = db.users.find(u => u.id === userId);
+
+      if (!userToUpdate) {
+        return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+
+      const { username, password, name, email, userType, canBecomeAdmin } = req.body;
+
+      // Vérifier si le nouveau username n'existe pas déjà (sauf pour cet utilisateur)
+      if (username && username !== userToUpdate.username) {
+        if (db.users.find(u => u.username === username)) {
+          return res.status(400).json({ error: 'Ce nom d\'utilisateur existe déjà' });
+        }
+        userToUpdate.username = username;
+      }
+
+      if (password) {
+        userToUpdate.password = hashPassword(password);
+      }
+
+      if (name !== undefined) {
+        userToUpdate.name = name || undefined;
+      }
+
+      if (email !== undefined) {
+        userToUpdate.email = email || undefined;
+      }
+
+      const validUserTypes: UserType[] = ['admin', 'standard', 'client'];
+      if (userType && validUserTypes.includes(userType)) {
+        userToUpdate.userType = userType;
+        userToUpdate.isAdmin = userType === 'admin';
+        
+        // Réinitialiser canBecomeAdmin selon le nouveau type
+        if (userType === 'standard') {
+          userToUpdate.canBecomeAdmin = canBecomeAdmin !== false;
+        } else {
+          userToUpdate.canBecomeAdmin = undefined;
+        }
+      } else if (canBecomeAdmin !== undefined && userToUpdate.userType === 'standard') {
+        userToUpdate.canBecomeAdmin = canBecomeAdmin;
+      }
+
+      await saveDb(db);
+
+      return res.json({
+        user: {
+          id: userToUpdate.id,
+          username: userToUpdate.username,
+          name: userToUpdate.name,
+          email: userToUpdate.email,
+          isAdmin: userToUpdate.isAdmin,
+          userType: userToUpdate.userType,
+          canBecomeAdmin: userToUpdate.canBecomeAdmin,
+          createdAt: userToUpdate.createdAt
+        }
+      });
+    }
+
+    // Supprimer un utilisateur (admin uniquement)
+    if (path.match(/^\/users\/[^/]+$/) && method === 'DELETE') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const userId = path.split('/')[2];
+
+      // Empêcher de se supprimer soi-même
+      if (userId === currentUser.id) {
+        return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
+      }
+
+      const userIndex = db.users.findIndex(u => u.id === userId);
+
+      if (userIndex === -1) {
+        return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+
+      // Supprimer l'utilisateur
+      db.users.splice(userIndex, 1);
+      await saveDb(db);
+
+      return res.json({ success: true });
+    }
+
+    // Générer un token de réinitialisation de mot de passe (admin uniquement)
+    if (path.match(/^\/users\/[^/]+\/reset-token$/) && method === 'POST') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const userId = path.split('/')[2];
+      const targetUser = db.users.find(u => u.id === userId);
+
+      if (!targetUser) {
+        return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+
+      // Générer un token unique
+      const resetToken = generateId() + '-' + generateId() + '-' + Date.now().toString(36);
+
+      // Initialiser le tableau si nécessaire
+      if (!db.passwordResetTokens) {
+        db.passwordResetTokens = [];
+      }
+
+      // Supprimer les anciens tokens pour cet utilisateur
+      db.passwordResetTokens = db.passwordResetTokens.filter(t => t.userId !== userId);
+
+      // Créer le nouveau token (valide 24h)
+      const newToken: PasswordResetToken = {
+        id: generateId(),
+        userId,
+        token: resetToken,
+        used: false,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      };
+
+      db.passwordResetTokens.push(newToken);
+      await saveDb(db);
+
+      // Construire l'URL de réinitialisation
+      const baseUrl = req.headers.origin || req.headers.host || '';
+      const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
+
+      return res.json({
+        token: resetToken,
+        url: resetUrl,
+        expiresAt: newToken.expiresAt,
+        user: {
+          id: targetUser.id,
+          username: targetUser.username,
+          name: targetUser.name
+        }
+      });
+    }
+
+    // Vérifier un token de réinitialisation (public)
+    if (path.match(/^\/reset-password\/[^/]+$/) && method === 'GET') {
+      const resetToken = path.split('/')[2];
+      
+      const db = await getDb();
+      const tokenData = db.passwordResetTokens?.find(t => t.token === resetToken);
+
+      if (!tokenData) {
+        return res.status(404).json({ error: 'Token invalide ou expiré', valid: false });
+      }
+
+      if (tokenData.used) {
+        return res.status(400).json({ error: 'Ce lien a déjà été utilisé', valid: false });
+      }
+
+      if (new Date(tokenData.expiresAt) < new Date()) {
+        return res.status(400).json({ error: 'Ce lien a expiré', valid: false });
+      }
+
+      const user = db.users.find(u => u.id === tokenData.userId);
+
+      return res.json({
+        valid: true,
+        username: user?.username,
+        expiresAt: tokenData.expiresAt
+      });
+    }
+
+    // Réinitialiser le mot de passe avec un token (public)
+    if (path.match(/^\/reset-password\/[^/]+$/) && method === 'POST') {
+      const resetToken = path.split('/')[2];
+      const { newPassword } = req.body;
+
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
+      }
+      
+      const db = await getDb();
+      const tokenData = db.passwordResetTokens?.find(t => t.token === resetToken);
+
+      if (!tokenData) {
+        return res.status(404).json({ error: 'Token invalide ou expiré' });
+      }
+
+      if (tokenData.used) {
+        return res.status(400).json({ error: 'Ce lien a déjà été utilisé' });
+      }
+
+      if (new Date(tokenData.expiresAt) < new Date()) {
+        return res.status(400).json({ error: 'Ce lien a expiré' });
+      }
+
+      const user = db.users.find(u => u.id === tokenData.userId);
+
+      if (!user) {
+        return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+
+      // Mettre à jour le mot de passe
+      user.password = hashPassword(newPassword);
+
+      // Marquer le token comme utilisé
+      tokenData.used = true;
+
+      await saveDb(db);
+
+      return res.json({ success: true, message: 'Mot de passe modifié avec succès' });
+    }
+
+    // =============================================
+    // CONTEXTUAL HELP
+    // =============================================
+
+    // Obtenir l'aide contextuelle (public - tous les utilisateurs connectés)
+    if (path.match(/^\/contextual-help\/[^/]+$/) && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const elementKey = decodeURIComponent(path.split('/')[2]);
+      const db = await getDb();
+
+      const help = db.contextualHelps?.find(h => h.elementKey === elementKey);
+
+      if (!help) {
+        return res.json({ help: null });
+      }
+
+      return res.json({ help });
+    }
+
+    // Créer/modifier l'aide contextuelle (admin uniquement)
+    if (path.match(/^\/contextual-help\/[^/]+$/) && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const elementKey = decodeURIComponent(path.split('/')[2]);
+      const { content } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ error: 'Contenu requis' });
+      }
+
+      // Initialiser le tableau si nécessaire
+      if (!db.contextualHelps) {
+        db.contextualHelps = [];
+      }
+
+      // Chercher l'aide existante
+      const existingIndex = db.contextualHelps.findIndex(h => h.elementKey === elementKey);
+
+      if (existingIndex >= 0) {
+        // Mettre à jour
+        db.contextualHelps[existingIndex].content = content;
+        db.contextualHelps[existingIndex].updatedAt = new Date().toISOString();
+      } else {
+        // Créer
+        const newHelp: ContextualHelp = {
+          id: generateId(),
+          elementKey,
+          content,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          createdBy: currentUser.id
+        };
+        db.contextualHelps.push(newHelp);
+      }
+
+      await saveDb(db);
+
+      const help = db.contextualHelps.find(h => h.elementKey === elementKey);
+      return res.json({ help });
     }
 
     // =====================

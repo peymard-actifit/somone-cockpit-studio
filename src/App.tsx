@@ -6,7 +6,9 @@ import HomePage from './pages/HomePage';
 import StudioPage from './pages/StudioPage';
 import PublicCockpitPage from './pages/PublicCockpitPage';
 import PublicUserCockpitsPage from './pages/PublicUserCockpitsPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { ConfirmProvider } from './contexts/ConfirmContext';
+import { ContextualHelpProvider } from './contexts/ContextualHelpContext';
 import React, { useEffect, useState } from 'react';
 
 // Error Boundary pour attraper les erreurs React
@@ -107,35 +109,39 @@ function App() {
   return (
     <ErrorBoundary>
       <ConfirmProvider>
-        <div className="min-h-screen bg-cockpit-bg-dark">
-          <Routes>
-          <Route 
-            path="/auth" 
-            element={user ? <Navigate to="/" replace /> : <AuthPage />} 
-          />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/studio/:cockpitId"
-            element={
-              <ProtectedRoute>
-                <StudioPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* Routes publiques - accessibles sans authentification */}
-          <Route path="/public/:publicId" element={<PublicCockpitPage />} />
-          <Route path="/public/user/:userId" element={<PublicUserCockpitsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <SpeedInsights />
-        </div>
+        <ContextualHelpProvider>
+          <div className="min-h-screen bg-cockpit-bg-dark">
+            <Routes>
+            <Route 
+              path="/auth" 
+              element={user ? <Navigate to="/" replace /> : <AuthPage />} 
+            />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/studio/:cockpitId"
+              element={
+                <ProtectedRoute>
+                  <StudioPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Routes publiques - accessibles sans authentification */}
+            <Route path="/public/:publicId" element={<PublicCockpitPage />} />
+            <Route path="/public/user/:userId" element={<PublicUserCockpitsPage />} />
+            {/* Route de réinitialisation de mot de passe via QR code */}
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <SpeedInsights />
+          </div>
+        </ContextualHelpProvider>
       </ConfirmProvider>
     </ErrorBoundary>
   );
