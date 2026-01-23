@@ -31,11 +31,30 @@ export function useContextualHelp() {
   return context;
 }
 
-// Fonction pour générer une clé contextuelle à partir d'un élément DOM
+// Fonction pour obtenir la clé d'aide au survol (limitée à quelques niveaux)
+// Ne remonte que de 4 niveaux max pour être précis sur l'élément survolé
+function getHoverHelpKey(element: HTMLElement): string | null {
+  let current: HTMLElement | null = element;
+  let levels = 0;
+  const maxLevels = 4; // Maximum de niveaux à remonter
+  
+  while (current && levels < maxLevels) {
+    const helpKey = current.getAttribute('data-help-key');
+    if (helpKey) {
+      return helpKey;
+    }
+    current = current.parentElement;
+    levels++;
+  }
+  
+  return null; // Pas de clé trouvée dans la proximité immédiate
+}
+
+// Fonction pour générer une clé contextuelle à partir d'un élément DOM (pour le clic droit)
 function getContextualKey(element: HTMLElement): string {
   const parts: string[] = [];
   
-  // Chercher des attributs data-help-key spécifiques
+  // Chercher des attributs data-help-key spécifiques (remonte toute la hiérarchie)
   let current: HTMLElement | null = element;
   while (current) {
     const helpKey = current.getAttribute('data-help-key');
@@ -324,11 +343,23 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       return;
     }
     
-    // Get contextual key
-    const contextKey = getContextualKey(target);
+    // Get hover help key (limited to nearby elements only)
+    const hoverKey = getHoverHelpKey(target);
+    
+    // If no key found in proximity, hide tooltip and return
+    if (!hoverKey) {
+      if (currentHoverKeyRef.current) {
+        if (hoverTimeoutRef.current) {
+          clearTimeout(hoverTimeoutRef.current);
+        }
+        setHoverTooltip(null);
+        currentHoverKeyRef.current = null;
+      }
+      return;
+    }
     
     // If same key as before, just update position if tooltip is visible
-    if (contextKey === currentHoverKeyRef.current) {
+    if (hoverKey === currentHoverKeyRef.current) {
       if (hoverTooltip) {
         setHoverTooltip(prev => prev ? {
           ...prev,
@@ -345,7 +376,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     }
     
     // Update current key
-    currentHoverKeyRef.current = contextKey;
+    currentHoverKeyRef.current = hoverKey;
     
     // Hide previous tooltip immediately when changing elements
     setHoverTooltip(null);
@@ -353,10 +384,10 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     // Delay to avoid too many requests
     hoverTimeoutRef.current = setTimeout(async () => {
       // Check if we're still on the same element
-      if (currentHoverKeyRef.current !== contextKey) return;
+      if (currentHoverKeyRef.current !== hoverKey) return;
       
-      const content = await checkHelpExists(contextKey);
-      if (content && currentHoverKeyRef.current === contextKey) {
+      const content = await checkHelpExists(hoverKey);
+      if (content && currentHoverKeyRef.current === hoverKey) {
         setHoverTooltip({
           content,
           x: event.clientX + 15,
