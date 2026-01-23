@@ -95,7 +95,7 @@ export default function StudioPage() {
   const { cockpitId } = useParams<{ cockpitId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { enableGlobalContextMenu, disableGlobalContextMenu } = useContextualHelp();
+  const { enableGlobalContextMenu, disableGlobalContextMenu, enableHoverHelp, disableHoverHelp } = useContextualHelp();
   const {
     currentCockpit,
     currentDomainId,
@@ -131,6 +131,18 @@ export default function StudioPage() {
       disableGlobalContextMenu();
     };
   }, [enableGlobalContextMenu, disableGlobalContextMenu]);
+
+  // Activer/désactiver l'aide au survol selon l'option du cockpit
+  useEffect(() => {
+    if (currentCockpit?.showHelpOnHover) {
+      enableHoverHelp();
+    } else {
+      disableHoverHelp();
+    }
+    return () => {
+      disableHoverHelp();
+    };
+  }, [currentCockpit?.showHelpOnHover, enableHoverHelp, disableHoverHelp]);
 
   useEffect(() => {
     if (cockpitId) {

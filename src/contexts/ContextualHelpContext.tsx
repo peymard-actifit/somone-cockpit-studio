@@ -15,6 +15,8 @@ interface ContextualHelpContextType {
   showHelp: (elementKey: string, event: React.MouseEvent) => void;
   enableGlobalContextMenu: () => void;
   disableGlobalContextMenu: () => void;
+  enableHoverHelp: () => void;
+  disableHoverHelp: () => void;
 }
 
 const ContextualHelpContext = createContext<ContextualHelpContextType | null>(null);
@@ -122,6 +124,10 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const [editContent, setEditContent] = useState('');
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [globalEnabled, setGlobalEnabled] = useState(false);
+  const [hoverEnabled, setHoverEnabled] = useState(false);
+  const [hoverTooltip, setHoverTooltip] = useState<{ content: string; x: number; y: number } | null>(null);
+  const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const helpCacheRef = React.useRef<Map<string, string | null>>(new Map());
 
   const isAdmin = user?.isAdmin === true;
 
@@ -237,6 +243,87 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     setGlobalEnabled(false);
   }, []);
 
+  // Enable/disable hover help
+  const enableHoverHelp = useCallback(() => {
+    setHoverEnabled(true);
+  }, []);
+
+  const disableHoverHelp = useCallback(() => {
+    setHoverEnabled(false);
+    setHoverTooltip(null);
+  }, []);
+
+  // Check if help exists for a key (with cache)
+  const checkHelpExists = useCallback(async (elementKey: string): Promise<string | null> => {
+    // Check cache first
+    if (helpCacheRef.current.has(elementKey)) {
+      return helpCacheRef.current.get(elementKey) || null;
+    }
+    
+    if (!token) return null;
+    
+    try {
+      const response = await fetch(`/api/contextual-help/${encodeURIComponent(elementKey)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.help?.content || null;
+        helpCacheRef.current.set(elementKey, content);
+        return content;
+      }
+    } catch (error) {
+      console.error('Error checking help:', error);
+    }
+    
+    helpCacheRef.current.set(elementKey, null);
+    return null;
+  }, [token]);
+
+  // Handle hover for tooltip
+  const handleMouseMove = useCallback(async (event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    
+    // Ignore if popup is open or on inputs
+    if (isOpen || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      setHoverTooltip(null);
+      return;
+    }
+    
+    // Clear previous timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    
+    // Get contextual key
+    const contextKey = getContextualKey(target);
+    
+    // Delay to avoid too many requests
+    hoverTimeoutRef.current = setTimeout(async () => {
+      const content = await checkHelpExists(contextKey);
+      if (content) {
+        setHoverTooltip({
+          content,
+          x: event.clientX + 15,
+          y: event.clientY + 15
+        });
+      } else {
+        setHoverTooltip(null);
+      }
+    }, 500); // 500ms delay before showing tooltip
+  }, [isOpen, checkHelpExists]);
+
+  // Hide tooltip on mouse leave or when moving fast
+  const handleMouseOut = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setHoverTooltip(null);
+  }, []);
+
   // Attach/detach global listener
   useEffect(() => {
     if (globalEnabled) {
@@ -246,6 +333,21 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       };
     }
   }, [globalEnabled, handleGlobalContextMenu]);
+
+  // Attach/detach hover listener
+  useEffect(() => {
+    if (hoverEnabled) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseout', handleMouseOut);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseout', handleMouseOut);
+        if (hoverTimeoutRef.current) {
+          clearTimeout(hoverTimeoutRef.current);
+        }
+      };
+    }
+  }, [hoverEnabled, handleMouseMove, handleMouseOut]);
 
   // Close popup
   const closeHelp = useCallback(() => {
@@ -279,7 +381,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   }, []);
 
   return (
-    <ContextualHelpContext.Provider value={{ showHelp, enableGlobalContextMenu, disableGlobalContextMenu }}>
+    <ContextualHelpContext.Provider value={{ showHelp, enableGlobalContextMenu, disableGlobalContextMenu, enableHoverHelp, disableHoverHelp }}>
       {children}
       
       {/* Help Popup */}
@@ -405,6 +507,22 @@ Exemples:
             )}
           </div>
         </>
+      )}
+
+      {/* Hover Tooltip */}
+      {hoverTooltip && !isOpen && (
+        <div
+          className="fixed z-[9997] bg-slate-800 text-white text-sm px-3 py-2 rounded-lg shadow-lg max-w-xs pointer-events-none"
+          style={{ 
+            left: Math.min(hoverTooltip.x, window.innerWidth - 320), 
+            top: Math.min(hoverTooltip.y, window.innerHeight - 100) 
+          }}
+        >
+          <div 
+            className="[&>p]:mb-1 [&>ul]:list-disc [&>ul]:pl-3 [&>ol]:list-decimal [&>ol]:pl-3 line-clamp-4"
+            dangerouslySetInnerHTML={{ __html: hoverTooltip.content }}
+          />
+        </div>
       )}
     </ContextualHelpContext.Provider>
   );

@@ -4409,6 +4409,24 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               />
             </div>
 
+            {/* Option Aide contextuelle au survol */}
+            <div className="border-t border-[#E2E8F0] pt-4">
+              <label className="flex items-center gap-3 cursor-pointer p-3 bg-[#F5F7FA] rounded-lg hover:bg-[#E2E8F0] transition-colors">
+                <input
+                  type="checkbox"
+                  checked={currentCockpit?.showHelpOnHover || false}
+                  onChange={(e) => updateCockpit({ showHelpOnHover: e.target.checked })}
+                  className="w-5 h-5 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F] focus:ring-2"
+                />
+                <div>
+                  <span className="block text-sm font-medium text-[#1E3A5F]">Aide au survol</span>
+                  <span className="block text-xs text-[#94A3B8]">
+                    Affiche l'aide contextuelle au survol des éléments
+                  </span>
+                </div>
+              </label>
+            </div>
+
             {/* Option Vue Cockpit Original (préparation future fonctionnalité) */}
             <div className="border-t border-[#E2E8F0] pt-4">
               <label className="flex items-center gap-3 cursor-pointer p-3 bg-[#F5F7FA] rounded-lg hover:bg-[#E2E8F0] transition-colors">

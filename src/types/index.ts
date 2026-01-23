@@ -67,6 +67,8 @@ export interface Cockpit {
   useOriginalView?: boolean;  // Si true, utilise la vue "Cockpit Original" lors de la publication
   // Icônes des templates (associe un nom de template à une icône)
   templateIcons?: TemplateIcons;
+  // Aide contextuelle au survol
+  showHelpOnHover?: boolean;  // Si true, affiche l'aide contextuelle au survol des éléments
 }
 
 // Coordonnées GPS
