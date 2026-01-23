@@ -21,11 +21,12 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: domain.id });
 
-  // Calculer le statut le plus critique pour ce domaine
+  // Calculer le statut le plus critique pour ce domaine - protection pour les tableaux
   const { currentCockpit } = useCockpitStore();
-  const domainData = currentCockpit?.domains.find(d => d.id === domain.id);
+  const cockpitDomains = currentCockpit?.domains || [];
+  const domainData = cockpitDomains.find(d => d.id === domain.id);
   // Passer tous les domaines pour le calcul récursif (éléments avec status herite_domaine)
-  const worstStatus = domainData ? getDomainWorstStatus(domainData, currentCockpit?.domains) : 'ok';
+  const worstStatus = domainData ? getDomainWorstStatus(domainData, cockpitDomains) : 'ok';
   // Protection: vérifier que STATUS_COLORS[worstStatus] existe avant d'accéder à .hex
   const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
   const hasAlert = worstStatus !== 'ok' && worstStatus !== undefined;
