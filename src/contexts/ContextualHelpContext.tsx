@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { MuiIcon } from '../components/IconPicker';
 
