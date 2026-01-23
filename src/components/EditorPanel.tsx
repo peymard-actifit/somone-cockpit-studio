@@ -316,11 +316,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const { active, over } = event;
     if (!domain || !over || active.id === over.id) return;
 
-    const oldIndex = domain.categories.findIndex(c => c.id === active.id);
-    const newIndex = domain.categories.findIndex(c => c.id === over.id);
+    const oldIndex = (domain.categories || []).findIndex(c => c.id === active.id);
+    const newIndex = (domain.categories || []).findIndex(c => c.id === over.id);
 
     if (oldIndex !== -1 && newIndex !== -1) {
-      const newOrder = arrayMove(domain.categories.map(c => c.id), oldIndex, newIndex);
+      const newOrder = arrayMove((domain.categories || []).map(c => c.id), oldIndex, newIndex);
       reorderCategory(domain.id, newOrder);
     }
   };
@@ -330,11 +330,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     const { active, over } = event;
     if (!element || !over || active.id === over.id) return;
 
-    const oldIndex = element.subCategories.findIndex(sc => sc.id === active.id);
-    const newIndex = element.subCategories.findIndex(sc => sc.id === over.id);
+    const oldIndex = (element.subCategories || []).findIndex(sc => sc.id === active.id);
+    const newIndex = (element.subCategories || []).findIndex(sc => sc.id === over.id);
 
     if (oldIndex !== -1 && newIndex !== -1) {
-      const newOrder = arrayMove(element.subCategories.map(sc => sc.id), oldIndex, newIndex);
+      const newOrder = arrayMove((element.subCategories || []).map(sc => sc.id), oldIndex, newIndex);
       reorderSubCategory(element.id, newOrder);
     }
   };
@@ -779,7 +779,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     if (selectedSubElementId && element) {
       // Trouver le sous-élément dans l'élément courant
       for (const subCategory of element.subCategories) {
-        const foundSubElement = subCategory.subElements.find(se => se.id === selectedSubElementId);
+        const foundSubElement = (subCategory.subElements || []).find(se => se.id === selectedSubElementId);
         if (foundSubElement) {
           setSelectedSubElement(foundSubElement);
           setActiveSection('status'); // Ouvrir automatiquement la section statut
@@ -798,7 +798,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     if (selectedSubElementIdRef.current && element && !isEditingNameRef.current) {
       // Trouver le sous-élément mis à jour dans l'élément courant
       for (const subCategory of element.subCategories) {
-        const updatedSubElement = subCategory.subElements.find(se => se.id === selectedSubElementIdRef.current);
+        const updatedSubElement = (subCategory.subElements || []).find(se => se.id === selectedSubElementIdRef.current);
         if (updatedSubElement) {
           // Si on est en train d'éditer le nom, on préserve la valeur locale
           if (editingSubElementName !== '' && updatedSubElement.id === selectedSubElementIdRef.current) {
@@ -1095,7 +1095,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     }
                   }}
                 >
-                  {element.subCategories.map(sc => (
+                  {(element.subCategories || []).map(sc => (
                     <option key={sc.id} value={sc.id}>{sc.name}</option>
                   ))}
                 </select>
@@ -1567,7 +1567,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       }
                     }}
                   >
-                    {domain.categories.map(cat => (
+                    {(domain.categories || []).map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
@@ -1578,8 +1578,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         addCategory(domain.id, categoryName.trim(), 'horizontal');
                         // Attendre la création puis déplacer l'élément
                         setTimeout(() => {
-                          const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
-                          const newCategory = updatedDomain?.categories.find(c => c.name === categoryName.trim());
+                          const updatedDomain = (useCockpitStore.getState().currentCockpit?.domains || []).find(d => d.id === domain.id);
+                          const newCategory = (updatedDomain?.categories || []).find(c => c.name === categoryName.trim());
                           if (newCategory) {
                             moveElementToCategory(element.id, newCategory.id);
                           }
@@ -2011,11 +2011,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               onDragEnd={handleSubCategoryDragEnd}
             >
               <SortableContext
-                items={element.subCategories.map(sc => sc.id)}
+                items={(element.subCategories || []).map(sc => sc.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-2">
-                  {element.subCategories.map((subCategory) => (
+                  {(element.subCategories || []).map((subCategory) => (
                     <SortableSubCategoryItem
                       key={subCategory.id}
                       subCategory={subCategory}
@@ -2042,7 +2042,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             {/* Sélecteur d'icônes pour les sous-catégories */}
             {showIconPicker === 'subCategory' && iconPickerContext && iconPickerContext.id && element && (
               <IconPicker
-                value={element.subCategories.find(sc => sc.id === iconPickerContext.id)?.icon}
+                value={(element.subCategories || []).find(sc => sc.id === iconPickerContext.id)?.icon}
                 onChange={(iconName) => {
                   if (iconPickerContext.type === 'subCategory' && iconPickerContext.id) {
                     updateSubCategory(iconPickerContext.id, { icon: iconName });
@@ -2059,8 +2059,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Préférences d'affichage pour les sous-catégories */}
         {element.subCategories && element.subCategories.length > 0 && (() => {
-          const horizontalSubCategories = element.subCategories.filter(sc => sc.orientation !== 'vertical');
-          const verticalSubCategories = element.subCategories.filter(sc => sc.orientation === 'vertical');
+          const horizontalSubCategories = (element.subCategories || []).filter(sc => sc.orientation !== 'vertical');
+          const verticalSubCategories = (element.subCategories || []).filter(sc => sc.orientation === 'vertical');
 
           return (
             <Section
@@ -3179,11 +3179,11 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 onDragEnd={handleCategoryDragEnd}
               >
                 <SortableContext
-                  items={domain.categories.map(c => c.id)}
+                  items={(domain.categories || []).map(c => c.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2">
-                    {domain.categories.map((category) => (
+                    {(domain.categories || []).map((category) => (
                       <SortableCategoryItem
                         key={category.id}
                         category={category}
@@ -3215,7 +3215,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             {/* Sélecteur d'icônes pour les catégories */}
             {showIconPicker === 'category' && iconPickerContext && iconPickerContext.id && (
               <IconPicker
-                value={domain?.categories.find(c => c.id === iconPickerContext.id)?.icon}
+                value={(domain?.categories || []).find(c => c.id === iconPickerContext.id)?.icon}
                 onChange={(iconName) => {
                   if (iconPickerContext.type === 'category' && iconPickerContext.id) {
                     updateCategory(iconPickerContext.id, { icon: iconName });
@@ -3336,7 +3336,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               subElementName?: string;
             }> = [];
 
-            currentCockpit?.domains.forEach(d => {
+            (currentCockpit?.domains || []).forEach(d => {
               if (d.templateType === 'alerts' || d.templateType === 'stats') return;
 
               d.categories?.forEach(cat => {
@@ -3666,7 +3666,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             columnWidth: 100,
           };
 
-          const alertsDomains = currentCockpit?.domains.filter(d => d.templateType === 'alerts') || [];
+          const alertsDomains = (currentCockpit?.domains || []).filter(d => d.templateType === 'alerts');
 
           const dayNames: { key: keyof ServiceHours; label: string }[] = [
             { key: 'monday', label: 'Lun' },
@@ -3956,8 +3956,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Préférences d'affichage - Masquées pour les vues Map, Background, Hours-tracking, Alerts et Stats */}
         {domain && domain.templateType !== 'map' && domain.templateType !== 'background' && domain.templateType !== 'hours-tracking' && domain.templateType !== 'alerts' && domain.templateType !== 'stats' && (() => {
           // Les catégories sans orientation sont considérées comme horizontales par défaut
-          const horizontalCategories = domain.categories.filter(c => c.orientation !== 'vertical');
-          const verticalCategories = domain.categories.filter(c => c.orientation === 'vertical');
+          const horizontalCategories = (domain.categories || []).filter(c => c.orientation !== 'vertical');
+          const verticalCategories = (domain.categories || []).filter(c => c.orientation === 'vertical');
 
           return (
             <Section

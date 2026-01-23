@@ -698,8 +698,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       // On doit attendre que le store soit mis à jour, donc on utilise un setTimeout
       setTimeout(() => {
         // Re-récupérer la catégorie créée
-        const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
-        const newCategory = updatedDomain?.categories.find(c => c.name === 'Points de carte');
+        const updatedDomain = (useCockpitStore.getState().currentCockpit?.domains || []).find(d => d.id === domain.id);
+        const newCategory = (updatedDomain?.categories || []).find(c => c.name === 'Points de carte');
         if (newCategory) {
           createElementInCategory(newCategory.id, point);
         }
@@ -739,9 +739,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 
     // Attendre que l'élément soit créé puis le lier au point
     setTimeout(() => {
-      const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
-      const category = updatedDomain?.categories.find(c => c.id === categoryId);
-      const newElement = category?.elements.find(e => e.name === point.name);
+      const updatedDomain = (useCockpitStore.getState().currentCockpit?.domains || []).find(d => d.id === domain.id);
+      const category = (updatedDomain?.categories || []).find(c => c.id === categoryId);
+      const newElement = (category?.elements || []).find(e => e.name === point.name);
 
       if (newElement) {
         // Lier le point à l'élément créé
@@ -1120,7 +1120,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   if (selectedCategories.length === domain.categories.length) {
                     setSelectedCategories([]);
                   } else {
-                    setSelectedCategories(domain.categories.map(c => c.id));
+                    setSelectedCategories((domain.categories || []).map(c => c.id));
                   }
                 }}
                 className="w-full text-left px-2 py-1.5 text-xs text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded transition-colors mb-1"
@@ -1128,12 +1128,12 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 {selectedCategories.length === domain.categories.length ? 'Tout désélectionner' : 'Tout sélectionner'}
               </button>
               
-              {domain.categories.map(category => {
+              {(domain.categories || []).map(category => {
                 const isSelected = selectedCategories.includes(category.id);
                 // Compter les points liés à cette catégorie
                 const pointCount = (domain.mapElements || []).filter(p => {
                   if (!p.elementId) return false;
-                  return category.elements.some(e => e.id === p.elementId);
+                  return (category.elements || []).some(e => e.id === p.elementId);
                 }).length;
                 
                 return (

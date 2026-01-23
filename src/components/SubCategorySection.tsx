@@ -274,7 +274,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {subCategory.subElements.map((subElement, index) => (
+        {(subCategory.subElements || []).map((subElement, index) => (
           <SubElementTile
             key={subElement.id}
             subElement={subElement}

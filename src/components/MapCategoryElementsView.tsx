@@ -95,7 +95,7 @@ export default function MapCategoryElementsView({
 
       {/* Grille des éléments */}
       <div className={`flex flex-wrap ${getGapClass(horizontalSpacing)}`}>
-        {category.elements.map((element) => {
+        {(category.elements || []).map((element) => {
           const colors = getElementColors(element);
           const subElementCount = getSubElementCount(element);
           

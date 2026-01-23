@@ -519,7 +519,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                     onDrop={handleDrop}
                   >
                     <div className="flex flex-col gap-3">
-                      {category.elements.map((element, index) => (
+                      {(category.elements || []).map((element, index) => (
                         <ElementTile
                           key={element.id}
                           element={element}

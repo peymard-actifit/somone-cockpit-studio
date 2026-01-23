@@ -586,7 +586,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
                       onDrop={(e) => handleDrop(e, subCategory.id)}
                     >
                       <div className="p-4 flex flex-col gap-3">
-                        {subCategory.subElements.map((subElement, index) => (
+                        {(subCategory.subElements || []).map((subElement, index) => (
                           <SubElementTile
                             key={subElement.id}
                             subElement={subElement}

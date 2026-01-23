@@ -752,8 +752,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         addCategory(domain.id, categoryName, 'horizontal');
         // Attendre la création
         setTimeout(() => {
-          const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
-          const newCategory = updatedDomain?.categories.find(c => c.name === categoryName);
+          const updatedDomain = (useCockpitStore.getState().currentCockpit?.domains || []).find(d => d.id === domain.id);
+          const newCategory = (updatedDomain?.categories || []).find(c => c.name === categoryName);
           if (newCategory) {
             createElementInCategory(newCategory.id);
           }
@@ -772,8 +772,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         addCategory(domain.id, 'Ã‰léments', 'horizontal');
         // Attendre la création
         setTimeout(() => {
-          const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
-          const newCategory = updatedDomain?.categories.find(c => c.name === 'Ã‰léments');
+          const updatedDomain = (useCockpitStore.getState().currentCockpit?.domains || []).find(d => d.id === domain.id);
+          const newCategory = (updatedDomain?.categories || []).find(c => c.name === 'Ã‰léments');
           if (newCategory) {
             createElementInCategory(newCategory.id);
           }
@@ -832,9 +832,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
     // Attendre la création puis mettre à jour position/taille
     setTimeout(() => {
-      const updatedDomain = useCockpitStore.getState().currentCockpit?.domains.find(d => d.id === domain.id);
-      const category = updatedDomain?.categories.find(c => c.id === categoryId);
-      const newElement = category?.elements.find(e => e.name === elementName);
+      const updatedDomain = (useCockpitStore.getState().currentCockpit?.domains || []).find(d => d.id === domain.id);
+      const category = (updatedDomain?.categories || []).find(c => c.id === categoryId);
+      const newElement = (category?.elements || []).find(e => e.name === elementName);
 
       if (newElement) {
         updateElement(newElement.id, {
@@ -1146,7 +1146,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   if (selectedCategories.length === domain.categories.length) {
                     setSelectedCategories([]);
                   } else {
-                    setSelectedCategories(domain.categories.map(c => c.id));
+                    setSelectedCategories((domain.categories || []).map(c => c.id));
                   }
                 }}
                 className="w-full text-left px-2 py-1.5 text-xs text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded transition-colors mb-1"
@@ -1154,9 +1154,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 {selectedCategories.length === domain.categories.length ? 'Tout désélectionner' : 'Tout sélectionner'}
               </button>
               
-              {domain.categories.map(category => {
+              {(domain.categories || []).map(category => {
                 const isSelected = selectedCategories.includes(category.id);
-                const elementCount = category.elements.filter(e => 
+                const elementCount = (category.elements || []).filter(e => 
                   e.positionX !== undefined && e.positionY !== undefined
                 ).length;
                 
@@ -2069,7 +2069,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   className="w-full px-4 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
                 >
                   <option value="">-- Sélectionner une catégorie --</option>
-                  {domain.categories.map((cat) => (
+                  {(domain.categories || []).map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>

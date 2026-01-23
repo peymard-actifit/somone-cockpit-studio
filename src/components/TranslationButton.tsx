@@ -643,7 +643,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
 
     // Traiter les domaines
     if (data.domains && Array.isArray(data.domains)) {
-      data.domains.forEach((domain: any) => {
+      (data.domains || []).forEach((domain: any) => {
         const domainPath = [domain.name || domain.id || 'Domaine'];
         const domainId = domain.id || `domain-${domainPath[0]}`;
 
@@ -660,7 +660,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
 
         // Traiter les catégories
         if (domain.categories && Array.isArray(domain.categories)) {
-          domain.categories.forEach((category: any) => {
+          (domain.categories || []).forEach((category: any) => {
             const categoryPath = [...domainPath, category.name || category.id || 'Catégorie'];
             const categoryId = category.id || `category-${categoryPath[categoryPath.length - 1]}`;
 
@@ -677,7 +677,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
 
             // Traiter les éléments
             if (category.elements && Array.isArray(category.elements)) {
-              category.elements.forEach((element: any) => {
+              (category.elements || []).forEach((element: any) => {
                 const elementPath = [...categoryPath, element.name || element.id || 'Élément'];
                 const elementId = element.id || `element-${elementPath[elementPath.length - 1]}`;
 
@@ -707,7 +707,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
 
                 // Traiter les sous-catégories
                 if (element.subCategories && Array.isArray(element.subCategories)) {
-                  element.subCategories.forEach((subCategory: any) => {
+                  (element.subCategories || []).forEach((subCategory: any) => {
                     const subCategoryPath = [...elementPath, subCategory.name || subCategory.id || 'Sous-catégorie'];
                     const subCategoryId = subCategory.id || `subcategory-${subCategoryPath[subCategoryPath.length - 1]}`;
 
@@ -724,7 +724,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
 
                     // Traiter les sous-éléments
                     if (subCategory.subElements && Array.isArray(subCategory.subElements)) {
-                      subCategory.subElements.forEach((subElement: any) => {
+                      (subCategory.subElements || []).forEach((subElement: any) => {
                         const subElementPath = [...subCategoryPath, subElement.name || subElement.id || 'Sous-élément'];
                         const subElementId = subElement.id || `subelement-${subElementPath[subElementPath.length - 1]}`;
 

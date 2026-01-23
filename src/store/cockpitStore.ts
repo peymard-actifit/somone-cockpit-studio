@@ -794,7 +794,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   updateDomain: (domainId: string, updates: Partial<Domain>) => {
-    const domain = get().currentCockpit?.domains.find(d => d.id === domainId);
+    const domain = (get().currentCockpit?.domains || []).find(d => d.id === domainId);
     const domainName = updates.name || domain?.name || 'Domaine';
 
     set((state) => {
@@ -802,7 +802,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d =>
+          domains: (state.currentCockpit.domains || []).map(d =>
             d.id === domainId ? { ...d, ...updates } : d
           ),
           updatedAt: new Date().toISOString(),
@@ -816,7 +816,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   deleteDomain: (domainId: string) => {
     set((state) => {
       if (!state.currentCockpit) return state;
-      const domains = state.currentCockpit.domains.filter(d => d.id !== domainId);
+      const domains = (state.currentCockpit.domains || []).filter(d => d.id !== domainId);
       return {
         currentCockpit: {
           ...state.currentCockpit,
@@ -835,7 +835,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const state = get();
     if (!state.currentCockpit) return;
 
-    const originalDomain = state.currentCockpit.domains.find(d => d.id === domainId);
+    const originalDomain = (state.currentCockpit.domains || []).find(d => d.id === domainId);
     if (!originalDomain) return;
 
     // Fonction pour générer de nouveaux IDs pour tous les enfants
@@ -917,7 +917,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const duplicatedDomain = duplicateWithNewIds(originalDomain);
 
     // Trouver l'index du domaine original
-    const originalIndex = state.currentCockpit.domains.findIndex(d => d.id === domainId);
+    const originalIndex = (state.currentCockpit.domains || []).findIndex(d => d.id === domainId);
 
     // Insérer la copie juste après l'original
     const newDomains = [...state.currentCockpit.domains];
@@ -947,7 +947,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       }
 
       // Créer un map pour un accès rapide aux domaines par ID
-      const domainMap = new Map(state.currentCockpit.domains.map(d => [d.id, d]));
+      const domainMap = new Map((state.currentCockpit.domains || []).map(d => [d.id, d]));
 
       // Reconstruire le tableau des domaines dans le nouvel ordre
       const reorderedDomains = domainIds
@@ -959,7 +959,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         .filter((d): d is Domain => d !== null);
 
       // Ajouter les domaines qui n'étaient pas dans la liste (au cas où)
-      const missingDomains = state.currentCockpit.domains.filter(d => !domainIds.includes(d.id));
+      const missingDomains = (state.currentCockpit.domains || []).filter(d => !domainIds.includes(d.id));
       reorderedDomains.push(...missingDomains.map((d, index) => ({ ...d, order: reorderedDomains.length + index })));
 
       const sortedDomains = reorderedDomains.sort((a, b) => a.order - b.order);
@@ -994,7 +994,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => {
+          domains: (state.currentCockpit.domains || []).map(d => {
             if (d.id !== domainId) return d;
             const newOrder = d.categories.length;
             return {
@@ -1025,7 +1025,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c =>
               c.id === categoryId ? { ...c, ...updates } : c
@@ -1045,7 +1045,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).filter(c => c.id !== categoryId),
           })),
@@ -1060,7 +1060,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     set((state) => {
       if (!state.currentCockpit) return state;
 
-      const domain = state.currentCockpit.domains.find(d => d.id === domainId);
+      const domain = (state.currentCockpit.domains || []).find(d => d.id === domainId);
       if (!domain) return state;
 
       // Créer un map pour un accès rapide aux catégories par ID
@@ -1082,7 +1082,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d =>
+          domains: (state.currentCockpit.domains || []).map(d =>
             d.id === domainId
               ? {
                 ...d,
@@ -1112,7 +1112,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => {
               if (c.id !== categoryId) return c;
@@ -1153,7 +1153,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1178,7 +1178,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         return {
           currentCockpit: {
             ...state.currentCockpit,
-            domains: state.currentCockpit.domains.map(d => ({
+            domains: (state.currentCockpit.domains || []).map(d => ({
               ...d,
               categories: (d.categories || []).map(c => ({
                 ...c,
@@ -1251,7 +1251,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1297,7 +1297,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1366,7 +1366,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1424,7 +1424,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1482,7 +1482,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d =>
+          domains: (state.currentCockpit.domains || []).map(d =>
             d.id === targetDomain!.id
               ? {
                 ...d,
@@ -1540,7 +1540,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1617,7 +1617,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1647,7 +1647,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         return {
           currentCockpit: {
             ...state.currentCockpit,
-            domains: state.currentCockpit.domains.map(d => ({
+            domains: (state.currentCockpit.domains || []).map(d => ({
               ...d,
               categories: (d.categories || []).map(c => ({
                 ...c,
@@ -1711,7 +1711,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           for (const c of (d.categories || [])) {
             for (const e of (c.elements || [])) {
               for (const sc of (e.subCategories || [])) {
-                if (sc.subElements.some(se => se.id === subElementId)) {
+                if ((sc.subElements || []).some(se => se.id === subElementId)) {
                   parentElement = e;
                   break;
                 }
@@ -1754,7 +1754,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1802,7 +1802,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => {
               if (c.id === fromCategoryId) {
@@ -1864,7 +1864,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -1905,7 +1905,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => {
               if (c.id !== categoryId) return c;
@@ -1952,7 +1952,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -2060,7 +2060,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => {
+          domains: (state.currentCockpit.domains || []).map(d => {
             if (d.id !== domainId) return d;
             return {
               ...d,
@@ -2080,7 +2080,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             mapElements: (d.mapElements || []).map(me =>
               me.id === mapElementId ? { ...me, ...updates } : me
@@ -2099,7 +2099,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             mapElements: (d.mapElements || []).filter(me => me.id !== mapElementId),
           })),
@@ -2142,7 +2142,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     set((s) => ({
       currentCockpit: s.currentCockpit ? {
         ...s.currentCockpit,
-        domains: s.currentCockpit.domains.map(d => {
+        domains: (s.currentCockpit.domains || []).map(d => {
           if (d.id !== domainId) return d;
           return {
             ...d,
@@ -2206,7 +2206,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     set((s) => ({
       currentCockpit: s.currentCockpit ? {
         ...s.currentCockpit,
-        domains: s.currentCockpit.domains.map(d => ({
+        domains: (s.currentCockpit.domains || []).map(d => ({
           ...d,
           categories: (d.categories || []).map(c => {
             if (c.id !== categoryId) return c;
@@ -2282,7 +2282,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => {
               if (c.id !== categoryId) return c;
@@ -2352,7 +2352,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -2390,7 +2390,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d =>
+          domains: (state.currentCockpit.domains || []).map(d =>
             d.id === domainId ? { ...d, mapBounds: bounds } : d
           ),
           updatedAt: new Date().toISOString(),
@@ -2633,8 +2633,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         console.log('[Publish] 💾 Sauvegarde complète avant publication (TOUTES les données, y compris non publiables):', {
           name: payload.name,
           domainsCount: payload.domains.length,
-          domainsWithImages: payload.domains.filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
-          nonPublishableDomains: payload.domains.filter((d: any) => d.publiable === false).length,
+          domainsWithImages: (payload.domains || []).filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
+          nonPublishableDomains: (payload.domains || []).filter((d: any) => d.publiable === false).length,
           sharedWithCount: payload.sharedWith.length,
           useOriginalView: payload.useOriginalView, // Log explicite
         });
@@ -2937,7 +2937,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -3165,7 +3165,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -3201,7 +3201,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -3405,7 +3405,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => {
               if (c.id === sourceCategoryId) {
@@ -3458,7 +3458,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -3528,7 +3528,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => ({
+          domains: (state.currentCockpit.domains || []).map(d => ({
             ...d,
             categories: (d.categories || []).map(c => ({
               ...c,
@@ -3702,7 +3702,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => {
+          domains: (state.currentCockpit.domains || []).map(d => {
             if (d.id !== domainId) return d;
             return {
               ...d,
@@ -3728,7 +3728,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => {
+          domains: (state.currentCockpit.domains || []).map(d => {
             if (d.id !== domainId) return d;
             return {
               ...d,
@@ -3754,7 +3754,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return {
         currentCockpit: {
           ...state.currentCockpit,
-          domains: state.currentCockpit.domains.map(d => {
+          domains: (state.currentCockpit.domains || []).map(d => {
             if (d.id !== domainId) return d;
             return {
               ...d,

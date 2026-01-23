@@ -899,7 +899,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                   <>
                     {horizontalCategoriesInline ? (
                       /* MODE HORIZONTAL : Catégories avec éléments en ligne à gauche */
-                      domain.categories.map((category, rowIndex) => (
+                      (domain.categories || []).map((category, rowIndex) => (
                         <tr key={category.id} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-[#F5F7FA]'}>
                           <td className="p-2 border-r border-[#E2E8F0] bg-[#F5F7FA] sticky left-0 z-10" style={{ width: `${categoryColumnWidth}px`, minWidth: '20px', maxWidth: '1000px', paddingBottom: `${categorySpacing}px` }}>
                             <div className="flex items-center gap-3">
@@ -909,7 +909,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                               </div>
                               <div className="w-px h-6 bg-[#E2E8F0] shrink-0" />
                               <div className="flex gap-1 flex-wrap items-center" style={{ gap: `${cellSpacing}px` }}>
-                                {category.elements.map((element) => {
+                                {(category.elements || []).map((element) => {
                                   const colors = getEffectiveColors(element, domains);
                                   const hexToRgba = (hex: string, alpha: number) => {
                                     const r = parseInt(hex.slice(1, 3), 16);
@@ -987,7 +987,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                       ))
                     ) : (
                       /* MODE VERTICAL : Éléments empilés verticalement, sous-éléments à droite */
-                      domain.categories.map((category, catIndex) => (
+                      (domain.categories || []).map((category, catIndex) => (
                         <React.Fragment key={category.id}>
                           {/* Ligne d'en-tête de catégorie */}
                           <tr className="bg-[#1E3A5F]/10">
@@ -1016,7 +1016,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                           </tr>
 
                           {/* Lignes des éléments de cette catégorie */}
-                          {category.elements.map((element, elIndex) => {
+                          {(category.elements || []).map((element, elIndex) => {
                             const colors = getEffectiveColors(element, domains);
                             const hexToRgba = (hex: string, alpha: number) => {
                               const r = parseInt(hex.slice(1, 3), 16);
@@ -1138,7 +1138,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                 ) : (
                   /* Collapsed view: categories + sous-elements (sans elements) */
                   <>
-                    {domain.categories.map((category, rowIndex) => (
+                    {(domain.categories || []).map((category, rowIndex) => (
                       <tr key={category.id} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-[#F5F7FA]'}>
                         {/* Category name only (no elements in collapsed mode) */}
                         <td className="p-2 border-r border-[#E2E8F0] bg-[#F5F7FA] sticky left-0 z-10" style={{ width: `${categoryColumnWidth}px`, minWidth: '20px', maxWidth: '1000px' }}>
@@ -1226,7 +1226,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                 onChange={(e) => { setTargetCategoryId(e.target.value); setTargetElementId(null); }}
                 className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
               >
-                {domain.categories.map(cat => (
+                {(domain.categories || []).map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>

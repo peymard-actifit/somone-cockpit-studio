@@ -755,7 +755,7 @@ export default function StatsView({ domain, cockpit, readOnly = false }: StatsVi
               <div className="flex-1 flex items-end border-l border-b border-[#E2E8F0] min-h-0" style={barsContainerStyle}>
                 {periods.map((_, periodIndex) => {
                   // Calculer la hauteur totale de la colonne
-                  const columnTotal = bottomChartData.elements.reduce(
+                  const columnTotal = (bottomChartData.elements || []).reduce(
                     (sum, el) => sum + el.durations[periodIndex], 0
                   );
                   const columnHeightPercent = bottomChartData.maxDuration > 0
@@ -769,7 +769,7 @@ export default function StatsView({ domain, cockpit, readOnly = false }: StatsVi
                         className="w-full rounded-t overflow-hidden flex flex-col"
                         style={{ height: `${columnHeightPercent}%` }}
                       >
-                        {bottomChartData.elements.map((element, elemIndex) => {
+                        {(bottomChartData.elements || []).map((element, elemIndex) => {
                           const duration = element.durations[periodIndex];
                           // Hauteur relative à la somme de la colonne
                           const heightPercent = columnTotal > 0
@@ -821,7 +821,7 @@ export default function StatsView({ domain, cockpit, readOnly = false }: StatsVi
 
           {/* Légende - En dessous du graphe, compacte et alignée */}
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs">
-            {bottomChartData.elements.map((element, index) => {
+            {(bottomChartData.elements || []).map((element, index) => {
               const isHovered = hoveredElementKey === element.key;
               const isOtherHovered = hoveredElementKey !== null && hoveredElementKey !== element.key;
 

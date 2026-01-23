@@ -51,7 +51,7 @@ function PublicCockpitContent() {
         });
 
         if (data.domains && Array.isArray(data.domains)) {
-          data.domains.forEach((domain: any, index: number) => {
+          (data.domains || []).forEach((domain: any, index: number) => {
             console.log(`[PublicCockpitPage] Domaine ${index + 1}: "${domain.name}" (${domain.templateType})`);
             console.log(`[PublicCockpitPage]   - Keys:`, Object.keys(domain));
             console.log(`[PublicCockpitPage]   - backgroundImage type:`, typeof domain.backgroundImage);
