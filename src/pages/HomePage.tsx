@@ -529,7 +529,8 @@ export default function HomePage() {
       });
       if (response.ok) {
         const data = await response.json();
-        setAllUsers(data);
+        // FIX: L'API retourne { users: [...] }, pas directement un tableau
+        setAllUsers(data.users || []);
       }
     } catch (error) {
       console.error('Erreur récupération utilisateurs:', error);
