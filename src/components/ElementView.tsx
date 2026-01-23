@@ -426,14 +426,23 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
             type="number"
             min="10"
             max="500"
-            value={Math.round(scale * 100)}
-            onChange={(e) => {
+            defaultValue={Math.round(scale * 100)}
+            key={Math.round(scale * 100)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const newZoom = parseInt((e.target as HTMLInputElement).value) || 100;
+                const clampedZoom = Math.min(500, Math.max(10, newZoom));
+                setScale(clampedZoom / 100);
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            onBlur={(e) => {
               const newZoom = parseInt(e.target.value) || 100;
               const clampedZoom = Math.min(500, Math.max(10, newZoom));
               setScale(clampedZoom / 100);
             }}
             className="w-10 text-sm font-medium text-[#1E3A5F] bg-transparent text-center outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            title="Cliquez pour modifier le zoom"
+            title="Entrez le zoom et appuyez sur Entrée"
           />
           <span className="text-sm font-medium text-[#1E3A5F]">%</span>
         </div>
