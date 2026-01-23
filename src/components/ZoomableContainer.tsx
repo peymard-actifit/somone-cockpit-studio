@@ -219,9 +219,22 @@ export default function ZoomableContainer({
             </button>
           </div>
 
-          {/* Indicateur de zoom */}
-          <div className="bg-white rounded-lg px-3 py-2 border border-[#E2E8F0] shadow-md text-center">
-            <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
+          {/* Indicateur de zoom éditable */}
+          <div className="bg-white rounded-lg px-2 py-1 border border-[#E2E8F0] shadow-md text-center flex items-center gap-0.5">
+            <input
+              type="number"
+              min="10"
+              max="500"
+              value={Math.round(scale * 100)}
+              onChange={(e) => {
+                const newZoom = parseInt(e.target.value) || 100;
+                const clampedZoom = Math.min(500, Math.max(10, newZoom));
+                setScale(clampedZoom / 100);
+              }}
+              className="w-10 text-sm font-medium text-[#1E3A5F] bg-transparent text-center outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              title="Cliquez pour modifier le zoom"
+            />
+            <span className="text-sm font-medium text-[#1E3A5F]">%</span>
           </div>
         </div>
       )}

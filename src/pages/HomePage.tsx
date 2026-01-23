@@ -269,7 +269,7 @@ function SortableCockpitCard({
       <div className="p-2.5">
         {/* Date de modification */}
         <div className="flex items-center gap-1.5 text-slate-500 text-[10px] mb-2">
-          <MuiIcon name="Clock" size={10} />
+          <MuiIcon name="Schedule" size={10} />
           <span>{formatDate(cockpit.updatedAt)}</span>
         </div>
 
@@ -995,7 +995,7 @@ export default function HomePage() {
                       <div className="flex flex-wrap gap-2 mt-2">
                         {user?.isAdmin && (
                           <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500/30 text-amber-300 text-xs rounded-full font-semibold border border-amber-500/50">
-                            <MuiIcon name="ShieldIcon" size={14} />
+                            <MuiIcon name="Shield" size={14} />
                             Administrateur
                           </span>
                         )}

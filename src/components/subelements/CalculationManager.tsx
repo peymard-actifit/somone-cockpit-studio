@@ -327,7 +327,7 @@ export default function CalculationManager({ subElement, sources, calculations, 
                             key={source.id}
                             className="inline-flex items-center gap-1 px-2 py-0.5 bg-white rounded border border-[#E2E8F0] text-xs text-[#64748B]"
                           >
-                            <MuiIcon name="Database" size={12} />
+                            <MuiIcon name="Storage" size={12} />
                             {source.name}
                           </span>
                         ))}

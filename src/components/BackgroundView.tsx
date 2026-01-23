@@ -1224,9 +1224,22 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           </button>
         </div>
 
-        {/* Indicateur de zoom */}
-        <div className="bg-white rounded-lg px-3 py-2 border border-[#E2E8F0] shadow-md text-center">
-          <span className="text-sm font-medium text-[#1E3A5F]">{Math.round(scale * 100)}%</span>
+        {/* Indicateur de zoom éditable */}
+        <div className="bg-white rounded-lg px-2 py-1 border border-[#E2E8F0] shadow-md text-center flex items-center gap-0.5">
+          <input
+            type="number"
+            min="10"
+            max="500"
+            value={Math.round(scale * 100)}
+            onChange={(e) => {
+              const newZoom = parseInt(e.target.value) || 100;
+              const clampedZoom = Math.min(500, Math.max(10, newZoom));
+              setScale(clampedZoom / 100);
+            }}
+            className="w-10 text-sm font-medium text-[#1E3A5F] bg-transparent text-center outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            title="Cliquez pour modifier le zoom"
+          />
+          <span className="text-sm font-medium text-[#1E3A5F]">%</span>
         </div>
 
         {/* Panneau de toggles */}
@@ -1309,7 +1322,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       {/* Mode dessin actif */}
       {isDrawing && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 bg-[#1E3A5F] text-white rounded-lg px-4 py-2 shadow-lg flex items-center gap-2">
-          <MuiIcon name="Pencil" size={16} />
+          <MuiIcon name="Edit" size={16} />
           <span className="text-sm font-medium">Dessinez un rectangle sur l'image</span>
           <button
             onClick={() => setIsDrawing(false)}
@@ -1838,7 +1851,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             {/* Options d'affichage */}
             <div className="p-4 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
               <h4 className="font-medium text-[#1E3A5F] mb-3 flex items-center gap-2">
-                <MuiIcon name="SettingsIcon" size={16} />
+                <MuiIcon name="Settings" size={16} />
                 Options d'affichage
               </h4>
 
