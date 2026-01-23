@@ -471,7 +471,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
       })
         .then(res => res.json())
         .then(data => {
-          setUsers(data);
+          // FIX: L'API retourne { users: [...] }, pas directement un tableau
+          setUsers(data.users || []);
           setIsLoadingUsers(false);
         })
         .catch(err => {
