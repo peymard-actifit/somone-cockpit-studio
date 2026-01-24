@@ -815,6 +815,60 @@ export default function PresentationConfigModal({
       // Exécuter les actions IA
       const capturedImages: CapturedImage[] = [];
       const totalActions = aiPlan.actions.length;
+      
+      // Set pour tracker les images déjà capturées (éviter doublons)
+      const capturedDomainElements = new Set<string>();
+      
+      // Charger les images réutilisées depuis la banque
+      const reusedImagesData: CapturedImage[] = [];
+      if (aiPlan.reusedImageIds && aiPlan.reusedImageIds.length > 0) {
+        setGenerationState(prev => ({
+          ...prev,
+          currentStep: `Chargement de ${aiPlan.reusedImageIds.length} image(s) depuis la banque...`,
+          progress: 8,
+        }));
+        
+        for (const imageId of aiPlan.reusedImageIds) {
+          try {
+            const imgResponse = await fetch(`/api/presentations/images/${cockpitId}/${imageId}`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (imgResponse.ok) {
+              const imgData = await imgResponse.json();
+              if (imgData.base64Data) {
+                // Trouver les métadonnées de cette image
+                const imgMeta = existingImages.find(img => img.id === imageId);
+                reusedImagesData.push({
+                  id: imageId,
+                  cockpitId,
+                  filename: imgMeta?.filename || `reused_${imageId}.png`,
+                  timestamp: imgMeta?.timestamp || new Date().toISOString(),
+                  description: imgMeta?.description || 'Image réutilisée',
+                  domainId: imgMeta?.domainId,
+                  width: 0,
+                  height: 0,
+                  base64Data: imgData.base64Data,
+                });
+                // Marquer comme déjà capturé
+                if (imgMeta?.domainId) {
+                  capturedDomainElements.add(imgMeta.domainId);
+                }
+              }
+            }
+          } catch (err) {
+            console.warn(`Impossible de charger l'image ${imageId}:`, err);
+          }
+        }
+        
+        if (reusedImagesData.length > 0) {
+          capturedImages.push(...reusedImagesData);
+          setGenerationState(prev => ({
+            ...prev,
+            capturedImages: [...prev.capturedImages, ...reusedImagesData],
+            currentStep: `${reusedImagesData.length} image(s) réutilisée(s) de la banque`,
+          }));
+        }
+      }
 
       for (let i = 0; i < totalActions; i++) {
         const action = aiPlan.actions[i];
@@ -824,6 +878,19 @@ export default function PresentationConfigModal({
           currentStep: action.description || `Action ${i + 1}/${totalActions}`,
           progress: 10 + Math.floor((i / totalActions) * 50),
         }));
+
+        // Vérifier si on a déjà une image pour ce domaine/élément (éviter doublons)
+        if (action.type === 'capture_screen') {
+          const captureKey = action.elementId 
+            ? `${action.domainId}_${action.elementId}` 
+            : action.domainId || 'global';
+          
+          if (capturedDomainElements.has(captureKey)) {
+            console.log(`[Présentation] Image déjà capturée pour ${captureKey}, skip`);
+            continue;
+          }
+          capturedDomainElements.add(captureKey);
+        }
 
         const capturedImage = await executeAIAction(action);
         if (capturedImage) {
@@ -839,15 +906,6 @@ export default function PresentationConfigModal({
       }
 
       setCurrentAction('');
-
-      // Ajouter les images réutilisées (référence seulement)
-      // Note: En production, on récupérerait les données complètes
-      if (aiPlan.reusedImageIds && aiPlan.reusedImageIds.length > 0) {
-        setGenerationState(prev => ({
-          ...prev,
-          currentStep: `${aiPlan.reusedImageIds.length} image(s) réutilisée(s) de la banque...`,
-        }));
-      }
 
       setGenerationState(prev => ({
         ...prev,

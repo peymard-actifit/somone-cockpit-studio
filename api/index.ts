@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.7.8';
+const APP_VERSION = '16.8.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6582,25 +6582,30 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
       try {
         // Construire le prompt système pour la planification
         const systemPrompt = `Tu es un expert en création de présentations et démonstrations de cockpits de supervision.
-Tu dois planifier les actions à effectuer pour générer une présentation selon les instructions de l'utilisateur.
+Tu dois planifier les actions à effectuer pour générer une présentation selon les instructions EXACTES de l'utilisateur.
 
 CONTEXTE DU COCKPIT:
-${JSON.stringify(cockpitContext, null, 2)}
+- Nom: ${cockpitContext.name}
+- Nombre de domaines: ${cockpitContext.domains?.length || 0}
+- Domaines: ${cockpitContext.domains?.map((d: any) => `
+  * ${d.name} (ID: ${d.id})
+    - Éléments: ${d.elements?.map((e: any) => `${e.name} (ID: ${e.id})`).join(', ') || 'aucun'}
+    - Sous-éléments: ${d.elements?.flatMap((e: any) => e.subElements?.map((se: any) => se.name) || []).join(', ') || 'aucun'}`).join('\n') || 'Aucun domaine'}
 
-IMAGES EXISTANTES RÉUTILISABLES:
-${existingImages && existingImages.length > 0 ? JSON.stringify(existingImages, null, 2) : 'Aucune image existante'}
+IMAGES EXISTANTES RÉUTILISABLES (ne pas recapturer ces écrans):
+${existingImages && existingImages.length > 0 ? existingImages.map((img: any) => `- ID: ${img.id}, Domaine: ${img.domainName || img.domainId}, Description: ${img.description}`).join('\n') : 'Aucune image existante - toutes les captures seront nouvelles'}
 
-INSTRUCTIONS UTILISATEUR:
-${config.prompt}
+INSTRUCTIONS DE L'UTILISATEUR (TRÈS IMPORTANT - À SUIVRE EXACTEMENT):
+"${config.prompt}"
 
 Tu dois retourner un JSON avec:
 1. "actions": liste d'actions à effectuer dans l'ordre. Types d'actions possibles:
    - { "type": "navigate_domain", "domainId": "...", "description": "Navigation vers..." }
-   - { "type": "navigate_element", "domainId": "...", "elementId": "...", "description": "Navigation vers..." }
+   - { "type": "navigate_element", "domainId": "...", "elementId": "...", "description": "Navigation vers l'élément..." }
    - { "type": "change_status", "elementId": "...", "status": "ok|mineur|critique|fatal|deconnecte|information", "description": "..." }
    - { "type": "change_status", "subElementId": "...", "status": "...", "description": "..." }
    - { "type": "change_value", "elementId": "...", "value": "...", "description": "..." }
-   - { "type": "capture_screen", "domainId": "...", "description": "Capture de..." }
+   - { "type": "capture_screen", "domainId": "...", "elementId": "...", "description": "Capture de..." }
 
 2. "scenario": le scénario de présentation
    {
@@ -6610,16 +6615,29 @@ Tu dois retourner un JSON avec:
      "conclusion": "Texte de conclusion"
    }
 
-3. "reusedImageIds": liste des IDs d'images existantes à réutiliser (si pertinent)
+3. "reusedImageIds": liste des IDs d'images existantes à réutiliser (OBLIGATOIRE si des images existantes correspondent)
 
-RÈGLES:
-- Pour une démo montrant des changements d'état, alterne entre change_status et capture_screen
-- Commence toujours par naviguer vers le domaine concerné avant de capturer
-- Utilise les images existantes quand elles correspondent au besoin (gain de temps)
-- Génère suffisamment de captures pour illustrer tous les points de la présentation
-- Les statuts possibles sont: "ok", "mineur", "critique", "fatal", "deconnecte", "information"
+RÈGLES IMPORTANTES:
+1. SUIS LES INSTRUCTIONS UTILISATEUR À LA LETTRE:
+   - Si l'utilisateur demande de "montrer tous les exemples" ou "parcourir tous les éléments", génère une action navigate_element + capture_screen pour CHAQUE élément de CHAQUE domaine
+   - Si l'utilisateur veut une présentation complète, couvre TOUS les domaines et TOUS les éléments
+   - Si l'utilisateur mentionne un domaine ou élément spécifique, concentre-toi dessus
 
-Réponds UNIQUEMENT avec le JSON, sans commentaires.`;
+2. ÉVITE LES DOUBLONS D'IMAGES:
+   - Vérifie d'abord les images existantes (reusedImageIds)
+   - Ne capture PAS un écran si une image existante correspond déjà (même domaine, même contexte)
+   - Utilise reusedImageIds pour référencer les images à réutiliser
+   - Ne crée de nouvelles captures QUE si nécessaire (nouveau contexte, changement de statut, etc.)
+
+3. STRUCTURE DES ACTIONS:
+   - Navigue TOUJOURS vers le domaine AVANT de capturer
+   - Pour montrer un élément en détail: navigate_element puis capture_screen avec elementId
+   - Pour une vue globale du domaine: navigate_domain puis capture_screen avec domainId seulement
+   - Alterne les états si tu veux montrer des scénarios (ok → critique → ok)
+
+4. Les statuts possibles sont: "ok", "mineur", "critique", "fatal", "deconnecte", "information"
+
+Réponds UNIQUEMENT avec le JSON valide, sans markdown ni commentaires.`;
 
         // Appeler l'API OpenAI
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
