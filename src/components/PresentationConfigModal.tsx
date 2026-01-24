@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MuiIcon } from './IconPicker';
-import type { PresentationConfig, PresentationOutputFormat, CapturedImage, PresentationGenerationState } from '../types';
+import type { PresentationConfig, PresentationOutputFormat, CapturedImage, PresentationGenerationState, TileStatus } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 
@@ -23,6 +23,28 @@ const createEmptyConfig = (cockpitId: string): Omit<PresentationConfig, 'id' | '
   duration: 60,
 });
 
+// Interface pour les actions IA de modification
+interface AIAction {
+  type: 'navigate_domain' | 'navigate_element' | 'change_status' | 'change_value' | 'capture_screen';
+  domainId?: string;
+  elementId?: string;
+  subElementId?: string;
+  status?: TileStatus;
+  value?: string;
+  description?: string;
+}
+
+// Interface pour les images existantes réutilisables
+interface ExistingImage {
+  id: string;
+  filename: string;
+  timestamp: string;
+  description?: string;
+  domainId?: string;
+  domainName?: string;
+  relevanceScore?: number;
+}
+
 export default function PresentationConfigModal({
   isOpen,
   onClose,
@@ -30,7 +52,13 @@ export default function PresentationConfigModal({
   cockpitName,
 }: PresentationConfigModalProps) {
   const { token } = useAuthStore();
-  const { currentCockpit } = useCockpitStore();
+  const { 
+    currentCockpit, 
+    setCurrentDomain, 
+    setCurrentElement,
+    updateElement,
+    updateSubElement,
+  } = useCockpitStore();
   
   // État des configurations sauvegardées
   const [savedConfigs, setSavedConfigs] = useState<PresentationConfig[]>([]);
@@ -51,9 +79,16 @@ export default function PresentationConfigModal({
     errors: [],
   });
   
+  // Images existantes réutilisables
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  const [reusingImages, setReusingImages] = useState(false);
+  
   // Indicateur de capture d'écran (appareil photo)
   const [showCaptureIndicator, setShowCaptureIndicator] = useState(false);
   const captureIndicatorTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Référence pour l'animation du studio
+  const [currentAction, setCurrentAction] = useState<string>('');
 
   // Charger les configurations sauvegardées
   const loadConfigs = useCallback(async () => {
@@ -76,12 +111,39 @@ export default function PresentationConfigModal({
     }
   }, [token, cockpitId]);
 
-  // Charger les configurations au montage
+  // Charger les images existantes pour réutilisation
+  const loadExistingImages = useCallback(async () => {
+    if (!token || !cockpitId) return;
+    
+    try {
+      const response = await fetch(`/api/presentations/images/${cockpitId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Enrichir avec les noms de domaines
+        const enrichedImages = (data.images || []).map((img: ExistingImage) => {
+          const domain = currentCockpit?.domains?.find(d => d.id === img.domainId);
+          return {
+            ...img,
+            domainName: domain?.name || 'Inconnu',
+          };
+        });
+        setExistingImages(enrichedImages);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des images existantes:', error);
+    }
+  }, [token, cockpitId, currentCockpit]);
+
+  // Charger les configurations et images au montage
   useEffect(() => {
     if (isOpen) {
       loadConfigs();
+      loadExistingImages();
     }
-  }, [isOpen, loadConfigs]);
+  }, [isOpen, loadConfigs, loadExistingImages]);
 
   // Sélectionner une configuration
   const handleSelectConfig = (config: PresentationConfig) => {
@@ -184,23 +246,52 @@ export default function PresentationConfigModal({
     }
     captureIndicatorTimeout.current = setTimeout(() => {
       setShowCaptureIndicator(false);
-    }, 500);
+    }, 800);
   }, []);
 
+  // Navigation automatique vers un domaine
+  const navigateToDomain = useCallback(async (domainId: string) => {
+    setCurrentDomain(domainId);
+    setCurrentElement(null);
+    // Attendre que le DOM se mette à jour
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }, [setCurrentDomain, setCurrentElement]);
+
+  // Navigation automatique vers un élément
+  const navigateToElement = useCallback(async (domainId: string, elementId: string) => {
+    setCurrentDomain(domainId);
+    setCurrentElement(elementId);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }, [setCurrentDomain, setCurrentElement]);
+
+  // Modifier le statut d'un élément (pour la démo)
+  const changeElementStatus = useCallback((elementId: string, status: TileStatus) => {
+    updateElement(elementId, { status });
+  }, [updateElement]);
+
+  // Modifier la valeur d'un élément
+  const changeElementValue = useCallback((elementId: string, value: string) => {
+    updateElement(elementId, { value });
+  }, [updateElement]);
+
+  // Modifier le statut d'un sous-élément
+  const changeSubElementStatus = useCallback((subElementId: string, status: TileStatus) => {
+    updateSubElement(subElementId, { status });
+  }, [updateSubElement]);
+
   // Capturer une image de l'écran
-  const captureScreenshot = useCallback(async (): Promise<CapturedImage | null> => {
+  const captureScreenshot = useCallback(async (description?: string, domainId?: string): Promise<CapturedImage | null> => {
     try {
-      // Utiliser html2canvas pour capturer l'écran
       const studioElement = document.querySelector('main');
       if (!studioElement) return null;
 
-      // Import dynamique de html2canvas
       const html2canvas = (await import('html2canvas')).default;
       
       const canvas = await html2canvas(studioElement as HTMLElement, {
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#F5F7FA',
+        scale: 2, // Meilleure qualité
       });
       
       const timestamp = new Date();
@@ -214,6 +305,8 @@ export default function PresentationConfigModal({
         width: canvas.width,
         height: canvas.height,
         base64Data: canvas.toDataURL('image/png'),
+        description,
+        domainId,
       };
       
       showCapture();
@@ -224,9 +317,277 @@ export default function PresentationConfigModal({
     }
   }, [cockpitId, showCapture]);
 
+  // Trouver des images existantes similaires
+  const findSimilarExistingImages = useCallback((description: string, domainId?: string): ExistingImage[] => {
+    if (existingImages.length === 0) return [];
+    
+    // Score de pertinence basé sur la description et le domaine
+    const scoredImages = existingImages.map(img => {
+      let score = 0;
+      
+      // Même domaine = +50 points
+      if (domainId && img.domainId === domainId) {
+        score += 50;
+      }
+      
+      // Mots clés en commun dans la description
+      if (description && img.description) {
+        const descWords = description.toLowerCase().split(/\s+/);
+        const imgWords = img.description.toLowerCase().split(/\s+/);
+        const commonWords = descWords.filter(w => imgWords.includes(w) && w.length > 3);
+        score += commonWords.length * 10;
+      }
+      
+      // Image récente = bonus
+      const ageInHours = (Date.now() - new Date(img.timestamp).getTime()) / (1000 * 60 * 60);
+      if (ageInHours < 24) score += 20;
+      else if (ageInHours < 168) score += 10; // Moins d'une semaine
+      
+      return { ...img, relevanceScore: score };
+    });
+    
+    // Retourner les images avec un score > 30, triées par pertinence
+    return scoredImages
+      .filter(img => (img.relevanceScore || 0) > 30)
+      .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0))
+      .slice(0, 5);
+  }, [existingImages]);
+
+  // Exécuter une action IA
+  const executeAIAction = useCallback(async (action: AIAction): Promise<CapturedImage | null> => {
+    setCurrentAction(action.description || `${action.type}...`);
+    
+    switch (action.type) {
+      case 'navigate_domain':
+        if (action.domainId) {
+          await navigateToDomain(action.domainId);
+        }
+        break;
+        
+      case 'navigate_element':
+        if (action.domainId && action.elementId) {
+          await navigateToElement(action.domainId, action.elementId);
+        }
+        break;
+        
+      case 'change_status':
+        if (action.elementId && action.status) {
+          changeElementStatus(action.elementId, action.status);
+        } else if (action.subElementId && action.status) {
+          changeSubElementStatus(action.subElementId, action.status);
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
+        break;
+        
+      case 'change_value':
+        if (action.elementId && action.value) {
+          changeElementValue(action.elementId, action.value);
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
+        break;
+        
+      case 'capture_screen':
+        return await captureScreenshot(action.description, action.domainId);
+    }
+    
+    return null;
+  }, [navigateToDomain, navigateToElement, changeElementStatus, changeSubElementStatus, changeElementValue, captureScreenshot]);
+
+  // Générer un PDF avec jsPDF
+  const generatePDF = useCallback(async (
+    images: CapturedImage[], 
+    scenario: { title: string; introduction: string; sections: any[]; conclusion: string }
+  ): Promise<string> => {
+    const { jsPDF } = await import('jspdf');
+    
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4',
+    });
+    
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    // Page de titre
+    pdf.setFillColor(30, 58, 95); // #1E3A5F
+    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(32);
+    pdf.text(scenario.title || cockpitName, pageWidth / 2, pageHeight / 2 - 20, { align: 'center' });
+    pdf.setFontSize(14);
+    pdf.text(scenario.introduction || 'Présentation générée automatiquement', pageWidth / 2, pageHeight / 2 + 10, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.text(new Date().toLocaleDateString('fr-FR'), pageWidth / 2, pageHeight - 20, { align: 'center' });
+    
+    // Pages de contenu avec images
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      const section = scenario.sections?.[i];
+      
+      pdf.addPage();
+      
+      // Fond blanc
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      
+      // Titre de la section
+      pdf.setTextColor(30, 58, 95);
+      pdf.setFontSize(18);
+      pdf.text(section?.title || image.description || `Slide ${i + 1}`, 15, 20);
+      
+      // Image
+      if (image.base64Data) {
+        const imgWidth = pageWidth - 30;
+        const imgHeight = (pageHeight - 50) * 0.7;
+        pdf.addImage(image.base64Data, 'PNG', 15, 30, imgWidth, imgHeight);
+      }
+      
+      // Texte descriptif
+      if (section?.content) {
+        pdf.setFontSize(11);
+        pdf.setTextColor(100, 116, 139);
+        const textY = pageHeight - 35;
+        const lines = pdf.splitTextToSize(section.content, pageWidth - 30);
+        pdf.text(lines.slice(0, 3), 15, textY);
+      }
+      
+      // Numéro de page
+      pdf.setFontSize(9);
+      pdf.text(`${i + 2}`, pageWidth - 15, pageHeight - 10);
+    }
+    
+    // Page de conclusion
+    if (scenario.conclusion) {
+      pdf.addPage();
+      pdf.setFillColor(30, 58, 95);
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(24);
+      pdf.text('Conclusion', pageWidth / 2, pageHeight / 2 - 30, { align: 'center' });
+      pdf.setFontSize(14);
+      const conclusionLines = pdf.splitTextToSize(scenario.conclusion, pageWidth - 60);
+      pdf.text(conclusionLines, pageWidth / 2, pageHeight / 2, { align: 'center' });
+    }
+    
+    // Retourner le PDF en base64
+    return pdf.output('datauristring');
+  }, [cockpitName]);
+
+  // Générer un PPTX avec pptxgenjs
+  const generatePPTX = useCallback(async (
+    images: CapturedImage[],
+    scenario: { title: string; introduction: string; sections: any[]; conclusion: string }
+  ): Promise<string> => {
+    const PptxGenJS = (await import('pptxgenjs')).default;
+    
+    const pptx = new PptxGenJS();
+    pptx.author = 'SOMONE Cockpit Studio';
+    pptx.title = scenario.title || cockpitName;
+    pptx.subject = 'Présentation générée automatiquement';
+    
+    // Slide de titre
+    const titleSlide = pptx.addSlide();
+    titleSlide.addText(scenario.title || cockpitName, {
+      x: 0.5,
+      y: 2,
+      w: '90%',
+      h: 1.5,
+      fontSize: 44,
+      bold: true,
+      color: '1E3A5F',
+      align: 'center',
+    });
+    titleSlide.addText(scenario.introduction || 'Présentation générée automatiquement', {
+      x: 0.5,
+      y: 3.5,
+      w: '90%',
+      h: 0.75,
+      fontSize: 18,
+      color: '64748B',
+      align: 'center',
+    });
+    titleSlide.addText(new Date().toLocaleDateString('fr-FR'), {
+      x: 0.5,
+      y: 5,
+      w: '90%',
+      h: 0.5,
+      fontSize: 12,
+      color: '94A3B8',
+      align: 'center',
+    });
+    
+    // Slides de contenu avec images
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      const section = scenario.sections?.[i];
+      
+      const slide = pptx.addSlide();
+      
+      // Titre
+      slide.addText(section?.title || image.description || `Slide ${i + 1}`, {
+        x: 0.5,
+        y: 0.3,
+        w: '90%',
+        h: 0.6,
+        fontSize: 24,
+        bold: true,
+        color: '1E3A5F',
+      });
+      
+      // Image
+      if (image.base64Data) {
+        slide.addImage({
+          data: image.base64Data,
+          x: 0.5,
+          y: 1,
+          w: 9,
+          h: 4,
+        });
+      }
+      
+      // Notes du présentateur
+      if (section?.content || section?.notes) {
+        slide.addNotes(section.notes || section.content || '');
+      }
+    }
+    
+    // Slide de conclusion
+    if (scenario.conclusion) {
+      const conclusionSlide = pptx.addSlide();
+      conclusionSlide.addText('Conclusion', {
+        x: 0.5,
+        y: 1.5,
+        w: '90%',
+        h: 1,
+        fontSize: 36,
+        bold: true,
+        color: '1E3A5F',
+        align: 'center',
+      });
+      conclusionSlide.addText(scenario.conclusion, {
+        x: 1,
+        y: 2.8,
+        w: '80%',
+        h: 2,
+        fontSize: 18,
+        color: '475569',
+        align: 'center',
+        valign: 'middle',
+      });
+    }
+    
+    // Retourner le PPTX en base64
+    const pptxOutput = await pptx.write({ outputType: 'base64' });
+    return `data:application/vnd.openxmlformats-officedocument.presentationml.presentation;base64,${pptxOutput}`;
+  }, [cockpitName]);
+
   // Lancer la génération de la présentation
   const handleGenerate = async () => {
     if (!token || currentConfig.outputFormats.length === 0) return;
+    
+    // Fermer temporairement le modal pour voir le studio
+    // (on le garde visible mais semi-transparent)
     
     setGenerationState({
       isGenerating: true,
@@ -237,47 +598,50 @@ export default function PresentationConfigModal({
     });
 
     try {
-      // Étape 1: Analyser la maquette
+      // Étape 1: Demander à l'IA les actions à effectuer
       setGenerationState(prev => ({
         ...prev,
-        currentStep: 'Analyse de la maquette...',
-        progress: 10,
+        currentStep: 'Analyse de la maquette et planification IA...',
+        progress: 5,
       }));
 
-      // Capturer les images de chaque domaine
+      // Construire le contexte pour l'IA
       const domains = currentCockpit?.domains || [];
-      const capturedImages: CapturedImage[] = [];
+      const cockpitContext = {
+        name: cockpitName,
+        domains: domains.map(d => ({
+          id: d.id,
+          name: d.name,
+          templateType: d.templateType,
+          categories: d.categories?.map(c => ({
+            id: c.id,
+            name: c.name,
+            elements: c.elements?.map(e => ({
+              id: e.id,
+              name: e.name,
+              status: e.status,
+              value: e.value,
+            })),
+          })),
+        })),
+        globalPrompt: currentCockpit?.welcomeMessage || '',
+      };
+
+      // Vérifier les images existantes réutilisables
+      setReusingImages(true);
+      const reusableImages: ExistingImage[] = [];
       
-      for (let i = 0; i < domains.length; i++) {
-        const domain = domains[i];
-        setGenerationState(prev => ({
-          ...prev,
-          currentStep: `Capture du domaine "${domain.name}"...`,
-          progress: 10 + Math.floor((i / domains.length) * 40),
-        }));
-        
-        // Simuler la navigation vers le domaine et capturer
-        // En production, cela déclencherait la navigation réelle
-        const image = await captureScreenshot();
-        if (image) {
-          image.domainId = domain.id;
-          image.description = `Vue du domaine ${domain.name}`;
-          capturedImages.push(image);
+      for (const domain of domains) {
+        const similar = findSimilarExistingImages(`Vue du domaine ${domain.name}`, domain.id);
+        if (similar.length > 0) {
+          reusableImages.push(...similar);
         }
-        
-        // Petite pause pour l'animation
-        await new Promise(resolve => setTimeout(resolve, 300));
       }
+      
+      setReusingImages(false);
 
-      setGenerationState(prev => ({
-        ...prev,
-        capturedImages,
-        currentStep: 'Envoi à l\'IA pour génération du scénario...',
-        progress: 50,
-      }));
-
-      // Étape 2: Envoyer à l'API pour génération IA
-      const response = await fetch('/api/presentations/generate', {
+      // Demander à l'IA les actions à effectuer
+      const aiResponse = await fetch('/api/presentations/plan', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -285,39 +649,181 @@ export default function PresentationConfigModal({
         },
         body: JSON.stringify({
           cockpitId,
-          cockpitName,
+          cockpitContext,
           config: currentConfig,
-          images: capturedImages.map(img => ({
+          existingImages: reusableImages.map(img => ({
             id: img.id,
             filename: img.filename,
             description: img.description,
             domainId: img.domainId,
-            base64Data: img.base64Data,
+            domainName: img.domainName,
           })),
-          globalPrompt: currentCockpit?.welcomeMessage || '',
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération');
+      let aiPlan: { actions: AIAction[]; scenario: any; reusedImageIds: string[] } = {
+        actions: [],
+        scenario: { title: cockpitName, introduction: '', sections: [], conclusion: '' },
+        reusedImageIds: [],
+      };
+
+      if (aiResponse.ok) {
+        aiPlan = await aiResponse.json();
+      } else {
+        // Plan de secours: parcourir tous les domaines
+        aiPlan.actions = domains.flatMap((domain) => [
+          { type: 'navigate_domain' as const, domainId: domain.id, description: `Navigation vers ${domain.name}` },
+          { type: 'capture_screen' as const, domainId: domain.id, description: `Vue du domaine ${domain.name}` },
+        ]);
+        aiPlan.scenario = {
+          title: `Présentation ${cockpitName}`,
+          introduction: currentConfig.prompt || 'Présentation de la maquette',
+          sections: domains.map(d => ({ title: d.name, content: `Vue du domaine ${d.name}` })),
+          conclusion: 'Merci pour votre attention.',
+        };
       }
 
-      const result = await response.json();
+      setGenerationState(prev => ({
+        ...prev,
+        currentStep: `Exécution de ${aiPlan.actions.length} actions...`,
+        progress: 10,
+      }));
+
+      // Exécuter les actions IA
+      const capturedImages: CapturedImage[] = [];
+      const totalActions = aiPlan.actions.length;
+
+      for (let i = 0; i < totalActions; i++) {
+        const action = aiPlan.actions[i];
+        
+        setGenerationState(prev => ({
+          ...prev,
+          currentStep: action.description || `Action ${i + 1}/${totalActions}`,
+          progress: 10 + Math.floor((i / totalActions) * 50),
+        }));
+
+        const capturedImage = await executeAIAction(action);
+        if (capturedImage) {
+          capturedImages.push(capturedImage);
+          setGenerationState(prev => ({
+            ...prev,
+            capturedImages: [...prev.capturedImages, capturedImage],
+          }));
+        }
+
+        // Pause pour l'animation
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      setCurrentAction('');
+
+      // Ajouter les images réutilisées (référence seulement)
+      // Note: En production, on récupérerait les données complètes
+      if (aiPlan.reusedImageIds && aiPlan.reusedImageIds.length > 0) {
+        setGenerationState(prev => ({
+          ...prev,
+          currentStep: `${aiPlan.reusedImageIds.length} image(s) réutilisée(s) de la banque...`,
+        }));
+      }
 
       setGenerationState(prev => ({
         ...prev,
         currentStep: 'Génération des fichiers de sortie...',
-        progress: 80,
+        progress: 70,
       }));
 
-      // Stocker les images localement
-      await saveImagesToLocal(capturedImages);
+      // Générer les fichiers selon les formats demandés
+      const outputFiles: { format: PresentationOutputFormat; filename: string; url: string }[] = [];
+      const safeFilename = cockpitName.replace(/[^a-z0-9]/gi, '_');
+
+      // Générer PDF
+      if (currentConfig.outputFormats.includes('pdf')) {
+        setGenerationState(prev => ({
+          ...prev,
+          currentStep: 'Génération du fichier PDF...',
+          progress: 75,
+        }));
+        
+        const pdfDataUri = await generatePDF(capturedImages, aiPlan.scenario);
+        outputFiles.push({
+          format: 'pdf',
+          filename: `${safeFilename}_presentation.pdf`,
+          url: pdfDataUri,
+        });
+      }
+
+      // Générer PPTX
+      if (currentConfig.outputFormats.includes('pptx')) {
+        setGenerationState(prev => ({
+          ...prev,
+          currentStep: 'Génération du fichier PowerPoint...',
+          progress: 85,
+        }));
+        
+        const pptxDataUri = await generatePPTX(capturedImages, aiPlan.scenario);
+        outputFiles.push({
+          format: 'pptx',
+          filename: `${safeFilename}_presentation.pptx`,
+          url: pptxDataUri,
+        });
+      }
+
+      // Pour la vidéo, on génère une notification (nécessite un backend plus complexe)
+      if (currentConfig.outputFormats.includes('video')) {
+        setGenerationState(prev => ({
+          ...prev,
+          currentStep: 'Préparation des données vidéo...',
+          progress: 90,
+        }));
+        
+        // La génération vidéo nécessite un traitement côté serveur avec ffmpeg
+        // Pour l'instant, on sauvegarde les images pour un traitement ultérieur
+        outputFiles.push({
+          format: 'video',
+          filename: `${safeFilename}_presentation.mp4`,
+          url: '', // Sera généré côté serveur
+        });
+      }
+
+      // Sauvegarder les images dans la banque
+      setGenerationState(prev => ({
+        ...prev,
+        currentStep: 'Sauvegarde des images dans la banque...',
+        progress: 95,
+      }));
+
+      for (const image of capturedImages) {
+        await fetch('/api/presentations/images', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cockpitId,
+            image: {
+              id: image.id,
+              filename: image.filename,
+              timestamp: image.timestamp,
+              description: image.description,
+              domainId: image.domainId,
+              width: image.width,
+              height: image.height,
+              // Ne pas stocker base64 en Redis
+            },
+          }),
+        });
+      }
+
+      // Recharger les images existantes
+      await loadExistingImages();
 
       setGenerationState(prev => ({
         ...prev,
+        isGenerating: false,
         currentStep: 'Génération terminée !',
         progress: 100,
-        outputFiles: result.outputFiles,
+        outputFiles,
       }));
 
     } catch (error) {
@@ -330,41 +836,44 @@ export default function PresentationConfigModal({
     }
   };
 
-  // Sauvegarder les images localement (via File System Access API ou téléchargement)
-  const saveImagesToLocal = async (images: CapturedImage[]) => {
-    // Pour l'instant, on propose le téléchargement d'un ZIP
-    // En production, on pourrait utiliser File System Access API
-    for (const image of images) {
-      // Les images sont stockées côté serveur dans la banque d'images
-      await fetch('/api/presentations/images', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cockpitId,
-          image,
-        }),
-      });
-    }
-  };
-
   // Télécharger un fichier généré
   const downloadFile = (filename: string, url?: string) => {
     if (url) {
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100]">
-      <div className="bg-white rounded-xl shadow-2xl w-[90vw] h-[85vh] max-w-6xl flex flex-col overflow-hidden">
+    <>
+      {/* Indicateur de capture global (visible même avec le modal) */}
+      {showCaptureIndicator && (
+        <div className="fixed top-4 right-4 z-[200] flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full shadow-lg animate-pulse">
+          <MuiIcon name="CameraAlt" size={20} />
+          <span className="text-sm font-medium">Capture !</span>
+        </div>
+      )}
+
+      {/* Action en cours */}
+      {currentAction && generationState.isGenerating && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 bg-[#1E3A5F] text-white rounded-full shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin">
+              <MuiIcon name="AutoAwesome" size={18} />
+            </div>
+            <span className="text-sm">{currentAction}</span>
+          </div>
+        </div>
+      )}
+
+      <div className={`fixed inset-0 bg-black/60 flex items-center justify-center z-[100] transition-opacity ${generationState.isGenerating ? 'bg-black/30' : ''}`}>
+        <div className={`bg-white rounded-xl shadow-2xl w-[90vw] h-[85vh] max-w-6xl flex flex-col overflow-hidden transition-all ${generationState.isGenerating ? 'opacity-90' : ''}`}>
         {/* Header */}
         <div className="bg-[#1E3A5F] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -374,12 +883,20 @@ export default function PresentationConfigModal({
               <p className="text-xs text-white/60">Maquette : {cockpitName}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          >
-            <MuiIcon name="Close" size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            {existingImages.length > 0 && (
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs">
+                {existingImages.length} image(s) en banque
+              </span>
+            )}
+            <button
+              onClick={onClose}
+              disabled={generationState.isGenerating}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <MuiIcon name="Close" size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Contenu principal */}
@@ -389,7 +906,8 @@ export default function PresentationConfigModal({
             <div className="p-3 border-b border-gray-200">
               <button
                 onClick={handleNewConfig}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors text-sm"
+                disabled={generationState.isGenerating}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors text-sm disabled:opacity-50"
               >
                 <MuiIcon name="Add" size={16} />
                 Nouvelle configuration
@@ -417,7 +935,7 @@ export default function PresentationConfigModal({
                           ? 'bg-[#1E3A5F] text-white'
                           : 'hover:bg-gray-100'
                       }`}
-                      onClick={() => handleSelectConfig(config)}
+                      onClick={() => !generationState.isGenerating && handleSelectConfig(config)}
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm truncate">{config.name}</span>
@@ -426,6 +944,7 @@ export default function PresentationConfigModal({
                             e.stopPropagation();
                             handleDeleteConfig(config.id);
                           }}
+                          disabled={generationState.isGenerating}
                           className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
                             selectedConfigId === config.id
                               ? 'hover:bg-white/20 text-white/70'
@@ -467,8 +986,9 @@ export default function PresentationConfigModal({
                 type="text"
                 value={configName}
                 onChange={(e) => setConfigName(e.target.value)}
+                disabled={generationState.isGenerating}
                 placeholder="Ex: Présentation commerciale Q1 2026"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:bg-gray-100"
               />
             </div>
 
@@ -480,13 +1000,15 @@ export default function PresentationConfigModal({
               <textarea
                 value={currentConfig.prompt}
                 onChange={(e) => setCurrentConfig(prev => ({ ...prev, prompt: e.target.value }))}
+                disabled={generationState.isGenerating}
                 placeholder={`Décrivez la présentation souhaitée...
 
 Exemples:
 - "Créer une présentation commerciale de 10 slides présentant l'état de supervision de notre infrastructure."
-- "Générer une démo vidéo de 2 minutes montrant les alertes critiques et leur résolution."
-- "Produire un rapport PDF avec toutes les métriques clés par domaine."`}
-                className="flex-1 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none font-mono text-sm"
+- "Générer une démo montrant les alertes critiques et leur résolution. Change les statuts des éléments pour simuler des incidents."
+- "Produire un rapport PDF avec toutes les métriques clés par domaine."
+- "Faire une démonstration du passage d'un état OK à un état critique sur le domaine Réseau."`}
+                className="flex-1 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none font-mono text-sm disabled:bg-gray-100"
               />
             </div>
 
@@ -502,6 +1024,7 @@ Exemples:
                     type="checkbox"
                     checked={currentConfig.outputFormats.includes('pdf')}
                     onChange={() => toggleOutputFormat('pdf')}
+                    disabled={generationState.isGenerating}
                     className="w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
                   />
                   <div className="flex items-center gap-2">
@@ -516,11 +1039,13 @@ Exemples:
                     type="checkbox"
                     checked={currentConfig.outputFormats.includes('video')}
                     onChange={() => toggleOutputFormat('video')}
+                    disabled={generationState.isGenerating}
                     className="w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
                   />
                   <div className="flex items-center gap-2">
                     <MuiIcon name="VideoLibrary" size={24} className="text-purple-500" />
                     <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Vidéo</span>
+                    <span className="text-[10px] text-gray-400">(bientôt)</span>
                   </div>
                 </label>
 
@@ -530,6 +1055,7 @@ Exemples:
                     type="checkbox"
                     checked={currentConfig.outputFormats.includes('pptx')}
                     onChange={() => toggleOutputFormat('pptx')}
+                    disabled={generationState.isGenerating}
                     className="w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
                   />
                   <div className="flex items-center gap-2">
@@ -553,11 +1079,11 @@ Exemples:
             <div className="flex-1 p-4 overflow-y-auto">
               {generationState.isGenerating ? (
                 <div className="space-y-4">
-                  {/* Indicateur de capture photo */}
-                  {showCaptureIndicator && (
-                    <div className="flex items-center gap-2 p-3 bg-green-100 text-green-700 rounded-lg animate-pulse">
-                      <MuiIcon name="CameraAlt" size={20} />
-                      <span className="text-sm font-medium">Capture en cours...</span>
+                  {/* Indicateur de réutilisation */}
+                  {reusingImages && (
+                    <div className="flex items-center gap-2 p-3 bg-amber-100 text-amber-700 rounded-lg">
+                      <MuiIcon name="Collections" size={20} />
+                      <span className="text-sm">Recherche d'images réutilisables...</span>
                     </div>
                   )}
 
@@ -590,20 +1116,25 @@ Exemples:
                         {generationState.capturedImages.slice(-6).map(img => (
                           <div
                             key={img.id}
-                            className="aspect-video bg-gray-200 rounded overflow-hidden"
+                            className="aspect-video bg-gray-200 rounded overflow-hidden relative group"
                           >
                             <img
                               src={img.base64Data}
                               alt={img.filename}
                               className="w-full h-full object-cover"
                             />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="text-[8px] text-white text-center px-1">
+                                {img.description?.substring(0, 30) || img.filename}
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
-              ) : generationState.outputFiles ? (
+              ) : generationState.outputFiles && generationState.outputFiles.length > 0 ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 p-3 bg-green-100 text-green-700 rounded-lg">
                     <MuiIcon name="CheckCircle" size={20} />
@@ -616,7 +1147,8 @@ Exemples:
                       <button
                         key={index}
                         onClick={() => downloadFile(file.filename, file.url)}
-                        className="w-full flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        disabled={!file.url}
+                        className="w-full flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <MuiIcon
                           name={file.format === 'pdf' ? 'PictureAsPdf' : file.format === 'video' ? 'VideoLibrary' : 'Dns'}
@@ -625,19 +1157,36 @@ Exemples:
                         />
                         <div className="flex-1 text-left">
                           <p className="text-sm font-medium text-gray-700">{file.filename}</p>
-                          <p className="text-xs text-gray-400 uppercase">{file.format}</p>
+                          <p className="text-xs text-gray-400 uppercase">
+                            {file.format}
+                            {!file.url && file.format === 'video' && ' - En préparation'}
+                          </p>
                         </div>
                         <MuiIcon name="Download" size={18} className="text-gray-400" />
                       </button>
                     ))}
                   </div>
+
+                  {/* Images capturées après génération */}
+                  {generationState.capturedImages.length > 0 && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <p className="text-sm text-gray-600 mb-2">
+                        {generationState.capturedImages.length} image(s) ajoutée(s) à la banque
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <MuiIcon name="Slideshow" size={48} className="text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 mb-4">
                     Configurez votre présentation et cliquez sur "Générer" pour démarrer.
                   </p>
+                  {existingImages.length > 0 && (
+                    <p className="text-xs text-amber-600">
+                      💡 {existingImages.length} image(s) en banque peuvent être réutilisées
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -659,7 +1208,7 @@ Exemples:
           <div className="flex items-center gap-3">
             <button
               onClick={handleSaveConfig}
-              disabled={!configName.trim() || isSaving}
+              disabled={!configName.trim() || isSaving || generationState.isGenerating}
               className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isSaving ? (
@@ -676,7 +1225,8 @@ Exemples:
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={generationState.isGenerating}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             >
               Fermer
             </button>
@@ -703,5 +1253,6 @@ Exemples:
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.6.0';
+const APP_VERSION = '16.6.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6492,6 +6492,145 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
         return res.json({ images });
       } catch (error: any) {
         console.error('Erreur chargement images présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/plan - Planifier les actions IA pour la génération
+    if (path === '/presentations/plan' && method === 'POST') {
+      if (!OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API key non configurée' });
+      }
+
+      const { cockpitId, cockpitContext, config, existingImages } = req.body;
+      
+      if (!cockpitId || !cockpitContext || !config) {
+        return res.status(400).json({ error: 'cockpitId, cockpitContext et config sont requis' });
+      }
+      
+      try {
+        // Construire le prompt système pour la planification
+        const systemPrompt = `Tu es un expert en création de présentations et démonstrations de cockpits de supervision.
+Tu dois planifier les actions à effectuer pour générer une présentation selon les instructions de l'utilisateur.
+
+CONTEXTE DU COCKPIT:
+${JSON.stringify(cockpitContext, null, 2)}
+
+IMAGES EXISTANTES RÉUTILISABLES:
+${existingImages && existingImages.length > 0 ? JSON.stringify(existingImages, null, 2) : 'Aucune image existante'}
+
+INSTRUCTIONS UTILISATEUR:
+${config.prompt}
+
+Tu dois retourner un JSON avec:
+1. "actions": liste d'actions à effectuer dans l'ordre. Types d'actions possibles:
+   - { "type": "navigate_domain", "domainId": "...", "description": "Navigation vers..." }
+   - { "type": "navigate_element", "domainId": "...", "elementId": "...", "description": "Navigation vers..." }
+   - { "type": "change_status", "elementId": "...", "status": "ok|mineur|critique|fatal|deconnecte|information", "description": "..." }
+   - { "type": "change_status", "subElementId": "...", "status": "...", "description": "..." }
+   - { "type": "change_value", "elementId": "...", "value": "...", "description": "..." }
+   - { "type": "capture_screen", "domainId": "...", "description": "Capture de..." }
+
+2. "scenario": le scénario de présentation
+   {
+     "title": "Titre",
+     "introduction": "Texte d'introduction",
+     "sections": [{ "title": "...", "content": "...", "duration": 10, "notes": "..." }],
+     "conclusion": "Texte de conclusion"
+   }
+
+3. "reusedImageIds": liste des IDs d'images existantes à réutiliser (si pertinent)
+
+RÈGLES:
+- Pour une démo montrant des changements d'état, alterne entre change_status et capture_screen
+- Commence toujours par naviguer vers le domaine concerné avant de capturer
+- Utilise les images existantes quand elles correspondent au besoin (gain de temps)
+- Génère suffisamment de captures pour illustrer tous les points de la présentation
+- Les statuts possibles sont: "ok", "mineur", "critique", "fatal", "deconnecte", "information"
+
+Réponds UNIQUEMENT avec le JSON, sans commentaires.`;
+
+        // Appeler l'API OpenAI
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: 'Génère le plan d\'actions et le scénario pour cette présentation.' }
+            ],
+            max_tokens: 4000,
+            temperature: 0.7,
+          }),
+        });
+
+        if (!openaiResponse.ok) {
+          const error = await openaiResponse.json();
+          console.error('Erreur OpenAI:', error);
+          
+          // Plan de secours si l'IA échoue
+          const fallbackPlan = {
+            actions: cockpitContext.domains.flatMap((domain: any) => [
+              { type: 'navigate_domain', domainId: domain.id, description: `Navigation vers ${domain.name}` },
+              { type: 'capture_screen', domainId: domain.id, description: `Vue du domaine ${domain.name}` },
+            ]),
+            scenario: {
+              title: `Présentation ${cockpitContext.name}`,
+              introduction: config.prompt || 'Présentation de la maquette de cockpit',
+              sections: cockpitContext.domains.map((d: any) => ({
+                title: d.name,
+                content: `Vue du domaine ${d.name}`,
+                duration: 10,
+              })),
+              conclusion: 'Merci pour votre attention.',
+            },
+            reusedImageIds: [],
+          };
+          
+          return res.json(fallbackPlan);
+        }
+
+        const data = await openaiResponse.json();
+        const content = data.choices[0]?.message?.content || '';
+
+        // Parser le JSON
+        let plan;
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            plan = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('Pas de JSON trouvé');
+          }
+        } catch (e) {
+          console.error('Erreur parsing plan IA:', e);
+          // Plan de secours
+          plan = {
+            actions: cockpitContext.domains.flatMap((domain: any) => [
+              { type: 'navigate_domain', domainId: domain.id, description: `Navigation vers ${domain.name}` },
+              { type: 'capture_screen', domainId: domain.id, description: `Vue du domaine ${domain.name}` },
+            ]),
+            scenario: {
+              title: `Présentation ${cockpitContext.name}`,
+              introduction: config.prompt,
+              sections: cockpitContext.domains.map((d: any) => ({
+                title: d.name,
+                content: `Vue du domaine ${d.name}`,
+              })),
+              conclusion: 'Merci pour votre attention.',
+            },
+            reusedImageIds: [],
+          };
+        }
+
+        return res.json(plan);
+
+      } catch (error: any) {
+        console.error('Erreur planification présentation:', error);
         return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
       }
     }
