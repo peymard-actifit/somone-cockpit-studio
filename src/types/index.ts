@@ -605,3 +605,80 @@ export interface StatsData {
   columnWidth?: number; // Largeur des colonnes (10-100%)
 }
 
+// ==================== PRÉSENTATIONS AUTOMATISÉES ====================
+
+// Formats de sortie disponibles pour les présentations
+export type PresentationOutputFormat = 'pdf' | 'video' | 'pptx';
+
+// Image capturée pour une présentation
+export interface CapturedImage {
+  id: string;
+  cockpitId: string;
+  filename: string; // Nom horodaté: YYYYMMDD_HHmmss_SSS.png
+  timestamp: string; // Date ISO de capture
+  description?: string; // Description générée par l'IA
+  domainId?: string; // Domaine source si applicable
+  elementId?: string; // Élément source si applicable
+  width: number;
+  height: number;
+  base64Data: string; // Données de l'image en base64
+}
+
+// Configuration d'une présentation enregistrée
+export interface PresentationConfig {
+  id: string;
+  cockpitId: string;
+  name: string; // Nom de la configuration
+  prompt: string; // Instructions pour l'IA
+  outputFormats: PresentationOutputFormat[]; // Formats de sortie sélectionnés
+  createdAt: string;
+  updatedAt: string;
+  // Options avancées
+  includeAllDomains?: boolean; // Inclure tous les domaines
+  selectedDomainIds?: string[]; // Domaines spécifiques à inclure
+  transitionStyle?: 'none' | 'fade' | 'slide'; // Style de transition (pour vidéo/PPTX)
+  duration?: number; // Durée estimée en secondes (pour vidéo)
+}
+
+// État d'une génération de présentation en cours
+export interface PresentationGenerationState {
+  isGenerating: boolean;
+  currentStep: string; // Description de l'étape en cours
+  progress: number; // Progression 0-100
+  capturedImages: CapturedImage[]; // Images capturées pendant la génération
+  errors: string[]; // Erreurs rencontrées
+  outputFiles?: {
+    format: PresentationOutputFormat;
+    filename: string;
+    url?: string; // URL de téléchargement si disponible
+  }[];
+}
+
+// Banque d'images d'une maquette
+export interface CockpitImageBank {
+  cockpitId: string;
+  images: CapturedImage[];
+  lastUpdated: string;
+}
+
+// Scénario généré par l'IA pour une présentation
+export interface PresentationScenario {
+  id: string;
+  configId: string;
+  title: string;
+  introduction: string;
+  sections: PresentationSection[];
+  conclusion: string;
+  generatedAt: string;
+}
+
+// Section d'un scénario de présentation
+export interface PresentationSection {
+  id: string;
+  title: string;
+  content: string; // Texte narratif
+  imageIds: string[]; // IDs des images à utiliser
+  duration?: number; // Durée en secondes (pour vidéo)
+  notes?: string; // Notes pour le présentateur
+}
+

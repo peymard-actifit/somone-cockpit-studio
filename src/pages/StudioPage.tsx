@@ -10,6 +10,7 @@ import EditorPanel from '../components/EditorPanel';
 import AIPromptInput from '../components/AIPromptInput';
 import TranslationButton from '../components/TranslationButton';
 import MindMapView from '../components/MindMapView';
+import PresentationConfigModal from '../components/PresentationConfigModal';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY } from '../config/version';
 
@@ -114,6 +115,7 @@ export default function StudioPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [selectedSubElementId, setSelectedSubElementId] = useState<string | null>(null);
   const [showMindMap, setShowMindMap] = useState(false); // Vue éclatée
+  const [showPresentation, setShowPresentation] = useState(false); // Modal de génération de présentations
   
   // État pour la navigation depuis la vue éclatée
   const [cameFromMindMap, setCameFromMindMap] = useState(false);
@@ -302,6 +304,16 @@ export default function StudioPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Bouton Présentation (générateur de présentations IA) */}
+          <button
+            onClick={() => setShowPresentation(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600/80 hover:bg-purple-500 text-white rounded-lg transition-colors"
+            title="Générateur de présentations automatisées"
+          >
+            <MuiIcon name="Slideshow" size={16} />
+            <span className="text-sm font-medium">Présentation</span>
+          </button>
+
           {/* Bouton Vue éclatée (Mind Map) */}
           <button
             onClick={() => setShowMindMap(true)}
@@ -412,6 +424,14 @@ export default function StudioPage() {
           onSaveState={setMindMapState}
         />
       )}
+
+      {/* Modal de génération de présentations */}
+      <PresentationConfigModal
+        isOpen={showPresentation}
+        onClose={() => setShowPresentation(false)}
+        cockpitId={currentCockpit.id}
+        cockpitName={currentCockpit.name}
+      />
     </div>
   );
 }

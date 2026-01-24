@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.5.16';
+const APP_VERSION = '16.6.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6297,6 +6297,342 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
       } catch (error: any) {
         console.error('AI Analyze Map error:', error);
         return res.status(500).json({ error: 'Erreur analyse carte: ' + error.message });
+      }
+    }
+
+    // =====================================================
+    // PRESENTATIONS - Configuration et génération
+    // =====================================================
+
+    // GET /presentations/configs/:cockpitId - Récupérer les configurations de présentation d'une maquette
+    if (path.match(/^\/presentations\/configs\/[^/]+$/) && method === 'GET') {
+      const cockpitId = path.split('/').pop();
+      
+      try {
+        const configsKey = `presentation_configs:${cockpitId}`;
+        const configs = await redis.get(configsKey) as any[] || [];
+        
+        return res.json({ configs });
+      } catch (error: any) {
+        console.error('Erreur chargement configs présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/configs - Créer une nouvelle configuration de présentation
+    if (path === '/presentations/configs' && method === 'POST') {
+      const { cockpitId, name, prompt, outputFormats, includeAllDomains, selectedDomainIds, transitionStyle, duration } = req.body;
+      
+      if (!cockpitId || !name || !prompt) {
+        return res.status(400).json({ error: 'cockpitId, name et prompt sont requis' });
+      }
+      
+      try {
+        const configsKey = `presentation_configs:${cockpitId}`;
+        const existingConfigs = await redis.get(configsKey) as any[] || [];
+        
+        const newConfig = {
+          id: crypto.randomUUID(),
+          cockpitId,
+          name,
+          prompt,
+          outputFormats: outputFormats || ['pdf'],
+          includeAllDomains: includeAllDomains !== false,
+          selectedDomainIds: selectedDomainIds || [],
+          transitionStyle: transitionStyle || 'fade',
+          duration: duration || 60,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        
+        existingConfigs.push(newConfig);
+        await redis.set(configsKey, existingConfigs);
+        
+        return res.json({ config: newConfig });
+      } catch (error: any) {
+        console.error('Erreur création config présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // PUT /presentations/configs/:configId - Mettre à jour une configuration de présentation
+    if (path.match(/^\/presentations\/configs\/[^/]+$/) && method === 'PUT') {
+      const configId = path.split('/').pop();
+      const { cockpitId, name, prompt, outputFormats, includeAllDomains, selectedDomainIds, transitionStyle, duration } = req.body;
+      
+      if (!cockpitId) {
+        return res.status(400).json({ error: 'cockpitId est requis' });
+      }
+      
+      try {
+        const configsKey = `presentation_configs:${cockpitId}`;
+        const existingConfigs = await redis.get(configsKey) as any[] || [];
+        
+        const configIndex = existingConfigs.findIndex((c: any) => c.id === configId);
+        if (configIndex === -1) {
+          return res.status(404).json({ error: 'Configuration non trouvée' });
+        }
+        
+        existingConfigs[configIndex] = {
+          ...existingConfigs[configIndex],
+          name: name || existingConfigs[configIndex].name,
+          prompt: prompt || existingConfigs[configIndex].prompt,
+          outputFormats: outputFormats || existingConfigs[configIndex].outputFormats,
+          includeAllDomains: includeAllDomains !== undefined ? includeAllDomains : existingConfigs[configIndex].includeAllDomains,
+          selectedDomainIds: selectedDomainIds || existingConfigs[configIndex].selectedDomainIds,
+          transitionStyle: transitionStyle || existingConfigs[configIndex].transitionStyle,
+          duration: duration || existingConfigs[configIndex].duration,
+          updatedAt: new Date().toISOString(),
+        };
+        
+        await redis.set(configsKey, existingConfigs);
+        
+        return res.json({ config: existingConfigs[configIndex] });
+      } catch (error: any) {
+        console.error('Erreur mise à jour config présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // DELETE /presentations/configs/:configId - Supprimer une configuration de présentation
+    if (path.match(/^\/presentations\/configs\/[^/]+$/) && method === 'DELETE') {
+      const configId = path.split('/').pop();
+      const { cockpitId } = req.query as { cockpitId?: string };
+      
+      // Récupérer cockpitId depuis le body si pas en query
+      const actualCockpitId = cockpitId || req.body?.cockpitId;
+      
+      if (!actualCockpitId) {
+        // Chercher dans toutes les maquettes (plus lent mais fonctionne)
+        try {
+          const allKeys = await redis.keys('presentation_configs:*');
+          for (const key of allKeys) {
+            const configs = await redis.get(key) as any[] || [];
+            const configIndex = configs.findIndex((c: any) => c.id === configId);
+            if (configIndex !== -1) {
+              configs.splice(configIndex, 1);
+              await redis.set(key, configs);
+              return res.json({ success: true });
+            }
+          }
+          return res.status(404).json({ error: 'Configuration non trouvée' });
+        } catch (error: any) {
+          console.error('Erreur suppression config présentation:', error);
+          return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+        }
+      }
+      
+      try {
+        const configsKey = `presentation_configs:${actualCockpitId}`;
+        const existingConfigs = await redis.get(configsKey) as any[] || [];
+        
+        const configIndex = existingConfigs.findIndex((c: any) => c.id === configId);
+        if (configIndex === -1) {
+          return res.status(404).json({ error: 'Configuration non trouvée' });
+        }
+        
+        existingConfigs.splice(configIndex, 1);
+        await redis.set(configsKey, existingConfigs);
+        
+        return res.json({ success: true });
+      } catch (error: any) {
+        console.error('Erreur suppression config présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/images - Sauvegarder une image capturée dans la banque d'images
+    if (path === '/presentations/images' && method === 'POST') {
+      const { cockpitId, image } = req.body;
+      
+      if (!cockpitId || !image) {
+        return res.status(400).json({ error: 'cockpitId et image sont requis' });
+      }
+      
+      try {
+        const imagesKey = `presentation_images:${cockpitId}`;
+        const existingImages = await redis.get(imagesKey) as any[] || [];
+        
+        // Limiter à 100 images par maquette pour éviter la surcharge
+        if (existingImages.length >= 100) {
+          // Supprimer les plus anciennes
+          existingImages.shift();
+        }
+        
+        existingImages.push({
+          id: image.id,
+          filename: image.filename,
+          timestamp: image.timestamp,
+          description: image.description,
+          domainId: image.domainId,
+          elementId: image.elementId,
+          width: image.width,
+          height: image.height,
+          // Ne pas stocker base64 en Redis (trop volumineux) - stocker dans un service de stockage externe
+          // Pour l'instant, on garde une référence
+        });
+        
+        await redis.set(imagesKey, existingImages);
+        
+        return res.json({ success: true, imageId: image.id });
+      } catch (error: any) {
+        console.error('Erreur sauvegarde image présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // GET /presentations/images/:cockpitId - Récupérer la banque d'images d'une maquette
+    if (path.match(/^\/presentations\/images\/[^/]+$/) && method === 'GET') {
+      const cockpitId = path.split('/').pop();
+      
+      try {
+        const imagesKey = `presentation_images:${cockpitId}`;
+        const images = await redis.get(imagesKey) as any[] || [];
+        
+        return res.json({ images });
+      } catch (error: any) {
+        console.error('Erreur chargement images présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/generate - Générer une présentation avec l'IA
+    if (path === '/presentations/generate' && method === 'POST') {
+      if (!OPENAI_API_KEY) {
+        return res.status(400).json({ error: 'OpenAI API key non configurée' });
+      }
+
+      const { cockpitId, cockpitName, config, images, globalPrompt } = req.body;
+      
+      if (!cockpitId || !config || !images || images.length === 0) {
+        return res.status(400).json({ error: 'cockpitId, config et images sont requis' });
+      }
+      
+      try {
+        // Construire le contexte pour l'IA
+        const systemPrompt = `Tu es un expert en création de présentations professionnelles. 
+Tu dois générer un scénario de présentation basé sur les images de cockpit fournies.
+
+Contexte du projet:
+${globalPrompt || 'Maquette de cockpit de supervision'}
+
+Nom de la maquette: ${cockpitName}
+
+Instructions utilisateur:
+${config.prompt}
+
+Formats de sortie demandés: ${config.outputFormats.join(', ')}
+
+Tu dois retourner un JSON structuré avec:
+{
+  "title": "Titre de la présentation",
+  "introduction": "Texte d'introduction",
+  "sections": [
+    {
+      "title": "Titre de la section",
+      "content": "Contenu narratif",
+      "imageIds": ["id1", "id2"],
+      "duration": 30,
+      "notes": "Notes pour le présentateur"
+    }
+  ],
+  "conclusion": "Texte de conclusion"
+}`;
+
+        // Préparer les images pour l'envoi (descriptions seulement pour réduire la taille)
+        const imageDescriptions = images.map((img: any) => ({
+          id: img.id,
+          filename: img.filename,
+          description: img.description || `Capture d'écran du ${img.filename}`,
+          domainId: img.domainId,
+        }));
+
+        // Appeler l'API OpenAI
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { 
+                role: 'user', 
+                content: `Voici les ${imageDescriptions.length} images disponibles pour la présentation:\n\n${JSON.stringify(imageDescriptions, null, 2)}\n\nGénère le scénario de présentation.`
+              }
+            ],
+            max_tokens: 4000,
+            temperature: 0.7,
+          }),
+        });
+
+        if (!openaiResponse.ok) {
+          const error = await openaiResponse.json();
+          console.error('Erreur OpenAI:', error);
+          return res.status(500).json({ error: 'Erreur génération IA: ' + (error.error?.message || 'inconnue') });
+        }
+
+        const data = await openaiResponse.json();
+        const content = data.choices[0]?.message?.content || '';
+
+        // Parser le JSON du scénario
+        let scenario;
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            scenario = JSON.parse(jsonMatch[0]);
+          } else {
+            scenario = {
+              title: `Présentation ${cockpitName}`,
+              introduction: 'Présentation générée automatiquement',
+              sections: imageDescriptions.map((img: any) => ({
+                title: img.description || img.filename,
+                content: `Vue de la maquette`,
+                imageIds: [img.id],
+                duration: 10,
+              })),
+              conclusion: 'Merci pour votre attention.',
+            };
+          }
+        } catch (e) {
+          console.error('Erreur parsing scénario:', e);
+          scenario = {
+            title: `Présentation ${cockpitName}`,
+            introduction: content.substring(0, 200),
+            sections: [],
+            conclusion: '',
+          };
+        }
+
+        // Sauvegarder le scénario
+        const scenarioKey = `presentation_scenario:${cockpitId}:${config.id || 'temp'}`;
+        await redis.set(scenarioKey, {
+          ...scenario,
+          id: crypto.randomUUID(),
+          configId: config.id,
+          generatedAt: new Date().toISOString(),
+        });
+
+        // Générer les fichiers de sortie (simulation pour l'instant)
+        const outputFiles = config.outputFormats.map((format: string) => ({
+          format,
+          filename: `${cockpitName.replace(/[^a-z0-9]/gi, '_')}_presentation.${format}`,
+          url: null, // En production, cela serait une URL de téléchargement
+          status: 'ready',
+        }));
+
+        return res.json({
+          success: true,
+          scenario,
+          outputFiles,
+          message: `Scénario généré avec ${scenario.sections?.length || 0} sections`,
+        });
+
+      } catch (error: any) {
+        console.error('Erreur génération présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
       }
     }
 
