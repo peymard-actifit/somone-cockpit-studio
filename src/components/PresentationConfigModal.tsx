@@ -1016,9 +1016,27 @@ export default function PresentationConfigModal({
 
       setGenerationState(prev => ({
         ...prev,
-        currentStep: 'Génération terminée !',
-        progress: 100,
+        currentStep: 'Génération terminée ! Téléchargement automatique...',
+        progress: 98,
         outputFiles,
+      }));
+
+      // Téléchargement automatique de tous les fichiers
+      // 1. Télécharger les fichiers PDF/PPTX individuellement
+      const localOutputFiles = outputFiles.filter(f => f.url && f.url.startsWith('data:'));
+      if (localOutputFiles.length > 0) {
+        autoDownloadFiles(localOutputFiles);
+      }
+      
+      // 2. Télécharger le ZIP complet avec images + fichiers
+      if (capturedImages.length > 0 || outputFiles.length > 0) {
+        await downloadAllAsZip(capturedImages, outputFiles);
+      }
+
+      setGenerationState(prev => ({
+        ...prev,
+        currentStep: 'Génération terminée ! Fichiers téléchargés.',
+        progress: 100,
       }));
 
     } catch (error) {
@@ -1103,8 +1121,15 @@ export default function PresentationConfigModal({
   };
 
   // Télécharger tout (images + fichiers générés) en un seul ZIP
-  const downloadAllAsZip = async () => {
-    if (generationState.capturedImages.length === 0 && (!generationState.outputFiles || generationState.outputFiles.length === 0)) {
+  // Accepte des paramètres optionnels pour permettre le téléchargement automatique après génération
+  const downloadAllAsZip = async (
+    images?: CapturedImage[], 
+    files?: Array<{ filename: string; url?: string; format: PresentationOutputFormat }>
+  ) => {
+    const imagesToDownload = images || generationState.capturedImages;
+    const filesToDownload = files || generationState.outputFiles;
+    
+    if (imagesToDownload.length === 0 && (!filesToDownload || filesToDownload.length === 0)) {
       return;
     }
     
@@ -1114,8 +1139,8 @@ export default function PresentationConfigModal({
       
       // Dossier pour les images
       const imagesFolder = zip.folder(`${baseName}_images`);
-      if (imagesFolder && generationState.capturedImages.length > 0) {
-        for (const image of generationState.capturedImages) {
+      if (imagesFolder && imagesToDownload.length > 0) {
+        for (const image of imagesToDownload) {
           if (image.base64Data) {
             const base64Data = image.base64Data.split(',')[1];
             if (base64Data) {
@@ -1126,8 +1151,8 @@ export default function PresentationConfigModal({
       }
       
       // Ajouter les fichiers générés (PDF, PPTX) s'ils sont des data URI
-      if (generationState.outputFiles) {
-        for (const file of generationState.outputFiles) {
+      if (filesToDownload) {
+        for (const file of filesToDownload) {
           if (file.url && file.url.startsWith('data:')) {
             const base64Data = file.url.split(',')[1];
             if (base64Data) {
@@ -1143,6 +1168,20 @@ export default function PresentationConfigModal({
       
     } catch (error) {
       console.error('Erreur lors de la création du ZIP complet:', error);
+    }
+  };
+
+  // Télécharger automatiquement tous les fichiers générés (PDF, PPTX individuels)
+  const autoDownloadFiles = (files: Array<{ filename: string; url?: string; format: PresentationOutputFormat }>) => {
+    for (const file of files) {
+      if (file.url && file.url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = file.url;
+        a.download = file.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
     }
   };
 
@@ -1512,7 +1551,7 @@ Exemples:
                         </button>
                         
                         <button
-                          onClick={downloadAllAsZip}
+                          onClick={() => downloadAllAsZip()}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors text-sm"
                         >
                           <MuiIcon name="Archive" size={16} />
