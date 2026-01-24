@@ -1042,10 +1042,10 @@ export default function PresentationConfigModal({
       }));
 
       // Téléchargement automatique de tous les fichiers
-      // 1. Télécharger les fichiers PDF/PPTX individuellement
-      const localOutputFiles = outputFiles.filter(f => f.url && f.url.startsWith('data:'));
-      if (localOutputFiles.length > 0) {
-        autoDownloadFiles(localOutputFiles);
+      // 1. Télécharger les fichiers PDF/PPTX/Vidéo individuellement
+      const filesToDownload = outputFiles.filter(f => f.url);
+      if (filesToDownload.length > 0) {
+        await autoDownloadFiles(filesToDownload);
       }
       
       // 2. Télécharger le ZIP complet avec images + fichiers
@@ -1086,15 +1086,38 @@ export default function PresentationConfigModal({
     }
   };
 
-  // Télécharger un fichier généré
-  const downloadFile = (filename: string, url?: string) => {
-    if (url) {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+  // Télécharger un fichier généré (gère data URIs et URLs externes)
+  const downloadFile = async (filename: string, url?: string) => {
+    if (!url) return;
+    
+    try {
+      if (url.startsWith('data:')) {
+        // Téléchargement direct pour les data URIs
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else if (url.startsWith('http')) {
+        // Pour les URLs externes (vidéos), télécharger via fetch
+        const response = await fetch(url);
+        if (response.ok) {
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+        }
+      }
+    } catch (error) {
+      console.error(`Erreur téléchargement ${filename}:`, error);
+      // Fallback: ouvrir dans un nouvel onglet
+      window.open(url, '_blank');
     }
   };
 
@@ -1252,16 +1275,44 @@ export default function PresentationConfigModal({
     }
   };
 
-  // Télécharger automatiquement tous les fichiers générés (PDF, PPTX individuels)
-  const autoDownloadFiles = (files: Array<{ filename: string; url?: string; format: PresentationOutputFormat }>) => {
+  // Télécharger automatiquement tous les fichiers générés (PDF, PPTX, vidéos)
+  const autoDownloadFiles = async (files: Array<{ filename: string; url?: string; format: PresentationOutputFormat }>) => {
     for (const file of files) {
-      if (file.url && file.url.startsWith('data:')) {
-        const a = document.createElement('a');
-        a.href = file.url;
-        a.download = file.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      if (!file.url) continue;
+      
+      try {
+        if (file.url.startsWith('data:')) {
+          // Téléchargement direct pour les data URIs (PDF, PPTX)
+          const a = document.createElement('a');
+          a.href = file.url;
+          a.download = file.filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else if (file.url.startsWith('http')) {
+          // Pour les URLs externes (vidéos RENDI), télécharger via fetch
+          setGenerationState(prev => ({
+            ...prev,
+            currentStep: `Téléchargement de ${file.filename}...`,
+          }));
+          
+          const response = await fetch(file.url);
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = file.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+          } else {
+            console.error(`Erreur téléchargement ${file.filename}: ${response.status}`);
+          }
+        }
+      } catch (error) {
+        console.error(`Erreur téléchargement ${file.filename}:`, error);
       }
     }
   };
