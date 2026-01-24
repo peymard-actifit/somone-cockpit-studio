@@ -26,7 +26,7 @@ const createEmptyConfig = (cockpitId: string): Omit<PresentationConfig, 'id' | '
 });
 
 // Fonction utilitaire pour générer un nom de fichier horodaté (format identique aux Excel)
-const generateTimestampedFilename = (cockpitName: string, type: 'PRES' | 'IMG' | 'ZIP', extension: string): string => {
+const generateTimestampedFilename = (cockpitName: string, type: 'PRES' | 'IMG' | 'ZIP' | 'BANQUE', extension: string): string => {
   const now = new Date();
   // Convertir en heure de Paris
   const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
@@ -1141,6 +1141,66 @@ export default function PresentationConfigModal({
     }
   };
 
+  // État pour le téléchargement des images de la banque
+  const [isDownloadingBankImages, setIsDownloadingBankImages] = useState(false);
+
+  // Télécharger les images existantes de la banque (récupère les données base64 depuis l'API)
+  const downloadExistingImagesFromBank = async () => {
+    if (existingImages.length === 0 || !token) return;
+    
+    setIsDownloadingBankImages(true);
+    
+    try {
+      const zip = new JSZip();
+      const cleanName = cockpitName.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim();
+      const folder = zip.folder(`${cleanName} Banque Images`);
+      
+      if (!folder) {
+        setIsDownloadingBankImages(false);
+        return;
+      }
+      
+      let downloadedCount = 0;
+      
+      // Récupérer les données base64 de chaque image depuis l'API
+      for (const image of existingImages) {
+        try {
+          const response = await fetch(`/api/presentations/images/${cockpitId}/${image.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.base64Data) {
+              // Extraire les données base64 pures
+              const base64Pure = data.base64Data.split(',')[1];
+              if (base64Pure) {
+                folder.file(image.filename, base64Pure, { base64: true });
+                downloadedCount++;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn(`Impossible de récupérer l'image ${image.id}:`, err);
+        }
+      }
+      
+      if (downloadedCount > 0) {
+        // Générer et télécharger le ZIP avec nom horodaté
+        const content = await zip.generateAsync({ type: 'blob' });
+        saveAs(content, generateTimestampedFilename(cockpitName, 'BANQUE', 'zip'));
+      } else {
+        console.warn('Aucune image n\'a pu être récupérée (données expirées ou non disponibles)');
+        alert('Les images de la banque ont expiré (durée de stockage: 7 jours). Générez une nouvelle présentation pour créer de nouvelles images.');
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors du téléchargement des images de la banque:', error);
+    } finally {
+      setIsDownloadingBankImages(false);
+    }
+  };
+
   // Télécharger tout (images + fichiers générés) en un seul ZIP
   // Accepte des paramètres optionnels pour permettre le téléchargement automatique après génération
   const downloadAllAsZip = async (
@@ -1251,9 +1311,24 @@ export default function PresentationConfigModal({
           </div>
           <div className="flex items-center gap-2">
             {existingImages.length > 0 && (
-              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs">
-                {existingImages.length} image(s) en banque
-              </span>
+              <button
+                onClick={downloadExistingImagesFromBank}
+                disabled={isDownloadingBankImages || generationState.isGenerating}
+                className="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs hover:bg-amber-500/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait flex items-center gap-1.5"
+                title="Cliquer pour télécharger les images de la banque"
+              >
+                {isDownloadingBankImages ? (
+                  <>
+                    <MuiIcon name="HourglassEmpty" size={12} className="animate-spin" />
+                    Téléchargement...
+                  </>
+                ) : (
+                  <>
+                    <MuiIcon name="Download" size={12} />
+                    {existingImages.length} image(s) en banque
+                  </>
+                )}
+              </button>
             )}
             <button
               onClick={onClose}
@@ -1589,9 +1664,18 @@ Exemples:
                     Configurez votre présentation et cliquez sur "Générer" pour démarrer.
                   </p>
                   {existingImages.length > 0 && (
-                    <p className="text-xs text-amber-600">
-                      💡 {existingImages.length} image(s) en banque peuvent être réutilisées
-                    </p>
+                    <button
+                      onClick={downloadExistingImagesFromBank}
+                      disabled={isDownloadingBankImages}
+                      className="text-xs text-amber-600 hover:text-amber-700 hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                      title="Cliquer pour télécharger les images de la banque"
+                    >
+                      {isDownloadingBankImages ? (
+                        '⏳ Téléchargement en cours...'
+                      ) : (
+                        `💡 ${existingImages.length} image(s) en banque - cliquer pour télécharger`
+                      )}
+                    </button>
                   )}
                 </div>
               )}
