@@ -25,6 +25,27 @@ const createEmptyConfig = (cockpitId: string): Omit<PresentationConfig, 'id' | '
   duration: 60,
 });
 
+// Fonction utilitaire pour générer un nom de fichier horodaté (format identique aux Excel)
+const generateTimestampedFilename = (cockpitName: string, type: 'PRES' | 'IMG' | 'ZIP', extension: string): string => {
+  const now = new Date();
+  // Convertir en heure de Paris
+  const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+  
+  const year = parisTime.getFullYear();
+  const month = String(parisTime.getMonth() + 1).padStart(2, '0');
+  const day = String(parisTime.getDate()).padStart(2, '0');
+  const hours = String(parisTime.getHours()).padStart(2, '0');
+  const minutes = String(parisTime.getMinutes()).padStart(2, '0');
+  const seconds = String(parisTime.getSeconds()).padStart(2, '0');
+  
+  const dateStamp = `${year}${month}${day}`;
+  const timeStamp = `${hours}${minutes}${seconds}`;
+  const cleanName = cockpitName.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim();
+  
+  // Format: YYYYMMDD SOMONE {TYPE} {CockpitName} HHMMSS.{ext}
+  return `${dateStamp} SOMONE ${type} ${cleanName} ${timeStamp}.${extension}`;
+};
+
 // Interface pour les actions IA de modification
 interface AIAction {
   type: 'navigate_domain' | 'navigate_element' | 'change_status' | 'change_value' | 'capture_screen';
@@ -836,7 +857,6 @@ export default function PresentationConfigModal({
 
       // Générer les fichiers selon les formats demandés
       const outputFiles: { format: PresentationOutputFormat; filename: string; url: string }[] = [];
-      const safeFilename = cockpitName.replace(/[^a-z0-9]/gi, '_');
 
       // Générer PDF
       if (currentConfig.outputFormats.includes('pdf')) {
@@ -849,7 +869,7 @@ export default function PresentationConfigModal({
         const pdfDataUri = await generatePDF(capturedImages, aiPlan.scenario);
         outputFiles.push({
           format: 'pdf',
-          filename: `${safeFilename}_presentation.pdf`,
+          filename: generateTimestampedFilename(cockpitName, 'PRES', 'pdf'),
           url: pdfDataUri,
         });
       }
@@ -865,7 +885,7 @@ export default function PresentationConfigModal({
         const pptxDataUri = await generatePPTX(capturedImages, aiPlan.scenario);
         outputFiles.push({
           format: 'pptx',
-          filename: `${safeFilename}_presentation.pptx`,
+          filename: generateTimestampedFilename(cockpitName, 'PRES', 'pptx'),
           url: pptxDataUri,
         });
       }
@@ -950,14 +970,14 @@ export default function PresentationConfigModal({
               if (videoUrl) {
                 outputFiles.push({
                   format: 'video',
-                  filename: `${safeFilename}_presentation.mp4`,
+                  filename: generateTimestampedFilename(cockpitName, 'PRES', 'mp4'),
                   url: videoUrl,
                 });
               } else {
                 console.warn('[RENDI] Vidéo non générée ou timeout');
                 outputFiles.push({
                   format: 'video',
-                  filename: `${safeFilename}_presentation.mp4`,
+                  filename: generateTimestampedFilename(cockpitName, 'PRES', 'mp4'),
                   url: '', // URL vide si échec
                 });
               }
@@ -966,7 +986,7 @@ export default function PresentationConfigModal({
             console.error('[RENDI] Erreur lors de la requête');
             outputFiles.push({
               format: 'video',
-              filename: `${safeFilename}_presentation.mp4`,
+              filename: generateTimestampedFilename(cockpitName, 'PRES', 'mp4'),
               url: '',
             });
           }
@@ -974,7 +994,7 @@ export default function PresentationConfigModal({
           console.error('[RENDI] Erreur génération vidéo:', videoError);
           outputFiles.push({
             format: 'video',
-            filename: `${safeFilename}_presentation.mp4`,
+            filename: generateTimestampedFilename(cockpitName, 'PRES', 'mp4'),
             url: '',
           });
         }
@@ -1096,7 +1116,8 @@ export default function PresentationConfigModal({
     
     try {
       const zip = new JSZip();
-      const folder = zip.folder(`${cockpitName.replace(/[^a-z0-9]/gi, '_')}_images`);
+      const cleanName = cockpitName.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim();
+      const folder = zip.folder(`${cleanName} Images`);
       
       if (!folder) return;
       
@@ -1111,9 +1132,9 @@ export default function PresentationConfigModal({
         }
       }
       
-      // Générer et télécharger le ZIP
+      // Générer et télécharger le ZIP avec nom horodaté
       const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, `${cockpitName.replace(/[^a-z0-9]/gi, '_')}_images.zip`);
+      saveAs(content, generateTimestampedFilename(cockpitName, 'IMG', 'zip'));
       
     } catch (error) {
       console.error('Erreur lors de la création du ZIP:', error);
@@ -1135,10 +1156,10 @@ export default function PresentationConfigModal({
     
     try {
       const zip = new JSZip();
-      const baseName = cockpitName.replace(/[^a-z0-9]/gi, '_');
+      const cleanName = cockpitName.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim();
       
-      // Dossier pour les images
-      const imagesFolder = zip.folder(`${baseName}_images`);
+      // Dossier pour les images (avec nom propre)
+      const imagesFolder = zip.folder(`${cleanName} Images`);
       if (imagesFolder && imagesToDownload.length > 0) {
         for (const image of imagesToDownload) {
           if (image.base64Data) {
@@ -1162,9 +1183,9 @@ export default function PresentationConfigModal({
         }
       }
       
-      // Générer et télécharger le ZIP
+      // Générer et télécharger le ZIP avec nom horodaté
       const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, `${baseName}_presentation_complete.zip`);
+      saveAs(content, generateTimestampedFilename(cockpitName, 'ZIP', 'zip'));
       
     } catch (error) {
       console.error('Erreur lors de la création du ZIP complet:', error);
