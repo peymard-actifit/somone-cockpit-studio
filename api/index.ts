@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.7.5';
+const APP_VERSION = '16.7.6';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6853,6 +6853,47 @@ Tu dois retourner un JSON structuré avec:
     // Clé API RENDI (FFmpeg cloud)
     const RENDI_API_KEY = process.env.RENDI_API_KEY || 'eJxLSkxNTkxKS19I1TzZN0zUxTjbQtTC0TNQ1NTewMLMwNjUxM0mOzy4sKYkIK/D3Ms0yKEoJco3INMnwKAcACPAR2g==';
     const RENDI_API_URL = 'https://api.rendi.dev/v1';
+    
+    // Clé API imgbb pour l'hébergement temporaire d'images (gratuit)
+    const IMGBB_API_KEY = process.env.IMGBB_API_KEY || ''; // À configurer dans Vercel
+    
+    // Fonction utilitaire pour uploader une image vers imgbb
+    const uploadToImgbb = async (base64Data: string, filename: string): Promise<string | null> => {
+      if (!IMGBB_API_KEY) {
+        console.warn('[IMGBB] Clé API non configurée');
+        return null;
+      }
+      
+      try {
+        // Extraire les données base64 pures (sans le préfixe data:image/...)
+        const pureBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+        
+        const formData = new URLSearchParams();
+        formData.append('key', IMGBB_API_KEY);
+        formData.append('image', pureBase64);
+        formData.append('name', filename.replace(/\.[^/.]+$/, '')); // Sans extension
+        formData.append('expiration', '3600'); // Expire après 1 heure
+        
+        const response = await fetch('https://api.imgbb.com/1/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data?.url) {
+            console.log(`[IMGBB] Image uploadée: ${result.data.url}`);
+            return result.data.url;
+          }
+        }
+        
+        console.error('[IMGBB] Échec upload:', await response.text());
+        return null;
+      } catch (error) {
+        console.error('[IMGBB] Erreur upload:', error);
+        return null;
+      }
+    };
 
     // POST /presentations/temp-image - Stocker une image temporairement pour RENDI
     if (path === '/presentations/temp-image' && method === 'POST') {
@@ -6926,23 +6967,36 @@ Tu dois retourner un JSON structuré avec:
       try {
         console.log(`[RENDI] Démarrage génération vidéo pour ${cockpitName} avec ${images.length} images`);
         
-        // 1. Stocker les images temporairement et obtenir les URLs
+        // 1. Uploader les images vers imgbb (hébergement public gratuit)
         const imageUrls: Record<string, string> = {};
-        const baseUrl = req.headers.origin || 'https://somone-cockpit-studio.vercel.app';
+        
+        if (!IMGBB_API_KEY) {
+          console.error('[RENDI] IMGBB_API_KEY non configurée - impossible de générer la vidéo');
+          return res.status(400).json({ 
+            error: 'La génération vidéo nécessite une clé API imgbb. Configurez IMGBB_API_KEY dans les variables d\'environnement Vercel.',
+            help: 'Obtenez une clé gratuite sur https://api.imgbb.com/'
+          });
+        }
+        
+        console.log(`[RENDI] Upload de ${images.length} images vers imgbb...`);
         
         for (let i = 0; i < images.length; i++) {
           const image = images[i];
-          const imageId = `video_${Date.now()}_${i}`;
-          const key = `temp_image:${cockpitId}:${imageId}`;
+          const filename = `video_frame_${i + 1}.png`;
           
-          // Stocker l'image (expire après 1 heure)
-          await redis.set(key, image.base64Data, { ex: 3600 });
+          const imgbbUrl = await uploadToImgbb(image.base64Data, filename);
           
-          // Créer l'URL publique
-          imageUrls[`in_img_${i + 1}`] = `${baseUrl}/api/presentations/temp-image/${cockpitId}/${imageId}`;
+          if (!imgbbUrl) {
+            console.error(`[RENDI] Échec upload image ${i + 1}`);
+            return res.status(500).json({ 
+              error: `Échec de l'upload de l'image ${i + 1} vers imgbb`,
+            });
+          }
+          
+          imageUrls[`in_img_${i + 1}`] = imgbbUrl;
         }
         
-        console.log(`[RENDI] ${images.length} images stockées temporairement`);
+        console.log(`[RENDI] ${images.length} images uploadées vers imgbb`);
         
         // 2. Construire la commande FFmpeg
         // Format: -loop 1 -t {duration} -i {{in_img_1}} -loop 1 -t {duration} -i {{in_img_2}} ...
