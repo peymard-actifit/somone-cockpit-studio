@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.7.6';
+const APP_VERSION = '16.7.7';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -7106,6 +7106,48 @@ Tu dois retourner un JSON structuré avec:
         
       } catch (error: any) {
         console.error('[RENDI] Erreur vérification statut:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/download-video - Proxy pour télécharger une vidéo externe (contourne CORS)
+    if (path === '/presentations/download-video' && method === 'POST') {
+      const { videoUrl, filename } = req.body;
+      
+      if (!videoUrl) {
+        return res.status(400).json({ error: 'videoUrl est requis' });
+      }
+      
+      try {
+        console.log(`[PROXY] Téléchargement vidéo: ${videoUrl}`);
+        
+        const videoResponse = await fetch(videoUrl);
+        
+        if (!videoResponse.ok) {
+          console.error(`[PROXY] Erreur fetch vidéo: ${videoResponse.status}`);
+          return res.status(videoResponse.status).json({ 
+            error: `Erreur téléchargement: ${videoResponse.statusText}` 
+          });
+        }
+        
+        // Récupérer le contenu en tant que buffer
+        const arrayBuffer = await videoResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Définir les headers pour le téléchargement
+        const contentType = videoResponse.headers.get('content-type') || 'video/mp4';
+        const finalFilename = filename || 'video.mp4';
+        
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Content-Disposition', `attachment; filename="${finalFilename}"`);
+        res.setHeader('Cache-Control', 'no-cache');
+        
+        console.log(`[PROXY] Envoi vidéo: ${buffer.length} bytes`);
+        return res.send(buffer);
+        
+      } catch (error: any) {
+        console.error('[PROXY] Erreur téléchargement vidéo:', error);
         return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
       }
     }

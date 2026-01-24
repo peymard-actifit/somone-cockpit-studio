@@ -1086,13 +1086,13 @@ export default function PresentationConfigModal({
     }
   };
 
-  // Télécharger un fichier généré (gère data URIs et URLs externes)
+  // Télécharger un fichier généré (gère data URIs et URLs externes via proxy)
   const downloadFile = async (filename: string, url?: string) => {
     if (!url) return;
     
     try {
       if (url.startsWith('data:')) {
-        // Téléchargement direct pour les data URIs
+        // Téléchargement direct pour les data URIs (PDF, PPTX)
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
@@ -1100,8 +1100,18 @@ export default function PresentationConfigModal({
         a.click();
         document.body.removeChild(a);
       } else if (url.startsWith('http')) {
-        // Pour les URLs externes (vidéos), télécharger via fetch
-        const response = await fetch(url);
+        // Pour les URLs externes (vidéos RENDI), utiliser le proxy serveur pour contourner CORS
+        console.log(`[Download] Téléchargement via proxy: ${filename}`);
+        
+        const response = await fetch('/api/presentations/download-video', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ videoUrl: url, filename }),
+        });
+        
         if (response.ok) {
           const blob = await response.blob();
           const blobUrl = URL.createObjectURL(blob);
@@ -1112,6 +1122,11 @@ export default function PresentationConfigModal({
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(blobUrl);
+          console.log(`[Download] Vidéo téléchargée: ${filename}`);
+        } else {
+          console.error(`[Download] Erreur proxy: ${response.status}`);
+          // Fallback: ouvrir dans un nouvel onglet
+          window.open(url, '_blank');
         }
       }
     } catch (error) {
@@ -1290,13 +1305,23 @@ export default function PresentationConfigModal({
           a.click();
           document.body.removeChild(a);
         } else if (file.url.startsWith('http')) {
-          // Pour les URLs externes (vidéos RENDI), télécharger via fetch
+          // Pour les URLs externes (vidéos RENDI), utiliser le proxy serveur pour contourner CORS
           setGenerationState(prev => ({
             ...prev,
             currentStep: `Téléchargement de ${file.filename}...`,
           }));
           
-          const response = await fetch(file.url);
+          console.log(`[AutoDownload] Téléchargement via proxy: ${file.filename}`);
+          
+          const response = await fetch('/api/presentations/download-video', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ videoUrl: file.url, filename: file.filename }),
+          });
+          
           if (response.ok) {
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
@@ -1307,8 +1332,9 @@ export default function PresentationConfigModal({
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(blobUrl);
+            console.log(`[AutoDownload] Vidéo téléchargée: ${file.filename}`);
           } else {
-            console.error(`Erreur téléchargement ${file.filename}: ${response.status}`);
+            console.error(`[AutoDownload] Erreur proxy ${file.filename}: ${response.status}`);
           }
         }
       } catch (error) {
