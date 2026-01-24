@@ -868,21 +868,114 @@ export default function PresentationConfigModal({
         });
       }
 
-      // Pour la vidéo, on génère une notification (nécessite un backend plus complexe)
+      // Génération vidéo avec l'API RENDI
       if (currentConfig.outputFormats.includes('video')) {
         setGenerationState(prev => ({
           ...prev,
-          currentStep: 'Préparation des données vidéo...',
-          progress: 90,
+          currentStep: 'Génération de la vidéo avec RENDI...',
+          progress: 88,
         }));
         
-        // La génération vidéo nécessite un traitement côté serveur avec ffmpeg
-        // Pour l'instant, on sauvegarde les images pour un traitement ultérieur
-        outputFiles.push({
-          format: 'video',
-          filename: `${safeFilename}_presentation.mp4`,
-          url: '', // Sera généré côté serveur
-        });
+        try {
+          // Appeler l'API pour démarrer la génération vidéo
+          const videoResponse = await fetch('/api/presentations/generate-video', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              cockpitId,
+              cockpitName,
+              images: capturedImages.map(img => ({
+                id: img.id,
+                base64Data: img.base64Data,
+                description: img.description,
+              })),
+              scenario: aiPlan.scenario,
+              durationPerSlide: Math.max(3, Math.floor((currentConfig.duration || 60) / capturedImages.length)),
+            }),
+          });
+          
+          if (videoResponse.ok) {
+            const videoResult = await videoResponse.json();
+            
+            if (videoResult.commandId) {
+              setGenerationState(prev => ({
+                ...prev,
+                currentStep: 'Vidéo en cours de génération sur le cloud...',
+                progress: 90,
+              }));
+              
+              // Polling pour suivre la progression
+              let videoStatus = 'PROCESSING';
+              let videoUrl = '';
+              let pollCount = 0;
+              const maxPolls = 60; // 5 minutes max (60 * 5s)
+              
+              while (videoStatus === 'PROCESSING' || videoStatus === 'PENDING') {
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Attendre 5 secondes
+                pollCount++;
+                
+                if (pollCount > maxPolls) {
+                  console.warn('[RENDI] Timeout après 5 minutes');
+                  break;
+                }
+                
+                setGenerationState(prev => ({
+                  ...prev,
+                  currentStep: `Génération vidéo en cours... (${pollCount * 5}s)`,
+                }));
+                
+                const statusResponse = await fetch(`/api/presentations/video-status/${videoResult.commandId}`, {
+                  headers: { 'Authorization': `Bearer ${token}` },
+                });
+                
+                if (statusResponse.ok) {
+                  const statusResult = await statusResponse.json();
+                  videoStatus = statusResult.status;
+                  
+                  if (statusResult.status === 'SUCCESS' && statusResult.videoUrl) {
+                    videoUrl = statusResult.videoUrl;
+                    console.log(`[RENDI] Vidéo générée: ${videoUrl}`);
+                  } else if (statusResult.status === 'FAILED') {
+                    console.error('[RENDI] Échec génération:', statusResult.error);
+                    break;
+                  }
+                }
+              }
+              
+              if (videoUrl) {
+                outputFiles.push({
+                  format: 'video',
+                  filename: `${safeFilename}_presentation.mp4`,
+                  url: videoUrl,
+                });
+              } else {
+                console.warn('[RENDI] Vidéo non générée ou timeout');
+                outputFiles.push({
+                  format: 'video',
+                  filename: `${safeFilename}_presentation.mp4`,
+                  url: '', // URL vide si échec
+                });
+              }
+            }
+          } else {
+            console.error('[RENDI] Erreur lors de la requête');
+            outputFiles.push({
+              format: 'video',
+              filename: `${safeFilename}_presentation.mp4`,
+              url: '',
+            });
+          }
+        } catch (videoError) {
+          console.error('[RENDI] Erreur génération vidéo:', videoError);
+          outputFiles.push({
+            format: 'video',
+            filename: `${safeFilename}_presentation.mp4`,
+            url: '',
+          });
+        }
       }
 
       // Sauvegarder les images dans la banque
@@ -1169,7 +1262,7 @@ Exemples:
                   <div className="flex items-center gap-2">
                     <MuiIcon name="VideoLibrary" size={24} className="text-purple-500" />
                     <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Vidéo</span>
-                    <span className="text-[10px] text-gray-400">(bientôt)</span>
+                    <span className="text-[10px] text-purple-400">(RENDI)</span>
                   </div>
                 </label>
 

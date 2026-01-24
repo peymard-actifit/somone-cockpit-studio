@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.6.2';
+const APP_VERSION = '16.7.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6771,6 +6771,216 @@ Tu dois retourner un JSON structuré avec:
 
       } catch (error: any) {
         console.error('Erreur génération présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // =====================================================
+    // RENDI VIDEO API - Génération de vidéos
+    // =====================================================
+
+    // Clé API RENDI (FFmpeg cloud)
+    const RENDI_API_KEY = process.env.RENDI_API_KEY || 'eJxLSkxNTkxKS19I1TzZN0zUxTjbQtTC0TNQ1NTewMLMwNjUxM0mOzy4sKYkIK/D3Ms0yKEoJco3INMnwKAcACPAR2g==';
+    const RENDI_API_URL = 'https://api.rendi.dev/v1';
+
+    // POST /presentations/temp-image - Stocker une image temporairement pour RENDI
+    if (path === '/presentations/temp-image' && method === 'POST') {
+      const { imageId, base64Data, cockpitId } = req.body;
+      
+      if (!imageId || !base64Data || !cockpitId) {
+        return res.status(400).json({ error: 'imageId, base64Data et cockpitId sont requis' });
+      }
+      
+      try {
+        // Stocker l'image temporairement en Redis (expire après 1 heure)
+        const key = `temp_image:${cockpitId}:${imageId}`;
+        await redis.set(key, base64Data, { ex: 3600 }); // 1 heure
+        
+        // Retourner l'URL publique pour accéder à l'image
+        const publicUrl = `${req.headers.origin || 'https://somone-cockpit-studio.vercel.app'}/api/presentations/temp-image/${cockpitId}/${imageId}`;
+        
+        return res.json({ 
+          success: true, 
+          imageId,
+          url: publicUrl,
+        });
+      } catch (error: any) {
+        console.error('Erreur stockage image temporaire:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // GET /presentations/temp-image/:cockpitId/:imageId - Récupérer une image temporaire
+    if (path.match(/^\/presentations\/temp-image\/[^/]+\/[^/]+$/) && method === 'GET') {
+      const parts = path.split('/');
+      const imageId = parts.pop();
+      const cockpitId = parts.pop();
+      
+      try {
+        const key = `temp_image:${cockpitId}:${imageId}`;
+        const base64Data = await redis.get(key) as string | null;
+        
+        if (!base64Data) {
+          return res.status(404).json({ error: 'Image non trouvée ou expirée' });
+        }
+        
+        // Extraire le type MIME et les données
+        const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) {
+          return res.status(400).json({ error: 'Format d\'image invalide' });
+        }
+        
+        const mimeType = matches[1];
+        const imageData = Buffer.from(matches[2], 'base64');
+        
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Length', imageData.length);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.send(imageData);
+        
+      } catch (error: any) {
+        console.error('Erreur récupération image temporaire:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/generate-video - Générer une vidéo avec RENDI
+    if (path === '/presentations/generate-video' && method === 'POST') {
+      const { cockpitId, cockpitName, images, scenario, durationPerSlide = 5 } = req.body;
+      
+      if (!cockpitId || !images || images.length === 0) {
+        return res.status(400).json({ error: 'cockpitId et images sont requis' });
+      }
+      
+      try {
+        console.log(`[RENDI] Démarrage génération vidéo pour ${cockpitName} avec ${images.length} images`);
+        
+        // 1. Stocker les images temporairement et obtenir les URLs
+        const imageUrls: Record<string, string> = {};
+        const baseUrl = req.headers.origin || 'https://somone-cockpit-studio.vercel.app';
+        
+        for (let i = 0; i < images.length; i++) {
+          const image = images[i];
+          const imageId = `video_${Date.now()}_${i}`;
+          const key = `temp_image:${cockpitId}:${imageId}`;
+          
+          // Stocker l'image (expire après 1 heure)
+          await redis.set(key, image.base64Data, { ex: 3600 });
+          
+          // Créer l'URL publique
+          imageUrls[`in_img_${i + 1}`] = `${baseUrl}/api/presentations/temp-image/${cockpitId}/${imageId}`;
+        }
+        
+        console.log(`[RENDI] ${images.length} images stockées temporairement`);
+        
+        // 2. Construire la commande FFmpeg
+        // Format: -loop 1 -t {duration} -i {{in_img_1}} -loop 1 -t {duration} -i {{in_img_2}} ...
+        // puis -filter_complex "[0:v][1:v]...[n:v]concat=n=N:v=1:a=0,format=yuv420p[v]"
+        // et -map [v] -c:v libx264 {{out_1}}
+        
+        const inputParts: string[] = [];
+        const filterInputs: string[] = [];
+        
+        for (let i = 0; i < images.length; i++) {
+          inputParts.push(`-loop 1 -t ${durationPerSlide} -i {{in_img_${i + 1}}}`);
+          filterInputs.push(`[${i}:v]`);
+        }
+        
+        const ffmpegCommand = `${inputParts.join(' ')} -filter_complex "${filterInputs.join('')}concat=n=${images.length}:v=1:a=0,format=yuv420p[v]" -map [v] -c:v libx264 -preset fast -crf 23 {{out_1}}`;
+        
+        console.log(`[RENDI] Commande FFmpeg: ${ffmpegCommand.substring(0, 200)}...`);
+        
+        // 3. Appeler l'API RENDI
+        const rendiResponse = await fetch(`${RENDI_API_URL}/run-ffmpeg-command`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY': RENDI_API_KEY,
+          },
+          body: JSON.stringify({
+            input_files: imageUrls,
+            output_files: {
+              out_1: `${cockpitName.replace(/[^a-z0-9]/gi, '_')}_presentation.mp4`,
+            },
+            ffmpeg_command: ffmpegCommand,
+            max_command_run_seconds: 600, // 10 minutes max
+            vcpu_count: 8,
+          }),
+        });
+        
+        if (!rendiResponse.ok) {
+          const error = await rendiResponse.json();
+          console.error('[RENDI] Erreur API:', error);
+          return res.status(500).json({ 
+            error: 'Erreur RENDI: ' + (error.detail || error.message || 'Erreur inconnue'),
+            details: error,
+          });
+        }
+        
+        const rendiResult = await rendiResponse.json();
+        console.log(`[RENDI] Commande soumise: ${rendiResult.command_id}`);
+        
+        return res.json({
+          success: true,
+          commandId: rendiResult.command_id,
+          status: 'PROCESSING',
+          message: 'Génération vidéo en cours...',
+        });
+        
+      } catch (error: any) {
+        console.error('[RENDI] Erreur génération vidéo:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // GET /presentations/video-status/:commandId - Vérifier le statut d'une vidéo RENDI
+    if (path.match(/^\/presentations\/video-status\/[^/]+$/) && method === 'GET') {
+      const commandId = path.split('/').pop();
+      
+      try {
+        console.log(`[RENDI] Vérification statut commande: ${commandId}`);
+        
+        const rendiResponse = await fetch(`${RENDI_API_URL}/commands/${commandId}`, {
+          headers: {
+            'X-API-KEY': RENDI_API_KEY,
+          },
+        });
+        
+        if (!rendiResponse.ok) {
+          const error = await rendiResponse.json();
+          console.error('[RENDI] Erreur polling:', error);
+          return res.status(500).json({ error: 'Erreur RENDI: ' + (error.detail || 'Erreur inconnue') });
+        }
+        
+        const result = await rendiResponse.json();
+        console.log(`[RENDI] Statut: ${result.status}`);
+        
+        if (result.status === 'SUCCESS') {
+          // Récupérer l'URL de la vidéo générée
+          const videoUrl = result.output_files?.out_1?.storage_url;
+          
+          return res.json({
+            status: 'SUCCESS',
+            videoUrl,
+            duration: result.output_files?.out_1?.duration,
+            size: result.output_files?.out_1?.size_mbytes,
+            processingTime: result.total_processing_seconds,
+          });
+        } else if (result.status === 'FAILED') {
+          return res.json({
+            status: 'FAILED',
+            error: result.error || 'Erreur lors de la génération',
+          });
+        } else {
+          // En cours de traitement
+          return res.json({
+            status: result.status,
+            message: 'Génération en cours...',
+          });
+        }
+        
+      } catch (error: any) {
+        console.error('[RENDI] Erreur vérification statut:', error);
         return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
       }
     }
