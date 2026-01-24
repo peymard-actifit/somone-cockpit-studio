@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.7.0';
+const APP_VERSION = '16.7.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6443,7 +6443,7 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
 
     // POST /presentations/images - Sauvegarder une image capturée dans la banque d'images
     if (path === '/presentations/images' && method === 'POST') {
-      const { cockpitId, image } = req.body;
+      const { cockpitId, image, includeBase64 } = req.body;
       
       if (!cockpitId || !image) {
         return res.status(400).json({ error: 'cockpitId et image sont requis' });
@@ -6455,10 +6455,15 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
         
         // Limiter à 100 images par maquette pour éviter la surcharge
         if (existingImages.length >= 100) {
-          // Supprimer les plus anciennes
-          existingImages.shift();
+          // Supprimer les plus anciennes (métadonnées et données)
+          const oldestImage = existingImages.shift();
+          if (oldestImage?.id) {
+            // Supprimer aussi les données base64 de l'ancienne image
+            await redis.del(`presentation_image_data:${cockpitId}:${oldestImage.id}`);
+          }
         }
         
+        // Sauvegarder les métadonnées
         existingImages.push({
           id: image.id,
           filename: image.filename,
@@ -6468,11 +6473,17 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
           elementId: image.elementId,
           width: image.width,
           height: image.height,
-          // Ne pas stocker base64 en Redis (trop volumineux) - stocker dans un service de stockage externe
-          // Pour l'instant, on garde une référence
+          hasBase64: !!image.base64Data, // Indique si les données sont stockées
         });
         
         await redis.set(imagesKey, existingImages);
+        
+        // Si on a des données base64 et qu'on veut les stocker
+        if (image.base64Data && includeBase64 !== false) {
+          // Stocker les données base64 séparément (expire après 7 jours pour économiser l'espace)
+          const dataKey = `presentation_image_data:${cockpitId}:${image.id}`;
+          await redis.set(dataKey, image.base64Data, { ex: 604800 }); // 7 jours
+        }
         
         return res.json({ success: true, imageId: image.id });
       } catch (error: any) {
@@ -6492,6 +6503,66 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
         return res.json({ images });
       } catch (error: any) {
         console.error('Erreur chargement images présentation:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // GET /presentations/images/:cockpitId/:imageId - Récupérer les données base64 d'une image
+    if (path.match(/^\/presentations\/images\/[^/]+\/[^/]+$/) && method === 'GET') {
+      const parts = path.split('/');
+      const imageId = parts.pop();
+      const cockpitId = parts.pop();
+      
+      try {
+        const dataKey = `presentation_image_data:${cockpitId}:${imageId}`;
+        const base64Data = await redis.get(dataKey) as string | null;
+        
+        if (!base64Data) {
+          return res.status(404).json({ error: 'Données image non trouvées ou expirées' });
+        }
+        
+        return res.json({ 
+          imageId,
+          base64Data,
+          found: true,
+        });
+      } catch (error: any) {
+        console.error('Erreur chargement données image:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // GET /presentations/images/:cockpitId/:imageId/raw - Récupérer l'image brute (pour affichage direct)
+    if (path.match(/^\/presentations\/images\/[^/]+\/[^/]+\/raw$/) && method === 'GET') {
+      const parts = path.split('/');
+      parts.pop(); // Enlever 'raw'
+      const imageId = parts.pop();
+      const cockpitId = parts.pop();
+      
+      try {
+        const dataKey = `presentation_image_data:${cockpitId}:${imageId}`;
+        const base64Data = await redis.get(dataKey) as string | null;
+        
+        if (!base64Data) {
+          return res.status(404).json({ error: 'Image non trouvée ou expirée' });
+        }
+        
+        // Extraire le type MIME et les données
+        const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) {
+          return res.status(400).json({ error: 'Format d\'image invalide' });
+        }
+        
+        const mimeType = matches[1];
+        const imageData = Buffer.from(matches[2], 'base64');
+        
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Length', imageData.length);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(imageData);
+        
+      } catch (error: any) {
+        console.error('Erreur récupération image brute:', error);
         return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
       }
     }

@@ -1,6 +1,6 @@
 {
     "name":  "somone-cockpit-studio",
-    "version":  "16.7.0",
+    "version":  "16.7.1",
     "description":  "Studio d\u0027assemblage de maquettes de cockpit",
     "type":  "module",
     "scripts":  {
@@ -29,9 +29,11 @@
                          "cors":  "^2.8.5",
                          "dotenv":  "^17.2.3",
                          "express":  "^4.21.1",
+                         "file-saver":  "^2.0.5",
                          "html2canvas":  "^1.4.1",
                          "jsonwebtoken":  "^9.0.2",
                          "jspdf":  "^4.0.0",
+                         "jszip":  "^3.10.1",
                          "leaflet":  "^1.9.4",
                          "lowdb":  "^7.0.1",
                          "mammoth":  "^1.11.0",
@@ -48,6 +50,7 @@
                             "@types/bcryptjs":  "^2.4.6",
                             "@types/cors":  "^2.8.17",
                             "@types/express":  "^5.0.0",
+                            "@types/file-saver":  "^2.0.7",
                             "@types/jsonwebtoken":  "^9.0.7",
                             "@types/leaflet":  "^1.9.14",
                             "@types/node":  "^22.9.1",

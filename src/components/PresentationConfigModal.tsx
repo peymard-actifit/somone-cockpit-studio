@@ -3,6 +3,8 @@ import { MuiIcon } from './IconPicker';
 import type { PresentationConfig, PresentationOutputFormat, CapturedImage, PresentationGenerationState, TileStatus } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 interface PresentationConfigModalProps {
   isOpen: boolean;
@@ -994,6 +996,7 @@ export default function PresentationConfigModal({
           },
           body: JSON.stringify({
             cockpitId,
+            includeBase64: true, // Stocker les données base64 pour réutilisation future
             image: {
               id: image.id,
               filename: image.filename,
@@ -1002,7 +1005,7 @@ export default function PresentationConfigModal({
               domainId: image.domainId,
               width: image.width,
               height: image.height,
-              // Ne pas stocker base64 en Redis
+              base64Data: image.base64Data, // Stocker les données complètes
             },
           }),
         });
@@ -1054,6 +1057,92 @@ export default function PresentationConfigModal({
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+    }
+  };
+
+  // Télécharger une image individuelle
+  const downloadImage = (image: CapturedImage) => {
+    if (image.base64Data) {
+      const a = document.createElement('a');
+      a.href = image.base64Data;
+      a.download = image.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  // Télécharger toutes les images en ZIP
+  const downloadAllImagesAsZip = async (images: CapturedImage[]) => {
+    if (images.length === 0) return;
+    
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder(`${cockpitName.replace(/[^a-z0-9]/gi, '_')}_images`);
+      
+      if (!folder) return;
+      
+      // Ajouter chaque image au ZIP
+      for (const image of images) {
+        if (image.base64Data) {
+          // Extraire les données base64 pures (sans le préfixe data:image/png;base64,)
+          const base64Data = image.base64Data.split(',')[1];
+          if (base64Data) {
+            folder.file(image.filename, base64Data, { base64: true });
+          }
+        }
+      }
+      
+      // Générer et télécharger le ZIP
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, `${cockpitName.replace(/[^a-z0-9]/gi, '_')}_images.zip`);
+      
+    } catch (error) {
+      console.error('Erreur lors de la création du ZIP:', error);
+    }
+  };
+
+  // Télécharger tout (images + fichiers générés) en un seul ZIP
+  const downloadAllAsZip = async () => {
+    if (generationState.capturedImages.length === 0 && (!generationState.outputFiles || generationState.outputFiles.length === 0)) {
+      return;
+    }
+    
+    try {
+      const zip = new JSZip();
+      const baseName = cockpitName.replace(/[^a-z0-9]/gi, '_');
+      
+      // Dossier pour les images
+      const imagesFolder = zip.folder(`${baseName}_images`);
+      if (imagesFolder && generationState.capturedImages.length > 0) {
+        for (const image of generationState.capturedImages) {
+          if (image.base64Data) {
+            const base64Data = image.base64Data.split(',')[1];
+            if (base64Data) {
+              imagesFolder.file(image.filename, base64Data, { base64: true });
+            }
+          }
+        }
+      }
+      
+      // Ajouter les fichiers générés (PDF, PPTX) s'ils sont des data URI
+      if (generationState.outputFiles) {
+        for (const file of generationState.outputFiles) {
+          if (file.url && file.url.startsWith('data:')) {
+            const base64Data = file.url.split(',')[1];
+            if (base64Data) {
+              zip.file(file.filename, base64Data, { base64: true });
+            }
+          }
+        }
+      }
+      
+      // Générer et télécharger le ZIP
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, `${baseName}_presentation_complete.zip`);
+      
+    } catch (error) {
+      console.error('Erreur lors de la création du ZIP complet:', error);
     }
   };
 
@@ -1333,16 +1422,19 @@ Exemples:
                         {generationState.capturedImages.slice(-6).map(img => (
                           <div
                             key={img.id}
-                            className="aspect-video bg-gray-200 rounded overflow-hidden relative group"
+                            className="aspect-video bg-gray-200 rounded overflow-hidden relative group cursor-pointer"
+                            onClick={() => downloadImage(img)}
+                            title="Cliquer pour télécharger"
                           >
                             <img
                               src={img.base64Data}
                               alt={img.filename}
                               className="w-full h-full object-cover"
                             />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                              <MuiIcon name="Download" size={16} className="text-white" />
                               <span className="text-[8px] text-white text-center px-1">
-                                {img.description?.substring(0, 30) || img.filename}
+                                {img.description?.substring(0, 20) || 'Télécharger'}
                               </span>
                             </div>
                           </div>
@@ -1386,10 +1478,47 @@ Exemples:
 
                   {/* Images capturées après génération */}
                   {generationState.capturedImages.length > 0 && (
-                    <div className="pt-4 border-t border-gray-200">
-                      <p className="text-sm text-gray-600 mb-2">
-                        {generationState.capturedImages.length} image(s) ajoutée(s) à la banque
+                    <div className="pt-4 border-t border-gray-200 space-y-3">
+                      <p className="text-sm text-gray-600">
+                        {generationState.capturedImages.length} image(s) capturée(s)
                       </p>
+                      
+                      {/* Aperçu des images cliquables */}
+                      <div className="grid grid-cols-4 gap-1">
+                        {generationState.capturedImages.slice(0, 8).map(img => (
+                          <div
+                            key={img.id}
+                            className="aspect-video bg-gray-200 rounded overflow-hidden cursor-pointer hover:ring-2 hover:ring-cyan-400 transition-all"
+                            onClick={() => downloadImage(img)}
+                            title={`Télécharger ${img.filename}`}
+                          >
+                            <img
+                              src={img.base64Data}
+                              alt={img.filename}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Boutons de téléchargement */}
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => downloadAllImagesAsZip(generationState.capturedImages)}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
+                        >
+                          <MuiIcon name="FolderZip" size={16} />
+                          Télécharger les images (ZIP)
+                        </button>
+                        
+                        <button
+                          onClick={downloadAllAsZip}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors text-sm"
+                        >
+                          <MuiIcon name="Archive" size={16} />
+                          Tout télécharger (ZIP complet)
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
