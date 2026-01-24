@@ -45,6 +45,22 @@ interface ExistingImage {
   relevanceScore?: number;
 }
 
+// Interface pour le snapshot de l'état initial de la maquette (pour restauration après démo)
+// Note: On ne sauvegarde que les propriétés modifiables (statuts, valeurs), pas la structure
+interface CockpitSnapshot {
+  timestamp: string;
+  elements: Array<{
+    id: string;
+    status: TileStatus;
+    value?: string;
+  }>;
+  subElements: Array<{
+    id: string;
+    status: TileStatus;
+    value?: string;
+  }>;
+}
+
 export default function PresentationConfigModal({
   isOpen,
   onClose,
@@ -89,6 +105,88 @@ export default function PresentationConfigModal({
   
   // Référence pour l'animation du studio
   const [currentAction, setCurrentAction] = useState<string>('');
+  
+  // Snapshot de l'état initial pour restauration après la démo
+  const initialSnapshotRef = useRef<CockpitSnapshot | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  // Sauvegarder un snapshot de l'état initial de la maquette (statuts et valeurs uniquement)
+  const saveInitialSnapshot = useCallback((): CockpitSnapshot => {
+    const elements: CockpitSnapshot['elements'] = [];
+    const subElements: CockpitSnapshot['subElements'] = [];
+    
+    // Parcourir tous les domaines, catégories, éléments et sous-éléments
+    for (const domain of currentCockpit?.domains || []) {
+      for (const category of domain.categories || []) {
+        for (const element of category.elements || []) {
+          // Sauvegarder l'état de l'élément
+          elements.push({
+            id: element.id,
+            status: element.status,
+            value: element.value,
+          });
+          
+          // Sauvegarder l'état des sous-éléments
+          for (const subCategory of element.subCategories || []) {
+            for (const subElement of subCategory.subElements || []) {
+              subElements.push({
+                id: subElement.id,
+                status: subElement.status,
+                value: subElement.value,
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    const snapshot: CockpitSnapshot = {
+      timestamp: new Date().toISOString(),
+      elements,
+      subElements,
+    };
+    
+    console.log(`[Présentation] Snapshot sauvegardé: ${elements.length} éléments, ${subElements.length} sous-éléments`);
+    return snapshot;
+  }, [currentCockpit]);
+
+  // Restaurer l'état initial de la maquette depuis le snapshot
+  const restoreFromSnapshot = useCallback(async (snapshot: CockpitSnapshot) => {
+    if (!snapshot) return;
+    
+    setIsRestoring(true);
+    setCurrentAction('Restauration de l\'état initial...');
+    
+    console.log(`[Présentation] Restauration du snapshot du ${snapshot.timestamp}`);
+    
+    try {
+      // Restaurer les éléments
+      for (const elem of snapshot.elements) {
+        updateElement(elem.id, { 
+          status: elem.status, 
+          value: elem.value 
+        });
+      }
+      
+      // Restaurer les sous-éléments
+      for (const subElem of snapshot.subElements) {
+        updateSubElement(subElem.id, { 
+          status: subElem.status, 
+          value: subElem.value 
+        });
+      }
+      
+      // Petite pause pour que les updates se propagent
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log(`[Présentation] Restauration terminée: ${snapshot.elements.length} éléments, ${snapshot.subElements.length} sous-éléments`);
+    } catch (error) {
+      console.error('[Présentation] Erreur lors de la restauration:', error);
+    } finally {
+      setIsRestoring(false);
+      setCurrentAction('');
+    }
+  }, [updateElement, updateSubElement]);
 
   // Charger les configurations sauvegardées
   const loadConfigs = useCallback(async () => {
@@ -586,17 +684,19 @@ export default function PresentationConfigModal({
   const handleGenerate = async () => {
     if (!token || currentConfig.outputFormats.length === 0) return;
     
-    // Fermer temporairement le modal pour voir le studio
-    // (on le garde visible mais semi-transparent)
-    
+    // IMPORTANT: Sauvegarder l'état initial AVANT toute modification
+    // Cela permet de restaurer la maquette à la fin de la démo
     setGenerationState({
       isGenerating: true,
-      currentStep: 'Initialisation de la génération...',
+      currentStep: 'Sauvegarde de l\'état initial...',
       progress: 0,
       capturedImages: [],
       errors: [],
     });
-
+    
+    // Sauvegarder le snapshot de l'état initial
+    initialSnapshotRef.current = saveInitialSnapshot();
+    
     try {
       // Étape 1: Demander à l'IA les actions à effectuer
       setGenerationState(prev => ({
@@ -820,7 +920,6 @@ export default function PresentationConfigModal({
 
       setGenerationState(prev => ({
         ...prev,
-        isGenerating: false,
         currentStep: 'Génération terminée !',
         progress: 100,
         outputFiles,
@@ -830,8 +929,25 @@ export default function PresentationConfigModal({
       console.error('Erreur lors de la génération:', error);
       setGenerationState(prev => ({
         ...prev,
-        isGenerating: false,
         errors: [...prev.errors, String(error)],
+      }));
+    } finally {
+      // IMPORTANT: Toujours restaurer l'état initial de la maquette après la démo
+      // Cela garantit que la maquette n'est pas perturbée par les modifications de la démo
+      if (initialSnapshotRef.current) {
+        setGenerationState(prev => ({
+          ...prev,
+          currentStep: 'Restauration de l\'état initial de la maquette...',
+          progress: 98,
+        }));
+        
+        await restoreFromSnapshot(initialSnapshotRef.current);
+        initialSnapshotRef.current = null;
+      }
+      
+      setGenerationState(prev => ({
+        ...prev,
+        isGenerating: false,
       }));
     }
   };
@@ -857,6 +973,14 @@ export default function PresentationConfigModal({
         <div className="fixed top-4 right-4 z-[200] flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full shadow-lg animate-pulse">
           <MuiIcon name="CameraAlt" size={20} />
           <span className="text-sm font-medium">Capture !</span>
+        </div>
+      )}
+
+      {/* Indicateur de restauration de l'état initial */}
+      {isRestoring && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-full shadow-lg animate-pulse">
+          <MuiIcon name="Restore" size={20} />
+          <span className="text-sm font-medium">Restauration de la maquette...</span>
         </div>
       )}
 
