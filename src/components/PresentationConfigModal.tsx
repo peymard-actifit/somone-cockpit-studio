@@ -956,14 +956,32 @@ export default function PresentationConfigModal({
                 if (statusResponse.ok) {
                   const statusResult = await statusResponse.json();
                   videoStatus = statusResult.status;
+                  console.log(`[RENDI] Poll #${pollCount} - Status: ${videoStatus}`, statusResult);
                   
-                  if (statusResult.status === 'SUCCESS' && statusResult.videoUrl) {
-                    videoUrl = statusResult.videoUrl;
-                    console.log(`[RENDI] Vidéo générée: ${videoUrl}`);
+                  if (statusResult.status === 'SUCCESS') {
+                    if (statusResult.videoUrl) {
+                      videoUrl = statusResult.videoUrl;
+                      console.log(`[RENDI] Vidéo générée: ${videoUrl}`);
+                    } else {
+                      console.error('[RENDI] SUCCESS mais pas d\'URL!', statusResult);
+                      // Essayer de récupérer l'URL du debug
+                      if (statusResult.debug?.output_files) {
+                        const firstOutput = Object.values(statusResult.debug.output_files)[0] as any;
+                        videoUrl = firstOutput?.storage_url || firstOutput?.url;
+                        console.log(`[RENDI] URL trouvée dans debug: ${videoUrl}`);
+                      }
+                    }
+                    break;
                   } else if (statusResult.status === 'FAILED') {
-                    console.error('[RENDI] Échec génération:', statusResult.error);
+                    console.error('[RENDI] Échec génération:', statusResult.error, statusResult.debug);
+                    setGenerationState(prev => ({
+                      ...prev,
+                      errors: [...prev.errors, `Erreur RENDI: ${statusResult.error || 'Échec génération vidéo'}`],
+                    }));
                     break;
                   }
+                } else {
+                  console.error(`[RENDI] Erreur HTTP polling: ${statusResponse.status}`);
                 }
               }
               

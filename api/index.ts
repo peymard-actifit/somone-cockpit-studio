@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.7.7';
+const APP_VERSION = '16.7.8';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -7079,10 +7079,22 @@ Tu dois retourner un JSON structuré avec:
         
         const result = await rendiResponse.json();
         console.log(`[RENDI] Statut: ${result.status}`);
+        console.log(`[RENDI] Réponse complète:`, JSON.stringify(result, null, 2));
         
         if (result.status === 'SUCCESS') {
-          // Récupérer l'URL de la vidéo générée
-          const videoUrl = result.output_files?.out_1?.storage_url;
+          // Récupérer l'URL de la vidéo générée (essayer plusieurs chemins possibles)
+          let videoUrl = result.output_files?.out_1?.storage_url 
+            || result.output_files?.out_1?.url
+            || result.outputs?.out_1?.storage_url
+            || result.outputs?.out_1?.url;
+          
+          // Si toujours pas d'URL, chercher dans la structure
+          if (!videoUrl && result.output_files) {
+            const firstOutput = Object.values(result.output_files)[0] as any;
+            videoUrl = firstOutput?.storage_url || firstOutput?.url;
+          }
+          
+          console.log(`[RENDI] URL vidéo trouvée: ${videoUrl}`);
           
           return res.json({
             status: 'SUCCESS',
@@ -7090,17 +7102,21 @@ Tu dois retourner un JSON structuré avec:
             duration: result.output_files?.out_1?.duration,
             size: result.output_files?.out_1?.size_mbytes,
             processingTime: result.total_processing_seconds,
+            debug: { output_files: result.output_files, outputs: result.outputs },
           });
         } else if (result.status === 'FAILED') {
+          console.error(`[RENDI] Échec:`, result.error || result.message);
           return res.json({
             status: 'FAILED',
-            error: result.error || 'Erreur lors de la génération',
+            error: result.error || result.message || 'Erreur lors de la génération',
+            debug: result,
           });
         } else {
           // En cours de traitement
           return res.json({
             status: result.status,
             message: 'Génération en cours...',
+            progress: result.progress,
           });
         }
         
