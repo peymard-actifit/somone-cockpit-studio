@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.10.5';
+const APP_VERSION = '16.11.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6538,6 +6538,7 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
     }
 
     // POST /presentations/images - Sauvegarder une image capturée dans la banque d'images
+    // Avec déduplication intelligente basée sur le hash perceptuel
     if (path === '/presentations/images' && method === 'POST') {
       const { cockpitId, image, includeBase64 } = req.body;
       
@@ -6549,17 +6550,71 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
         const imagesKey = `presentation_images:${cockpitId}`;
         const existingImages = await redis.get(imagesKey) as any[] || [];
         
+        // DÉDUPLICATION: Vérifier si une image similaire existe déjà (même hash ou même domaine/élément)
+        let isDuplicate = false;
+        let duplicateId = null;
+        
+        if (image.hash) {
+          // Vérifier par hash perceptuel (images visuellement identiques)
+          const similarImage = existingImages.find((img: any) => img.hash === image.hash);
+          if (similarImage) {
+            isDuplicate = true;
+            duplicateId = similarImage.id;
+            console.log(`[Images] Doublon détecté par hash: ${image.hash} -> ${similarImage.id}`);
+          }
+        }
+        
+        // Vérifier aussi par domaine+élément (même vue)
+        if (!isDuplicate && image.domainId) {
+          const sameView = existingImages.find((img: any) => 
+            img.domainId === image.domainId && 
+            img.elementId === image.elementId &&
+            // Moins de 5 minutes d'écart = probablement la même vue
+            Math.abs(new Date(img.timestamp).getTime() - new Date(image.timestamp).getTime()) < 300000
+          );
+          if (sameView) {
+            // Comparer la qualité: garder la meilleure
+            const existingSize = sameView.width * sameView.height;
+            const newSize = image.width * image.height;
+            if (newSize > existingSize) {
+              // La nouvelle image est de meilleure qualité, remplacer
+              console.log(`[Images] Remplacement par image de meilleure qualité: ${newSize} > ${existingSize}`);
+              // Supprimer l'ancienne
+              const idx = existingImages.findIndex((img: any) => img.id === sameView.id);
+              if (idx >= 0) {
+                existingImages.splice(idx, 1);
+                await redis.del(`presentation_image_data:${cockpitId}:${sameView.id}`);
+              }
+            } else {
+              isDuplicate = true;
+              duplicateId = sameView.id;
+              console.log(`[Images] Image de même vue ignorée (qualité inférieure)`);
+            }
+          }
+        }
+        
+        if (isDuplicate) {
+          return res.json({ 
+            success: true, 
+            imageId: duplicateId, 
+            isDuplicate: true,
+            message: 'Image similaire déjà existante'
+          });
+        }
+        
         // Limiter à 100 images par maquette pour éviter la surcharge
         if (existingImages.length >= 100) {
           // Supprimer les plus anciennes (métadonnées et données)
           const oldestImage = existingImages.shift();
           if (oldestImage?.id) {
-            // Supprimer aussi les données base64 de l'ancienne image
             await redis.del(`presentation_image_data:${cockpitId}:${oldestImage.id}`);
           }
         }
         
-        // Sauvegarder les métadonnées
+        // Calculer un score de qualité basé sur la taille
+        const qualityScore = Math.min(100, Math.round((image.width * image.height) / (1920 * 1080) * 50) + 50);
+        
+        // Sauvegarder les métadonnées enrichies
         existingImages.push({
           id: image.id,
           filename: image.filename,
@@ -6569,19 +6624,22 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
           elementId: image.elementId,
           width: image.width,
           height: image.height,
-          hasBase64: !!image.base64Data, // Indique si les données sont stockées
+          hash: image.hash, // Hash perceptuel pour déduplication
+          quality: qualityScore, // Score de qualité
+          hasBase64: !!image.base64Data,
         });
         
         await redis.set(imagesKey, existingImages);
         
-        // Si on a des données base64 et qu'on veut les stocker
+        // Stocker les données base64 (expire après 14 jours maintenant)
         if (image.base64Data && includeBase64 !== false) {
-          // Stocker les données base64 séparément (expire après 7 jours pour économiser l'espace)
           const dataKey = `presentation_image_data:${cockpitId}:${image.id}`;
-          await redis.set(dataKey, image.base64Data, { ex: 604800 }); // 7 jours
+          await redis.set(dataKey, image.base64Data, { ex: 1209600 }); // 14 jours
         }
         
-        return res.json({ success: true, imageId: image.id });
+        console.log(`[Images] Nouvelle image: ${image.id} (${image.width}x${image.height}, qualité=${qualityScore})`);
+        
+        return res.json({ success: true, imageId: image.id, quality: qualityScore });
       } catch (error: any) {
         console.error('Erreur sauvegarde image présentation:', error);
         return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
@@ -6659,6 +6717,108 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
         
       } catch (error: any) {
         console.error('Erreur récupération image brute:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/images/cleanup - Nettoyer les doublons et sélectionner les meilleures images
+    if (path === '/presentations/images/cleanup' && method === 'POST') {
+      const { cockpitId } = req.body;
+      
+      if (!cockpitId) {
+        return res.status(400).json({ error: 'cockpitId requis' });
+      }
+      
+      try {
+        const imagesKey = `presentation_images:${cockpitId}`;
+        const existingImages = await redis.get(imagesKey) as any[] || [];
+        
+        if (existingImages.length === 0) {
+          return res.json({ success: true, removed: 0, remaining: 0 });
+        }
+        
+        // Grouper par domaine+élément pour identifier les doublons
+        const groupedImages: Record<string, any[]> = {};
+        
+        for (const img of existingImages) {
+          const key = `${img.domainId || 'global'}_${img.elementId || 'none'}`;
+          if (!groupedImages[key]) {
+            groupedImages[key] = [];
+          }
+          groupedImages[key].push(img);
+        }
+        
+        // Pour chaque groupe, garder uniquement la meilleure image (plus grande taille/qualité)
+        const bestImages: any[] = [];
+        const removedIds: string[] = [];
+        
+        for (const key in groupedImages) {
+          const group = groupedImages[key];
+          if (group.length === 1) {
+            bestImages.push(group[0]);
+          } else {
+            // Trier par qualité décroissante, puis par taille, puis par date (plus récent)
+            group.sort((a, b) => {
+              const qualityDiff = (b.quality || 0) - (a.quality || 0);
+              if (qualityDiff !== 0) return qualityDiff;
+              const sizeDiff = (b.width * b.height) - (a.width * a.height);
+              if (sizeDiff !== 0) return sizeDiff;
+              return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+            });
+            
+            // Garder la meilleure
+            bestImages.push(group[0]);
+            
+            // Supprimer les autres
+            for (let i = 1; i < group.length; i++) {
+              removedIds.push(group[i].id);
+              await redis.del(`presentation_image_data:${cockpitId}:${group[i].id}`);
+            }
+          }
+        }
+        
+        // Mettre à jour la liste
+        await redis.set(imagesKey, bestImages);
+        
+        console.log(`[Cleanup] ${cockpitId}: supprimé ${removedIds.length} doublons, reste ${bestImages.length} images`);
+        
+        return res.json({ 
+          success: true, 
+          removed: removedIds.length, 
+          remaining: bestImages.length,
+          removedIds
+        });
+      } catch (error: any) {
+        console.error('Erreur nettoyage images:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // GET /presentations/images/best/:cockpitId - Récupérer les meilleures images par domaine
+    if (path.match(/^\/presentations\/images\/best\/[^/]+$/) && method === 'GET') {
+      const cockpitId = path.split('/').pop();
+      
+      try {
+        const imagesKey = `presentation_images:${cockpitId}`;
+        const existingImages = await redis.get(imagesKey) as any[] || [];
+        
+        // Trier par qualité et grouper par domaine
+        const bestByDomain: Record<string, any> = {};
+        
+        for (const img of existingImages) {
+          const domainKey = img.domainId || 'global';
+          if (!bestByDomain[domainKey] || (img.quality || 0) > (bestByDomain[domainKey].quality || 0)) {
+            bestByDomain[domainKey] = img;
+          }
+        }
+        
+        return res.json({ 
+          images: Object.values(bestByDomain),
+          totalImages: existingImages.length,
+          domainsWithImages: Object.keys(bestByDomain).length
+        });
+      } catch (error: any) {
+        console.error('Erreur récupération meilleures images:', error);
         return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
       }
     }
@@ -7176,71 +7336,38 @@ Tu dois retourner un JSON structuré avec:
           console.log(`[RENDI] ${images.length} images uploadées vers imgbb`);
         }
         
-        // 2. Construire la commande FFmpeg avec transitions style PowerPoint
-        // Transitions disponibles: fade, fadeblack, fadewhite, wipeleft, wiperight, slidedown, slideup, circlecrop, dissolve
+        // 2. Construire la commande FFmpeg SIMPLIFIÉE et ROBUSTE
+        // Utilise concat demuxer pour une compatibilité maximale
         const { transitionType = 'fade', transitionDuration = 1, musicUrl } = req.body;
         
-        // Types de transitions PowerPoint-like
-        const transitions = ['fade', 'fadeblack', 'wipeleft', 'wiperight', 'slidedown', 'slideup', 'circlecrop', 'dissolve'];
-        const selectedTransition = transitions.includes(transitionType) ? transitionType : 'fade';
-        const transDur = Math.min(Math.max(transitionDuration, 0.5), 2); // 0.5-2 secondes
+        // Calcul de la durée totale
+        const totalDuration = imageCount * durationPerSlide;
         
+        console.log(`[RENDI] Génération vidéo: ${imageCount} images, ${durationPerSlide}s/slide, total=${totalDuration}s`);
+        
+        // Méthode simple et robuste: concat filter avec fade entre chaque image
         const inputParts: string[] = [];
-        // imageCount déjà calculé plus haut
+        for (let i = 0; i < imageCount; i++) {
+          inputParts.push(`-loop 1 -t ${durationPerSlide} -i {{in_img_${i + 1}}}`);
+        }
         
-        // Durée effective par slide (en tenant compte des transitions)
-        const effectiveDuration = durationPerSlide + transDur;
+        // Construire le filtre: scale + concat simple (fonctionne à tous les coups)
+        const scaleFilters: string[] = [];
+        const concatInputs: string[] = [];
         
         for (let i = 0; i < imageCount; i++) {
-          inputParts.push(`-loop 1 -t ${effectiveDuration} -i {{in_img_${i + 1}}}`);
+          // Scale et pad chaque image à 1920x1080
+          scaleFilters.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${i}]`);
+          concatInputs.push(`[v${i}]`);
         }
         
-        // Construire le filtre avec transitions xfade entre chaque image
-        let filterComplex = '';
+        // Concat simple sans transitions complexes
+        const filterComplex = `${scaleFilters.join(';')};${concatInputs.join('')}concat=n=${imageCount}:v=1:a=0,format=yuv420p[v]`;
         
-        if (imageCount === 1) {
-          // Une seule image: pas de transition
-          filterComplex = `[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,format=yuv420p[v]`;
-        } else if (imageCount === 2) {
-          // Deux images: une seule transition
-          filterComplex = `[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v0];` +
-            `[1:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v1];` +
-            `[v0][v1]xfade=transition=${selectedTransition}:duration=${transDur}:offset=${durationPerSlide},format=yuv420p[v]`;
-        } else {
-          // Plus de 2 images: chaîner les transitions xfade
-          const scaleFilters: string[] = [];
-          for (let i = 0; i < imageCount; i++) {
-            scaleFilters.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v${i}]`);
-          }
-          
-          // Chaîner les xfade
-          let xfadeChain = `[v0][v1]xfade=transition=${selectedTransition}:duration=${transDur}:offset=${durationPerSlide}[xf0]`;
-          for (let i = 2; i < imageCount; i++) {
-            const prevOffset = (i - 1) * durationPerSlide + (i - 1) * transDur - (i - 1) * transDur; // Simplification: offset = (i-1) * durationPerSlide
-            const offset = (i - 1) * durationPerSlide;
-            xfadeChain += `;[xf${i - 2}][v${i}]xfade=transition=${selectedTransition}:duration=${transDur}:offset=${offset}[xf${i - 1}]`;
-          }
-          // Dernier segment ne génère pas de nouveau label, utiliser le dernier xf
-          const lastXf = `xf${imageCount - 2}`;
-          
-          filterComplex = `${scaleFilters.join(';')};${xfadeChain};[${lastXf}]format=yuv420p[v]`;
-        }
+        // Commande FFmpeg finale
+        let ffmpegCommand = `${inputParts.join(' ')} -filter_complex "${filterComplex}" -map [v] -c:v libx264 -preset medium -crf 22 -movflags +faststart {{out_1}}`;
         
-        // Ajouter la musique de fond si présente
-        let audioInput = '';
-        let audioMapping = '';
-        
-        if (musicUrl) {
-          const totalDuration = imageCount * durationPerSlide + (imageCount - 1) * transDur;
-          audioInput = ` -i {{in_music}}`;
-          // Couper la musique à la durée de la vidéo et faire un fade out
-          audioMapping = ` -map 1:a -c:a aac -b:a 128k -t ${totalDuration} -af "afade=t=out:st=${totalDuration - 2}:d=2"`;
-          imageUrls['in_music'] = musicUrl;
-        }
-        
-        const ffmpegCommand = `${inputParts.join(' ')}${audioInput} -filter_complex "${filterComplex}" -map [v]${musicUrl ? ' -map 1:a' : ''} -c:v libx264 -preset fast -crf 23${musicUrl ? ' -c:a aac -b:a 128k -shortest' : ''} {{out_1}}`;
-        
-        console.log(`[RENDI] Transition: ${selectedTransition}, Durée: ${transDur}s, Musique: ${musicUrl ? 'Oui' : 'Non'}`);
+        console.log(`[RENDI] Images: ${imageCount}, Durée/slide: ${durationPerSlide}s, Total: ${totalDuration}s`);
         
         console.log(`[RENDI] Commande FFmpeg: ${ffmpegCommand.substring(0, 200)}...`);
         

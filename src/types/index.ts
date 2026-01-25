@@ -622,6 +622,8 @@ export interface CapturedImage {
   width: number;
   height: number;
   base64Data: string; // Données de l'image en base64
+  hash?: string; // Hash perceptuel pour déduplication
+  quality?: number; // Score de qualité (0-100)
 }
 
 // Configuration d'une présentation enregistrée

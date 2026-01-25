@@ -450,22 +450,50 @@ export default function PresentationConfigModal({
   }, [updateSubElement]);
 
   // Capturer une image de l'écran
-  const captureScreenshot = useCallback(async (description?: string, domainId?: string): Promise<CapturedImage | null> => {
+  // Calculer un hash simple pour détecter les doublons
+  const computeImageHash = useCallback((canvas: HTMLCanvasElement): string => {
+    // Réduire l'image à 8x8 pour un hash perceptuel simple
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) return '';
+    ctx.canvas.width = 8;
+    ctx.canvas.height = 8;
+    ctx.drawImage(canvas, 0, 0, 8, 8);
+    const imageData = ctx.getImageData(0, 0, 8, 8);
+    
+    // Convertir en hash hexadécimal basé sur la luminosité
+    let hash = '';
+    const avg = imageData.data.reduce((sum, val, i) => i % 4 === 3 ? sum : sum + val, 0) / (64 * 3);
+    for (let i = 0; i < 64; i++) {
+      const idx = i * 4;
+      const lum = (imageData.data[idx] + imageData.data[idx + 1] + imageData.data[idx + 2]) / 3;
+      hash += lum > avg ? '1' : '0';
+    }
+    return parseInt(hash.substring(0, 32), 2).toString(16).padStart(8, '0') + 
+           parseInt(hash.substring(32), 2).toString(16).padStart(8, '0');
+  }, []);
+
+  const captureScreenshot = useCallback(async (description?: string, domainId?: string, elementId?: string): Promise<CapturedImage | null> => {
     try {
       const studioElement = document.querySelector('main');
       if (!studioElement) return null;
 
       const html2canvas = (await import('html2canvas')).default;
       
+      // Capture HAUTE QUALITÉ pour les présentations
       const canvas = await html2canvas(studioElement as HTMLElement, {
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#F5F7FA',
-        scale: 1.5, // Équilibre qualité/taille (réduit de 2 à 1.5)
+        scale: 2, // Haute qualité (1920x1080 → 3840x2160)
+        logging: false,
+        imageTimeout: 15000,
       });
       
-      // Compresser l'image en JPEG pour réduire la taille (de ~2MB PNG à ~200KB JPEG)
-      const compressedData = canvas.toDataURL('image/jpeg', 0.85); // 85% qualité
+      // Calculer le hash pour déduplication
+      const imageHash = computeImageHash(canvas);
+      
+      // Compression JPEG haute qualité (92%)
+      const compressedData = canvas.toDataURL('image/jpeg', 0.92);
       
       const timestamp = new Date();
       const filename = `${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}_${String(timestamp.getMilliseconds()).padStart(3, '0')}.jpg`;
@@ -480,11 +508,13 @@ export default function PresentationConfigModal({
         base64Data: compressedData,
         description,
         domainId,
+        elementId,
+        hash: imageHash, // Pour déduplication
       };
       
-      // Log taille pour debug
+      // Log détaillé
       const sizeKB = Math.round(compressedData.length * 0.75 / 1024);
-      console.log(`[Capture] ${filename}: ${sizeKB}KB (${canvas.width}x${canvas.height})`);
+      console.log(`[Capture] ${filename}: ${sizeKB}KB (${canvas.width}x${canvas.height}) hash=${imageHash.substring(0, 8)}`);
       
       showCapture();
       return image;
@@ -492,7 +522,7 @@ export default function PresentationConfigModal({
       console.error('Erreur lors de la capture:', error);
       return null;
     }
-  }, [cockpitId, showCapture]);
+  }, [cockpitId, showCapture, computeImageHash]);
 
   // Trouver des images existantes similaires
   const findSimilarExistingImages = useCallback((description: string, domainId?: string): ExistingImage[] => {
@@ -1670,6 +1700,38 @@ export default function PresentationConfigModal({
     }
   };
 
+  // Nettoyer les images en double dans la banque
+  const cleanupDuplicateImages = async () => {
+    if (!token || !cockpitId) return;
+    
+    try {
+      const response = await fetch('/api/presentations/images/cleanup', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cockpitId }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`[Cleanup] ${result.removed} doublons supprimés, ${result.remaining} images restantes`);
+        
+        // Recharger les images
+        await loadExistingImages();
+        
+        if (result.removed > 0) {
+          alert(`${result.removed} image(s) en double supprimée(s). ${result.remaining} image(s) restante(s).`);
+        } else {
+          alert('Aucun doublon trouvé.');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du nettoyage des doublons:', error);
+    }
+  };
+
   // Télécharger tout (images + fichiers générés) en un seul ZIP
   // Accepte des paramètres optionnels pour permettre le téléchargement automatique après génération
   const downloadAllAsZip = async (
@@ -2282,18 +2344,28 @@ Exemples:
                     Configurez votre présentation et cliquez sur "Générer" pour démarrer.
                   </p>
                   {existingImages.length > 0 && (
-                    <button
-                      onClick={downloadExistingImagesFromBank}
-                      disabled={isDownloadingBankImages}
-                      className="text-xs text-amber-600 hover:text-amber-700 hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-                      title="Cliquer pour télécharger les images de la banque"
-                    >
-                      {isDownloadingBankImages ? (
-                        '⏳ Téléchargement en cours...'
-                      ) : (
-                        `💡 ${existingImages.length} image(s) en banque - cliquer pour télécharger`
-                      )}
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={downloadExistingImagesFromBank}
+                        disabled={isDownloadingBankImages}
+                        className="text-xs text-amber-600 hover:text-amber-700 hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                        title="Cliquer pour télécharger les images de la banque"
+                      >
+                        {isDownloadingBankImages ? (
+                          '⏳ Téléchargement en cours...'
+                        ) : (
+                          `💡 ${existingImages.length} image(s) en banque - cliquer pour télécharger`
+                        )}
+                      </button>
+                      <button
+                        onClick={cleanupDuplicateImages}
+                        disabled={generationState.isGenerating}
+                        className="text-xs text-gray-500 hover:text-red-600 cursor-pointer"
+                        title="Supprimer les images en double"
+                      >
+                        🧹 Nettoyer les doublons
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
