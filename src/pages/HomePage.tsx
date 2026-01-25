@@ -972,7 +972,21 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <MuiIcon name="Dashboard" size={32} className="text-blue-400" />
             <div>
-              <h1 className="text-xl font-bold text-white">SOMONE Cockpit Studio</h1>
+              {isClientUser ? (
+                <div className="relative group">
+                  <h1 className="text-xl font-bold text-white cursor-help flex items-center gap-2">
+                    OPEN COCKPIT
+                    <MuiIcon name="HelpOutline" size={16} className="text-white/60 group-hover:text-blue-400 transition-colors" />
+                  </h1>
+                  <div className="absolute left-0 top-full mt-2 w-80 p-3 bg-slate-800 border border-slate-600 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+                    <p className="text-sm text-white/90 leading-relaxed">
+                      Studio de création de maquettes pour les Clients. Si vous avez besoin d'aide, l'entreprise Somone est là pour vous en apporter. Autant dans la création de la maquette du cockpit qui représente vos douleurs professionnelles, que dans l'implémentation en production de ce cockpit.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <h1 className="text-xl font-bold text-white">SOMONE Cockpit Studio</h1>
+              )}
               <p className="text-xs text-white/80">Studio de création de maquettes · {VERSION_DISPLAY}</p>
             </div>
           </div>
@@ -2493,7 +2507,7 @@ export default function HomePage() {
       <footer className="bg-cockpit-nav-bg/50 border-t border-slate-700/50 py-4 mt-12">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-xs text-white/80">
-            SOMONE Cockpit Studio {VERSION_DISPLAY}
+            {isClientUser ? 'OPEN COCKPIT' : 'SOMONE Cockpit Studio'} {VERSION_DISPLAY}
           </p>
         </div>
       </footer>
