@@ -28,6 +28,7 @@ interface AuthState {
   changeEmail: (email: string) => Promise<boolean>;
   toggleAdmin: (code: string) => Promise<boolean>;
   clearError: () => void;
+  refreshUser: () => Promise<boolean>; // Rafraîchir les données de l'utilisateur connecté
   
   // Gestion des utilisateurs (admin uniquement)
   fetchUsers: () => Promise<UserListItem[]>;
@@ -212,6 +213,29 @@ export const useAuthStore = create<AuthState>()(
       },
 
       clearError: () => set({ error: null }),
+
+      // Rafraîchir les données de l'utilisateur connecté (pour voir les modifications faites par l'admin)
+      refreshUser: async () => {
+        const { token } = get();
+        if (!token) return false;
+        
+        try {
+          const response = await fetch(`${API_URL}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          
+          if (!response.ok) return false;
+          
+          const data = await response.json();
+          if (data.user) {
+            set({ user: data.user });
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      },
       
       // Gestion des utilisateurs (admin uniquement)
       fetchUsers: async () => {

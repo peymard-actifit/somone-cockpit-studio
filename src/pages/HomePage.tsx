@@ -389,7 +389,7 @@ function SortableCockpitCard({
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { user, logout, changePassword, changeName, changeEmail, toggleAdmin, isLoading: authLoading, error: authError, clearError } = useAuthStore();
+  const { user, logout, changePassword, changeName, changeEmail, toggleAdmin, refreshUser, isLoading: authLoading, error: authError, clearError } = useAuthStore();
   const { 
     cockpits, fetchCockpits, createCockpit, duplicateCockpit, deleteCockpit, publishCockpit, unpublishCockpit, exportCockpit, importCockpit, reorderCockpits, 
     folders, fetchFolders, createFolder, updateFolder, deleteFolder, reorderFolders, currentFolderId, setCurrentFolder, moveCockpitToFolder,
@@ -994,7 +994,13 @@ export default function HomePage() {
             {/* User Menu */}
             <div className="relative">
               <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
+                onClick={async () => {
+                  if (!showUserMenu) {
+                    // Rafraîchir les données utilisateur pour voir les changements faits par l'admin
+                    await refreshUser();
+                  }
+                  setShowUserMenu(!showUserMenu);
+                }}
                 className="flex items-center gap-3 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-colors"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-violet-500 rounded-lg flex items-center justify-center text-white font-medium text-sm">

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.0';
+const APP_VERSION = '16.11.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1501,6 +1501,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // GET /auth/me - Récupérer les données actuelles de l'utilisateur connecté (pour rafraîchir)
+    if (path === '/auth/me' && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const user = db.users.find(u => u.id === decoded.id);
+
+      if (!user) {
+        return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+
+      const userType = user.userType || (user.isAdmin ? 'admin' : 'standard');
+      
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          isAdmin: user.isAdmin,
+          userType,
+          canBecomeAdmin: userType === 'standard' ? (user.canBecomeAdmin === false ? false : true) : undefined,
+        }
+      });
+    }
+
     // Change password
     if (path === '/auth/change-password' && method === 'POST') {
       const authHeader = req.headers.authorization;
@@ -1626,16 +1662,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Retourner tous les utilisateurs sans les mots de passe
-      const users = db.users.map(u => ({
-        id: u.id,
-        username: u.username,
-        name: u.name,
-        email: u.email,
-        isAdmin: u.isAdmin,
-        userType: u.userType || (u.isAdmin ? 'admin' : 'standard'),
-        canBecomeAdmin: u.canBecomeAdmin,
-        createdAt: u.createdAt
-      }));
+      const users = db.users.map(u => {
+        const userType = u.userType || (u.isAdmin ? 'admin' : 'standard');
+        return {
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          email: u.email,
+          isAdmin: u.isAdmin,
+          userType,
+          // Pour les utilisateurs standard, retourner explicitement true ou false (jamais undefined)
+          canBecomeAdmin: userType === 'standard' ? (u.canBecomeAdmin === false ? false : true) : undefined,
+          createdAt: u.createdAt
+        };
+      });
 
       return res.json({ users });
     }
@@ -1760,16 +1800,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         // Réinitialiser canBecomeAdmin selon le nouveau type
         if (userType === 'standard') {
-          userToUpdate.canBecomeAdmin = canBecomeAdmin !== false;
+          // Si canBecomeAdmin est explicitement false, le garder false; sinon true par défaut
+          userToUpdate.canBecomeAdmin = canBecomeAdmin === false ? false : true;
         } else {
           userToUpdate.canBecomeAdmin = undefined;
         }
       } else if (canBecomeAdmin !== undefined && userToUpdate.userType === 'standard') {
-        userToUpdate.canBecomeAdmin = canBecomeAdmin;
+        // Mise à jour explicite de canBecomeAdmin pour un utilisateur standard
+        userToUpdate.canBecomeAdmin = canBecomeAdmin === true ? true : false;
+        console.log(`[Users] canBecomeAdmin mis à jour: ${userToUpdate.username} -> ${userToUpdate.canBecomeAdmin}`);
       }
 
       await saveDb(db);
 
+      // Retourner avec canBecomeAdmin explicite pour les utilisateurs standard
+      const finalUserType = userToUpdate.userType;
       return res.json({
         user: {
           id: userToUpdate.id,
@@ -1777,8 +1822,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: userToUpdate.name,
           email: userToUpdate.email,
           isAdmin: userToUpdate.isAdmin,
-          userType: userToUpdate.userType,
-          canBecomeAdmin: userToUpdate.canBecomeAdmin,
+          userType: finalUserType,
+          canBecomeAdmin: finalUserType === 'standard' ? (userToUpdate.canBecomeAdmin === false ? false : true) : undefined,
           createdAt: userToUpdate.createdAt
         }
       });
