@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.9.0';
+const APP_VERSION = '16.10.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6304,6 +6304,102 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
     // PRESENTATIONS - Configuration et génération
     // =====================================================
 
+    // GET /presentations/musics - Récupérer les musiques de fond disponibles (niveau studio)
+    if (path === '/presentations/musics' && method === 'GET') {
+      try {
+        const musicsKey = 'presentation_musics';
+        let musics = await redis.get(musicsKey) as any[] || [];
+        
+        // Si aucune musique, initialiser avec des musiques libres de droits par défaut
+        if (musics.length === 0) {
+          musics = [
+            {
+              id: 'corporate-1',
+              name: 'Corporate Ambiance',
+              url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_8cb749d484.mp3',
+              duration: 147,
+              category: 'corporate',
+            },
+            {
+              id: 'ambient-1',
+              name: 'Calm Technology',
+              url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1c44.mp3',
+              duration: 120,
+              category: 'ambient',
+            },
+            {
+              id: 'upbeat-1',
+              name: 'Inspiring Success',
+              url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_c8e7b0f0b3.mp3',
+              duration: 130,
+              category: 'upbeat',
+            },
+            {
+              id: 'calm-1',
+              name: 'Soft Piano',
+              url: 'https://cdn.pixabay.com/download/audio/2021/11/13/audio_cb4b9c6fd2.mp3',
+              duration: 156,
+              category: 'calm',
+            },
+          ];
+          await redis.set(musicsKey, musics);
+        }
+        
+        return res.json({ musics });
+      } catch (error: any) {
+        console.error('Erreur chargement musiques:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/musics - Ajouter une nouvelle musique de fond
+    if (path === '/presentations/musics' && method === 'POST') {
+      const { name, url, duration, category } = req.body;
+      
+      if (!name || !url) {
+        return res.status(400).json({ error: 'name et url sont requis' });
+      }
+      
+      try {
+        const musicsKey = 'presentation_musics';
+        const musics = await redis.get(musicsKey) as any[] || [];
+        
+        const newMusic = {
+          id: crypto.randomUUID(),
+          name,
+          url,
+          duration: duration || 0,
+          category: category || 'ambient',
+        };
+        
+        musics.push(newMusic);
+        await redis.set(musicsKey, musics);
+        
+        return res.json({ success: true, music: newMusic });
+      } catch (error: any) {
+        console.error('Erreur ajout musique:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // DELETE /presentations/musics/:musicId - Supprimer une musique
+    if (path.match(/^\/presentations\/musics\/[^/]+$/) && method === 'DELETE') {
+      const musicId = path.split('/').pop();
+      
+      try {
+        const musicsKey = 'presentation_musics';
+        const musics = await redis.get(musicsKey) as any[] || [];
+        
+        const filteredMusics = musics.filter((m: any) => m.id !== musicId);
+        await redis.set(musicsKey, filteredMusics);
+        
+        return res.json({ success: true });
+      } catch (error: any) {
+        console.error('Erreur suppression musique:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
     // GET /presentations/configs/:cockpitId - Récupérer les configurations de présentation d'une maquette
     if (path.match(/^\/presentations\/configs\/[^/]+$/) && method === 'GET') {
       const cockpitId = path.split('/').pop();
@@ -7080,20 +7176,71 @@ Tu dois retourner un JSON structuré avec:
           console.log(`[RENDI] ${images.length} images uploadées vers imgbb`);
         }
         
-        // 2. Construire la commande FFmpeg
-        // Format: -loop 1 -t {duration} -i {{in_img_1}} -loop 1 -t {duration} -i {{in_img_2}} ...
-        // puis -filter_complex "[0:v][1:v]...[n:v]concat=n=N:v=1:a=0,format=yuv420p[v]"
-        // et -map [v] -c:v libx264 {{out_1}}
+        // 2. Construire la commande FFmpeg avec transitions style PowerPoint
+        // Transitions disponibles: fade, fadeblack, fadewhite, wipeleft, wiperight, slidedown, slideup, circlecrop, dissolve
+        const { transitionType = 'fade', transitionDuration = 1, musicUrl } = req.body;
+        
+        // Types de transitions PowerPoint-like
+        const transitions = ['fade', 'fadeblack', 'wipeleft', 'wiperight', 'slidedown', 'slideup', 'circlecrop', 'dissolve'];
+        const selectedTransition = transitions.includes(transitionType) ? transitionType : 'fade';
+        const transDur = Math.min(Math.max(transitionDuration, 0.5), 2); // 0.5-2 secondes
         
         const inputParts: string[] = [];
-        const filterInputs: string[] = [];
+        const imageCount = hasUrls ? Object.keys(preUploadedUrls).length : images.length;
         
-        for (let i = 0; i < images.length; i++) {
-          inputParts.push(`-loop 1 -t ${durationPerSlide} -i {{in_img_${i + 1}}}`);
-          filterInputs.push(`[${i}:v]`);
+        // Durée effective par slide (en tenant compte des transitions)
+        const effectiveDuration = durationPerSlide + transDur;
+        
+        for (let i = 0; i < imageCount; i++) {
+          inputParts.push(`-loop 1 -t ${effectiveDuration} -i {{in_img_${i + 1}}}`);
         }
         
-        const ffmpegCommand = `${inputParts.join(' ')} -filter_complex "${filterInputs.join('')}concat=n=${images.length}:v=1:a=0,format=yuv420p[v]" -map [v] -c:v libx264 -preset fast -crf 23 {{out_1}}`;
+        // Construire le filtre avec transitions xfade entre chaque image
+        let filterComplex = '';
+        
+        if (imageCount === 1) {
+          // Une seule image: pas de transition
+          filterComplex = `[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,format=yuv420p[v]`;
+        } else if (imageCount === 2) {
+          // Deux images: une seule transition
+          filterComplex = `[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v0];` +
+            `[1:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v1];` +
+            `[v0][v1]xfade=transition=${selectedTransition}:duration=${transDur}:offset=${durationPerSlide},format=yuv420p[v]`;
+        } else {
+          // Plus de 2 images: chaîner les transitions xfade
+          const scaleFilters: string[] = [];
+          for (let i = 0; i < imageCount; i++) {
+            scaleFilters.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v${i}]`);
+          }
+          
+          // Chaîner les xfade
+          let xfadeChain = `[v0][v1]xfade=transition=${selectedTransition}:duration=${transDur}:offset=${durationPerSlide}[xf0]`;
+          for (let i = 2; i < imageCount; i++) {
+            const prevOffset = (i - 1) * durationPerSlide + (i - 1) * transDur - (i - 1) * transDur; // Simplification: offset = (i-1) * durationPerSlide
+            const offset = (i - 1) * durationPerSlide;
+            xfadeChain += `;[xf${i - 2}][v${i}]xfade=transition=${selectedTransition}:duration=${transDur}:offset=${offset}[xf${i - 1}]`;
+          }
+          // Dernier segment ne génère pas de nouveau label, utiliser le dernier xf
+          const lastXf = `xf${imageCount - 2}`;
+          
+          filterComplex = `${scaleFilters.join(';')};${xfadeChain};[${lastXf}]format=yuv420p[v]`;
+        }
+        
+        // Ajouter la musique de fond si présente
+        let audioInput = '';
+        let audioMapping = '';
+        
+        if (musicUrl) {
+          const totalDuration = imageCount * durationPerSlide + (imageCount - 1) * transDur;
+          audioInput = ` -i {{in_music}}`;
+          // Couper la musique à la durée de la vidéo et faire un fade out
+          audioMapping = ` -map 1:a -c:a aac -b:a 128k -t ${totalDuration} -af "afade=t=out:st=${totalDuration - 2}:d=2"`;
+          imageUrls['in_music'] = musicUrl;
+        }
+        
+        const ffmpegCommand = `${inputParts.join(' ')}${audioInput} -filter_complex "${filterComplex}" -map [v]${musicUrl ? ' -map 1:a' : ''} -c:v libx264 -preset fast -crf 23${musicUrl ? ' -c:a aac -b:a 128k -shortest' : ''} {{out_1}}`;
+        
+        console.log(`[RENDI] Transition: ${selectedTransition}, Durée: ${transDur}s, Musique: ${musicUrl ? 'Oui' : 'Non'}`);
         
         console.log(`[RENDI] Commande FFmpeg: ${ffmpegCommand.substring(0, 200)}...`);
         

@@ -23,7 +23,25 @@ const createEmptyConfig = (cockpitId: string): Omit<PresentationConfig, 'id' | '
   selectedDomainIds: [],
   transitionStyle: 'fade',
   duration: 60,
+  // Options vidéo
+  videoDuration: 60,           // 1 minute par défaut
+  videoTransition: 'fade',     // Transition fondu par défaut
+  transitionDuration: 1,       // 1 seconde par défaut
+  backgroundMusicId: undefined, // Pas de musique par défaut
 });
+
+// Transitions vidéo disponibles (style PowerPoint)
+const VIDEO_TRANSITIONS = [
+  { id: 'fade', name: 'Fondu', icon: 'BlurOn' },
+  { id: 'fadeblack', name: 'Fondu noir', icon: 'Brightness2' },
+  { id: 'fadewhite', name: 'Fondu blanc', icon: 'WbSunny' },
+  { id: 'wipeleft', name: 'Balayage gauche', icon: 'ArrowBack' },
+  { id: 'wiperight', name: 'Balayage droite', icon: 'ArrowForward' },
+  { id: 'slidedown', name: 'Glissement bas', icon: 'ArrowDownward' },
+  { id: 'slideup', name: 'Glissement haut', icon: 'ArrowUpward' },
+  { id: 'circlecrop', name: 'Cercle', icon: 'RadioButtonUnchecked' },
+  { id: 'dissolve', name: 'Dissolution', icon: 'Grain' },
+] as const;
 
 // Fonction utilitaire pour générer un nom de fichier horodaté (format identique aux Excel)
 const generateTimestampedFilename = (cockpitName: string, type: 'PRES' | 'IMG' | 'ZIP' | 'BANQUE', extension: string): string => {
@@ -121,6 +139,10 @@ export default function PresentationConfigModal({
   // Images existantes réutilisables
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [reusingImages, setReusingImages] = useState(false);
+  
+  // Musiques de fond disponibles (niveau studio)
+  const [backgroundMusics, setBackgroundMusics] = useState<{ id: string; name: string; url: string; duration: number; category: string }[]>([]);
+  const [isLoadingMusics, setIsLoadingMusics] = useState(false);
   
   // Indicateur de capture d'écran (appareil photo)
   const [showCaptureIndicator, setShowCaptureIndicator] = useState(false);
@@ -232,6 +254,27 @@ export default function PresentationConfigModal({
     }
   }, [token, cockpitId]);
 
+  // Charger les musiques de fond disponibles (niveau studio)
+  const loadBackgroundMusics = useCallback(async () => {
+    if (!token) return;
+    
+    setIsLoadingMusics(true);
+    try {
+      const response = await fetch('/api/presentations/musics', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setBackgroundMusics(data.musics || []);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des musiques:', error);
+    } finally {
+      setIsLoadingMusics(false);
+    }
+  }, [token]);
+
   // Charger les images existantes pour réutilisation
   const loadExistingImages = useCallback(async () => {
     if (!token || !cockpitId) return;
@@ -258,13 +301,14 @@ export default function PresentationConfigModal({
     }
   }, [token, cockpitId, currentCockpit]);
 
-  // Charger les configurations et images au montage
+  // Charger les configurations, images et musiques au montage
   useEffect(() => {
     if (isOpen) {
       loadConfigs();
       loadExistingImages();
+      loadBackgroundMusics();
     }
-  }, [isOpen, loadConfigs, loadExistingImages]);
+  }, [isOpen, loadConfigs, loadExistingImages, loadBackgroundMusics]);
 
   // Sélectionner une configuration
   const handleSelectConfig = (config: PresentationConfig) => {
@@ -1245,6 +1289,17 @@ export default function PresentationConfigModal({
           
           console.log(`[Video] ${Object.keys(imageUrls).length} images uploadées, lancement RENDI...`);
           
+          // Calculer la durée par slide pour atteindre la durée cible
+          const targetDuration = currentConfig.videoDuration || 60;
+          const transitionDur = currentConfig.transitionDuration || 1;
+          const numTransitions = capturedImages.length - 1;
+          const totalTransitionTime = numTransitions * transitionDur;
+          const availableSlideTime = targetDuration - totalTransitionTime;
+          const durationPerSlideCalculated = Math.max(2, Math.floor(availableSlideTime / capturedImages.length));
+          
+          // Trouver l'URL de la musique si sélectionnée
+          const selectedMusic = backgroundMusics.find(m => m.id === currentConfig.backgroundMusicId);
+          
           // Appeler l'API pour démarrer la génération vidéo (avec URLs au lieu de base64)
           const videoResponse = await fetch('/api/presentations/generate-video', {
             method: 'POST',
@@ -1257,9 +1312,15 @@ export default function PresentationConfigModal({
               cockpitName,
               imageUrls, // URLs pré-uploadées (pas de base64)
               scenario: aiPlan.scenario,
-              durationPerSlide: Math.max(3, Math.floor((currentConfig.duration || 60) / capturedImages.length)),
+              durationPerSlide: durationPerSlideCalculated,
+              // Options vidéo avancées
+              transitionType: currentConfig.videoTransition || 'fade',
+              transitionDuration: transitionDur,
+              musicUrl: selectedMusic?.url || undefined,
             }),
           });
+          
+          console.log(`[Video] Params: ${durationPerSlideCalculated}s/slide, transition=${currentConfig.videoTransition}, music=${selectedMusic?.name || 'aucune'}`);
           
           if (videoResponse.ok) {
             const videoResult = await videoResponse.json();
@@ -1943,6 +2004,113 @@ Exemples:
                 </label>
               </div>
             </div>
+
+            {/* Options vidéo (visibles si vidéo sélectionnée) */}
+            {currentConfig.outputFormats.includes('video') && (
+              <div className="p-4 border-t border-gray-200 bg-purple-50">
+                <h4 className="text-sm font-medium text-purple-700 mb-3 flex items-center gap-2">
+                  <MuiIcon name="Settings" size={16} />
+                  Options Vidéo
+                </h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Durée cible */}
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Durée cible</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="10"
+                        max="300"
+                        value={currentConfig.videoDuration || 60}
+                        onChange={(e) => setCurrentConfig(prev => ({ 
+                          ...prev, 
+                          videoDuration: Math.max(10, Math.min(300, parseInt(e.target.value) || 60))
+                        }))}
+                        disabled={generationState.isGenerating}
+                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500"
+                      />
+                      <span className="text-xs text-gray-500">secondes</span>
+                    </div>
+                  </div>
+
+                  {/* Durée des transitions */}
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Durée transition</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0.5"
+                        max="2"
+                        step="0.5"
+                        value={currentConfig.transitionDuration || 1}
+                        onChange={(e) => setCurrentConfig(prev => ({ 
+                          ...prev, 
+                          transitionDuration: Math.max(0.5, Math.min(2, parseFloat(e.target.value) || 1))
+                        }))}
+                        disabled={generationState.isGenerating}
+                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500"
+                      />
+                      <span className="text-xs text-gray-500">sec</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Type de transition */}
+                <div className="mt-3">
+                  <label className="block text-xs text-gray-600 mb-2">Transition</label>
+                  <div className="flex flex-wrap gap-2">
+                    {VIDEO_TRANSITIONS.map(trans => (
+                      <button
+                        key={trans.id}
+                        onClick={() => setCurrentConfig(prev => ({ 
+                          ...prev, 
+                          videoTransition: trans.id as any 
+                        }))}
+                        disabled={generationState.isGenerating}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                          currentConfig.videoTransition === trans.id
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-400'
+                        }`}
+                      >
+                        <MuiIcon name={trans.icon as any} size={14} />
+                        {trans.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Musique de fond */}
+                <div className="mt-3">
+                  <label className="block text-xs text-gray-600 mb-2">
+                    Musique de fond
+                    <span className="text-gray-400 ml-1">(optionnel)</span>
+                  </label>
+                  <select
+                    value={currentConfig.backgroundMusicId || ''}
+                    onChange={(e) => setCurrentConfig(prev => ({ 
+                      ...prev, 
+                      backgroundMusicId: e.target.value || undefined
+                    }))}
+                    disabled={generationState.isGenerating || isLoadingMusics}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 bg-white"
+                  >
+                    <option value="">{isLoadingMusics ? 'Chargement...' : 'Aucune musique'}</option>
+                    {backgroundMusics.map(music => (
+                      <option key={music.id} value={music.id}>
+                        {music.name} ({Math.floor(music.duration / 60)}:{String(music.duration % 60).padStart(2, '0')})
+                      </option>
+                    ))}
+                  </select>
+                  {backgroundMusics.length === 0 && (
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Gérez les musiques dans les paramètres du studio
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Panneau droit: État de génération */}

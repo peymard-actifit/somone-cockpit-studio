@@ -625,6 +625,28 @@ export interface CapturedImage {
 }
 
 // Configuration d'une présentation enregistrée
+// Types de transitions vidéo style PowerPoint
+export type VideoTransitionType = 
+  | 'fade'        // Fondu classique
+  | 'fadeblack'   // Fondu via noir
+  | 'fadewhite'   // Fondu via blanc
+  | 'wipeleft'    // Balayage vers la gauche
+  | 'wiperight'   // Balayage vers la droite
+  | 'slidedown'   // Glissement vers le bas
+  | 'slideup'     // Glissement vers le haut
+  | 'circlecrop'  // Transition circulaire
+  | 'dissolve';   // Dissolution
+
+// Musique de fond pour les présentations (gérée au niveau studio)
+export interface BackgroundMusic {
+  id: string;
+  name: string;           // Nom affiché
+  url: string;            // URL du fichier audio (hébergé)
+  duration: number;       // Durée en secondes
+  category: 'corporate' | 'ambient' | 'upbeat' | 'calm';
+  isDefault?: boolean;    // Musique par défaut
+}
+
 export interface PresentationConfig {
   id: string;
   cockpitId: string;
@@ -636,8 +658,13 @@ export interface PresentationConfig {
   // Options avancées
   includeAllDomains?: boolean; // Inclure tous les domaines
   selectedDomainIds?: string[]; // Domaines spécifiques à inclure
-  transitionStyle?: 'none' | 'fade' | 'slide'; // Style de transition (pour vidéo/PPTX)
+  transitionStyle?: 'none' | 'fade' | 'slide'; // Style de transition (pour PPTX)
   duration?: number; // Durée estimée en secondes (pour vidéo)
+  // Options vidéo avancées
+  videoDuration?: number;           // Durée cible de la vidéo en secondes
+  videoTransition?: VideoTransitionType; // Type de transition vidéo
+  transitionDuration?: number;      // Durée des transitions (0.5-2 secondes)
+  backgroundMusicId?: string;       // ID de la musique de fond (optionnel)
 }
 
 // État d'une génération de présentation en cours
