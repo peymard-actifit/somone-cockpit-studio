@@ -322,6 +322,11 @@ export default function PresentationConfigModal({
       selectedDomainIds: config.selectedDomainIds,
       transitionStyle: config.transitionStyle,
       duration: config.duration,
+      // Options vidéo (avec valeurs par défaut si non définies)
+      videoDuration: config.videoDuration || 60,
+      videoTransition: config.videoTransition || 'fade',
+      transitionDuration: config.transitionDuration || 1,
+      backgroundMusicId: config.backgroundMusicId,
     });
     setConfigName(config.name);
   };
