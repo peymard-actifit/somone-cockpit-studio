@@ -647,7 +647,12 @@ export default function PresentationConfigModal({
       if (image.base64Data) {
         const imgMaxWidth = pageWidth - 40;
         const imgMaxHeight = pageHeight - 85;
-        const imgRatio = image.width / image.height;
+        
+        // Utiliser des dimensions par défaut si non disponibles (16:9)
+        const imgOrigWidth = image.width || 1920;
+        const imgOrigHeight = image.height || 1080;
+        const imgRatio = imgOrigWidth / imgOrigHeight;
+        
         let imgWidth = imgMaxWidth;
         let imgHeight = imgWidth / imgRatio;
         
@@ -656,20 +661,20 @@ export default function PresentationConfigModal({
           imgWidth = imgHeight * imgRatio;
         }
         
+        // S'assurer que les dimensions sont valides
+        if (!isFinite(imgWidth) || imgWidth <= 0) imgWidth = imgMaxWidth;
+        if (!isFinite(imgHeight) || imgHeight <= 0) imgHeight = imgMaxHeight * 0.7;
+        
         const imgX = (pageWidth - imgWidth) / 2;
         const imgY = 32;
         
-        // Ombre
-        pdf.setFillColor(220, 220, 220);
-        pdf.roundedRect(imgX + 2, imgY + 2, imgWidth, imgHeight, 2, 2, 'F');
-        
-        // Image avec format auto-détecté
+        // Image avec format auto-détecté (sans ombre pour éviter les problèmes)
         const imageFormat = image.base64Data.includes('image/jpeg') ? 'JPEG' : 'PNG';
         pdf.addImage(image.base64Data, imageFormat, imgX, imgY, imgWidth, imgHeight);
         
-        // Bordure
+        // Bordure simple
         pdf.setDrawColor(200, 200, 200);
-        pdf.roundedRect(imgX, imgY, imgWidth, imgHeight, 2, 2, 'S');
+        pdf.rect(imgX, imgY, imgWidth, imgHeight, 'S');
       }
       
       // Zone de texte en bas
