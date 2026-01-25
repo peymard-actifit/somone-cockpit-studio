@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.7';
+const APP_VERSION = '16.11.8';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -206,6 +206,7 @@ interface Database {
   systemPrompt?: string; // Prompt système personnalisé pour l'IA
   passwordResetTokens?: PasswordResetToken[]; // Tokens de réinitialisation de mot de passe
   contextualHelps?: ContextualHelp[]; // Aides contextuelles
+  adminCode?: string; // Code pour passer en mode administrateur (éditable)
 }
 
 // Helpers
@@ -1629,8 +1630,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Sinon, nécessite le code pour activer le mode admin
-      // Code secret pour activer/désactiver le mode admin (à changer en production)
-      const ADMIN_CODE = process.env.ADMIN_CODE || '12411241';
+      // Code stocké en DB ou fallback sur variable d'environnement ou valeur par défaut
+      const ADMIN_CODE = db.adminCode || process.env.ADMIN_CODE || '12411241';
 
       if (code !== ADMIN_CODE) {
         return res.status(403).json({ error: 'Code administrateur incorrect' });
@@ -1641,6 +1642,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await saveDb(db);
 
       return res.json({ isAdmin: true, userType: 'admin' });
+    }
+
+    // =============================================
+    // ADMIN CODE MANAGEMENT (Admin only)
+    // =============================================
+
+    // Récupérer le code admin actuel
+    if (path === '/admin/code' && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      // Retourner le code actuel (DB > env > défaut)
+      const adminCode = db.adminCode || process.env.ADMIN_CODE || '12411241';
+      return res.json({ adminCode });
+    }
+
+    // Modifier le code admin
+    if (path === '/admin/code' && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const { adminCode } = req.body;
+
+      if (!adminCode || typeof adminCode !== 'string' || adminCode.trim().length < 4) {
+        return res.status(400).json({ error: 'Le code doit contenir au moins 4 caractères' });
+      }
+
+      db.adminCode = adminCode.trim();
+      await saveDb(db);
+
+      console.log(`[Admin] Code admin modifié par ${currentUser.username}`);
+      return res.json({ success: true, adminCode: db.adminCode });
     }
 
     // =============================================

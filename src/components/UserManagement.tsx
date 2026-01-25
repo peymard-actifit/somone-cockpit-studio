@@ -43,6 +43,11 @@ export default function UserManagement({ onClose }: UserManagementProps) {
   // QR Code
   const [qrCodeData, setQrCodeData] = useState<{ url: string; username: string; expiresAt: string } | null>(null);
   
+  // Code admin
+  const [adminCode, setAdminCode] = useState('');
+  const [adminCodeLoading, setAdminCodeLoading] = useState(false);
+  const [adminCodeSaved, setAdminCodeSaved] = useState(false);
+  
   // Formulaire
   const [formData, setFormData] = useState({
     username: '',
@@ -53,9 +58,10 @@ export default function UserManagement({ onClose }: UserManagementProps) {
     canBecomeAdmin: true
   });
 
-  // Charger les utilisateurs
+  // Charger les utilisateurs et le code admin
   useEffect(() => {
     loadUsers();
+    loadAdminCode();
   }, []);
 
   const loadUsers = async () => {
@@ -63,6 +69,56 @@ export default function UserManagement({ onClose }: UserManagementProps) {
     const userList = await fetchUsers();
     setUsers(userList);
     setLoading(false);
+  };
+
+  const loadAdminCode = async () => {
+    try {
+      const token = localStorage.getItem('somone-cockpit-token');
+      const response = await fetch('/api/admin/code', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAdminCode(data.adminCode || '');
+      }
+    } catch (err) {
+      console.error('Erreur chargement code admin:', err);
+    }
+  };
+
+  const saveAdminCode = async () => {
+    if (!adminCode || adminCode.trim().length < 4) {
+      alert('Le code doit contenir au moins 4 caractères');
+      return;
+    }
+    
+    setAdminCodeLoading(true);
+    try {
+      const token = localStorage.getItem('somone-cockpit-token');
+      const response = await fetch('/api/admin/code', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ adminCode: adminCode.trim() })
+      });
+      
+      if (response.ok) {
+        setAdminCodeSaved(true);
+        setTimeout(() => setAdminCodeSaved(false), 2000);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Erreur lors de la sauvegarde');
+      }
+    } catch (err) {
+      console.error('Erreur sauvegarde code admin:', err);
+      alert('Erreur lors de la sauvegarde');
+    } finally {
+      setAdminCodeLoading(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -216,10 +272,43 @@ export default function UserManagement({ onClose }: UserManagementProps) {
         </div>
 
         {/* Actions */}
-        <div className="px-6 py-4 border-b bg-slate-50 flex items-center justify-between">
+        <div className="px-6 py-4 border-b bg-slate-50 flex items-center justify-between gap-4">
           <div className="text-sm text-slate-600">
             {users.length} utilisateur{users.length !== 1 ? 's' : ''} enregistré{users.length !== 1 ? 's' : ''}
           </div>
+          
+          {/* Code admin */}
+          <div className="flex items-center gap-2 flex-1 max-w-md">
+            <label className="text-xs text-slate-500 whitespace-nowrap">Code passage admin :</label>
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={adminCode}
+                onChange={(e) => setAdminCode(e.target.value)}
+                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                placeholder="Code secret"
+              />
+            </div>
+            <button
+              onClick={saveAdminCode}
+              disabled={adminCodeLoading}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+                adminCodeSaved 
+                  ? 'bg-green-500 text-white' 
+                  : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+              }`}
+              title="Enregistrer le code"
+            >
+              {adminCodeLoading ? (
+                <MuiIcon name="HourglassEmpty" size={14} className="animate-spin" />
+              ) : adminCodeSaved ? (
+                <MuiIcon name="Check" size={14} />
+              ) : (
+                <MuiIcon name="Save" size={14} />
+              )}
+            </button>
+          </div>
+          
           <button
             onClick={() => {
               resetForm();
