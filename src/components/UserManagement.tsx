@@ -82,6 +82,8 @@ export default function UserManagement({ onClose }: UserManagementProps) {
       if (response.ok) {
         const data = await response.json();
         setAdminCode(data.adminCode || '');
+      } else if (response.status === 401) {
+        console.warn('Session expirée pour charger le code admin');
       }
     } catch (err) {
       console.error('Erreur chargement code admin:', err);
@@ -110,6 +112,9 @@ export default function UserManagement({ onClose }: UserManagementProps) {
       if (response.ok) {
         setAdminCodeSaved(true);
         setTimeout(() => setAdminCodeSaved(false), 2000);
+      } else if (response.status === 401) {
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        window.location.href = '/';
       } else {
         const data = await response.json();
         alert(data.error || 'Erreur lors de la sauvegarde');
