@@ -412,11 +412,14 @@ export default function PresentationConfigModal({
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#F5F7FA',
-        scale: 2, // Meilleure qualité
+        scale: 1.5, // Équilibre qualité/taille (réduit de 2 à 1.5)
       });
       
+      // Compresser l'image en JPEG pour réduire la taille (de ~2MB PNG à ~200KB JPEG)
+      const compressedData = canvas.toDataURL('image/jpeg', 0.85); // 85% qualité
+      
       const timestamp = new Date();
-      const filename = `${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}_${String(timestamp.getMilliseconds()).padStart(3, '0')}.png`;
+      const filename = `${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}_${String(timestamp.getMilliseconds()).padStart(3, '0')}.jpg`;
       
       const image: CapturedImage = {
         id: crypto.randomUUID(),
@@ -425,10 +428,14 @@ export default function PresentationConfigModal({
         timestamp: timestamp.toISOString(),
         width: canvas.width,
         height: canvas.height,
-        base64Data: canvas.toDataURL('image/png'),
+        base64Data: compressedData,
         description,
         domainId,
       };
+      
+      // Log taille pour debug
+      const sizeKB = Math.round(compressedData.length * 0.75 / 1024);
+      console.log(`[Capture] ${filename}: ${sizeKB}KB (${canvas.width}x${canvas.height})`);
       
       showCapture();
       return image;
@@ -517,7 +524,7 @@ export default function PresentationConfigModal({
   // Générer un PDF avec jsPDF
   const generatePDF = useCallback(async (
     images: CapturedImage[], 
-    scenario: { title: string; introduction: string; sections: any[]; conclusion: string }
+    scenario: { title?: string; subtitle?: string; introduction?: string; sections?: any[]; conclusion?: string; callToAction?: string }
   ): Promise<string> => {
     const { jsPDF } = await import('jspdf');
     
@@ -529,67 +536,155 @@ export default function PresentationConfigModal({
     
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const primaryColor: [number, number, number] = [30, 58, 95]; // #1E3A5F
+    const accentColor: [number, number, number] = [59, 130, 246]; // #3B82F6
     
-    // Page de titre
-    pdf.setFillColor(30, 58, 95); // #1E3A5F
+    // === PAGE DE TITRE ===
+    // Fond dégradé simulé (rectangle principal + bande)
+    pdf.setFillColor(...primaryColor);
     pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(32);
-    pdf.text(scenario.title || cockpitName, pageWidth / 2, pageHeight / 2 - 20, { align: 'center' });
-    pdf.setFontSize(14);
-    pdf.text(scenario.introduction || 'Présentation générée automatiquement', pageWidth / 2, pageHeight / 2 + 10, { align: 'center' });
-    pdf.setFontSize(10);
-    pdf.text(new Date().toLocaleDateString('fr-FR'), pageWidth / 2, pageHeight - 20, { align: 'center' });
+    pdf.setFillColor(...accentColor);
+    pdf.rect(0, pageHeight - 30, pageWidth, 30, 'F');
     
-    // Pages de contenu avec images
+    // Titre principal
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(36);
+    const titleLines = pdf.splitTextToSize(scenario.title || cockpitName, pageWidth - 60);
+    pdf.text(titleLines, pageWidth / 2, pageHeight / 2 - 35, { align: 'center' });
+    
+    // Sous-titre
+    if (scenario.subtitle) {
+      pdf.setFontSize(16);
+      pdf.setTextColor(200, 220, 255);
+      pdf.text(scenario.subtitle, pageWidth / 2, pageHeight / 2, { align: 'center' });
+    }
+    
+    // Introduction (en plusieurs lignes si nécessaire)
+    if (scenario.introduction) {
+      pdf.setFontSize(12);
+      pdf.setTextColor(180, 200, 230);
+      const introLines = pdf.splitTextToSize(scenario.introduction, pageWidth - 80);
+      pdf.text(introLines.slice(0, 3), pageWidth / 2, pageHeight / 2 + 25, { align: 'center' });
+    }
+    
+    // Date et branding
+    pdf.setFontSize(10);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(`Généré le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+    
+    // === PAGES DE CONTENU ===
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
-      const section = scenario.sections?.[i];
+      const section = scenario.sections?.[i] || {};
       
       pdf.addPage();
       
-      // Fond blanc
+      // Fond blanc avec bordure colorée en haut
       pdf.setFillColor(255, 255, 255);
       pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      pdf.setFillColor(...primaryColor);
+      pdf.rect(0, 0, pageWidth, 8, 'F');
+      
+      // Numéro de section
+      pdf.setFillColor(...accentColor);
+      pdf.circle(20, 20, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(12);
+      pdf.text(`${i + 1}`, 20, 22, { align: 'center' });
       
       // Titre de la section
-      pdf.setTextColor(30, 58, 95);
-      pdf.setFontSize(18);
-      pdf.text(section?.title || image.description || `Slide ${i + 1}`, 15, 20);
+      pdf.setTextColor(...primaryColor);
+      pdf.setFontSize(20);
+      const sectionTitle = section.title || image.description || `Section ${i + 1}`;
+      pdf.text(sectionTitle, 35, 22);
       
-      // Image
+      // Image (centrée, avec ombre simulée)
       if (image.base64Data) {
-        const imgWidth = pageWidth - 30;
-        const imgHeight = (pageHeight - 50) * 0.7;
-        pdf.addImage(image.base64Data, 'PNG', 15, 30, imgWidth, imgHeight);
+        const imgMaxWidth = pageWidth - 40;
+        const imgMaxHeight = pageHeight - 85;
+        const imgRatio = image.width / image.height;
+        let imgWidth = imgMaxWidth;
+        let imgHeight = imgWidth / imgRatio;
+        
+        if (imgHeight > imgMaxHeight) {
+          imgHeight = imgMaxHeight;
+          imgWidth = imgHeight * imgRatio;
+        }
+        
+        const imgX = (pageWidth - imgWidth) / 2;
+        const imgY = 32;
+        
+        // Ombre
+        pdf.setFillColor(220, 220, 220);
+        pdf.roundedRect(imgX + 2, imgY + 2, imgWidth, imgHeight, 2, 2, 'F');
+        
+        // Image avec format auto-détecté
+        const imageFormat = image.base64Data.includes('image/jpeg') ? 'JPEG' : 'PNG';
+        pdf.addImage(image.base64Data, imageFormat, imgX, imgY, imgWidth, imgHeight);
+        
+        // Bordure
+        pdf.setDrawColor(200, 200, 200);
+        pdf.roundedRect(imgX, imgY, imgWidth, imgHeight, 2, 2, 'S');
       }
       
-      // Texte descriptif
-      if (section?.content) {
-        pdf.setFontSize(11);
-        pdf.setTextColor(100, 116, 139);
-        const textY = pageHeight - 35;
-        const lines = pdf.splitTextToSize(section.content, pageWidth - 30);
-        pdf.text(lines.slice(0, 3), 15, textY);
+      // Zone de texte en bas
+      const textY = pageHeight - 42;
+      
+      // Contenu descriptif
+      if (section.content) {
+        pdf.setFontSize(10);
+        pdf.setTextColor(71, 85, 105);
+        const contentLines = pdf.splitTextToSize(section.content, pageWidth - 40);
+        pdf.text(contentLines.slice(0, 3), margin + 5, textY);
       }
       
-      // Numéro de page
-      pdf.setFontSize(9);
-      pdf.text(`${i + 2}`, pageWidth - 15, pageHeight - 10);
+      // Points clés (highlights)
+      if (section.highlights && section.highlights.length > 0) {
+        pdf.setFontSize(9);
+        pdf.setTextColor(...accentColor);
+        const highlightText = section.highlights.slice(0, 3).map((h: string) => `• ${h}`).join('  ');
+        pdf.text(highlightText, margin + 5, textY + 12);
+      }
+      
+      // Pied de page
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`${i + 2} / ${images.length + 2}`, pageWidth - 15, pageHeight - 8);
+      pdf.text(cockpitName, margin, pageHeight - 8);
     }
     
-    // Page de conclusion
+    // === PAGE DE CONCLUSION ===
+    pdf.addPage();
+    pdf.setFillColor(...primaryColor);
+    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+    pdf.setFillColor(...accentColor);
+    pdf.rect(0, 0, pageWidth, 40, 'F');
+    
+    // Titre conclusion
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(28);
+    pdf.text('Conclusion', pageWidth / 2, 28, { align: 'center' });
+    
+    // Texte de conclusion
     if (scenario.conclusion) {
-      pdf.addPage();
-      pdf.setFillColor(30, 58, 95);
-      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(24);
-      pdf.text('Conclusion', pageWidth / 2, pageHeight / 2 - 30, { align: 'center' });
       pdf.setFontSize(14);
-      const conclusionLines = pdf.splitTextToSize(scenario.conclusion, pageWidth - 60);
-      pdf.text(conclusionLines, pageWidth / 2, pageHeight / 2, { align: 'center' });
+      pdf.setTextColor(220, 235, 255);
+      const conclusionLines = pdf.splitTextToSize(scenario.conclusion, pageWidth - 80);
+      pdf.text(conclusionLines, pageWidth / 2, pageHeight / 2 - 10, { align: 'center' });
     }
+    
+    // Call to action
+    if (scenario.callToAction) {
+      pdf.setFontSize(12);
+      pdf.setTextColor(255, 200, 100);
+      pdf.text(`→ ${scenario.callToAction}`, pageWidth / 2, pageHeight / 2 + 30, { align: 'center' });
+    }
+    
+    // Merci
+    pdf.setFontSize(16);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Merci pour votre attention', pageWidth / 2, pageHeight - 30, { align: 'center' });
     
     // Retourner le PDF en base64
     return pdf.output('datauristring');
@@ -598,105 +693,252 @@ export default function PresentationConfigModal({
   // Générer un PPTX avec pptxgenjs
   const generatePPTX = useCallback(async (
     images: CapturedImage[],
-    scenario: { title: string; introduction: string; sections: any[]; conclusion: string }
+    scenario: { title?: string; subtitle?: string; introduction?: string; sections?: any[]; conclusion?: string; callToAction?: string }
   ): Promise<string> => {
     const PptxGenJS = (await import('pptxgenjs')).default;
     
     const pptx = new PptxGenJS();
     pptx.author = 'SOMONE Cockpit Studio';
     pptx.title = scenario.title || cockpitName;
-    pptx.subject = 'Présentation générée automatiquement';
+    pptx.subject = 'Présentation de cockpit de supervision';
+    pptx.company = 'SOMONE';
     
-    // Slide de titre
+    // Couleurs du thème
+    const primaryColor = '1E3A5F';
+    const accentColor = '3B82F6';
+    const textColor = '475569';
+    
+    // === SLIDE DE TITRE ===
     const titleSlide = pptx.addSlide();
+    titleSlide.bkgd = primaryColor;
+    
+    // Bande d'accent en haut
+    titleSlide.addShape('rect', {
+      x: 0,
+      y: 0,
+      w: '100%',
+      h: 0.8,
+      fill: { color: accentColor },
+    });
+    
+    // Titre principal
     titleSlide.addText(scenario.title || cockpitName, {
       x: 0.5,
       y: 2,
       w: '90%',
-      h: 1.5,
-      fontSize: 44,
+      h: 1.2,
+      fontSize: 40,
       bold: true,
-      color: '1E3A5F',
+      color: 'FFFFFF',
       align: 'center',
     });
-    titleSlide.addText(scenario.introduction || 'Présentation générée automatiquement', {
+    
+    // Sous-titre
+    if (scenario.subtitle) {
+      titleSlide.addText(scenario.subtitle, {
+        x: 0.5,
+        y: 3.2,
+        w: '90%',
+        h: 0.5,
+        fontSize: 18,
+        color: 'C8DCFF',
+        align: 'center',
+      });
+    }
+    
+    // Introduction
+    if (scenario.introduction) {
+      titleSlide.addText(scenario.introduction, {
+        x: 1,
+        y: 3.9,
+        w: '80%',
+        h: 0.8,
+        fontSize: 14,
+        color: 'B4C8E6',
+        align: 'center',
+      });
+    }
+    
+    // Date
+    titleSlide.addText(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }), {
       x: 0.5,
-      y: 3.5,
+      y: 5.1,
       w: '90%',
-      h: 0.75,
-      fontSize: 18,
-      color: '64748B',
-      align: 'center',
-    });
-    titleSlide.addText(new Date().toLocaleDateString('fr-FR'), {
-      x: 0.5,
-      y: 5,
-      w: '90%',
-      h: 0.5,
-      fontSize: 12,
+      h: 0.4,
+      fontSize: 11,
       color: '94A3B8',
       align: 'center',
     });
     
-    // Slides de contenu avec images
+    // === SLIDES DE CONTENU ===
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
-      const section = scenario.sections?.[i];
+      const section = scenario.sections?.[i] || {};
       
       const slide = pptx.addSlide();
       
-      // Titre
-      slide.addText(section?.title || image.description || `Slide ${i + 1}`, {
-        x: 0.5,
-        y: 0.3,
-        w: '90%',
-        h: 0.6,
-        fontSize: 24,
-        bold: true,
-        color: '1E3A5F',
+      // Bandeau d'en-tête
+      slide.addShape('rect', {
+        x: 0,
+        y: 0,
+        w: '100%',
+        h: 0.15,
+        fill: { color: primaryColor },
       });
       
-      // Image
+      // Numéro de section
+      slide.addShape('ellipse', {
+        x: 0.3,
+        y: 0.25,
+        w: 0.4,
+        h: 0.4,
+        fill: { color: accentColor },
+      });
+      slide.addText(`${i + 1}`, {
+        x: 0.3,
+        y: 0.28,
+        w: 0.4,
+        h: 0.35,
+        fontSize: 14,
+        bold: true,
+        color: 'FFFFFF',
+        align: 'center',
+      });
+      
+      // Titre de la section
+      slide.addText(section.title || image.description || `Section ${i + 1}`, {
+        x: 0.85,
+        y: 0.25,
+        w: 8.5,
+        h: 0.5,
+        fontSize: 22,
+        bold: true,
+        color: primaryColor,
+      });
+      
+      // Image principale
       if (image.base64Data) {
         slide.addImage({
           data: image.base64Data,
-          x: 0.5,
-          y: 1,
-          w: 9,
-          h: 4,
+          x: 0.4,
+          y: 0.85,
+          w: 9.2,
+          h: 4.2,
+          rounding: true,
         });
       }
       
-      // Notes du présentateur
-      if (section?.content || section?.notes) {
-        slide.addNotes(section.notes || section.content || '');
+      // Zone de texte en bas
+      if (section.content) {
+        slide.addText(section.content, {
+          x: 0.4,
+          y: 5.15,
+          w: 7,
+          h: 0.5,
+          fontSize: 11,
+          color: textColor,
+        });
+      }
+      
+      // Points clés (highlights)
+      if (section.highlights && section.highlights.length > 0) {
+        const highlightText = section.highlights.slice(0, 3).map((h: string) => `• ${h}`).join('\n');
+        slide.addText(highlightText, {
+          x: 7.5,
+          y: 5.1,
+          w: 2.3,
+          h: 0.6,
+          fontSize: 9,
+          color: accentColor,
+          bullet: false,
+        });
+      }
+      
+      // Numéro de page
+      slide.addText(`${i + 2} / ${images.length + 2}`, {
+        x: 9,
+        y: 5.35,
+        w: 0.8,
+        h: 0.25,
+        fontSize: 8,
+        color: '94A3B8',
+        align: 'right',
+      });
+      
+      // Notes du présentateur (contenu + notes)
+      const notes = [
+        section.content ? `Description: ${section.content}` : '',
+        section.notes ? `Notes: ${section.notes}` : '',
+        section.highlights?.length ? `Points clés: ${section.highlights.join(', ')}` : '',
+      ].filter(Boolean).join('\n\n');
+      
+      if (notes) {
+        slide.addNotes(notes);
       }
     }
     
-    // Slide de conclusion
+    // === SLIDE DE CONCLUSION ===
+    const conclusionSlide = pptx.addSlide();
+    conclusionSlide.bkgd = primaryColor;
+    
+    // Bandeau d'accent
+    conclusionSlide.addShape('rect', {
+      x: 0,
+      y: 0,
+      w: '100%',
+      h: 0.8,
+      fill: { color: accentColor },
+    });
+    
+    // Titre
+    conclusionSlide.addText('Conclusion', {
+      x: 0.5,
+      y: 0.15,
+      w: '90%',
+      h: 0.6,
+      fontSize: 28,
+      bold: true,
+      color: 'FFFFFF',
+      align: 'center',
+    });
+    
+    // Texte de conclusion
     if (scenario.conclusion) {
-      const conclusionSlide = pptx.addSlide();
-      conclusionSlide.addText('Conclusion', {
-        x: 0.5,
-        y: 1.5,
-        w: '90%',
-        h: 1,
-        fontSize: 36,
-        bold: true,
-        color: '1E3A5F',
-        align: 'center',
-      });
       conclusionSlide.addText(scenario.conclusion, {
         x: 1,
-        y: 2.8,
+        y: 2,
         w: '80%',
-        h: 2,
-        fontSize: 18,
-        color: '475569',
+        h: 1.5,
+        fontSize: 16,
+        color: 'DCEAFF',
         align: 'center',
         valign: 'middle',
       });
     }
+    
+    // Call to action
+    if (scenario.callToAction) {
+      conclusionSlide.addText(`→ ${scenario.callToAction}`, {
+        x: 1,
+        y: 3.8,
+        w: '80%',
+        h: 0.5,
+        fontSize: 14,
+        color: 'FFC864',
+        align: 'center',
+      });
+    }
+    
+    // Remerciement
+    conclusionSlide.addText('Merci pour votre attention', {
+      x: 0.5,
+      y: 4.8,
+      w: '90%',
+      h: 0.5,
+      fontSize: 18,
+      color: 'FFFFFF',
+      align: 'center',
+    });
     
     // Retourner le PPTX en base64
     const pptxOutput = await pptx.write({ outputType: 'base64' });
@@ -957,7 +1199,53 @@ export default function PresentationConfigModal({
         }));
         
         try {
-          // Appeler l'API pour démarrer la génération vidéo
+          // Uploader les images une par une vers imgbb (évite erreur 413)
+          setGenerationState(prev => ({
+            ...prev,
+            currentStep: `Upload des ${capturedImages.length} images pour la vidéo...`,
+            progress: 89,
+          }));
+          
+          const imageUrls: Record<string, string> = {};
+          
+          for (let i = 0; i < capturedImages.length; i++) {
+            const img = capturedImages[i];
+            console.log(`[Video] Upload image ${i + 1}/${capturedImages.length}...`);
+            
+            try {
+              const uploadResponse = await fetch('/api/presentations/upload-image-to-imgbb', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  base64Data: img.base64Data,
+                  filename: img.filename,
+                }),
+              });
+              
+              if (uploadResponse.ok) {
+                const uploadResult = await uploadResponse.json();
+                if (uploadResult.url) {
+                  imageUrls[`in_img_${i + 1}`] = uploadResult.url;
+                }
+              } else {
+                console.error(`[Video] Échec upload image ${i + 1}:`, uploadResponse.status);
+              }
+            } catch (uploadError) {
+              console.error(`[Video] Erreur upload image ${i + 1}:`, uploadError);
+            }
+          }
+          
+          if (Object.keys(imageUrls).length === 0) {
+            console.error('[Video] Aucune image uploadée');
+            throw new Error('Échec de l\'upload des images');
+          }
+          
+          console.log(`[Video] ${Object.keys(imageUrls).length} images uploadées, lancement RENDI...`);
+          
+          // Appeler l'API pour démarrer la génération vidéo (avec URLs au lieu de base64)
           const videoResponse = await fetch('/api/presentations/generate-video', {
             method: 'POST',
             headers: {
@@ -967,11 +1255,7 @@ export default function PresentationConfigModal({
             body: JSON.stringify({
               cockpitId,
               cockpitName,
-              images: capturedImages.map(img => ({
-                id: img.id,
-                base64Data: img.base64Data,
-                description: img.description,
-              })),
+              imageUrls, // URLs pré-uploadées (pas de base64)
               scenario: aiPlan.scenario,
               durationPerSlide: Math.max(3, Math.floor((currentConfig.duration || 60) / capturedImages.length)),
             }),

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.8.0';
+const APP_VERSION = '16.9.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -6607,13 +6607,32 @@ Tu dois retourner un JSON avec:
    - { "type": "change_value", "elementId": "...", "value": "...", "description": "..." }
    - { "type": "capture_screen", "domainId": "...", "elementId": "...", "description": "Capture de..." }
 
-2. "scenario": le scénario de présentation
+2. "scenario": le scénario de présentation DÉTAILLÉ et PROFESSIONNEL
    {
-     "title": "Titre",
-     "introduction": "Texte d'introduction",
-     "sections": [{ "title": "...", "content": "...", "duration": 10, "notes": "..." }],
-     "conclusion": "Texte de conclusion"
+     "title": "Titre accrocheur et descriptif",
+     "subtitle": "Sous-titre avec contexte (ex: Cockpit de supervision, date)",
+     "introduction": "Introduction de 2-3 phrases présentant le contexte, l'objectif de la présentation et ce que le spectateur va découvrir",
+     "sections": [
+       {
+         "title": "Titre de section (clair et descriptif)",
+         "content": "Description détaillée de ce qui est montré (2-4 phrases minimum)",
+         "imageIndex": 0, // Index de l'image correspondante (0-based)
+         "duration": 10, // Durée en secondes pour la vidéo
+         "transition": "fade|slide|zoom", // Type de transition
+         "highlights": ["Point clé 1", "Point clé 2"], // Points à mettre en avant
+         "notes": "Notes pour le présentateur (ce qu'il doit dire/montrer)"
+       }
+     ],
+     "conclusion": "Conclusion de 2-3 phrases résumant les points clés et invitant à l'action",
+     "callToAction": "Action ou prochaine étape suggérée"
    }
+
+   IMPORTANT pour le scénario:
+   - Chaque section doit correspondre à une capture d'écran
+   - Le contenu doit être EXPLICATIF et PÉDAGOGIQUE
+   - Utilise des verbes d'action: "Observez", "Notez", "Découvrez"
+   - Mentionne les statuts et indicateurs visibles
+   - Ajoute du contexte métier (pourquoi c'est important)
 
 3. "reusedImageIds": liste des IDs d'images existantes à réutiliser (OBLIGATOIRE si des images existantes correspondent)
 
@@ -6974,47 +6993,92 @@ Tu dois retourner un JSON structuré avec:
       }
     }
 
-    // POST /presentations/generate-video - Générer une vidéo avec RENDI
-    if (path === '/presentations/generate-video' && method === 'POST') {
-      const { cockpitId, cockpitName, images, scenario, durationPerSlide = 5 } = req.body;
+    // POST /presentations/upload-image-to-imgbb - Upload une seule image vers imgbb
+    if (path === '/presentations/upload-image-to-imgbb' && method === 'POST') {
+      const { base64Data, filename } = req.body;
       
-      if (!cockpitId || !images || images.length === 0) {
-        return res.status(400).json({ error: 'cockpitId et images sont requis' });
+      if (!base64Data) {
+        return res.status(400).json({ error: 'base64Data est requis' });
+      }
+      
+      if (!IMGBB_API_KEY) {
+        return res.status(400).json({ 
+          error: 'IMGBB_API_KEY non configurée',
+          help: 'Configurez IMGBB_API_KEY dans Vercel'
+        });
       }
       
       try {
-        console.log(`[RENDI] Démarrage génération vidéo pour ${cockpitName} avec ${images.length} images`);
+        const imgbbUrl = await uploadToImgbb(base64Data, filename || 'image');
         
-        // 1. Uploader les images vers imgbb (hébergement public gratuit)
-        const imageUrls: Record<string, string> = {};
-        
-        if (!IMGBB_API_KEY) {
-          console.error('[RENDI] IMGBB_API_KEY non configurée - impossible de générer la vidéo');
-          return res.status(400).json({ 
-            error: 'La génération vidéo nécessite une clé API imgbb. Configurez IMGBB_API_KEY dans les variables d\'environnement Vercel.',
-            help: 'Obtenez une clé gratuite sur https://api.imgbb.com/'
-          });
+        if (!imgbbUrl) {
+          return res.status(500).json({ error: 'Échec upload vers imgbb' });
         }
         
-        console.log(`[RENDI] Upload de ${images.length} images vers imgbb...`);
+        return res.json({ 
+          success: true, 
+          url: imgbbUrl,
+        });
+      } catch (error: any) {
+        console.error('Erreur upload imgbb:', error);
+        return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // POST /presentations/generate-video - Générer une vidéo avec RENDI
+    // Accepte soit des URLs déjà uploadées, soit des base64 (qui seront uploadées ici)
+    if (path === '/presentations/generate-video' && method === 'POST') {
+      const { cockpitId, cockpitName, images, imageUrls: preUploadedUrls, scenario, durationPerSlide = 5 } = req.body;
+      
+      // Accepter soit des images avec URL, soit des URLs pré-uploadées
+      const hasImages = images && images.length > 0;
+      const hasUrls = preUploadedUrls && Object.keys(preUploadedUrls).length > 0;
+      
+      if (!cockpitId || (!hasImages && !hasUrls)) {
+        return res.status(400).json({ error: 'cockpitId et (images ou imageUrls) sont requis' });
+      }
+      
+      try {
+        const imageCount = hasUrls ? Object.keys(preUploadedUrls).length : images.length;
+        console.log(`[RENDI] Démarrage génération vidéo pour ${cockpitName} avec ${imageCount} images`);
         
-        for (let i = 0; i < images.length; i++) {
-          const image = images[i];
-          const filename = `video_frame_${i + 1}.png`;
-          
-          const imgbbUrl = await uploadToImgbb(image.base64Data, filename);
-          
-          if (!imgbbUrl) {
-            console.error(`[RENDI] Échec upload image ${i + 1}`);
-            return res.status(500).json({ 
-              error: `Échec de l'upload de l'image ${i + 1} vers imgbb`,
+        // Utiliser les URLs pré-uploadées ou uploader les base64
+        let imageUrls: Record<string, string> = {};
+        
+        if (hasUrls) {
+          // Les URLs sont déjà fournies (uploadées côté client)
+          imageUrls = preUploadedUrls;
+          console.log(`[RENDI] Utilisation de ${Object.keys(imageUrls).length} URLs pré-uploadées`);
+        } else {
+          // Upload des base64 vers imgbb (ancien comportement)
+          if (!IMGBB_API_KEY) {
+            console.error('[RENDI] IMGBB_API_KEY non configurée - impossible de générer la vidéo');
+            return res.status(400).json({ 
+              error: 'La génération vidéo nécessite une clé API imgbb. Configurez IMGBB_API_KEY dans les variables d\'environnement Vercel.',
+              help: 'Obtenez une clé gratuite sur https://api.imgbb.com/'
             });
           }
           
-          imageUrls[`in_img_${i + 1}`] = imgbbUrl;
+          console.log(`[RENDI] Upload de ${images.length} images vers imgbb...`);
+          
+          for (let i = 0; i < images.length; i++) {
+            const image = images[i];
+            const filename = `video_frame_${i + 1}.jpg`;
+            
+            const imgbbUrl = await uploadToImgbb(image.base64Data || image.url, filename);
+            
+            if (!imgbbUrl) {
+              console.error(`[RENDI] Échec upload image ${i + 1}`);
+              return res.status(500).json({ 
+                error: `Échec de l'upload de l'image ${i + 1} vers imgbb`,
+              });
+            }
+            
+            imageUrls[`in_img_${i + 1}`] = imgbbUrl;
+          }
+          
+          console.log(`[RENDI] ${images.length} images uploadées vers imgbb`);
         }
-        
-        console.log(`[RENDI] ${images.length} images uploadées vers imgbb`);
         
         // 2. Construire la commande FFmpeg
         // Format: -loop 1 -t {duration} -i {{in_img_1}} -loop 1 -t {duration} -i {{in_img_2}} ...
