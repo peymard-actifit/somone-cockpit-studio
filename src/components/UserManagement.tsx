@@ -31,6 +31,20 @@ interface UserManagementProps {
   onClose: () => void;
 }
 
+// Fonction pour récupérer le token depuis le storage Zustand
+function getAuthToken(): string | null {
+  try {
+    const stored = localStorage.getItem('cockpit-auth');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed?.state?.token || null;
+    }
+  } catch {
+    console.error('Erreur lecture token');
+  }
+  return null;
+}
+
 export default function UserManagement({ onClose }: UserManagementProps) {
   const { user: currentUser, fetchUsers, createUser, updateUser, deleteUser, generateResetToken, isLoading, error, clearError } = useAuthStore();
   
@@ -73,7 +87,11 @@ export default function UserManagement({ onClose }: UserManagementProps) {
 
   const loadAdminCode = async () => {
     try {
-      const token = localStorage.getItem('somone-cockpit-token');
+      const token = getAuthToken();
+      if (!token) {
+        console.warn('Pas de token disponible pour charger le code admin');
+        return;
+      }
       const response = await fetch('/api/admin/code', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -99,7 +117,11 @@ export default function UserManagement({ onClose }: UserManagementProps) {
     
     setAdminCodeLoading(true);
     try {
-      const token = localStorage.getItem('somone-cockpit-token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Session non disponible. Veuillez vous reconnecter.');
+        return;
+      }
       const response = await fetch('/api/admin/code', {
         method: 'PUT',
         headers: {
