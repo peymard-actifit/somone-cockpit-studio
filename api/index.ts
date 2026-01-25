@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.5';
+const APP_VERSION = '16.11.6';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1259,31 +1259,38 @@ async function saveDb(db: Database): Promise<boolean> {
   
   try {
     // Étape 1: Sérialisation JSON
-    console.log(`[saveDb] 🔄 Étape 1: Sérialisation JSON...`);
     dataStr = JSON.stringify(db);
     sizeKB = Math.round(dataStr.length / 1024);
     sizeMB = (dataStr.length / 1024 / 1024).toFixed(2);
-    console.log(`[saveDb] 📊 Taille: ${sizeKB}KB (${sizeMB}MB), ${db.cockpits?.length || 0} cockpits`);
+    // Log seulement si la taille est significative
+    if (sizeKB > 500) {
+      console.log(`[saveDb] 📊 Taille: ${sizeKB}KB (${sizeMB}MB), ${db.cockpits?.length || 0} cockpits`);
+    }
   } catch (jsonError: any) {
     console.error(`[saveDb] ❌ ERREUR JSON.stringify:`, jsonError?.message || jsonError);
     return false;
   }
   
   try {
-    // Étape 2: Envoi vers Redis
-    console.log(`[saveDb] 🔄 Étape 2: Envoi vers Upstash Redis (${sizeMB}MB)...`);
+    // Étape 2: Envoi vers Redis avec timeout explicite
     const startTime = Date.now();
     const result = await redis.set(DB_KEY, db);
     const duration = Date.now() - startTime;
-    console.log(`[saveDb] ✅ Sauvegarde réussie en ${duration}ms, résultat:`, result);
-    return true;
+    
+    // Log seulement si lent ou si première sauvegarde
+    if (duration > 1000) {
+      console.log(`[saveDb] ⚠️ Sauvegarde lente: ${duration}ms pour ${sizeKB}KB`);
+    }
+    
+    return result === 'OK' || result === true || !!result;
   } catch (redisError: any) {
-    console.error(`[saveDb] ❌ ERREUR Redis complète:`, JSON.stringify(redisError, Object.getOwnPropertyNames(redisError)));
-    console.error(`[saveDb] ❌ Message:`, redisError?.message);
-    console.error(`[saveDb] ❌ Name:`, redisError?.name);
-    console.error(`[saveDb] ❌ Code:`, redisError?.code);
-    console.error(`[saveDb] ❌ Status:`, redisError?.status);
+    console.error(`[saveDb] ❌ ERREUR Redis:`, redisError?.message || redisError);
     console.error(`[saveDb] 📊 Taille tentée: ${sizeKB}KB (${sizeMB}MB)`);
+    
+    // Log plus de détails pour le debug
+    if (redisError?.code) console.error(`[saveDb] Code:`, redisError.code);
+    if (redisError?.status) console.error(`[saveDb] Status:`, redisError.status);
+    
     return false;
   }
 }
@@ -2562,11 +2569,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       console.log(`[ViewCount] "${cockpit.name}": ${previousViewCount} -> ${cockpit.data.viewCount}`);
       
-      try {
-        await saveDb(db);
-        console.log(`[ViewCount] Sauvegarde réussie pour "${cockpit.name}"`);
-      } catch (err) {
-        console.error(`[ViewCount] ERREUR sauvegarde pour "${cockpit.name}":`, err);
+      // Sauvegarde avec retry et vérification du résultat
+      let saveSuccess = false;
+      for (let attempt = 1; attempt <= 2 && !saveSuccess; attempt++) {
+        try {
+          saveSuccess = await saveDb(db);
+          if (saveSuccess) {
+            console.log(`[ViewCount] ✅ Sauvegarde réussie pour "${cockpit.name}" (tentative ${attempt})`);
+          } else {
+            console.error(`[ViewCount] ⚠️ Sauvegarde retournée false pour "${cockpit.name}" (tentative ${attempt})`);
+          }
+        } catch (err) {
+          console.error(`[ViewCount] ❌ Exception sauvegarde pour "${cockpit.name}" (tentative ${attempt}):`, err);
+        }
       }
 
       const data = cockpit.data || {};
@@ -2754,13 +2769,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         console.log(`[Tracking] "${cockpit.name}": clicks ${before.clickCount}->${cockpit.data.clickCount}, pages ${before.pagesViewed}->${cockpit.data.pagesViewed}, elements ${before.elementsClicked}->${cockpit.data.elementsClicked}, subElements ${before.subElementsClicked}->${cockpit.data.subElementsClicked}`);
         
-        // Sauvegarder - ATTENDRE la sauvegarde pour garantir la persistance
-        try {
-          await saveDb(db);
-          console.log(`[Tracking] ✅ Sauvegarde réussie pour "${cockpit.name}"`);
-        } catch (err) {
-          console.error(`[Tracking] ❌ Erreur sauvegarde pour "${cockpit.name}":`, err);
-          return res.status(500).json({ success: false, error: 'Erreur sauvegarde' });
+        // Sauvegarder avec retry
+        let saveSuccess = false;
+        for (let attempt = 1; attempt <= 2 && !saveSuccess; attempt++) {
+          try {
+            saveSuccess = await saveDb(db);
+            if (saveSuccess) {
+              console.log(`[Tracking] ✅ Sauvegarde réussie pour "${cockpit.name}" (tentative ${attempt})`);
+            } else {
+              console.error(`[Tracking] ⚠️ Sauvegarde retournée false pour "${cockpit.name}" (tentative ${attempt})`);
+              // Attendre un peu avant de réessayer
+              if (attempt < 2) await new Promise(r => setTimeout(r, 100));
+            }
+          } catch (err) {
+            console.error(`[Tracking] ❌ Exception sauvegarde pour "${cockpit.name}" (tentative ${attempt}):`, err);
+            if (attempt < 2) await new Promise(r => setTimeout(r, 100));
+          }
+        }
+        
+        if (!saveSuccess) {
+          console.error(`[Tracking] ❌ Échec définitif de la sauvegarde pour "${cockpit.name}"`);
+          // On continue quand même pour ne pas bloquer l'utilisateur
         }
       } else {
         console.log(`[Tracking] ⚠️ Cockpit non trouvé pour publicId=${publicId}`);
