@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.1';
+const APP_VERSION = '16.11.2';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1793,6 +1793,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         userToUpdate.email = email || undefined;
       }
 
+      // S'assurer que userType est défini (migration des anciens utilisateurs)
+      const currentUserType = userToUpdate.userType || (userToUpdate.isAdmin ? 'admin' : 'standard');
+      if (!userToUpdate.userType) {
+        userToUpdate.userType = currentUserType;
+        console.log(`[Users] Migration userType pour ${userToUpdate.username}: ${currentUserType}`);
+      }
+
       const validUserTypes: UserType[] = ['admin', 'standard', 'client'];
       if (userType && validUserTypes.includes(userType)) {
         userToUpdate.userType = userType;
@@ -1805,16 +1812,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } else {
           userToUpdate.canBecomeAdmin = undefined;
         }
-      } else if (canBecomeAdmin !== undefined && userToUpdate.userType === 'standard') {
+      } else if (canBecomeAdmin !== undefined && currentUserType === 'standard') {
         // Mise à jour explicite de canBecomeAdmin pour un utilisateur standard
-        userToUpdate.canBecomeAdmin = canBecomeAdmin === true ? true : false;
-        console.log(`[Users] canBecomeAdmin mis à jour: ${userToUpdate.username} -> ${userToUpdate.canBecomeAdmin}`);
+        // canBecomeAdmin peut être true ou false
+        userToUpdate.canBecomeAdmin = canBecomeAdmin;
+        console.log(`[Users] canBecomeAdmin mis à jour pour ${userToUpdate.username}: ${canBecomeAdmin}`);
       }
 
       await saveDb(db);
 
       // Retourner avec canBecomeAdmin explicite pour les utilisateurs standard
-      const finalUserType = userToUpdate.userType;
+      const finalUserType = userToUpdate.userType || 'standard';
+      const finalCanBecomeAdmin = finalUserType === 'standard' ? (userToUpdate.canBecomeAdmin === false ? false : true) : undefined;
+      
+      console.log(`[Users] Réponse mise à jour pour ${userToUpdate.username}: userType=${finalUserType}, canBecomeAdmin=${finalCanBecomeAdmin}`);
+      
       return res.json({
         user: {
           id: userToUpdate.id,
@@ -1823,7 +1835,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           email: userToUpdate.email,
           isAdmin: userToUpdate.isAdmin,
           userType: finalUserType,
-          canBecomeAdmin: finalUserType === 'standard' ? (userToUpdate.canBecomeAdmin === false ? false : true) : undefined,
+          canBecomeAdmin: finalCanBecomeAdmin,
           createdAt: userToUpdate.createdAt
         }
       });

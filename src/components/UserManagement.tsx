@@ -102,13 +102,25 @@ export default function UserManagement({ onClose }: UserManagementProps) {
     if (formData.email !== (editingUser.email || '')) {
       updateData.email = formData.email;
     }
-    if (formData.userType !== editingUser.userType) {
+    
+    // Déterminer le type effectif (pour les anciens utilisateurs sans userType)
+    const effectiveEditingUserType = editingUser.userType || (editingUser.isAdmin ? 'admin' : 'standard');
+    
+    if (formData.userType !== effectiveEditingUserType) {
       updateData.userType = formData.userType;
     }
+    
+    // Toujours envoyer canBecomeAdmin si l'utilisateur est/sera standard
     if (formData.userType === 'standard') {
-      updateData.canBecomeAdmin = formData.canBecomeAdmin;
+      // Envoyer canBecomeAdmin si la valeur a changé ou si on met à jour un utilisateur standard
+      const previousCanBecomeAdmin = editingUser.canBecomeAdmin !== false;
+      if (formData.canBecomeAdmin !== previousCanBecomeAdmin || effectiveEditingUserType === 'standard') {
+        updateData.canBecomeAdmin = formData.canBecomeAdmin;
+        console.log(`[UserManagement] Envoi canBecomeAdmin: ${formData.canBecomeAdmin}`);
+      }
     }
     
+    console.log(`[UserManagement] updateData:`, updateData);
     const updatedUser = await updateUser(editingUser.id, updateData);
     
     if (updatedUser) {
@@ -152,12 +164,14 @@ export default function UserManagement({ onClose }: UserManagementProps) {
 
   const openEditModal = (user: UserListItem) => {
     setEditingUser(user);
+    // S'assurer que userType a une valeur (migration des anciens utilisateurs)
+    const effectiveUserType = user.userType || (user.isAdmin ? 'admin' : 'standard');
     setFormData({
       username: user.username,
       password: '',
       name: user.name || '',
       email: user.email || '',
-      userType: user.userType,
+      userType: effectiveUserType,
       canBecomeAdmin: user.canBecomeAdmin !== false
     });
   };
@@ -257,7 +271,8 @@ export default function UserManagement({ onClose }: UserManagementProps) {
                       </span>
                     </td>
                     <td className="py-3">
-                      {user.userType === 'standard' && (
+                      {/* Afficher pour les utilisateurs standard (ou sans type défini et non-admin) */}
+                      {(user.userType === 'standard' || (!user.userType && !user.isAdmin)) && (
                         <span className={`text-xs ${user.canBecomeAdmin !== false ? 'text-green-600' : 'text-red-600'}`}>
                           {user.canBecomeAdmin !== false ? '✓ Peut devenir admin' : '✗ Admin bloqué'}
                         </span>
