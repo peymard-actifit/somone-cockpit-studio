@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.2';
+const APP_VERSION = '16.11.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -5318,9 +5318,9 @@ INSTRUCTIONS:
         };
       }).sort((a, b) => b.cockpitsCount - a.cockpitsCount) || [];
 
-      // Top cockpits par consultations
+      // Top cockpits par consultations - TOUTES les maquettes publiées (pas seulement celles avec des vues)
       const topCockpits = db.cockpits
-        ?.filter(c => c.data?.isPublished && (c.data?.viewCount || 0) > 0)
+        ?.filter(c => c.data?.isPublished)
         .map(c => {
           const owner = db.users?.find(u => u.id === c.userId);
           // Compter les éléments et sous-éléments
@@ -5339,7 +5339,7 @@ INSTRUCTIONS:
           return {
             id: c.id,
             name: c.name,
-            ownerName: owner?.name || owner?.email || 'Inconnu',
+            ownerName: owner?.name || owner?.username || 'Inconnu',
             views: c.data?.viewCount || 0,
             clicks: c.data?.clickCount || 0,
             pagesViewed: c.data?.pagesViewed || 0,
@@ -5351,7 +5351,7 @@ INSTRUCTIONS:
           };
         })
         .sort((a, b) => b.views - a.views)
-        .slice(0, 10) || [];
+        .slice(0, 20) || []; // Augmenté à 20 pour voir plus de maquettes
 
       // Activité récente (basée sur les mises à jour récentes)
       const recentActivity = db.cockpits

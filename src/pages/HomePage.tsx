@@ -2373,24 +2373,28 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* Top maquettes consultées */}
+                  {/* Top maquettes publiées */}
                   <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-700/30">
                       <h4 className="font-medium text-white flex items-center gap-2">
                         <MuiIcon name="TrendingUp" size={18} className="text-amber-400" />
-                        Top maquettes les plus consultées
+                        Maquettes publiées
+                        <span className="text-xs text-slate-400 font-normal">
+                          ({dashboardStats.topCockpits?.length || 0} publiées / {dashboardStats.totalCockpits || 0} total)
+                        </span>
                       </h4>
                     </div>
-                    <div className="divide-y divide-slate-700/50 max-h-60 overflow-y-auto">
+                    <div className="divide-y divide-slate-700/50 max-h-72 overflow-y-auto">
                       {dashboardStats.topCockpits && dashboardStats.topCockpits.length > 0 ? (
                         dashboardStats.topCockpits.map((cockpit: any, index: number) => (
                           <div key={cockpit.id} className="px-3 py-2 flex items-center justify-between hover:bg-slate-700/30 gap-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
-                                index === 0 ? 'bg-amber-500 text-white' :
-                                index === 1 ? 'bg-slate-400 text-white' :
-                                index === 2 ? 'bg-amber-700 text-white' :
-                                'bg-slate-600 text-slate-300'
+                                cockpit.views > 0 && index === 0 ? 'bg-amber-500 text-white' :
+                                cockpit.views > 0 && index === 1 ? 'bg-slate-400 text-white' :
+                                cockpit.views > 0 && index === 2 ? 'bg-amber-700 text-white' :
+                                cockpit.views > 0 ? 'bg-slate-600 text-slate-300' :
+                                'bg-slate-700 text-slate-500'
                               }`}>
                                 {index + 1}
                               </div>
@@ -2399,8 +2403,10 @@ export default function HomePage() {
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0 text-[10px]">
                               <div className="flex items-center gap-1" title="Vues">
-                                <MuiIcon name="Visibility" size={12} className="text-slate-500" />
-                                <span className="font-medium text-amber-400">{cockpit.views}</span>
+                                <MuiIcon name="Visibility" size={12} className={cockpit.views > 0 ? "text-slate-500" : "text-slate-700"} />
+                                <span className={`font-medium ${cockpit.views > 0 ? 'text-amber-400' : 'text-slate-600'}`}>
+                                  {cockpit.views || 0}
+                                </span>
                               </div>
                               <div className="flex items-center gap-1" title="Clics totaux (éléments + sous-éléments)">
                                 <MuiIcon name="TouchApp" size={12} className="text-slate-500" />
@@ -2423,7 +2429,7 @@ export default function HomePage() {
                         ))
                       ) : (
                         <div className="px-4 py-6 text-center text-slate-500 text-sm">
-                          Aucune consultation enregistrée
+                          Aucune maquette publiée
                         </div>
                       )}
                     </div>
