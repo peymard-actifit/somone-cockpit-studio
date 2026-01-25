@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.3';
+const APP_VERSION = '16.11.4';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -5296,11 +5296,19 @@ INSTRUCTIONS:
 
       const db = await getDb();
       
+      // DEBUG: Log tous les cockpits avec leur statut
+      console.log(`[STATS] Nombre total de cockpits dans la base: ${db.cockpits?.length || 0}`);
+      db.cockpits?.forEach((c, i) => {
+        console.log(`[STATS] Cockpit ${i + 1}: "${c.name}" - isPublished: ${c.data?.isPublished}, viewCount: ${c.data?.viewCount || 0}, publicId: ${c.data?.publicId || 'none'}`);
+      });
+      
       // Statistiques globales
       const totalUsers = db.users?.length || 0;
       const totalCockpits = db.cockpits?.length || 0;
       const publishedCockpits = db.cockpits?.filter(c => c.data?.isPublished).length || 0;
       const totalViews = db.cockpits?.reduce((sum, c) => sum + (c.data?.viewCount || 0), 0) || 0;
+      
+      console.log(`[STATS] Résumé: ${totalUsers} users, ${totalCockpits} cockpits, ${publishedCockpits} publiés, ${totalViews} vues totales`);
 
       // Statistiques par utilisateur
       const userStats = db.users?.map(user => {
@@ -5318,10 +5326,9 @@ INSTRUCTIONS:
         };
       }).sort((a, b) => b.cockpitsCount - a.cockpitsCount) || [];
 
-      // Top cockpits par consultations - TOUTES les maquettes publiées (pas seulement celles avec des vues)
-      const topCockpits = db.cockpits
-        ?.filter(c => c.data?.isPublished)
-        .map(c => {
+      // TOUTES les maquettes (publiées ou non) pour le diagnostic
+      const allCockpitsStats = db.cockpits
+        ?.map(c => {
           const owner = db.users?.find(u => u.id === c.userId);
           // Compter les éléments et sous-éléments
           let elementsCount = 0;
@@ -5348,10 +5355,19 @@ INSTRUCTIONS:
             elementsCount,
             subElementsCount,
             publishedAt: c.data?.publishedAt,
+            isPublished: c.data?.isPublished || false,
+            publicId: c.data?.publicId || null,
           };
         })
-        .sort((a, b) => b.views - a.views)
-        .slice(0, 20) || []; // Augmenté à 20 pour voir plus de maquettes
+        .sort((a, b) => {
+          // D'abord les publiés, puis par vues
+          if (a.isPublished && !b.isPublished) return -1;
+          if (!a.isPublished && b.isPublished) return 1;
+          return b.views - a.views;
+        }) || [];
+
+      // topCockpits = seulement les publiés pour compatibilité
+      const topCockpits = allCockpitsStats.filter(c => c.isPublished).slice(0, 30);
 
       // Activité récente (basée sur les mises à jour récentes)
       const recentActivity = db.cockpits
@@ -5425,6 +5441,7 @@ INSTRUCTIONS:
         totalViews,
         userStats,
         topCockpits,
+        allCockpitsStats, // Toutes les maquettes pour debug
         recentActivity: allActivity,
       });
     }

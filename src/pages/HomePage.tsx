@@ -2373,33 +2373,39 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* Top maquettes publiées */}
+                  {/* Toutes les maquettes (publiées et non publiées) */}
                   <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-700/30">
                       <h4 className="font-medium text-white flex items-center gap-2">
                         <MuiIcon name="TrendingUp" size={18} className="text-amber-400" />
-                        Maquettes publiées
+                        Toutes les maquettes
                         <span className="text-xs text-slate-400 font-normal">
-                          ({dashboardStats.topCockpits?.length || 0} publiées / {dashboardStats.totalCockpits || 0} total)
+                          ({dashboardStats.publishedCockpits || 0} publiées / {dashboardStats.totalCockpits || 0} total)
                         </span>
                       </h4>
                     </div>
-                    <div className="divide-y divide-slate-700/50 max-h-72 overflow-y-auto">
-                      {dashboardStats.topCockpits && dashboardStats.topCockpits.length > 0 ? (
-                        dashboardStats.topCockpits.map((cockpit: any, index: number) => (
-                          <div key={cockpit.id} className="px-3 py-2 flex items-center justify-between hover:bg-slate-700/30 gap-2">
+                    <div className="divide-y divide-slate-700/50 max-h-80 overflow-y-auto">
+                      {dashboardStats.allCockpitsStats && dashboardStats.allCockpitsStats.length > 0 ? (
+                        dashboardStats.allCockpitsStats.map((cockpit: any, index: number) => (
+                          <div key={cockpit.id} className={`px-3 py-2 flex items-center justify-between hover:bg-slate-700/30 gap-2 ${!cockpit.isPublished ? 'opacity-60' : ''}`}>
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
-                                cockpit.views > 0 && index === 0 ? 'bg-amber-500 text-white' :
-                                cockpit.views > 0 && index === 1 ? 'bg-slate-400 text-white' :
-                                cockpit.views > 0 && index === 2 ? 'bg-amber-700 text-white' :
-                                cockpit.views > 0 ? 'bg-slate-600 text-slate-300' :
+                                cockpit.isPublished && cockpit.views > 0 && index === 0 ? 'bg-amber-500 text-white' :
+                                cockpit.isPublished && cockpit.views > 0 && index === 1 ? 'bg-slate-400 text-white' :
+                                cockpit.isPublished && cockpit.views > 0 && index === 2 ? 'bg-amber-700 text-white' :
+                                cockpit.isPublished ? 'bg-green-600 text-white' :
                                 'bg-slate-700 text-slate-500'
                               }`}>
                                 {index + 1}
                               </div>
                               <div className="truncate text-xs font-medium text-white" title={cockpit.name}>{cockpit.name}</div>
                               <div className="text-[10px] text-slate-500 truncate" title={cockpit.ownerName}>({cockpit.ownerName})</div>
+                              {/* Badge de statut */}
+                              {cockpit.isPublished ? (
+                                <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[9px] rounded font-medium">Publiée</span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 bg-slate-600/50 text-slate-400 text-[9px] rounded font-medium">Non publiée</span>
+                              )}
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0 text-[10px]">
                               <div className="flex items-center gap-1" title="Vues">
@@ -2416,20 +2422,20 @@ export default function HomePage() {
                                 <MuiIcon name="Tab" size={12} className="text-slate-500" />
                                 <span className="text-slate-300">{cockpit.pagesViewed || 0}</span>
                               </div>
-                              <div className="flex items-center gap-1" title={`Éléments cliqués / ${cockpit.elementsCount || 0} total`}>
+                              <div className="flex items-center gap-1" title={`Éléments: ${cockpit.elementsCount || 0}`}>
                                 <MuiIcon name="Widgets" size={12} className="text-slate-500" />
-                                <span className="text-blue-400">{cockpit.elementsClicked || 0}</span>
+                                <span className="text-blue-400">{cockpit.elementsClicked || 0}/{cockpit.elementsCount || 0}</span>
                               </div>
-                              <div className="flex items-center gap-1" title={`Sous-éléments cliqués / ${cockpit.subElementsCount || 0} total`}>
+                              <div className="flex items-center gap-1" title={`Sous-éléments: ${cockpit.subElementsCount || 0}`}>
                                 <MuiIcon name="GridView" size={12} className="text-slate-500" />
-                                <span className="text-purple-400">{cockpit.subElementsClicked || 0}</span>
+                                <span className="text-purple-400">{cockpit.subElementsClicked || 0}/{cockpit.subElementsCount || 0}</span>
                               </div>
                             </div>
                           </div>
                         ))
                       ) : (
                         <div className="px-4 py-6 text-center text-slate-500 text-sm">
-                          Aucune maquette publiée
+                          Aucune maquette trouvée
                         </div>
                       )}
                     </div>
