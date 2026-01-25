@@ -89,8 +89,9 @@ export default function UserManagement({ onClose }: UserManagementProps) {
   };
 
   const saveAdminCode = async () => {
-    if (!adminCode || adminCode.trim().length < 4) {
-      alert('Le code doit contenir au moins 4 caractères');
+    // Si un code est saisi, il doit faire au moins 4 caractères
+    if (adminCode.trim() && adminCode.trim().length < 4) {
+      alert('Le code personnalisé doit contenir au moins 4 caractères (ou être vide pour utiliser uniquement le code par défaut)');
       return;
     }
     
@@ -278,15 +279,18 @@ export default function UserManagement({ onClose }: UserManagementProps) {
           </div>
           
           {/* Code admin */}
-          <div className="flex items-center gap-2 flex-1 max-w-md">
-            <label className="text-xs text-slate-500 whitespace-nowrap">Code passage admin :</label>
+          <div className="flex items-center gap-2 flex-1 max-w-lg">
+            <div className="flex items-center gap-1" title="Le code par défaut (12411241) fonctionne toujours. Vous pouvez définir un code personnalisé supplémentaire.">
+              <label className="text-xs text-slate-500 whitespace-nowrap">Code personnalisé :</label>
+              <MuiIcon name="HelpOutline" size={12} className="text-slate-400" />
+            </div>
             <div className="relative flex-1">
               <input
                 type="text"
                 value={adminCode}
                 onChange={(e) => setAdminCode(e.target.value)}
                 className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                placeholder="Code secret"
+                placeholder="Code additionnel (optionnel)"
               />
             </div>
             <button
@@ -297,7 +301,7 @@ export default function UserManagement({ onClose }: UserManagementProps) {
                   ? 'bg-green-500 text-white' 
                   : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
               }`}
-              title="Enregistrer le code"
+              title="Enregistrer le code personnalisé"
             >
               {adminCodeLoading ? (
                 <MuiIcon name="HourglassEmpty" size={14} className="animate-spin" />
@@ -307,6 +311,9 @@ export default function UserManagement({ onClose }: UserManagementProps) {
                 <MuiIcon name="Save" size={14} />
               )}
             </button>
+            <span className="text-[10px] text-slate-400 whitespace-nowrap" title="Code par défaut toujours actif">
+              + défaut
+            </span>
           </div>
           
           <button

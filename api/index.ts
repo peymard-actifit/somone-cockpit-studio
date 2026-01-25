@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.8';
+const APP_VERSION = '16.11.9';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1630,10 +1630,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Sinon, nécessite le code pour activer le mode admin
-      // Code stocké en DB ou fallback sur variable d'environnement ou valeur par défaut
-      const ADMIN_CODE = db.adminCode || process.env.ADMIN_CODE || '12411241';
+      // Deux codes sont acceptés :
+      // 1. Le code par défaut hardcodé (toujours valide)
+      // 2. Le code personnalisé éditable par les admins (si défini)
+      const DEFAULT_CODE = '12411241';
+      const customCode = db.adminCode || process.env.ADMIN_CODE;
+      
+      // Accepter le code par défaut OU le code personnalisé
+      const isValidCode = code === DEFAULT_CODE || (customCode && code === customCode);
 
-      if (code !== ADMIN_CODE) {
+      if (!isValidCode) {
         return res.status(403).json({ error: 'Code administrateur incorrect' });
       }
 
@@ -1669,9 +1675,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
       }
 
-      // Retourner le code actuel (DB > env > défaut)
-      const adminCode = db.adminCode || process.env.ADMIN_CODE || '12411241';
-      return res.json({ adminCode });
+      // Retourner le code personnalisé actuel (DB > env) - pas le code par défaut
+      // Le code par défaut (12411241) fonctionne toujours en plus du code personnalisé
+      const adminCode = db.adminCode || process.env.ADMIN_CODE || '';
+      return res.json({ 
+        adminCode,
+        hasCustomCode: !!adminCode,
+        info: 'Le code par défaut (12411241) fonctionne toujours en plus du code personnalisé'
+      });
     }
 
     // Modifier le code admin
@@ -1697,11 +1708,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const { adminCode } = req.body;
 
-      if (!adminCode || typeof adminCode !== 'string' || adminCode.trim().length < 4) {
-        return res.status(400).json({ error: 'Le code doit contenir au moins 4 caractères' });
+      // Le code peut être vide (pour supprimer le code personnalisé) ou avoir au moins 4 caractères
+      if (adminCode && typeof adminCode === 'string' && adminCode.trim().length > 0 && adminCode.trim().length < 4) {
+        return res.status(400).json({ error: 'Le code personnalisé doit contenir au moins 4 caractères (ou être vide)' });
       }
 
-      db.adminCode = adminCode.trim();
+      // Stocker le code personnalisé (ou vide pour le supprimer)
+      db.adminCode = adminCode && typeof adminCode === 'string' ? adminCode.trim() : '';
       await saveDb(db);
 
       console.log(`[Admin] Code admin modifié par ${currentUser.username}`);
