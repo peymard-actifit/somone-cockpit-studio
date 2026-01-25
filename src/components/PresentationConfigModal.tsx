@@ -1932,7 +1932,7 @@ export default function PresentationConfigModal({
             </div>
 
             {/* Zone de prompt */}
-            <div className="flex-1 p-4 overflow-hidden flex flex-col">
+            <div className="p-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Instructions pour l'IA
               </label>
@@ -1944,10 +1944,10 @@ export default function PresentationConfigModal({
 
 Exemples:
 - "Créer une présentation commerciale de 10 slides présentant l'état de supervision de notre infrastructure."
-- "Générer une démo montrant les alertes critiques et leur résolution. Change les statuts des éléments pour simuler des incidents."
+- "Générer une démo montrant les alertes critiques et leur résolution."
 - "Produire un rapport PDF avec toutes les métriques clés par domaine."
-- "Faire une démonstration du passage d'un état OK à un état critique sur le domaine Réseau."`}
-                className="flex-1 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none font-mono text-sm disabled:bg-gray-100"
+- "Faire une démonstration du passage d'un état OK à un état critique."`}
+                className="w-full h-40 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-y font-mono text-sm disabled:bg-gray-100"
               />
             </div>
 
