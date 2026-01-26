@@ -31,25 +31,23 @@ export function useContextualHelp() {
   return context;
 }
 
-// Fonction pour obtenir la clé d'aide au survol (très limitée pour précision)
-// Ne remonte que de 2 niveaux max - l'élément survolé et son parent direct
+// Fonction pour obtenir la clé d'aide au survol
+// Remonte jusqu'à 8 niveaux pour trouver un data-help-key
 function getHoverHelpKey(element: HTMLElement): string | null {
-  // Vérifier l'élément lui-même
-  const helpKey = element.getAttribute('data-help-key');
-  if (helpKey) {
-    return helpKey;
-  }
+  let current: HTMLElement | null = element;
+  let levels = 0;
+  const maxLevels = 8; // Remonter jusqu'à 8 niveaux
   
-  // Vérifier le parent direct uniquement
-  const parent = element.parentElement;
-  if (parent) {
-    const parentKey = parent.getAttribute('data-help-key');
-    if (parentKey) {
-      return parentKey;
+  while (current && levels < maxLevels) {
+    const helpKey = current.getAttribute('data-help-key');
+    if (helpKey) {
+      return helpKey;
     }
+    current = current.parentElement;
+    levels++;
   }
   
-  return null; // Pas de clé trouvée sur l'élément ou son parent direct
+  return null; // Pas de clé trouvée
 }
 
 // Fonction pour générer une clé contextuelle à partir d'un élément DOM (pour le clic droit)
@@ -396,7 +394,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
           y: event.clientY + 15
         });
       }
-    }, 500); // 500ms delay before showing tooltip
+    }, 300); // 300ms delay before showing tooltip
   }, [isOpen, checkHelpExists, hoverTooltip]);
 
   // Hide tooltip on mouse leave document
