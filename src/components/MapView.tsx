@@ -1293,28 +1293,30 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         onMouseEnter={() => _readOnly && setIsRightControlsHovered(true)}
         onMouseLeave={() => _readOnly && setIsRightControlsHovered(false)}
       >
-        {/* Zone de drag (handle) - seulement en mode studio */}
-        {!_readOnly && (
-          <div 
-            className="flex items-center justify-center gap-1 bg-slate-100 rounded-t-xl border border-b-0 border-[#E2E8F0] px-2 py-1 cursor-grab hover:bg-slate-200 transition-colors"
-            onMouseDown={handleControlPanelDragStart}
-            title="Glisser pour déplacer le panneau"
-          >
-            <MuiIcon name="DragIndicator" size={14} className="text-slate-400" />
-            {controlPanelPosition && (
-              <button
-                onClick={(e) => { e.stopPropagation(); resetControlPanelPosition(); }}
-                className="p-0.5 hover:bg-slate-300 rounded text-slate-400 hover:text-slate-600"
-                title="Réinitialiser la position"
-              >
-                <MuiIcon name="RestartAlt" size={12} />
-              </button>
-            )}
-          </div>
-        )}
-        
-        {/* Contrôles de zoom */}
-        <div className={`flex flex-col gap-1 bg-white ${_readOnly ? 'rounded-xl' : 'rounded-b-xl rounded-t-none -mt-3'} border border-[#E2E8F0] shadow-md overflow-hidden`}>
+        {/* Contrôles de zoom avec handle de drag intégré en mode studio */}
+        <div className={`flex flex-col bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden`}>
+          {/* Handle de drag - seulement en mode studio */}
+          {!_readOnly && (
+            <div 
+              className="flex items-center justify-center gap-1 bg-[#1E3A5F] px-2 py-1.5 cursor-grab hover:bg-[#2a4a6f] active:cursor-grabbing transition-colors"
+              onMouseDown={handleControlPanelDragStart}
+              title="Glisser pour déplacer le panneau"
+            >
+              <MuiIcon name="DragIndicator" size={16} className="text-white/70" />
+              <span className="text-[10px] text-white/60 font-medium">DÉPLACER</span>
+              {controlPanelPosition && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); resetControlPanelPosition(); }}
+                  className="p-0.5 hover:bg-white/20 rounded text-white/50 hover:text-white ml-1"
+                  title="Réinitialiser la position"
+                >
+                  <MuiIcon name="RestartAlt" size={12} />
+                </button>
+              )}
+            </div>
+          )}
+          
+          {/* Boutons de zoom */}
           <button onClick={zoomIn} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer">
             <MuiIcon name="Add" size={20} />
           </button>
