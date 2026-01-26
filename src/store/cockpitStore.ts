@@ -4060,73 +4060,75 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return { success: false, message: 'Élément source introuvable', updatedCount: 0 };
     }
 
-    // Vérifier que l'élément a une taille définie
-    const width = sourceElement.width ?? 5;
-    const height = sourceElement.height ?? 5;
+    // Récupérer les valeurs de taille AVANT de faire quoi que ce soit d'autre
+    const targetWidth = sourceElement.width !== undefined ? sourceElement.width : 5;
+    const targetHeight = sourceElement.height !== undefined ? sourceElement.height : 5;
+    const targetDomainId = sourceDomainId;
+    const sourceElementId = elementId;
 
-    // Compter d'abord les éléments à modifier
-    let elementsToUpdate = 0;
+    // Compter les éléments à modifier
+    let updateCount = 0;
     for (const domain of (cockpit.domains || [])) {
-      if (domain.id !== sourceDomainId) continue;
+      if (domain.id !== targetDomainId) continue;
       for (const category of (domain.categories || [])) {
         for (const el of (category.elements || [])) {
-          if (el.id !== elementId) {
-            elementsToUpdate++;
+          if (el.id !== sourceElementId) {
+            updateCount++;
           }
         }
       }
     }
 
-    if (elementsToUpdate === 0) {
+    if (updateCount === 0) {
       return { success: false, message: 'Aucun autre élément à modifier dans ce domaine', updatedCount: 0 };
     }
 
-    // Maintenant appliquer la mise à jour
-    const domainIdToUpdate = sourceDomainId;
-    const sourceElementId = elementId;
-
-    set((state) => {
-      if (!state.currentCockpit) return state;
-
+    // Appliquer la mise à jour en une seule opération - créer un nouvel objet cockpit complet
+    const newDomains = (cockpit.domains || []).map(domain => {
+      if (domain.id !== targetDomainId) {
+        return domain;
+      }
+      
       return {
-        currentCockpit: {
-          ...state.currentCockpit,
-          domains: (state.currentCockpit.domains || []).map(d => {
-            if (d.id !== domainIdToUpdate) return d;
+        ...domain,
+        categories: (domain.categories || []).map(category => ({
+          ...category,
+          elements: (category.elements || []).map(element => {
+            if (element.id === sourceElementId) {
+              return element; // Ne pas modifier l'élément source
+            }
             
+            // Appliquer la nouvelle taille
             return {
-              ...d,
-              categories: (d.categories || []).map(c => ({
-                ...c,
-                elements: (c.elements || []).map(e => {
-                  if (e.id === sourceElementId) return e; // Ne pas modifier l'élément source
-                  
-                  // Appliquer la taille aux autres éléments
-                  return {
-                    ...e,
-                    width,
-                    height,
-                  };
-                }),
-              })),
+              ...element,
+              width: targetWidth,
+              height: targetHeight,
             };
           }),
-          updatedAt: new Date().toISOString(),
-        },
+        })),
       };
     });
+
+    const newCockpit = {
+      ...cockpit,
+      domains: newDomains,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Mettre à jour le state avec le nouveau cockpit
+    set({ currentCockpit: newCockpit });
 
     get().addRecentChange({ 
       type: 'element', 
       action: 'update', 
-      name: `Taille appliquée à ${elementsToUpdate} élément(s)` 
+      name: `Taille appliquée à ${updateCount} élément(s)` 
     });
     get().triggerAutoSave();
 
     return { 
       success: true, 
-      message: `Taille (${width}% × ${height}%) appliquée à ${elementsToUpdate} élément(s) dans "${sourceDomainName}"`, 
-      updatedCount: elementsToUpdate 
+      message: `Taille (${targetWidth}% × ${targetHeight}%) appliquée à ${updateCount} élément(s) dans "${sourceDomainName}"`, 
+      updatedCount: updateCount 
     };
   },
 }));
