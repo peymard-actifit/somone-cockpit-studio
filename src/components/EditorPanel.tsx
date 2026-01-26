@@ -292,7 +292,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     addCategory,
     getLinkedElements,
     getLinkedSubElements,
-    copyDomainElements
+    copyDomainElements,
+    clearDomainElements
   } = useCockpitStore();
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
@@ -2615,15 +2616,48 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <p className="text-sm text-[#64748B]">{domain.name}</p>
             </div>
             <div className="flex items-center gap-1">
-              {/* Bouton copier les éléments vers un autre domaine (background/map seulement) */}
+              {/* Boutons de gestion des éléments (background/map seulement) */}
               {(domain.templateType === 'background' || domain.templateType === 'map') && (
-                <button
-                  onClick={() => setShowCopyElementsModal(true)}
-                  className="p-2 text-[#64748B] hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title="Copier les éléments vers un autre domaine"
-                >
-                  <MuiIcon name="FileCopy" size={18} />
-                </button>
+                <>
+                  {/* Bouton copier les éléments vers un autre domaine */}
+                  <button
+                    onClick={() => setShowCopyElementsModal(true)}
+                    className="p-2 text-[#64748B] hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    title="Copier les éléments vers un autre domaine"
+                  >
+                    <MuiIcon name="FileCopy" size={18} />
+                  </button>
+                  {/* Bouton supprimer tous les éléments */}
+                  <button
+                    onClick={async () => {
+                      const elementCount = (domain.categories || [])
+                        .reduce((sum, c) => sum + (c.elements || []).length, 0);
+                      
+                      if (elementCount === 0) {
+                        alert('Aucun élément à supprimer dans ce domaine.');
+                        return;
+                      }
+                      
+                      const confirmed = await confirm({
+                        title: 'Supprimer tous les éléments',
+                        message: `Voulez-vous supprimer les ${elementCount} élément(s) du domaine "${domain.name}" ?\n\nCette action supprimera également toutes les sous-catégories et sous-éléments associés.\n\n⚠️ Cette action est irréversible.`,
+                      });
+                      
+                      if (confirmed) {
+                        const result = clearDomainElements(domain.id);
+                        if (result.success) {
+                          alert(result.message);
+                        } else {
+                          alert(`Erreur: ${result.message}`);
+                        }
+                      }
+                    }}
+                    className="p-2 text-[#64748B] hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                    title="Supprimer tous les éléments du domaine"
+                  >
+                    <MuiIcon name="DeleteSweep" size={18} />
+                  </button>
+                </>
               )}
               {/* Bouton dupliquer le domaine */}
               <button

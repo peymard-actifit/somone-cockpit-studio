@@ -144,6 +144,9 @@ interface CockpitState {
   
   // Copie d'éléments entre domaines (BackgroundView)
   copyDomainElements: (sourceDomainId: string, targetDomainId: string) => { success: boolean; message: string; copiedCount: number };
+  
+  // Suppression de tous les éléments d'un domaine
+  clearDomainElements: (domainId: string) => { success: boolean; message: string; deletedCount: number };
 
   // Incidents (Vue Alertes)
   addIncident: (domainId: string, incident: Omit<Incident, 'id' | 'domainId' | 'createdAt' | 'updatedAt'>) => void;
@@ -3957,6 +3960,66 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       success: true, 
       message: `${sourceElements.length} élément(s) copié(s) avec succès vers "${targetDomain.name}"`, 
       copiedCount: sourceElements.length 
+    };
+  },
+
+  // Supprimer tous les éléments d'un domaine (avec leurs sous-catégories et sous-éléments)
+  clearDomainElements: (domainId: string) => {
+    const cockpit = get().currentCockpit;
+    if (!cockpit) {
+      return { success: false, message: 'Aucun cockpit sélectionné', deletedCount: 0 };
+    }
+
+    // Trouver le domaine
+    const domain = (cockpit.domains || []).find(d => d.id === domainId);
+    if (!domain) {
+      return { success: false, message: 'Domaine introuvable', deletedCount: 0 };
+    }
+
+    // Compter les éléments à supprimer
+    let deletedCount = 0;
+    for (const category of (domain.categories || [])) {
+      deletedCount += (category.elements || []).length;
+    }
+
+    if (deletedCount === 0) {
+      return { success: false, message: 'Aucun élément à supprimer dans ce domaine', deletedCount: 0 };
+    }
+
+    // Supprimer tous les éléments de toutes les catégories du domaine
+    set((state) => {
+      if (!state.currentCockpit) return state;
+
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: (state.currentCockpit.domains || []).map(d => {
+            if (d.id !== domainId) return d;
+            
+            return {
+              ...d,
+              categories: (d.categories || []).map(c => ({
+                ...c,
+                elements: [], // Vider tous les éléments
+              })),
+            };
+          }),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+
+    get().addRecentChange({ 
+      type: 'domain', 
+      action: 'delete', 
+      name: `${deletedCount} éléments supprimés de ${domain.name}` 
+    });
+    get().triggerAutoSave();
+
+    return { 
+      success: true, 
+      message: `${deletedCount} élément(s) supprimé(s) avec succès de "${domain.name}"`, 
+      deletedCount 
     };
   },
 }));
