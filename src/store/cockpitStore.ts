@@ -147,6 +147,9 @@ interface CockpitState {
   
   // Suppression de tous les éléments d'un domaine
   clearDomainElements: (domainId: string) => { success: boolean; message: string; deletedCount: number };
+  
+  // Appliquer la taille d'un élément à tous les autres éléments du même domaine
+  applySizeToAllElements: (elementId: string) => { success: boolean; message: string; updatedCount: number };
 
   // Incidents (Vue Alertes)
   addIncident: (domainId: string, incident: Omit<Incident, 'id' | 'domainId' | 'createdAt' | 'updatedAt'>) => void;
@@ -4020,6 +4023,102 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       success: true, 
       message: `${deletedCount} élément(s) supprimé(s) avec succès de "${domain.name}"`, 
       deletedCount 
+    };
+  },
+
+  // Appliquer la taille d'un élément à tous les autres éléments du même domaine
+  applySizeToAllElements: (elementId: string) => {
+    const cockpit = get().currentCockpit;
+    if (!cockpit) {
+      return { success: false, message: 'Aucun cockpit sélectionné', updatedCount: 0 };
+    }
+
+    // Trouver l'élément source et son domaine
+    let sourceElement: Element | null = null;
+    let sourceDomain: Domain | null = null;
+
+    for (const domain of (cockpit.domains || [])) {
+      for (const category of (domain.categories || [])) {
+        const el = (category.elements || []).find(e => e.id === elementId);
+        if (el) {
+          sourceElement = el;
+          sourceDomain = domain;
+          break;
+        }
+      }
+      if (sourceElement) break;
+    }
+
+    if (!sourceElement) {
+      return { success: false, message: 'Élément source introuvable', updatedCount: 0 };
+    }
+
+    if (!sourceDomain) {
+      return { success: false, message: 'Domaine introuvable', updatedCount: 0 };
+    }
+
+    // Vérifier que le domaine est de type background ou map
+    if (sourceDomain.templateType !== 'background' && sourceDomain.templateType !== 'map') {
+      return { success: false, message: 'Cette fonction est uniquement disponible pour les domaines Background et Map', updatedCount: 0 };
+    }
+
+    // Vérifier que l'élément a une taille définie
+    if (sourceElement.width === undefined || sourceElement.height === undefined) {
+      return { success: false, message: 'L\'élément source n\'a pas de taille définie', updatedCount: 0 };
+    }
+
+    const { width, height } = sourceElement;
+
+    // Compter et mettre à jour les autres éléments
+    let updatedCount = 0;
+
+    set((state) => {
+      if (!state.currentCockpit) return state;
+
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: (state.currentCockpit.domains || []).map(d => {
+            if (d.id !== sourceDomain!.id) return d;
+            
+            return {
+              ...d,
+              categories: (d.categories || []).map(c => ({
+                ...c,
+                elements: (c.elements || []).map(e => {
+                  if (e.id === elementId) return e; // Ne pas modifier l'élément source
+                  
+                  // Appliquer la taille aux autres éléments
+                  updatedCount++;
+                  return {
+                    ...e,
+                    width,
+                    height,
+                  };
+                }),
+              })),
+            };
+          }),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+
+    if (updatedCount === 0) {
+      return { success: false, message: 'Aucun autre élément à modifier dans ce domaine', updatedCount: 0 };
+    }
+
+    get().addRecentChange({ 
+      type: 'element', 
+      action: 'update', 
+      name: `Taille appliquée à ${updatedCount} élément(s)` 
+    });
+    get().triggerAutoSave();
+
+    return { 
+      success: true, 
+      message: `Taille (${width}% × ${height}%) appliquée à ${updatedCount} élément(s)`, 
+      updatedCount 
     };
   },
 }));

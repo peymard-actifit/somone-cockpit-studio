@@ -293,7 +293,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     getLinkedElements,
     getLinkedSubElements,
     copyDomainElements,
-    clearDomainElements
+    clearDomainElements,
+    applySizeToAllElements
   } = useCockpitStore();
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
@@ -2352,6 +2353,30 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 )}
                 <p className="text-xs text-[#94A3B8] mt-2">
                   Le centre reste fixe lors du redimensionnement
+                </p>
+              </div>
+
+              {/* Bouton pour appliquer la taille à tous les éléments du domaine */}
+              <div className="border-t border-[#E2E8F0] pt-4 mt-4">
+                <button
+                  onClick={async () => {
+                    const confirmed = await confirm({
+                      title: 'Appliquer la taille à tous',
+                      message: `Voulez-vous appliquer la taille de cet élément (${element.width || 5}% × ${element.height || 5}%) à tous les autres éléments du domaine ?`,
+                    });
+                    
+                    if (confirmed) {
+                      const result = applySizeToAllElements(element.id);
+                      alert(result.message);
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2D4A6F] transition-colors text-sm font-medium"
+                >
+                  <MuiIcon name="AspectRatio" size={18} />
+                  Appliquer cette taille à tous les éléments
+                </button>
+                <p className="text-xs text-[#94A3B8] mt-2 text-center">
+                  Applique la largeur et hauteur actuelles à tous les autres éléments du domaine
                 </p>
               </div>
             </div>
