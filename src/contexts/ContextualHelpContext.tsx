@@ -208,20 +208,37 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   };
 
   // Fetch help content for a specific key (avec support cockpitId pour aides locales)
+  // FALLBACK: Si aide locale non trouvée, cherche aussi aide globale
   const fetchHelp = useCallback(async (elementKey: string, cockpitId: string | null = null) => {
     if (!token) return null;
     
     setIsLoading(true);
     try {
-      const url = getApiUrl(elementKey, cockpitId);
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      // 1. Chercher l'aide locale si cockpitId fourni
+      if (cockpitId) {
+        const localUrl = getApiUrl(elementKey, cockpitId);
+        const localResponse = await fetch(localUrl, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        
+        if (localResponse.ok) {
+          const data = await localResponse.json();
+          if (data.help) {
+            setHelpContent(data.help);
+            setIsLoading(false);
+            return data.help;
+          }
+        }
+      }
+      
+      // 2. FALLBACK: Chercher l'aide globale
+      const globalUrl = getApiUrl(elementKey, null);
+      const globalResponse = await fetch(globalUrl, {
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       
-      if (response.ok) {
-        const data = await response.json();
+      if (globalResponse.ok) {
+        const data = await globalResponse.json();
         setHelpContent(data.help);
         return data.help;
       }
@@ -381,6 +398,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   }, []);
 
   // Check if help exists for a key (with cache) - supporte cockpitId pour aides locales
+  // FALLBACK: Si aide locale non trouvée, cherche aussi aide globale
   const checkHelpExists = useCallback(async (elementKey: string, cockpitId: string | null = null): Promise<string | null> => {
     const cacheKey = getCacheKey(elementKey, cockpitId);
     
@@ -392,15 +410,30 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     if (!token) return null;
     
     try {
-      const url = getApiUrl(elementKey, cockpitId);
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      // 1. Chercher l'aide locale si cockpitId fourni
+      if (cockpitId) {
+        const localUrl = getApiUrl(elementKey, cockpitId);
+        const localResponse = await fetch(localUrl, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        
+        if (localResponse.ok) {
+          const data = await localResponse.json();
+          if (data.help?.content) {
+            helpCacheRef.current.set(cacheKey, data.help.content);
+            return data.help.content;
+          }
+        }
+      }
+      
+      // 2. FALLBACK: Chercher l'aide globale
+      const globalUrl = getApiUrl(elementKey, null);
+      const globalResponse = await fetch(globalUrl, {
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       
-      if (response.ok) {
-        const data = await response.json();
+      if (globalResponse.ok) {
+        const data = await globalResponse.json();
         const content = data.help?.content || null;
         helpCacheRef.current.set(cacheKey, content);
         return content;
