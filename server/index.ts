@@ -1211,7 +1211,7 @@ Toutes les actions peuvent être combinées dans un tableau pour une exécution 
         model: 'gpt-4o-mini',
         messages: chatMessages,
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 8000, // Augmenté pour des réponses plus complètes
       }),
     });
 
@@ -1443,7 +1443,7 @@ INSTRUCTIONS:
         model: 'gpt-4o-mini',
         messages: chatMessages,
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 8000, // Augmenté pour des réponses plus complètes (chat public)
       }),
     });
 
@@ -1578,7 +1578,7 @@ Si tu ne reconnais pas la carte:
           }
         ],
         temperature: 0.1,
-        max_tokens: 300,
+        max_tokens: 1000, // Augmenté pour des analyses de cartes plus détaillées
       }),
     });
 

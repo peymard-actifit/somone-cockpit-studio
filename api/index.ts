@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.13';
+const APP_VERSION = '16.11.14';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1186,7 +1186,7 @@ Définition: ${calculation.definition}
 Sources: ${sourcesDescription || 'Aucune'}`
         }
       ],
-      max_tokens: 300,
+      max_tokens: 1000, // Augmenté pour des analyses plus complètes
       temperature: 0.2,
     }),
   });
@@ -2962,11 +2962,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const { message, history } = req.body;
 
-      // Construire un contexte OPTIMISÉ du cockpit (version résumée pour ne pas dépasser la limite de tokens)
+      // MODE CAPACITÉ MAXIMALE - Accès COMPLET aux données publiées
+      // gpt-4o-mini supporte 128K tokens en entrée, on utilise tout l'espace disponible
       const cockpitData = cockpit.data || {};
       
-      // Fonction pour créer un résumé textuel compact
-      const createCompactSummary = () => {
+      // Fonction pour créer un contexte COMPLET du cockpit (toutes les données publiées)
+      const createFullContext = () => {
         const domains = cockpitData.domains || [];
         const zones = cockpitData.zones || [];
         
@@ -2974,123 +2975,168 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let totalElements = 0;
         let totalSubElements = 0;
         const statusCounts: Record<string, number> = { ok: 0, mineur: 0, critique: 0, fatal: 0, deconnecte: 0, information: 0 };
-        const alerts: Array<{element: string, domain: string, description: string}> = [];
+        const alerts: Array<{element: string, domain: string, description: string, status: string}> = [];
         
-        // Résumé par domaine (format texte compact)
-        const domainSummaries = domains.map((d: any) => {
+        // Données COMPLÈTES par domaine (SANS limite)
+        const domainDetails = domains.map((d: any) => {
           const categories = d.categories || [];
-          let domainElements: string[] = [];
-          let domainStatusCounts: Record<string, number> = { ok: 0, mineur: 0, critique: 0, fatal: 0, deconnecte: 0, information: 0 };
+          const domainStatusCounts: Record<string, number> = { ok: 0, mineur: 0, critique: 0, fatal: 0, deconnecte: 0, information: 0 };
           
-          categories.forEach((c: any) => {
-            (c.elements || []).forEach((e: any) => {
+          // Données complètes des catégories et éléments
+          const categoryDetails = categories.map((c: any) => {
+            const elements = (c.elements || []).map((e: any) => {
               totalElements++;
               const status = e.status || 'ok';
               if (statusCounts[status] !== undefined) statusCounts[status]++;
               if (domainStatusCounts[status] !== undefined) domainStatusCounts[status]++;
               
-              // Collecter les éléments avec leur statut et valeur
-              let elementInfo = `${e.name} (${status})`;
-              if (e.value) elementInfo += ` = ${e.value}${e.unit || ''}`;
-              domainElements.push(elementInfo);
+              // Collecter les alertes de l'élément
+              if (e.alert && e.alert.description) {
+                alerts.push({
+                  element: e.name,
+                  domain: d.name,
+                  description: e.alert.description,
+                  status
+                });
+              }
               
-              // Sous-éléments
-              (e.subCategories || []).forEach((sc: any) => {
-                (sc.subElements || []).forEach((se: any) => {
+              // Sous-catégories et sous-éléments COMPLETS
+              const subCategories = (e.subCategories || []).map((sc: any) => {
+                const subElements = (sc.subElements || []).map((se: any) => {
                   totalSubElements++;
                   const seStatus = se.status || 'ok';
                   if (statusCounts[seStatus] !== undefined) statusCounts[seStatus]++;
                   
-                  // Alertes
+                  // Alertes des sous-éléments
                   if (se.alert && se.alert.description) {
                     alerts.push({
                       element: `${e.name} > ${sc.name} > ${se.name}`,
                       domain: d.name,
-                      description: se.alert.description.substring(0, 100)
+                      description: se.alert.description,
+                      status: seStatus
                     });
                   }
+                  
+                  return {
+                    name: se.name,
+                    status: seStatus,
+                    value: se.value,
+                    unit: se.unit,
+                    alert: se.alert?.description,
+                    dataSources: (se.dataSources || []).map((ds: any) => ds.name),
+                    calculations: (se.calculations || []).map((calc: any) => calc.name)
+                  };
                 });
+                
+                return {
+                  name: sc.name,
+                  orientation: sc.orientation,
+                  subElements
+                };
               });
+              
+              return {
+                name: e.name,
+                status,
+                value: e.value,
+                unit: e.unit,
+                icon: e.icon,
+                alert: e.alert?.description,
+                subCategories
+              };
             });
+            
+            return {
+              name: c.name,
+              orientation: c.orientation,
+              icon: c.icon,
+              elements
+            };
           });
           
-          // Points de carte
-          const mapElements = d.mapElements || [];
-          mapElements.forEach((me: any) => {
+          // Points de carte COMPLETS
+          const mapElements = (d.mapElements || []).map((me: any) => {
             const status = me.status || 'ok';
             if (statusCounts[status] !== undefined) statusCounts[status]++;
-            domainElements.push(`${me.name} (${status}) [carte]`);
+            return {
+              name: me.name,
+              status,
+              gps: me.gps,
+              icon: me.icon
+            };
           });
           
-          // Résumé du domaine
           const problemCount = domainStatusCounts.mineur + domainStatusCounts.critique + domainStatusCounts.fatal + domainStatusCounts.deconnecte;
+          
           return {
             name: d.name,
-            type: d.templateType || 'standard',
-            categoriesCount: categories.length,
-            elementsCount: domainElements.length,
-            problems: problemCount,
-            elements: domainElements.slice(0, 100), // Augmenté de 50 à 100 éléments par domaine
-            hasBackgroundImage: !!d.backgroundImage
+            templateType: d.templateType || 'standard',
+            templateName: d.templateName,
+            categories: categoryDetails,
+            mapElements,
+            problemCount,
+            statusCounts: domainStatusCounts
           };
         });
         
         return {
           cockpitName: cockpit.name,
+          welcomeMessage: cockpitData.welcomeMessage,
           totalDomains: domains.length,
           totalCategories: domains.reduce((acc: number, d: any) => acc + (d.categories || []).length, 0),
           totalElements,
           totalSubElements,
-          zones: zones.map((z: any) => z.name),
-          statusCounts,
-          alerts: alerts.slice(0, 50), // Augmenté de 20 à 50 alertes
-          domains: domainSummaries
+          zones: zones.map((z: any) => ({ name: z.name, id: z.id })),
+          globalStatusCounts: statusCounts,
+          alerts, // TOUTES les alertes, sans limite
+          domains: domainDetails // TOUS les domaines avec TOUTES les données
         };
       };
       
-      const cockpitSummary = createCompactSummary();
+      const cockpitContext = createFullContext();
       
-      // Limiter l'historique à 12 derniers messages pour une meilleure continuité de conversation
-      const limitedHistory = (history || []).slice(-12);
+      // Historique étendu à 20 messages pour une meilleure continuité de conversation
+      const limitedHistory = (history || []).slice(-20);
 
-      const systemPrompt = `Tu es un assistant IA pour SOMONE Cockpit Studio, en mode consultation d'un cockpit publié.
+      // Système prompt avec TOUTES les données du cockpit publié
+      const systemPrompt = `Tu es un assistant IA expert pour SOMONE Cockpit Studio, en mode consultation d'un cockpit publié.
 
 Ce cockpit est en MODE LECTURE SEULE - tu ne peux QUE répondre aux questions, pas modifier le cockpit.
 
-COCKPIT: "${cockpitSummary.cockpitName}"
+COCKPIT: "${cockpitContext.cockpitName}"
+${cockpitContext.welcomeMessage ? `MESSAGE D'ACCUEIL: ${cockpitContext.welcomeMessage}` : ''}
 
-STATISTIQUES:
-- ${cockpitSummary.totalDomains} domaines, ${cockpitSummary.totalCategories} catégories
-- ${cockpitSummary.totalElements} éléments, ${cockpitSummary.totalSubElements} sous-éléments
-- Zones: ${cockpitSummary.zones.join(', ') || 'aucune'}
+STATISTIQUES GLOBALES:
+- ${cockpitContext.totalDomains} domaines, ${cockpitContext.totalCategories} catégories
+- ${cockpitContext.totalElements} éléments, ${cockpitContext.totalSubElements} sous-éléments
+- Zones: ${cockpitContext.zones.map((z: any) => z.name).join(', ') || 'aucune'}
 
-STATUTS (comptage):
-- OK: ${cockpitSummary.statusCounts.ok}
-- Mineur: ${cockpitSummary.statusCounts.mineur}
-- Critique: ${cockpitSummary.statusCounts.critique}
-- Fatal: ${cockpitSummary.statusCounts.fatal}
-- Déconnecté: ${cockpitSummary.statusCounts.deconnecte}
-- Information: ${cockpitSummary.statusCounts.information || 0}
+COMPTAGE DES STATUTS:
+- OK (vert): ${cockpitContext.globalStatusCounts.ok}
+- Mineur (orange): ${cockpitContext.globalStatusCounts.mineur}
+- Critique (rouge): ${cockpitContext.globalStatusCounts.critique}
+- Fatal (violet): ${cockpitContext.globalStatusCounts.fatal}
+- Déconnecté (gris): ${cockpitContext.globalStatusCounts.deconnecte}
+- Information (bleu): ${cockpitContext.globalStatusCounts.information || 0}
 
-DOMAINES ET ÉLÉMENTS:
-${cockpitSummary.domains.map((d: any) => `
-## ${d.name} (${d.type})
-- ${d.categoriesCount} catégories, ${d.elementsCount} éléments${d.problems > 0 ? `, ${d.problems} problèmes` : ''}${d.hasBackgroundImage ? ', avec image de fond' : ''}
-- Éléments: ${d.elements.join(', ')}
-`).join('\n')}
+=== DONNÉES COMPLÈTES DU COCKPIT ===
+${JSON.stringify(cockpitContext.domains, null, 2)}
 
-${cockpitSummary.alerts.length > 0 ? `
-ALERTES ACTIVES:
-${cockpitSummary.alerts.map((a: any) => `- ${a.element} (${a.domain}): ${a.description}`).join('\n')}
+${cockpitContext.alerts.length > 0 ? `
+=== ALERTES ACTIVES (${cockpitContext.alerts.length}) ===
+${cockpitContext.alerts.map((a: any) => `- [${a.status.toUpperCase()}] ${a.element} (${a.domain}): ${a.description}`).join('\n')}
 ` : ''}
 
 STATUTS DISPONIBLES: ok (vert), mineur (orange), critique (rouge), fatal (violet), deconnecte (gris), information (bleu)
 
 INSTRUCTIONS:
-1. Réponds en français de manière concise et professionnelle
-2. Tu es en MODE CONSULTATION - tu ne peux QUE répondre aux questions
-3. Utilise les données ci-dessus pour répondre aux questions sur les éléments, statuts, alertes
-4. Sois précis et utilise les noms réels des éléments dans tes réponses`;
+1. Réponds en français de manière professionnelle et détaillée
+2. Tu es en MODE CONSULTATION - tu ne peux QUE répondre aux questions sur les données
+3. Tu as accès à TOUTES les données publiées du cockpit ci-dessus
+4. Utilise les données JSON complètes pour répondre précisément aux questions
+5. Tu peux analyser les statuts, valeurs, alertes, sous-éléments, sources de données, calculs
+6. Sois précis et utilise les noms réels des éléments dans tes réponses
+7. Tu peux faire des analyses, des synthèses, des comparaisons entre domaines/éléments`;
 
       const messages = [
         { role: 'system', content: systemPrompt },
@@ -3099,6 +3145,7 @@ INSTRUCTIONS:
       ];
 
       try {
+        // Utiliser gpt-4o-mini avec capacité maximale (128K tokens entrée, 16K sortie)
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -3109,7 +3156,7 @@ INSTRUCTIONS:
             model: 'gpt-4o-mini',
             messages,
             temperature: 0.7,
-            max_tokens: 4000, // Augmenté de 2000 à 4000 pour des réponses plus détaillées
+            max_tokens: 16384, // CAPACITÉ MAXIMALE pour des réponses complètes
           }),
         });
 
@@ -5644,7 +5691,7 @@ Réponds UNIQUEMENT avec le JSON, sans markdown ni explication.`
 Description de la source souhaitée: ${prompt}`
               }
             ],
-            max_tokens: 500,
+            max_tokens: 1000, // Augmenté pour des suggestions plus détaillées
             temperature: 0.3,
           }),
         });
@@ -5716,7 +5763,7 @@ ${sourcesInfo || 'Aucune source définie'}
 Calcul souhaité: ${prompt}`
               }
             ],
-            max_tokens: 800,
+            max_tokens: 1500, // Augmenté pour des définitions de calculs plus complètes
             temperature: 0.3,
           }),
         });
@@ -6471,7 +6518,7 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
                 ]
               }
             ],
-            max_tokens: 500,
+            max_tokens: 1000, // Augmenté pour des analyses de cartes plus détaillées
           }),
         });
 
