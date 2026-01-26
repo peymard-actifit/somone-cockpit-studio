@@ -291,7 +291,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     moveSubElementToSubCategory,
     addCategory,
     getLinkedElements,
-    getLinkedSubElements
+    getLinkedSubElements,
+    copyDomainElements
   } = useCockpitStore();
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
@@ -349,6 +350,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
   // États pour le modal de liaison lors du changement de nom
   const [showLinkModal, setShowLinkModal] = useState(false);
+  
+  // État pour le modal de copie des éléments entre domaines
+  const [showCopyElementsModal, setShowCopyElementsModal] = useState(false);
+  
   const [pendingNameChange, setPendingNameChange] = useState<{
     type: 'element' | 'subElement';
     id: string;
@@ -2610,6 +2615,16 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <p className="text-sm text-[#64748B]">{domain.name}</p>
             </div>
             <div className="flex items-center gap-1">
+              {/* Bouton copier les éléments vers un autre domaine (background/map seulement) */}
+              {(domain.templateType === 'background' || domain.templateType === 'map') && (
+                <button
+                  onClick={() => setShowCopyElementsModal(true)}
+                  className="p-2 text-[#64748B] hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Copier les éléments vers un autre domaine"
+                >
+                  <MuiIcon name="FileCopy" size={18} />
+                </button>
+              )}
               {/* Bouton dupliquer le domaine */}
               <button
                 onClick={() => duplicateDomain(domain.id)}
@@ -4487,6 +4502,139 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             </div>
           </div>
         </Section>
+
+        {/* Modal de copie des éléments vers un autre domaine */}
+        {showCopyElementsModal && domain && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+            <div className="bg-white rounded-xl shadow-2xl w-[480px] max-h-[80vh] overflow-hidden">
+              <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                      <MuiIcon name="FileCopy" size={20} className="text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-[#1E3A5F]">Copier les éléments</h3>
+                      <p className="text-sm text-[#64748B]">Depuis "{domain.name}"</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowCopyElementsModal(false)}
+                    className="p-2 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#E2E8F0] rounded-lg transition-colors"
+                  >
+                    <MuiIcon name="Close" size={20} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-700 flex items-start gap-2">
+                    <MuiIcon name="Info" size={16} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      Cette action copie tous les éléments du domaine actuel vers le domaine cible. 
+                      Chaque élément copié sera <strong>lié</strong> à son élément d'origine (synchronisation des statuts et valeurs).
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                    Domaine cible
+                  </label>
+                  <div className="space-y-2">
+                    {currentCockpit?.domains
+                      ?.filter(d => 
+                        d.id !== domain.id && 
+                        (d.templateType === 'background' || d.templateType === 'map')
+                      )
+                      .map(targetDomain => {
+                        const elementCount = (targetDomain.categories || [])
+                          .reduce((sum, c) => sum + (c.elements || []).length, 0);
+                        
+                        return (
+                          <button
+                            key={targetDomain.id}
+                            onClick={async () => {
+                              const result = copyDomainElements(domain.id, targetDomain.id);
+                              if (result.success) {
+                                alert(result.message);
+                                setShowCopyElementsModal(false);
+                              } else {
+                                alert(`Erreur: ${result.message}`);
+                              }
+                            }}
+                            className="w-full flex items-center gap-3 p-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-[#1E3A5F] flex items-center justify-center flex-shrink-0">
+                              {targetDomain.icon ? (
+                                <MuiIcon name={targetDomain.icon} size={16} className="text-white" />
+                              ) : (
+                                <MuiIcon name="Folder" size={16} className="text-white" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[#1E3A5F] truncate">{targetDomain.name}</p>
+                              <p className="text-xs text-[#64748B]">
+                                {targetDomain.templateType === 'background' ? 'Vue Background' : 'Vue Map'} • {elementCount} élément(s)
+                              </p>
+                            </div>
+                            <MuiIcon name="ArrowForward" size={16} className="text-[#94A3B8]" />
+                          </button>
+                        );
+                      })}
+                    
+                    {/* Message si aucun domaine cible disponible */}
+                    {currentCockpit?.domains?.filter(d => 
+                      d.id !== domain.id && 
+                      (d.templateType === 'background' || d.templateType === 'map')
+                    ).length === 0 && (
+                      <div className="p-4 bg-[#F5F7FA] rounded-lg text-center">
+                        <MuiIcon name="Info" size={24} className="text-[#94A3B8] mx-auto mb-2" />
+                        <p className="text-sm text-[#64748B]">
+                          Aucun autre domaine de type Background ou Map disponible.
+                        </p>
+                        <p className="text-xs text-[#94A3B8] mt-1">
+                          Créez d'abord un domaine cible de type Background ou Map.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Résumé des éléments à copier */}
+                <div className="border-t border-[#E2E8F0] pt-4">
+                  <h4 className="text-sm font-medium text-[#1E3A5F] mb-2">Éléments à copier</h4>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {(domain.categories || []).flatMap(c => c.elements || []).map(el => (
+                      <div key={el.id} className="flex items-center gap-2 text-sm text-[#64748B] p-1">
+                        <MuiIcon name="ChevronRight" size={14} />
+                        <span>{el.name}</span>
+                        {(el.subCategories || []).length > 0 && (
+                          <span className="text-xs bg-[#E2E8F0] px-1.5 py-0.5 rounded">
+                            {(el.subCategories || []).reduce((sum, sc) => sum + (sc.subElements || []).length, 0)} sous-éléments
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {(domain.categories || []).flatMap(c => c.elements || []).length === 0 && (
+                      <p className="text-sm text-[#94A3B8] italic">Aucun élément dans ce domaine</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-[#E2E8F0] bg-[#F5F7FA]">
+                <button
+                  onClick={() => setShowCopyElementsModal(false)}
+                  className="w-full px-4 py-2 text-sm text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#E2E8F0] rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
