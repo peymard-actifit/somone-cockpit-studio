@@ -904,6 +904,93 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   // État pour le masquage auto des contrôles de droite en mode publié
   const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
 
+  // Position du panneau de contrôle (drag and drop) - seulement en mode studio
+  const loadControlPanelPosition = (): { x: number; y: number } | null => {
+    const savedPos = localStorage.getItem(`backgroundControlPanel-${domain.id}`);
+    if (savedPos) {
+      try { return JSON.parse(savedPos); } catch { return null; }
+    }
+    return null;
+  };
+  const [controlPanelPosition, setControlPanelPosition] = useState<{ x: number; y: number } | null>(() => loadControlPanelPosition());
+  const [isDraggingControlPanel, setIsDraggingControlPanel] = useState(false);
+  const controlPanelDragStartRef = useRef<{ mouseX: number; mouseY: number; panelX: number; panelY: number } | null>(null);
+  const controlPanelRef = useRef<HTMLDivElement>(null);
+
+  // Gestionnaires pour le drag du panneau de contrôle
+  const saveControlPanelPosition = useCallback((pos: { x: number; y: number } | null) => {
+    if (pos) {
+      localStorage.setItem(`backgroundControlPanel-${domain.id}`, JSON.stringify(pos));
+    } else {
+      localStorage.removeItem(`backgroundControlPanel-${domain.id}`);
+    }
+  }, [domain.id]);
+
+  const handleControlPanelDragStart = useCallback((e: React.MouseEvent) => {
+    if (_readOnly) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const currentX = controlPanelPosition?.x ?? (containerRect.width - 80);
+    const currentY = controlPanelPosition?.y ?? 16;
+    
+    controlPanelDragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      panelX: currentX,
+      panelY: currentY
+    };
+    setIsDraggingControlPanel(true);
+  }, [_readOnly, controlPanelPosition]);
+
+  useEffect(() => {
+    if (!isDraggingControlPanel) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!controlPanelDragStartRef.current || !containerRef.current) return;
+      
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const deltaX = e.clientX - controlPanelDragStartRef.current.mouseX;
+      const deltaY = e.clientY - controlPanelDragStartRef.current.mouseY;
+      
+      let newX = controlPanelDragStartRef.current.panelX + deltaX;
+      let newY = controlPanelDragStartRef.current.panelY + deltaY;
+      
+      const panelWidth = controlPanelRef.current?.offsetWidth || 60;
+      const panelHeight = controlPanelRef.current?.offsetHeight || 200;
+      
+      newX = Math.max(0, Math.min(containerRect.width - panelWidth, newX));
+      newY = Math.max(0, Math.min(containerRect.height - panelHeight, newY));
+      
+      setControlPanelPosition({ x: newX, y: newY });
+    };
+    
+    const handleMouseUp = () => {
+      setIsDraggingControlPanel(false);
+      if (controlPanelPosition) {
+        saveControlPanelPosition(controlPanelPosition);
+      }
+      controlPanelDragStartRef.current = null;
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingControlPanel, controlPanelPosition, saveControlPanelPosition]);
+
+  const resetControlPanelPosition = useCallback(() => {
+    setControlPanelPosition(null);
+    saveControlPanelPosition(null);
+  }, [saveControlPanelPosition]);
+
   // Synchroniser avec le domaine quand il change
   useEffect(() => {
     if (_readOnly) {
@@ -1203,16 +1290,45 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         />
       )}
 
-      {/* Conteneur des contrôles de droite - avec auto-hide en mode publié */}
+      {/* Conteneur des contrôles de droite - repositionnable en mode studio, auto-hide en mode publié */}
       <div 
-        className={`absolute top-4 right-6 z-30 flex flex-col gap-3 transition-all duration-300 ${
+        ref={controlPanelRef}
+        className={`absolute z-30 flex flex-col gap-3 transition-all duration-300 ${
           _readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
-        }`}
+        } ${isDraggingControlPanel ? 'cursor-grabbing' : ''}`}
+        style={controlPanelPosition && !_readOnly ? {
+          left: controlPanelPosition.x,
+          top: controlPanelPosition.y,
+        } : {
+          top: 16,
+          right: 24,
+        }}
         onMouseEnter={() => _readOnly && setIsRightControlsHovered(true)}
         onMouseLeave={() => _readOnly && setIsRightControlsHovered(false)}
       >
-        {/* Contrôles de zoom */}
-        <div className="flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+        {/* Contrôles de zoom avec handle de drag intégré */}
+        <div className="flex flex-col bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+          {/* Handle de drag - seulement en mode studio */}
+          {!_readOnly && (
+            <div 
+              className="flex items-center justify-center gap-1 bg-[#1E3A5F] px-2 py-1.5 cursor-grab hover:bg-[#2a4a6f] active:cursor-grabbing transition-colors"
+              onMouseDown={handleControlPanelDragStart}
+              title="Glisser pour déplacer le panneau"
+            >
+              <MuiIcon name="DragIndicator" size={16} className="text-white/70" />
+              <span className="text-[10px] text-white/60 font-medium">DÉPLACER</span>
+              {controlPanelPosition && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); resetControlPanelPosition(); }}
+                  className="p-0.5 hover:bg-white/20 rounded text-white/50 hover:text-white ml-1"
+                  title="Réinitialiser la position"
+                >
+                  <MuiIcon name="RestartAlt" size={12} />
+                </button>
+              )}
+            </div>
+          )}
+          
           <button onClick={zoomIn} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer">
             <MuiIcon name="Add" size={20} />
           </button>

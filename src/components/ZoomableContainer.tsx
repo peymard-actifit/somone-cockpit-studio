@@ -13,6 +13,19 @@ interface ZoomableContainerProps {
   readOnly?: boolean; // Mode lecture seule (cockpits publiés) - active l'auto-hide
 }
 
+// Helper pour charger la position du panneau de contrôle depuis localStorage
+const loadControlPanelPosition = (domainId: string): { x: number; y: number } | null => {
+  const savedPos = localStorage.getItem(`zoomControlPanel-${domainId}`);
+  if (savedPos) {
+    try {
+      return JSON.parse(savedPos);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
 /**
  * Conteneur zoomable pour les vues qui ne gèrent pas leur propre zoom.
  * Le zoom est sauvegardé par domaine dans le localStorage.
@@ -55,6 +68,91 @@ export default function ZoomableContainer({
   
   // État pour l'auto-hide des contrôles en mode lecture seule
   const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
+  
+  // Position du panneau de contrôle (drag and drop) - seulement en mode studio
+  const [controlPanelPosition, setControlPanelPosition] = useState<{ x: number; y: number } | null>(() => 
+    loadControlPanelPosition(domainId)
+  );
+  const [isDraggingControlPanel, setIsDraggingControlPanel] = useState(false);
+  const controlPanelDragStartRef = useRef<{ mouseX: number; mouseY: number; panelX: number; panelY: number } | null>(null);
+  const controlPanelRef = useRef<HTMLDivElement>(null);
+
+  // Sauvegarder la position du panneau de contrôle
+  const saveControlPanelPosition = useCallback((pos: { x: number; y: number } | null) => {
+    if (pos) {
+      localStorage.setItem(`zoomControlPanel-${domainId}`, JSON.stringify(pos));
+    } else {
+      localStorage.removeItem(`zoomControlPanel-${domainId}`);
+    }
+  }, [domainId]);
+
+  // Gestionnaire de drag du panneau de contrôle
+  const handleControlPanelDragStart = useCallback((e: React.MouseEvent) => {
+    if (readOnly) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const currentX = controlPanelPosition?.x ?? (containerRect.width - 80);
+    const currentY = controlPanelPosition?.y ?? 16;
+    
+    controlPanelDragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      panelX: currentX,
+      panelY: currentY
+    };
+    setIsDraggingControlPanel(true);
+  }, [readOnly, controlPanelPosition]);
+
+  // Effet pour gérer le drag du panneau
+  useEffect(() => {
+    if (!isDraggingControlPanel) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!controlPanelDragStartRef.current || !containerRef.current) return;
+      
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const deltaX = e.clientX - controlPanelDragStartRef.current.mouseX;
+      const deltaY = e.clientY - controlPanelDragStartRef.current.mouseY;
+      
+      let newX = controlPanelDragStartRef.current.panelX + deltaX;
+      let newY = controlPanelDragStartRef.current.panelY + deltaY;
+      
+      const panelWidth = controlPanelRef.current?.offsetWidth || 60;
+      const panelHeight = controlPanelRef.current?.offsetHeight || 200;
+      
+      newX = Math.max(0, Math.min(containerRect.width - panelWidth, newX));
+      newY = Math.max(0, Math.min(containerRect.height - panelHeight, newY));
+      
+      setControlPanelPosition({ x: newX, y: newY });
+    };
+    
+    const handleMouseUp = () => {
+      setIsDraggingControlPanel(false);
+      if (controlPanelPosition) {
+        saveControlPanelPosition(controlPanelPosition);
+      }
+      controlPanelDragStartRef.current = null;
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingControlPanel, controlPanelPosition, saveControlPanelPosition]);
+
+  // Réinitialiser la position du panneau
+  const resetControlPanelPosition = useCallback(() => {
+    setControlPanelPosition(null);
+    saveControlPanelPosition(null);
+  }, [saveControlPanelPosition]);
 
   // Calculer le zoom optimal pour afficher tout le contenu
   const fitToContent = useCallback(() => {
@@ -185,17 +283,46 @@ export default function ZoomableContainer({
         />
       )}
 
-      {/* Contrôles de zoom - avec auto-hide en mode lecture seule */}
+      {/* Contrôles de zoom - repositionnable en mode studio, auto-hide en mode lecture seule */}
       {showControls && (
         <div 
-          className={`absolute top-4 right-4 z-30 flex flex-col gap-3 transition-all duration-300 ${
+          ref={controlPanelRef}
+          className={`absolute z-30 flex flex-col gap-3 transition-all duration-300 ${
             readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
-          }`}
+          } ${isDraggingControlPanel ? 'cursor-grabbing' : ''}`}
+          style={controlPanelPosition && !readOnly ? {
+            left: controlPanelPosition.x,
+            top: controlPanelPosition.y,
+          } : {
+            top: 16,
+            right: 16,
+          }}
           onMouseEnter={() => readOnly && setIsRightControlsHovered(true)}
           onMouseLeave={() => readOnly && setIsRightControlsHovered(false)}
         >
-          {/* Boutons de zoom */}
-          <div className="flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+          {/* Boutons de zoom avec handle de drag intégré en mode studio */}
+          <div className="flex flex-col bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+            {/* Handle de drag - seulement en mode studio */}
+            {!readOnly && (
+              <div 
+                className="flex items-center justify-center gap-1 bg-[#1E3A5F] px-2 py-1.5 cursor-grab hover:bg-[#2a4a6f] active:cursor-grabbing transition-colors"
+                onMouseDown={handleControlPanelDragStart}
+                title="Glisser pour déplacer le panneau"
+              >
+                <MuiIcon name="DragIndicator" size={16} className="text-white/70" />
+                <span className="text-[10px] text-white/60 font-medium">DÉPLACER</span>
+                {controlPanelPosition && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); resetControlPanelPosition(); }}
+                    className="p-0.5 hover:bg-white/20 rounded text-white/50 hover:text-white ml-1"
+                    title="Réinitialiser la position"
+                  >
+                    <MuiIcon name="RestartAlt" size={12} />
+                  </button>
+                )}
+              </div>
+            )}
+            
             <button 
               onClick={zoomIn} 
               className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" 
