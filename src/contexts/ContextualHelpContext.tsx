@@ -56,28 +56,34 @@ function getCockpitIdFromElement(element: HTMLElement): string | null {
 function getHoverHelpKey(element: HTMLElement): { key: string | null; cockpitId: string | null } {
   let current: HTMLElement | null = element;
   let levels = 0;
-  const maxLevels = 8; // Remonter jusqu'à 8 niveaux
+  const maxLevels = 8; // Remonter jusqu'à 8 niveaux pour la helpKey
   let cockpitId: string | null = null;
+  let foundHelpKey: string | null = null;
   
   while (current && levels < maxLevels) {
-    // Chercher le cockpitId en même temps
+    // Chercher le cockpitId (continuer même après avoir trouvé helpKey)
     if (!cockpitId) {
       cockpitId = current.getAttribute('data-cockpit-id');
     }
     
-    const helpKey = current.getAttribute('data-help-key');
-    if (helpKey) {
-      // Si pas encore de cockpitId, continuer à chercher plus haut
-      if (!cockpitId) {
-        cockpitId = getCockpitIdFromElement(current);
+    // Chercher la helpKey
+    if (!foundHelpKey) {
+      const helpKey = current.getAttribute('data-help-key');
+      if (helpKey) {
+        foundHelpKey = helpKey;
       }
-      return { key: helpKey, cockpitId };
     }
+    
     current = current.parentElement;
     levels++;
   }
   
-  return { key: null, cockpitId }; // Pas de clé trouvée
+  // Si on a trouvé une helpKey mais pas de cockpitId, chercher le cockpitId plus haut
+  if (foundHelpKey && !cockpitId) {
+    cockpitId = getCockpitIdFromElement(element);
+  }
+  
+  return { key: foundHelpKey, cockpitId };
 }
 
 // Fonction pour générer une clé contextuelle à partir d'un élément DOM (pour le clic droit)
@@ -85,20 +91,35 @@ function getHoverHelpKey(element: HTMLElement): { key: string | null; cockpitId:
 function getContextualKey(element: HTMLElement): { key: string; cockpitId: string | null } {
   const parts: string[] = [];
   let cockpitId: string | null = null;
+  let foundHelpKey: string | null = null;
   
-  // Chercher des attributs data-help-key et data-cockpit-id spécifiques (remonte toute la hiérarchie)
+  // Chercher des attributs data-help-key et data-cockpit-id spécifiques (remonte TOUTE la hiérarchie)
   let current: HTMLElement | null = element;
   while (current) {
-    // Chercher le cockpitId
+    // Chercher le cockpitId (continuer même après avoir trouvé helpKey)
     if (!cockpitId) {
       cockpitId = current.getAttribute('data-cockpit-id');
     }
     
-    const helpKey = current.getAttribute('data-help-key');
-    if (helpKey) {
-      return { key: helpKey, cockpitId };
+    // Chercher la helpKey (mais ne pas retourner immédiatement, continuer pour le cockpitId)
+    if (!foundHelpKey) {
+      const helpKey = current.getAttribute('data-help-key');
+      if (helpKey) {
+        foundHelpKey = helpKey;
+      }
     }
+    
+    // Si on a trouvé les deux, on peut retourner
+    if (foundHelpKey && cockpitId) {
+      return { key: foundHelpKey, cockpitId };
+    }
+    
     current = current.parentElement;
+  }
+  
+  // Si on a trouvé une helpKey (même sans cockpitId), la retourner
+  if (foundHelpKey) {
+    return { key: foundHelpKey, cockpitId };
   }
   
   // Sinon, construire une clé basée sur la structure
