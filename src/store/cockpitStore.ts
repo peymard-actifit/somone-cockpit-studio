@@ -4035,42 +4035,55 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     // Trouver l'élément source et son domaine
     let sourceElement: Element | null = null;
-    let sourceDomain: Domain | null = null;
+    let sourceDomainId: string | null = null;
+    let sourceDomainName: string = '';
 
     for (const domain of (cockpit.domains || [])) {
       for (const category of (domain.categories || [])) {
         const el = (category.elements || []).find(e => e.id === elementId);
         if (el) {
           sourceElement = el;
-          sourceDomain = domain;
+          sourceDomainId = domain.id;
+          sourceDomainName = domain.name;
+          
+          // Vérifier que le domaine est de type background ou map
+          if (domain.templateType !== 'background' && domain.templateType !== 'map') {
+            return { success: false, message: 'Cette fonction est uniquement disponible pour les domaines Background et Map', updatedCount: 0 };
+          }
           break;
         }
       }
       if (sourceElement) break;
     }
 
-    if (!sourceElement) {
+    if (!sourceElement || !sourceDomainId) {
       return { success: false, message: 'Élément source introuvable', updatedCount: 0 };
     }
 
-    if (!sourceDomain) {
-      return { success: false, message: 'Domaine introuvable', updatedCount: 0 };
-    }
-
-    // Vérifier que le domaine est de type background ou map
-    if (sourceDomain.templateType !== 'background' && sourceDomain.templateType !== 'map') {
-      return { success: false, message: 'Cette fonction est uniquement disponible pour les domaines Background et Map', updatedCount: 0 };
-    }
-
     // Vérifier que l'élément a une taille définie
-    if (sourceElement.width === undefined || sourceElement.height === undefined) {
-      return { success: false, message: 'L\'élément source n\'a pas de taille définie', updatedCount: 0 };
+    const width = sourceElement.width ?? 5;
+    const height = sourceElement.height ?? 5;
+
+    // Compter d'abord les éléments à modifier
+    let elementsToUpdate = 0;
+    for (const domain of (cockpit.domains || [])) {
+      if (domain.id !== sourceDomainId) continue;
+      for (const category of (domain.categories || [])) {
+        for (const el of (category.elements || [])) {
+          if (el.id !== elementId) {
+            elementsToUpdate++;
+          }
+        }
+      }
     }
 
-    const { width, height } = sourceElement;
+    if (elementsToUpdate === 0) {
+      return { success: false, message: 'Aucun autre élément à modifier dans ce domaine', updatedCount: 0 };
+    }
 
-    // Compter et mettre à jour les autres éléments
-    let updatedCount = 0;
+    // Maintenant appliquer la mise à jour
+    const domainIdToUpdate = sourceDomainId;
+    const sourceElementId = elementId;
 
     set((state) => {
       if (!state.currentCockpit) return state;
@@ -4079,17 +4092,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         currentCockpit: {
           ...state.currentCockpit,
           domains: (state.currentCockpit.domains || []).map(d => {
-            if (d.id !== sourceDomain!.id) return d;
+            if (d.id !== domainIdToUpdate) return d;
             
             return {
               ...d,
               categories: (d.categories || []).map(c => ({
                 ...c,
                 elements: (c.elements || []).map(e => {
-                  if (e.id === elementId) return e; // Ne pas modifier l'élément source
+                  if (e.id === sourceElementId) return e; // Ne pas modifier l'élément source
                   
                   // Appliquer la taille aux autres éléments
-                  updatedCount++;
                   return {
                     ...e,
                     width,
@@ -4104,21 +4116,17 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       };
     });
 
-    if (updatedCount === 0) {
-      return { success: false, message: 'Aucun autre élément à modifier dans ce domaine', updatedCount: 0 };
-    }
-
     get().addRecentChange({ 
       type: 'element', 
       action: 'update', 
-      name: `Taille appliquée à ${updatedCount} élément(s)` 
+      name: `Taille appliquée à ${elementsToUpdate} élément(s)` 
     });
     get().triggerAutoSave();
 
     return { 
       success: true, 
-      message: `Taille (${width}% × ${height}%) appliquée à ${updatedCount} élément(s)`, 
-      updatedCount 
+      message: `Taille (${width}% × ${height}%) appliquée à ${elementsToUpdate} élément(s) dans "${sourceDomainName}"`, 
+      updatedCount: elementsToUpdate 
     };
   },
 }));

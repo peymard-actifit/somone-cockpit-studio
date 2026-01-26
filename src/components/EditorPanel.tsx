@@ -2363,6 +2363,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     const confirmed = await confirm({
                       title: 'Appliquer la taille à tous',
                       message: `Voulez-vous appliquer la taille de cet élément (${element.width || 5}% × ${element.height || 5}%) à tous les autres éléments du domaine ?`,
+                      confirmLabel: 'Appliquer',
                     });
                     
                     if (confirmed) {
