@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.11.14';
+const APP_VERSION = '16.12.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2232,6 +2232,156 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         db.contextualHelps.splice(existingIndex, 1);
         await saveDb(db);
         return res.json({ success: true, message: 'Aide contextuelle supprimée' });
+      }
+
+      return res.status(404).json({ error: 'Aide contextuelle non trouvée' });
+    }
+
+    // =============================================
+    // CONTEXTUAL HELP - LOCAL TO COCKPIT (aides locales aux maquettes)
+    // Ces aides sont stockées dans cockpit.data.contextualHelps et exportées avec la maquette
+    // =============================================
+
+    // Obtenir l'aide contextuelle LOCALE à une maquette
+    const localHelpGetMatch = path.match(/^\/cockpits\/([^/]+)\/contextual-help\/(.+)$/);
+    if (localHelpGetMatch && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const cockpitId = localHelpGetMatch[1];
+      const elementKey = decodeURIComponent(localHelpGetMatch[2]);
+      const db = await getDb();
+      
+      const cockpit = db.cockpits.find(c => c.id === cockpitId);
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+
+      // Chercher dans les aides locales de la maquette
+      const localHelps = cockpit.data?.contextualHelps || [];
+      const help = localHelps.find((h: any) => h.elementKey === elementKey);
+
+      return res.json({ help: help || null, isLocal: true });
+    }
+
+    // Créer/modifier l'aide contextuelle LOCALE à une maquette (admin uniquement)
+    const localHelpPutMatch = path.match(/^\/cockpits\/([^/]+)\/contextual-help\/(.+)$/);
+    if (localHelpPutMatch && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const cockpitId = localHelpPutMatch[1];
+      const elementKey = decodeURIComponent(localHelpPutMatch[2]);
+      const { content } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ error: 'Contenu requis' });
+      }
+
+      const cockpit = db.cockpits.find(c => c.id === cockpitId);
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+
+      // Initialiser le tableau si nécessaire
+      if (!cockpit.data) cockpit.data = {};
+      if (!cockpit.data.contextualHelps) {
+        cockpit.data.contextualHelps = [];
+      }
+
+      const localHelps = cockpit.data.contextualHelps as any[];
+      const existingIndex = localHelps.findIndex((h: any) => h.elementKey === elementKey);
+      const now = new Date().toISOString();
+
+      if (existingIndex >= 0) {
+        // Mettre à jour
+        localHelps[existingIndex].content = content;
+        localHelps[existingIndex].updatedAt = now;
+        localHelps[existingIndex].updatedByUsername = currentUser.username;
+      } else {
+        // Créer
+        localHelps.push({
+          elementKey,
+          content,
+          updatedAt: now,
+          updatedByUsername: currentUser.username
+        });
+      }
+
+      cockpit.updatedAt = now;
+      await saveDb(db);
+
+      const help = localHelps.find((h: any) => h.elementKey === elementKey);
+      return res.json({ help, isLocal: true });
+    }
+
+    // Supprimer l'aide contextuelle LOCALE à une maquette (admin uniquement)
+    const localHelpDeleteMatch = path.match(/^\/cockpits\/([^/]+)\/contextual-help\/(.+)$/);
+    if (localHelpDeleteMatch && method === 'DELETE') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      const db = await getDb();
+      const currentUser = db.users.find(u => u.id === decoded.id);
+
+      if (!currentUser || !currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+
+      const cockpitId = localHelpDeleteMatch[1];
+      const elementKey = decodeURIComponent(localHelpDeleteMatch[2]);
+
+      const cockpit = db.cockpits.find(c => c.id === cockpitId);
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+
+      if (!cockpit.data?.contextualHelps) {
+        return res.status(404).json({ error: 'Aide contextuelle non trouvée' });
+      }
+
+      const localHelps = cockpit.data.contextualHelps as any[];
+      const existingIndex = localHelps.findIndex((h: any) => h.elementKey === elementKey);
+
+      if (existingIndex >= 0) {
+        localHelps.splice(existingIndex, 1);
+        cockpit.updatedAt = new Date().toISOString();
+        await saveDb(db);
+        return res.json({ success: true, message: 'Aide contextuelle locale supprimée', isLocal: true });
       }
 
       return res.status(404).json({ error: 'Aide contextuelle non trouvée' });

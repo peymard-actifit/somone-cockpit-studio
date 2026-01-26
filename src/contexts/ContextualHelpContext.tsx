@@ -31,35 +31,72 @@ export function useContextualHelp() {
   return context;
 }
 
-// Fonction pour obtenir la clé d'aide au survol
-// Remonte jusqu'à 8 niveaux pour trouver un data-help-key
-function getHoverHelpKey(element: HTMLElement): string | null {
+// Fonction pour obtenir le cockpitId depuis un élément DOM
+// Remonte la hiérarchie pour trouver un data-cockpit-id
+function getCockpitIdFromElement(element: HTMLElement): string | null {
   let current: HTMLElement | null = element;
   let levels = 0;
-  const maxLevels = 8; // Remonter jusqu'à 8 niveaux
+  const maxLevels = 20; // Remonter jusqu'à 20 niveaux
   
   while (current && levels < maxLevels) {
-    const helpKey = current.getAttribute('data-help-key');
-    if (helpKey) {
-      return helpKey;
+    const cockpitId = current.getAttribute('data-cockpit-id');
+    if (cockpitId) {
+      return cockpitId;
     }
     current = current.parentElement;
     levels++;
   }
   
-  return null; // Pas de clé trouvée
+  return null; // Pas de cockpitId trouvé = aide globale
+}
+
+// Fonction pour obtenir la clé d'aide au survol
+// Remonte jusqu'à 8 niveaux pour trouver un data-help-key
+// Retourne aussi le cockpitId si trouvé (pour aides locales)
+function getHoverHelpKey(element: HTMLElement): { key: string | null; cockpitId: string | null } {
+  let current: HTMLElement | null = element;
+  let levels = 0;
+  const maxLevels = 8; // Remonter jusqu'à 8 niveaux
+  let cockpitId: string | null = null;
+  
+  while (current && levels < maxLevels) {
+    // Chercher le cockpitId en même temps
+    if (!cockpitId) {
+      cockpitId = current.getAttribute('data-cockpit-id');
+    }
+    
+    const helpKey = current.getAttribute('data-help-key');
+    if (helpKey) {
+      // Si pas encore de cockpitId, continuer à chercher plus haut
+      if (!cockpitId) {
+        cockpitId = getCockpitIdFromElement(current);
+      }
+      return { key: helpKey, cockpitId };
+    }
+    current = current.parentElement;
+    levels++;
+  }
+  
+  return { key: null, cockpitId }; // Pas de clé trouvée
 }
 
 // Fonction pour générer une clé contextuelle à partir d'un élément DOM (pour le clic droit)
-function getContextualKey(element: HTMLElement): string {
+// Retourne aussi le cockpitId si trouvé (pour aides locales aux maquettes)
+function getContextualKey(element: HTMLElement): { key: string; cockpitId: string | null } {
   const parts: string[] = [];
+  let cockpitId: string | null = null;
   
-  // Chercher des attributs data-help-key spécifiques (remonte toute la hiérarchie)
+  // Chercher des attributs data-help-key et data-cockpit-id spécifiques (remonte toute la hiérarchie)
   let current: HTMLElement | null = element;
   while (current) {
+    // Chercher le cockpitId
+    if (!cockpitId) {
+      cockpitId = current.getAttribute('data-cockpit-id');
+    }
+    
     const helpKey = current.getAttribute('data-help-key');
     if (helpKey) {
-      return helpKey;
+      return { key: helpKey, cockpitId };
     }
     current = current.parentElement;
   }
@@ -125,10 +162,10 @@ function getContextualKey(element: HTMLElement): string {
   if (parts.length === 0) {
     const tag = element.tagName.toLowerCase();
     const classes = Array.from(element.classList).slice(0, 2).join('-');
-    return `studio-${tag}${classes ? `-${classes}` : ''}`;
+    return { key: `studio-${tag}${classes ? `-${classes}` : ''}`, cockpitId };
   }
   
-  return `studio-${parts.join('-')}`;
+  return { key: `studio-${parts.join('-')}`, cockpitId };
 }
 
 interface ContextualHelpProviderProps {
@@ -139,6 +176,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const { user, token } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
+  const [currentCockpitId, setCurrentCockpitId] = useState<string | null>(null); // Pour les aides locales aux maquettes
   const [helpContent, setHelpContent] = useState<ContextualHelp | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -148,18 +186,35 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const [hoverEnabled, setHoverEnabled] = useState(false);
   const [hoverTooltip, setHoverTooltip] = useState<{ content: string; x: number; y: number } | null>(null);
   const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Cache séparé pour aides globales et locales (clé = cockpitId:elementKey ou global:elementKey)
   const helpCacheRef = React.useRef<Map<string, string | null>>(new Map());
   const currentHoverKeyRef = React.useRef<string | null>(null);
 
   const isAdmin = user?.isAdmin === true;
 
-  // Fetch help content for a specific key
-  const fetchHelp = useCallback(async (elementKey: string) => {
+  // Helper pour construire le cache key
+  const getCacheKey = (elementKey: string, cockpitId: string | null) => {
+    return cockpitId ? `local:${cockpitId}:${elementKey}` : `global:${elementKey}`;
+  };
+
+  // Helper pour construire l'URL de l'API
+  const getApiUrl = (elementKey: string, cockpitId: string | null) => {
+    if (cockpitId) {
+      // Aide locale à une maquette
+      return `/api/cockpits/${cockpitId}/contextual-help/${encodeURIComponent(elementKey)}`;
+    }
+    // Aide globale (studio)
+    return `/api/contextual-help/${encodeURIComponent(elementKey)}`;
+  };
+
+  // Fetch help content for a specific key (avec support cockpitId pour aides locales)
+  const fetchHelp = useCallback(async (elementKey: string, cockpitId: string | null = null) => {
     if (!token) return null;
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/contextual-help/${encodeURIComponent(elementKey)}`, {
+      const url = getApiUrl(elementKey, cockpitId);
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -178,13 +233,14 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     return null;
   }, [token]);
 
-  // Save help content
-  const saveHelp = useCallback(async (elementKey: string, content: string) => {
+  // Save help content (avec support cockpitId pour aides locales)
+  const saveHelp = useCallback(async (elementKey: string, content: string, cockpitId: string | null = null) => {
     if (!token || !isAdmin) return false;
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/contextual-help/${encodeURIComponent(elementKey)}`, {
+      const url = getApiUrl(elementKey, cockpitId);
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -196,6 +252,9 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       if (response.ok) {
         const data = await response.json();
         setHelpContent(data.help);
+        // Mettre à jour le cache
+        const cacheKey = getCacheKey(elementKey, cockpitId);
+        helpCacheRef.current.set(cacheKey, content);
         return true;
       }
     } catch (error) {
@@ -206,13 +265,14 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     return false;
   }, [token, isAdmin]);
 
-  // Delete help content
-  const deleteHelp = useCallback(async (elementKey: string) => {
+  // Delete help content (avec support cockpitId pour aides locales)
+  const deleteHelp = useCallback(async (elementKey: string, cockpitId: string | null = null) => {
     if (!token || !isAdmin) return false;
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/contextual-help/${encodeURIComponent(elementKey)}`, {
+      const url = getApiUrl(elementKey, cockpitId);
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,7 +281,8 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       
       if (response.ok) {
         // Vider le cache pour cette clé
-        helpCacheRef.current.delete(elementKey);
+        const cacheKey = getCacheKey(elementKey, cockpitId);
+        helpCacheRef.current.delete(cacheKey);
         setHelpContent(null);
         return true;
       }
@@ -233,10 +294,14 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     return false;
   }, [token, isAdmin]);
 
-  // Show help popup
-  const showHelp = useCallback((elementKey: string, event: React.MouseEvent) => {
+  // Show help popup - extrait aussi le cockpitId pour les aides locales
+  const showHelp = useCallback((elementKey: string, event: React.MouseEvent, cockpitIdOverride?: string | null) => {
     event.preventDefault();
     event.stopPropagation();
+    
+    // Extraire le cockpitId de l'élément si pas fourni
+    const target = event.target as HTMLElement;
+    const cockpitId = cockpitIdOverride !== undefined ? cockpitIdOverride : getCockpitIdFromElement(target);
     
     // Position the popup near the click, ensure it stays on screen
     const popupWidth = 400;
@@ -260,13 +325,14 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     
     setPosition({ x, y });
     setCurrentKey(elementKey);
+    setCurrentCockpitId(cockpitId);
     setIsOpen(true);
     setIsEditing(false);
     
-    fetchHelp(elementKey);
+    fetchHelp(elementKey, cockpitId);
   }, [fetchHelp]);
 
-  // Global context menu handler
+  // Global context menu handler - extrait clé ET cockpitId
   const handleGlobalContextMenu = useCallback((event: MouseEvent) => {
     // Ne pas intercepter si on est sur un input/textarea en mode édition
     const target = event.target as HTMLElement;
@@ -277,10 +343,22 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     
     event.preventDefault();
     
-    // Générer la clé contextuelle basée sur l'élément cliqué
-    const contextKey = getContextualKey(target);
+    // Générer la clé contextuelle ET le cockpitId basés sur l'élément cliqué
+    const { key: contextKey, cockpitId } = getContextualKey(target);
     
-    showHelp(contextKey, event as unknown as React.MouseEvent);
+    // Créer un événement React synthétique avec le cockpitId
+    setCurrentCockpitId(cockpitId);
+    
+    // Appeler showHelp avec le cockpitId
+    const syntheticEvent = {
+      preventDefault: () => {},
+      stopPropagation: () => {},
+      clientX: event.clientX,
+      clientY: event.clientY,
+      target: event.target,
+    } as React.MouseEvent;
+    
+    showHelp(contextKey, syntheticEvent, cockpitId);
   }, [showHelp]);
 
   // Enable/disable global context menu
@@ -302,17 +380,20 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     setHoverTooltip(null);
   }, []);
 
-  // Check if help exists for a key (with cache)
-  const checkHelpExists = useCallback(async (elementKey: string): Promise<string | null> => {
+  // Check if help exists for a key (with cache) - supporte cockpitId pour aides locales
+  const checkHelpExists = useCallback(async (elementKey: string, cockpitId: string | null = null): Promise<string | null> => {
+    const cacheKey = getCacheKey(elementKey, cockpitId);
+    
     // Check cache first
-    if (helpCacheRef.current.has(elementKey)) {
-      return helpCacheRef.current.get(elementKey) || null;
+    if (helpCacheRef.current.has(cacheKey)) {
+      return helpCacheRef.current.get(cacheKey) || null;
     }
     
     if (!token) return null;
     
     try {
-      const response = await fetch(`/api/contextual-help/${encodeURIComponent(elementKey)}`, {
+      const url = getApiUrl(elementKey, cockpitId);
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -321,18 +402,21 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       if (response.ok) {
         const data = await response.json();
         const content = data.help?.content || null;
-        helpCacheRef.current.set(elementKey, content);
+        helpCacheRef.current.set(cacheKey, content);
         return content;
       }
     } catch (error) {
       console.error('Error checking help:', error);
     }
     
-    helpCacheRef.current.set(elementKey, null);
+    helpCacheRef.current.set(cacheKey, null);
     return null;
   }, [token]);
 
-  // Handle hover for tooltip
+  // Ref pour stocker le cockpitId du hover actuel
+  const currentHoverCockpitIdRef = React.useRef<string | null>(null);
+
+  // Handle hover for tooltip - supporte cockpitId pour aides locales
   const handleMouseMove = useCallback(async (event: MouseEvent) => {
     const target = event.target as HTMLElement;
     
@@ -340,11 +424,12 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     if (isOpen || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
       setHoverTooltip(null);
       currentHoverKeyRef.current = null;
+      currentHoverCockpitIdRef.current = null;
       return;
     }
     
-    // Get hover help key (limited to nearby elements only)
-    const hoverKey = getHoverHelpKey(target);
+    // Get hover help key AND cockpitId (limited to nearby elements only)
+    const { key: hoverKey, cockpitId: hoverCockpitId } = getHoverHelpKey(target);
     
     // If no key found in proximity, hide tooltip and return
     if (!hoverKey) {
@@ -354,12 +439,19 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
         }
         setHoverTooltip(null);
         currentHoverKeyRef.current = null;
+        currentHoverCockpitIdRef.current = null;
       }
       return;
     }
     
+    // Construire une clé composite pour la comparaison (inclut cockpitId)
+    const compositeKey = hoverCockpitId ? `${hoverCockpitId}:${hoverKey}` : hoverKey;
+    const currentCompositeKey = currentHoverCockpitIdRef.current 
+      ? `${currentHoverCockpitIdRef.current}:${currentHoverKeyRef.current}` 
+      : currentHoverKeyRef.current;
+    
     // If same key as before, just update position if tooltip is visible
-    if (hoverKey === currentHoverKeyRef.current) {
+    if (compositeKey === currentCompositeKey) {
       if (hoverTooltip) {
         setHoverTooltip(prev => prev ? {
           ...prev,
@@ -375,8 +467,9 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       clearTimeout(hoverTimeoutRef.current);
     }
     
-    // Update current key
+    // Update current key and cockpitId
     currentHoverKeyRef.current = hoverKey;
+    currentHoverCockpitIdRef.current = hoverCockpitId;
     
     // Hide previous tooltip immediately when changing elements
     setHoverTooltip(null);
@@ -386,7 +479,8 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       // Check if we're still on the same element
       if (currentHoverKeyRef.current !== hoverKey) return;
       
-      const content = await checkHelpExists(hoverKey);
+      // Passer le cockpitId pour les aides locales
+      const content = await checkHelpExists(hoverKey, hoverCockpitId);
       if (content && currentHoverKeyRef.current === hoverKey) {
         setHoverTooltip({
           content,
@@ -435,6 +529,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const closeHelp = useCallback(() => {
     setIsOpen(false);
     setCurrentKey(null);
+    setCurrentCockpitId(null);
     setHelpContent(null);
     setIsEditing(false);
     setEditContent('');
@@ -446,15 +541,16 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     setIsEditing(true);
   }, [helpContent]);
 
-  // Save and close editing
+  // Save and close editing - utilise le cockpitId pour les aides locales
   const saveAndClose = useCallback(async () => {
     if (!currentKey) return;
     
-    const success = await saveHelp(currentKey, editContent);
+    // Passer le currentCockpitId pour sauvegarder dans la maquette si c'est une aide locale
+    const success = await saveHelp(currentKey, editContent, currentCockpitId);
     if (success) {
       setIsEditing(false);
     }
-  }, [currentKey, editContent, saveHelp]);
+  }, [currentKey, editContent, saveHelp, currentCockpitId]);
 
   // Cancel editing
   const cancelEditing = useCallback(() => {
@@ -527,11 +623,14 @@ Exemples:
 </ul>"
                     autoFocus
                   />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">
-                      Clé: {currentKey}
-                    </span>
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${currentCockpitId ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                        {currentCockpitId ? 'AIDE LOCALE (maquette)' : 'AIDE GLOBALE (studio)'}
+                      </span>
+                      <span>Clé: {currentKey}</span>
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={cancelEditing}
                         className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
@@ -572,10 +671,16 @@ Exemples:
               )}
             </div>
             
-            {/* Footer discret */}
+            {/* Footer discret avec indicateur locale/globale */}
             {helpContent && !isEditing && (
               <div className="px-4 py-1.5 border-t border-slate-100 text-[10px] text-slate-300 flex items-center justify-between">
-                <span>Mis à jour le {new Date(helpContent.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                <div className="flex items-center gap-2">
+                  {/* Indicateur aide locale ou globale */}
+                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${currentCockpitId ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                    {currentCockpitId ? 'LOCAL' : 'GLOBAL'}
+                  </span>
+                  <span>Mis à jour le {new Date(helpContent.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
                 <div className="flex items-center gap-2">
                   {helpContent.updatedByUsername && (
                     <span>{helpContent.updatedByUsername}</span>
@@ -583,15 +688,17 @@ Exemples:
                   {isAdmin && (
                     <button
                       onClick={async () => {
-                        if (currentKey && window.confirm('Supprimer cette aide contextuelle ?')) {
-                          const success = await deleteHelp(currentKey);
+                        const typeAide = currentCockpitId ? 'locale (spécifique à cette maquette)' : 'globale (studio)';
+                        if (currentKey && window.confirm(`Supprimer cette aide contextuelle ${typeAide} ?`)) {
+                          // Passer le cockpitId pour supprimer l'aide locale si applicable
+                          const success = await deleteHelp(currentKey, currentCockpitId);
                           if (success) {
                             closeHelp();
                           }
                         }
                       }}
                       className="text-red-400 hover:text-red-600"
-                      title="Supprimer l'aide"
+                      title={currentCockpitId ? "Supprimer l'aide locale" : "Supprimer l'aide globale"}
                     >
                       <MuiIcon name="Delete" size={10} />
                     </button>

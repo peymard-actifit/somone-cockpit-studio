@@ -259,7 +259,10 @@ export default function StudioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] flex flex-col">
+    <div 
+      className="min-h-screen bg-[#F5F7FA] flex flex-col"
+      data-cockpit-id={currentCockpit.id}
+    >
       {/* Header - Style PDF SOMONE bleu marine */}
       <header className="bg-[#1E3A5F] px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-4">

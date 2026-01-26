@@ -243,6 +243,7 @@ function SortableCockpitCard({
       style={style}
       className="group bg-cockpit-bg-card/80 backdrop-blur-sm border border-slate-700/50 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
       data-help-key="home-cockpit-card"
+      data-cockpit-id={cockpit.id}
     >
       {/* En-tête avec nom cliquable et drag */}
       <div className="p-2.5 border-b border-slate-700/30">

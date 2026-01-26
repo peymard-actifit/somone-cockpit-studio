@@ -174,6 +174,104 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 
   // Formulaire édition point supprimé - l'édition se fait maintenant via EditorPanel
 
+  // Position du panneau de contrôle (drag and drop) - seulement en mode studio
+  const loadControlPanelPosition = (domainId: string) => {
+    const savedPos = localStorage.getItem(`mapControlPanel-${domainId}`);
+    if (savedPos) {
+      try {
+        return JSON.parse(savedPos);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  };
+  
+  const [controlPanelPosition, setControlPanelPosition] = useState<{ x: number; y: number } | null>(() => 
+    loadControlPanelPosition(domain.id)
+  );
+  const [isDraggingControlPanel, setIsDraggingControlPanel] = useState(false);
+  const controlPanelDragStartRef = useRef<{ mouseX: number; mouseY: number; panelX: number; panelY: number } | null>(null);
+  const controlPanelRef = useRef<HTMLDivElement>(null);
+
+  // Sauvegarder la position du panneau de contrôle
+  const saveControlPanelPosition = useCallback((pos: { x: number; y: number } | null) => {
+    if (pos) {
+      localStorage.setItem(`mapControlPanel-${domain.id}`, JSON.stringify(pos));
+    } else {
+      localStorage.removeItem(`mapControlPanel-${domain.id}`);
+    }
+  }, [domain.id]);
+
+  // Gestionnaire de drag du panneau de contrôle
+  const handleControlPanelDragStart = useCallback((e: React.MouseEvent) => {
+    if (_readOnly) return; // Pas de drag en mode publié
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const currentX = controlPanelPosition?.x ?? (containerRect.width - 80);
+    const currentY = controlPanelPosition?.y ?? 16;
+    
+    controlPanelDragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      panelX: currentX,
+      panelY: currentY
+    };
+    setIsDraggingControlPanel(true);
+  }, [_readOnly, controlPanelPosition]);
+
+  // Effet pour gérer le drag du panneau (mouse move/up global)
+  useEffect(() => {
+    if (!isDraggingControlPanel) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!controlPanelDragStartRef.current || !containerRef.current) return;
+      
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const deltaX = e.clientX - controlPanelDragStartRef.current.mouseX;
+      const deltaY = e.clientY - controlPanelDragStartRef.current.mouseY;
+      
+      let newX = controlPanelDragStartRef.current.panelX + deltaX;
+      let newY = controlPanelDragStartRef.current.panelY + deltaY;
+      
+      // Limiter aux bords du conteneur
+      const panelWidth = controlPanelRef.current?.offsetWidth || 60;
+      const panelHeight = controlPanelRef.current?.offsetHeight || 200;
+      
+      newX = Math.max(0, Math.min(containerRect.width - panelWidth, newX));
+      newY = Math.max(0, Math.min(containerRect.height - panelHeight, newY));
+      
+      setControlPanelPosition({ x: newX, y: newY });
+    };
+    
+    const handleMouseUp = () => {
+      setIsDraggingControlPanel(false);
+      if (controlPanelPosition) {
+        saveControlPanelPosition(controlPanelPosition);
+      }
+      controlPanelDragStartRef.current = null;
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingControlPanel, controlPanelPosition, saveControlPanelPosition]);
+
+  // Réinitialiser la position du panneau
+  const resetControlPanelPosition = useCallback(() => {
+    setControlPanelPosition(null);
+    saveControlPanelPosition(null);
+  }, [saveControlPanelPosition]);
+
   // Limites de zoom
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 8;
@@ -1179,16 +1277,44 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
         />
       )}
 
-      {/* Conteneur des contrôles de droite - avec auto-hide en mode publié */}
+      {/* Conteneur des contrôles de droite - repositionnable en mode studio, auto-hide en mode publié */}
       <div 
-        className={`absolute top-4 right-6 z-30 flex flex-col gap-3 transition-all duration-300 ${
+        ref={controlPanelRef}
+        className={`absolute z-30 flex flex-col gap-3 transition-all duration-300 ${
           _readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
-        }`}
+        } ${isDraggingControlPanel ? 'cursor-grabbing' : ''}`}
+        style={controlPanelPosition && !_readOnly ? {
+          left: controlPanelPosition.x,
+          top: controlPanelPosition.y,
+        } : {
+          top: 16,
+          right: 24,
+        }}
         onMouseEnter={() => _readOnly && setIsRightControlsHovered(true)}
         onMouseLeave={() => _readOnly && setIsRightControlsHovered(false)}
       >
+        {/* Zone de drag (handle) - seulement en mode studio */}
+        {!_readOnly && (
+          <div 
+            className="flex items-center justify-center gap-1 bg-slate-100 rounded-t-xl border border-b-0 border-[#E2E8F0] px-2 py-1 cursor-grab hover:bg-slate-200 transition-colors"
+            onMouseDown={handleControlPanelDragStart}
+            title="Glisser pour déplacer le panneau"
+          >
+            <MuiIcon name="DragIndicator" size={14} className="text-slate-400" />
+            {controlPanelPosition && (
+              <button
+                onClick={(e) => { e.stopPropagation(); resetControlPanelPosition(); }}
+                className="p-0.5 hover:bg-slate-300 rounded text-slate-400 hover:text-slate-600"
+                title="Réinitialiser la position"
+              >
+                <MuiIcon name="RestartAlt" size={12} />
+              </button>
+            )}
+          </div>
+        )}
+        
         {/* Contrôles de zoom */}
-        <div className="flex flex-col gap-1 bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+        <div className={`flex flex-col gap-1 bg-white ${_readOnly ? 'rounded-xl' : 'rounded-b-xl rounded-t-none -mt-3'} border border-[#E2E8F0] shadow-md overflow-hidden`}>
           <button onClick={zoomIn} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer">
             <MuiIcon name="Add" size={20} />
           </button>
