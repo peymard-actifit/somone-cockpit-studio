@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.15.3';
+const APP_VERSION = '16.15.4';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2551,7 +2551,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               const newSnapshot = {
                 logo: cockpit.data.logo || null,
                 scrollingBanner: cockpit.data.scrollingBanner || null,
-                useOriginalView: cockpit.data.useOriginalView || false,
+                useOriginalView: cockpit.data.useOriginalView !== false, // true par défaut
                 domains: (cockpit.data.domains || [])
                   .filter((d: any) => d.publiable !== false)
                   .map((d: any) => ({
@@ -2870,7 +2870,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             publicId: data.publicId || null,
             isPublished: data.isPublished || false,
             publishedAt: data.publishedAt || null,
-            useOriginalView: snapshot.useOriginalView || false,
+            useOriginalView: snapshot.useOriginalView !== false, // true par défaut
             welcomeMessage: snapshot.welcomeMessage || data.welcomeMessage || null,
             snapshotVersion: snapshot.snapshotVersion,
             snapshotCreatedAt: snapshot.snapshotCreatedAt,
@@ -2947,8 +2947,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         isPublished: data.isPublished || false,
         publishedAt: data.publishedAt || null,
         welcomeMessage: data.welcomeMessage || null,
-        // IMPORTANT: Toujours inclure useOriginalView même dans le fallback
-        useOriginalView: data.useOriginalView || false,
+        // IMPORTANT: Toujours inclure useOriginalView même dans le fallback (true par défaut)
+        useOriginalView: data.useOriginalView !== false,
       };
 
       // Log final pour vérifier ce qui est envoyé
@@ -3924,8 +3924,8 @@ INSTRUCTIONS:
         welcomeMessage: cockpit.data.welcomeMessage,
         // Partage
         sharedWith: sharedWith !== undefined ? sharedWith : cockpit.data.sharedWith || [],
-        // Vue originale
-        useOriginalView: useOriginalView !== undefined ? useOriginalView : cockpit.data.useOriginalView || false,
+        // Vue originale (true par défaut si non défini)
+        useOriginalView: useOriginalView !== undefined ? useOriginalView : cockpit.data.useOriginalView !== false,
         // Icônes des templates
         templateIcons: templateIcons !== undefined ? templateIcons : cockpit.data.templateIcons || {},
         // IMPORTANT: Toujours préserver les originaux sauvegardés

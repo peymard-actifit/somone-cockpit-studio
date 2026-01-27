@@ -134,8 +134,8 @@ function PublicCockpitContent() {
   const domains = cockpit.domains || [];
   const currentDomain = domains.find(d => d.id === currentDomainId);
   
-  // Déterminer si on utilise la vue originale
-  const useOriginalView = cockpit.useOriginalView === true;
+  // Déterminer si on utilise la vue originale (activé par défaut si non défini)
+  const useOriginalView = cockpit.useOriginalView !== false;
   
   // Déterminer si on est sur une vue Map ou Background (pour masquer les bandeaux)
   const isMapOrBackgroundView = currentDomain && 

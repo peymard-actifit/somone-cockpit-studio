@@ -4639,19 +4639,19 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </label>
             </div>
 
-            {/* Option Vue Cockpit Original (préparation future fonctionnalité) */}
+            {/* Option Vue Cockpit Original - cochée par défaut */}
             <div className="border-t border-[#E2E8F0] pt-4">
               <label className="flex items-center gap-3 cursor-pointer p-3 bg-[#F5F7FA] rounded-lg hover:bg-[#E2E8F0] transition-colors">
                 <input
                   type="checkbox"
-                  checked={currentCockpit?.useOriginalView || false}
+                  checked={currentCockpit?.useOriginalView !== false}
                   onChange={(e) => updateCockpit({ useOriginalView: e.target.checked })}
                   className="w-5 h-5 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F] focus:ring-2"
                 />
                 <div>
                   <span className="block text-sm font-medium text-[#1E3A5F]">Vue Cockpit Original</span>
                   <span className="block text-xs text-[#94A3B8]">
-                    Active une vue alternative pour les cockpits publiés (bientôt disponible)
+                    Affiche le cockpit publié avec le design original (activé par défaut)
                   </span>
                 </div>
               </label>

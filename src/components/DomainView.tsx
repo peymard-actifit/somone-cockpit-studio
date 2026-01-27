@@ -104,8 +104,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   // pour les vues qui en ont besoin (alerts, stats)
   const cockpit = cockpitProp || useCockpitStore.getState().currentCockpit;
   
-  // Mode cockpit original (fond transparent pour les catégories en mode publié)
-  const useOriginalView = cockpit?.useOriginalView || false;
+  // Mode cockpit original (fond transparent pour les catégories en mode publié) - activé par défaut
+  const useOriginalView = cockpit?.useOriginalView !== false;
 
   // ============================================================================
   // TOUS LES HOOKS ET USEMEMO DOIVENT ÊTRE DÉCLARÉS ICI, AVANT TOUT RETURN CONDITIONNEL

@@ -609,7 +609,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         logo: currentCockpit.logo,
         scrollingBanner: currentCockpit.scrollingBanner,
         sharedWith: currentCockpit.sharedWith || [],
-        useOriginalView: currentCockpit.useOriginalView || false,
+        useOriginalView: currentCockpit.useOriginalView !== false, // true par défaut
         zones: zones || [],
         templateIcons: currentCockpit.templateIcons || {},
         clientUpdatedAt: currentCockpit.updatedAt,
@@ -699,7 +699,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       logo: currentCockpit.logo,
       scrollingBanner: currentCockpit.scrollingBanner,
       sharedWith: currentCockpit.sharedWith || [],
-      useOriginalView: currentCockpit.useOriginalView || false,
+      useOriginalView: currentCockpit.useOriginalView !== false, // true par défaut
       zones: zones || [],
       templateIcons: currentCockpit.templateIcons || {},
       clientUpdatedAt: currentCockpit.updatedAt,
@@ -761,7 +761,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       logo: currentCockpit.logo,
       scrollingBanner: currentCockpit.scrollingBanner,
       sharedWith: currentCockpit.sharedWith || [],
-      useOriginalView: currentCockpit.useOriginalView || false,
+      useOriginalView: currentCockpit.useOriginalView !== false, // true par défaut
       templateIcons: currentCockpit.templateIcons || {},
       clientUpdatedAt: currentCockpit.updatedAt,
     };
@@ -2769,8 +2769,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           scrollingBanner: currentCockpit.scrollingBanner,
           sharedWith: currentCockpit.sharedWith || [],
           templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
-          // IMPORTANT: Inclure useOriginalView pour que la publication utilise la bonne vue
-          useOriginalView: currentCockpit.useOriginalView || false,
+          // IMPORTANT: Inclure useOriginalView pour que la publication utilise la bonne vue (true par défaut)
+          useOriginalView: currentCockpit.useOriginalView !== false,
         };
         if ((currentCockpit as any).zones) {
           payload.zones = (currentCockpit as any).zones;
