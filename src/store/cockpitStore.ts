@@ -377,6 +377,13 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const savedDomainId = isReload ? state.currentDomainId : null;
     const savedElementId = isReload ? state.currentElementId : null;
     
+    // IMPORTANT: Sauvegarder le cockpit actuel AVANT de le recharger
+    // pour éviter de perdre des modifications non sauvegardées
+    if (isReload && state.currentCockpit) {
+      console.log('[fetchCockpit] ⚠️ Rechargement détecté, sauvegarde préventive des données locales...');
+      offlineSync.backupCockpit(state.currentCockpit);
+    }
+    
     set({ isLoading: true, error: null });
 
     try {
@@ -386,14 +393,42 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       if (!response.ok) throw new Error('Erreur lors du chargement');
 
-      const cockpit = await response.json();
+      const serverCockpit = await response.json();
+      
+      // Vérifier s'il existe un backup local plus récent
+      const backup = offlineSync.getBackup(id);
+      let cockpitToUse = serverCockpit;
+      
+      if (backup && isReload) {
+        const serverUpdatedAt = new Date(serverCockpit.updatedAt || 0).getTime();
+        const backupTimestamp = backup.timestamp;
+        
+        // Si le backup local est plus récent que les données du serveur, l'utiliser
+        if (backupTimestamp > serverUpdatedAt) {
+          console.log('[fetchCockpit] 📦 Backup local plus récent détecté, utilisation du backup');
+          console.log(`[fetchCockpit]   Server: ${new Date(serverUpdatedAt).toISOString()}`);
+          console.log(`[fetchCockpit]   Backup: ${new Date(backupTimestamp).toISOString()}`);
+          cockpitToUse = backup.cockpit;
+          
+          // Resauvegarder immédiatement vers le serveur
+          const { triggerImmediateSave } = get();
+          setTimeout(() => {
+            console.log('[fetchCockpit] 🔄 Resynchronisation du backup vers le serveur...');
+            triggerImmediateSave();
+          }, 100);
+        } else {
+          // Les données du serveur sont plus récentes, supprimer le backup
+          console.log('[fetchCockpit] ✅ Données serveur utilisées (plus récentes)');
+          offlineSync.clearBackup(id);
+        }
+      }
       
       // Vérifier si les IDs sauvegardés sont toujours valides
-      let validDomainId = cockpit.domains?.[0]?.id || null;
+      let validDomainId = cockpitToUse.domains?.[0]?.id || null;
       let validElementId: string | null = null;
       
       if (savedDomainId) {
-        const foundDomain = cockpit.domains?.find((d: any) => d.id === savedDomainId);
+        const foundDomain = cockpitToUse.domains?.find((d: any) => d.id === savedDomainId);
         if (foundDomain) {
           validDomainId = savedDomainId;
           // Vérifier si l'élément est toujours valide
@@ -410,16 +445,30 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       
       set({
         currentCockpit: {
-          ...cockpit,
-          sharedWith: cockpit.sharedWith || [], // S'assurer que sharedWith existe
+          ...cockpitToUse,
+          sharedWith: cockpitToUse.sharedWith || [], // S'assurer que sharedWith existe
         },
         currentDomainId: validDomainId,
         currentElementId: validElementId,
-        zones: cockpit.zones || [],
+        zones: cockpitToUse.zones || [],
         isLoading: false
       });
     } catch (error) {
-      set({ error: 'Erreur lors du chargement de la maquette', isLoading: false });
+      // En cas d'erreur réseau, essayer de charger depuis le backup local
+      const backup = offlineSync.getBackup(id);
+      if (backup) {
+        console.log('[fetchCockpit] 📦 Erreur réseau, chargement depuis backup local');
+        set({
+          currentCockpit: backup.cockpit,
+          currentDomainId: savedDomainId || backup.cockpit.domains?.[0]?.id || null,
+          currentElementId: savedElementId,
+          zones: (backup.cockpit as any).zones || state.zones || [],
+          isLoading: false,
+          error: null, // Pas d'erreur car on a le backup
+        });
+      } else {
+        set({ error: 'Erreur lors du chargement de la maquette', isLoading: false });
+      }
     }
   },
 
