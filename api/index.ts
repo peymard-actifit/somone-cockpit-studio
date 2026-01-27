@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.15.0';
+const APP_VERSION = '16.15.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3903,6 +3903,11 @@ INSTRUCTIONS:
           `points=${hasMapElements ? `âœ…(${d.mapElements.length})` : 'âŒ'}`);
       }); */
 
+      // Préserver les infos de snapshot existantes
+      const existingSnapshotVersion = cockpit.data.snapshotVersion;
+      const existingHasSnapshot = cockpit.data.hasSnapshot;
+      const existingSnapshotStorage = cockpit.data.snapshotStorage;
+
       cockpit.data = {
         domains: mergedDomains,
         zones: zones !== undefined ? zones : cockpit.data.zones || [],
@@ -3912,6 +3917,11 @@ INSTRUCTIONS:
         publicId: cockpit.data.publicId,
         isPublished: cockpit.data.isPublished,
         publishedAt: cockpit.data.publishedAt,
+        // Préserver les infos de snapshot
+        snapshotVersion: existingSnapshotVersion,
+        hasSnapshot: existingHasSnapshot,
+        snapshotStorage: existingSnapshotStorage,
+        welcomeMessage: cockpit.data.welcomeMessage,
         // Partage
         sharedWith: sharedWith !== undefined ? sharedWith : cockpit.data.sharedWith || [],
         // Vue originale
@@ -3926,6 +3936,62 @@ INSTRUCTIONS:
       cockpit.updatedAt = now;
 
       await saveDb(db);
+
+      // =====================================================
+      // SYNCHRONISATION AUTOMATIQUE DU SNAPSHOT SI PUBLIÉ
+      // =====================================================
+      // Si le cockpit est publié, mettre à jour le snapshot automatiquement
+      // pour que les modifications soient immédiatement visibles sur la version publique
+      if (cockpit.data.isPublished && cockpit.data.publicId && cockpit.data.hasSnapshot) {
+        try {
+          const newSnapshotVersion = (cockpit.data.snapshotVersion || 0) + 1;
+          const useOriginalViewValue = cockpit.data.useOriginalView === true;
+          
+          // Créer un nouveau snapshot avec les données mises à jour
+          const updatedSnapshot = {
+            name: cockpit.name,
+            logo: cockpit.data.logo || null,
+            scrollingBanner: cockpit.data.scrollingBanner || null,
+            useOriginalView: useOriginalViewValue,
+            welcomeMessage: cockpit.data.welcomeMessage || null,
+            domains: JSON.parse(JSON.stringify(
+              (cockpit.data.domains || [])
+                .filter((domain: any) => domain.publiable !== false)
+                .map((domain: any) => ({
+                  ...domain,
+                  categories: (domain.categories || []).map((category: any) => ({
+                    ...category,
+                    elements: (category.elements || []).filter((el: any) => el.publiable !== false)
+                  }))
+                }))
+            )),
+            zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
+            snapshotVersion: newSnapshotVersion,
+            snapshotCreatedAt: new Date().toISOString(),
+          };
+          
+          // Sauvegarder le snapshot mis à jour dans PostgreSQL
+          const pgSuccess = await saveSnapshot(
+            cockpit.id,
+            cockpit.data.publicId,
+            cockpit.name,
+            updatedSnapshot,
+            newSnapshotVersion
+          );
+          
+          if (pgSuccess) {
+            // Mettre à jour la version du snapshot dans le cockpit
+            cockpit.data.snapshotVersion = newSnapshotVersion;
+            await saveDb(db);
+            log.info(`[PUT] Snapshot synchronisé automatiquement v${newSnapshotVersion} pour "${cockpit.name}"`);
+          } else {
+            log.warn(`[PUT] Échec synchronisation snapshot pour "${cockpit.name}"`);
+          }
+        } catch (snapshotError: any) {
+          log.error(`[PUT] Erreur synchronisation snapshot:`, snapshotError?.message);
+          // Ne pas échouer la requête principale si la synchro snapshot échoue
+        }
+      }
 
       // Vérification de sauvegarde (logs uniquement en dev)
       log.debug(`[PUT] Cockpit ${id} sauvegardé`);
