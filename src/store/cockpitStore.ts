@@ -569,16 +569,6 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       
       console.log(`[Auto-save] 📦 Sauvegarde en cours... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines)`);
       
-      // Vercel limite les requêtes à 4.5MB
-      const MAX_PAYLOAD_SIZE_MB = 4.0; // Marge de sécurité
-      if (payloadSizeMB > MAX_PAYLOAD_SIZE_MB) {
-        console.error(`[Auto-save] ❌ Payload trop volumineux: ${payloadSizeMB.toFixed(2)} MB (limite: ${MAX_PAYLOAD_SIZE_MB} MB)`);
-        console.warn('[Auto-save] 💡 Conseil: Réduisez la taille des images ou utilisez des URL externes');
-        // Ne pas sauvegarder mais garder le backup local
-        offlineSync.backupCockpit(currentCockpit);
-        return;
-      }
-
       // Toujours sauvegarder une copie locale (backup)
       offlineSync.backupCockpit(currentCockpit);
 
@@ -604,8 +594,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         });
 
         if (response.status === 409) {
-          console.warn('[Auto-save] ⚠️ Conflit détecté, rechargement du cockpit...');
-          get().fetchCockpit(currentCockpit.id);
+          // Conflit détecté mais on ne recharge PAS automatiquement pour ne pas perdre le focus
+          console.warn('[Auto-save] ⚠️ Conflit détecté - les données locales seront conservées');
         } else if (response.status === 413) {
           console.error(`[Auto-save] ❌ Erreur 413 - Payload trop grand (${payloadSizeMB.toFixed(2)} MB)`);
         } else if (!response.ok) {
@@ -671,12 +661,6 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     // Toujours sauvegarder une copie locale
     offlineSync.backupCockpit(currentCockpit);
 
-    // Vérifier la taille
-    if (payloadSizeMB > 4.0) {
-      console.error(`[Immediate-save] ❌ Payload trop volumineux: ${payloadSizeMB.toFixed(2)} MB`);
-      return;
-    }
-
     try {
       const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
         method: 'PUT',
@@ -733,26 +717,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       payload.zones = (currentCockpit as any).zones;
     }
 
-    // Vérifier la taille du payload AVANT envoi (limite Vercel ~4.5MB)
     const payloadStr = JSON.stringify(payload);
     const payloadSizeMB = payloadStr.length / 1024 / 1024;
     console.log(`[forceSave] 📦 Taille du payload: ${payloadSizeMB.toFixed(2)} MB`);
     
-    // Vercel limite les requêtes à 4.5MB
-    const MAX_PAYLOAD_SIZE_MB = 4.0; // Marge de sécurité
-    if (payloadSizeMB > MAX_PAYLOAD_SIZE_MB) {
-      console.error(`[forceSave] ❌ Payload trop volumineux: ${payloadSizeMB.toFixed(2)} MB (limite: ${MAX_PAYLOAD_SIZE_MB} MB)`);
-      // Détailler la taille par domaine pour aider au debug
-      (currentCockpit.domains || []).forEach((d: any, i: number) => {
-        const domainStr = JSON.stringify(d);
-        const domainSizeMB = domainStr.length / 1024 / 1024;
-        const hasImage = d.backgroundImage && d.backgroundImage.length > 0;
-        const imageSizeMB = hasImage ? d.backgroundImage.length / 1024 / 1024 : 0;
-        console.log(`[forceSave]   Domaine ${i + 1} "${d.name}": ${domainSizeMB.toFixed(2)} MB (image: ${imageSizeMB.toFixed(2)} MB)`);
-      });
-      return false;
-    }
-
     // Toujours sauvegarder une copie locale
     offlineSync.backupCockpit(currentCockpit);
 
@@ -778,12 +746,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // Gérer les conflits de version
+        // Gérer les conflits de version - PAS de rechargement automatique pour ne pas perdre le focus
         if (response.status === 409) {
-          console.warn('[forceSave] Conflit détecté:', errorData.error);
-          // Recharger le cockpit depuis le serveur
-          await get().fetchCockpit(currentCockpit.id);
-          return false;
+          console.warn('[forceSave] ⚠️ Conflit détecté - les données locales seront conservées:', errorData.error);
+          // On retourne true car les données locales sont sauvegardées en backup
+          return true;
         }
         // Gérer les erreurs de payload trop grand
         if (response.status === 413) {

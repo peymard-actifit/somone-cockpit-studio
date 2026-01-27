@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.14.6';
+const APP_VERSION = '16.14.7';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -220,18 +220,17 @@ const generateId = () => {
 // Configuration et validation
 // ============================================
 
-// Limites pour les images
-// IMPORTANT: Vercel limite les requêtes à 4.5MB, donc on limite les images à 1.5MB
-// pour permettre plusieurs images et les autres données du cockpit
+// Configuration pour les images - PAS DE LIMITE DE TAILLE
+// Note: Vercel Pro supporte jusqu'à 100MB de payload
 const IMAGE_CONFIG = {
-  MAX_SIZE_MB: 1.5,          // Taille max en MB (réduction pour respecter limite Vercel)
-  MAX_SIZE_BYTES: 1.5 * 1024 * 1024,
+  MAX_SIZE_MB: 100,          // Pas de limite pratique
+  MAX_SIZE_BYTES: 100 * 1024 * 1024,
   ALLOWED_FORMATS: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
   MIN_SIZE_BYTES: 100,       // Taille min pour éviter les données corrompues
 };
 
-// Limite globale du payload (Vercel = 4.5MB, on prend une marge)
-const MAX_PAYLOAD_SIZE_MB = 4.0;
+// Pas de limite globale du payload
+const MAX_PAYLOAD_SIZE_MB = 100; // Pratiquement illimité
 
 // Mode production (désactive les logs verbeux)
 const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
