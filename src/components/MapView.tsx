@@ -163,6 +163,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; pointId: string; isCluster: boolean } | null>(null);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipShownForRef = useRef<string | null>(null); // ID du point pour lequel le tooltip a déjà été affiché
 
   // Renommage rapide après clonage
   const [renamingPointId, setRenamingPointId] = useState<string | null>(null);
@@ -1682,7 +1684,18 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                 className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 group cursor-pointer"
                 style={{ left: `${cluster.center.x}%`, top: `${cluster.center.y}%` }}
                 onMouseEnter={(e) => {
+                  // Ne pas afficher le tooltip si déjà affiché pour ce cluster
+                  if (tooltipShownForRef.current === cluster.id) {
+                    return;
+                  }
+                  
+                  if (tooltipTimeoutRef.current) {
+                    clearTimeout(tooltipTimeoutRef.current);
+                  }
+                  
                   setHoveredPoint(cluster.id);
+                  tooltipShownForRef.current = cluster.id;
+                  
                   const rect = e.currentTarget.getBoundingClientRect();
                   setTooltipPosition({
                     x: rect.left + rect.width / 2,
@@ -1690,10 +1703,21 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     pointId: cluster.id,
                     isCluster: true
                   });
+                  
+                  // Masquer le tooltip après 0.5 seconde
+                  tooltipTimeoutRef.current = setTimeout(() => {
+                    setHoveredPoint(null);
+                    setTooltipPosition(null);
+                  }, 500);
                 }}
                 onMouseLeave={() => {
+                  if (tooltipTimeoutRef.current) {
+                    clearTimeout(tooltipTimeoutRef.current);
+                    tooltipTimeoutRef.current = null;
+                  }
                   setHoveredPoint(null);
                   setTooltipPosition(null);
+                  tooltipShownForRef.current = null;
                 }}
                 onClick={handleClusterClick}
               >
@@ -1785,7 +1809,19 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                   minHeight: `${dynamicSize * 1.6}px`,
                 }}
                 onMouseEnter={(e) => {
+                  // Ne pas afficher le tooltip si déjà affiché pour ce point
+                  if (tooltipShownForRef.current === point.id) {
+                    return;
+                  }
+                  
+                  // Annuler le timeout précédent si existant
+                  if (tooltipTimeoutRef.current) {
+                    clearTimeout(tooltipTimeoutRef.current);
+                  }
+                  
                   setHoveredPoint(point.id);
+                  tooltipShownForRef.current = point.id;
+                  
                   const rect = e.currentTarget.getBoundingClientRect();
                   setTooltipPosition({
                     x: rect.left + rect.width / 2,
@@ -1793,10 +1829,23 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     pointId: point.id,
                     isCluster: false
                   });
+                  
+                  // Masquer le tooltip après 0.5 seconde
+                  tooltipTimeoutRef.current = setTimeout(() => {
+                    setHoveredPoint(null);
+                    setTooltipPosition(null);
+                  }, 500);
                 }}
                 onMouseLeave={() => {
+                  // Annuler le timeout si on quitte le point
+                  if (tooltipTimeoutRef.current) {
+                    clearTimeout(tooltipTimeoutRef.current);
+                    tooltipTimeoutRef.current = null;
+                  }
                   setHoveredPoint(null);
                   setTooltipPosition(null);
+                  // Réinitialiser le flag pour permettre de réafficher le tooltip au prochain survol
+                  tooltipShownForRef.current = null;
                 }}
                 onMouseDown={(e) => {
                   if (!_readOnly && e.button === 0) {

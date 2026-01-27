@@ -154,9 +154,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
   // Modal d'édition supprimé - l'édition se fait maintenant via EditorPanel
 
-  // Tooltip au survol
+  // Tooltip au survol - affichage temporaire (0.5 seconde)
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; elementId: string } | null>(null);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipShownForRef = useRef<string | null>(null); // ID de l'élément pour lequel le tooltip a déjà été affiché
 
   // Renommage rapide après clonage
   const [renamingElementId, setRenamingElementId] = useState<string | null>(null);
@@ -1691,8 +1693,32 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   width: `${clusterSize}px`,
                   height: `${clusterSize}px`,
                 }}
-                onMouseEnter={() => setHoveredElement(cluster.id)}
-                onMouseLeave={() => setHoveredElement(null)}
+                onMouseEnter={() => {
+                  // Ne pas afficher le tooltip si déjà affiché pour ce cluster
+                  if (tooltipShownForRef.current === cluster.id) {
+                    return;
+                  }
+                  
+                  if (tooltipTimeoutRef.current) {
+                    clearTimeout(tooltipTimeoutRef.current);
+                  }
+                  
+                  setHoveredElement(cluster.id);
+                  tooltipShownForRef.current = cluster.id;
+                  
+                  // Masquer le tooltip après 0.5 seconde
+                  tooltipTimeoutRef.current = setTimeout(() => {
+                    setHoveredElement(null);
+                  }, 500);
+                }}
+                onMouseLeave={() => {
+                  if (tooltipTimeoutRef.current) {
+                    clearTimeout(tooltipTimeoutRef.current);
+                    tooltipTimeoutRef.current = null;
+                  }
+                  setHoveredElement(null);
+                  tooltipShownForRef.current = null;
+                }}
               >
                 <div
                   className="w-full h-full rounded-full cursor-pointer hover:brightness-110 transition-all flex items-center justify-center"
@@ -1790,7 +1816,19 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   minHeight: '8px',
                 }}
                 onMouseEnter={(e) => {
+                  // Ne pas afficher le tooltip si déjà affiché pour cet élément
+                  if (tooltipShownForRef.current === element.id) {
+                    return;
+                  }
+                  
+                  // Annuler le timeout précédent si existant
+                  if (tooltipTimeoutRef.current) {
+                    clearTimeout(tooltipTimeoutRef.current);
+                  }
+                  
                   setHoveredElement(element.id);
+                  tooltipShownForRef.current = element.id;
+                  
                   // Calculer la position du tooltip par rapport à l'écran
                   const rect = e.currentTarget.getBoundingClientRect();
                   setTooltipPosition({
@@ -1798,10 +1836,23 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     y: rect.top - 8, // Au-dessus de l'élément
                     elementId: element.id
                   });
+                  
+                  // Masquer le tooltip après 0.5 seconde
+                  tooltipTimeoutRef.current = setTimeout(() => {
+                    setHoveredElement(null);
+                    setTooltipPosition(null);
+                  }, 500);
                 }}
                 onMouseLeave={() => {
+                  // Annuler le timeout si on quitte l'élément
+                  if (tooltipTimeoutRef.current) {
+                    clearTimeout(tooltipTimeoutRef.current);
+                    tooltipTimeoutRef.current = null;
+                  }
                   setHoveredElement(null);
                   setTooltipPosition(null);
+                  // Réinitialiser le flag pour permettre de réafficher le tooltip au prochain survol
+                  tooltipShownForRef.current = null;
                 }}
                 onMouseDown={(e) => {
                   if (!_readOnly && e.button === 0) {
