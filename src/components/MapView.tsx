@@ -984,6 +984,15 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     }
   }, [domain.id, domain.enableClustering, _readOnly]);
 
+  // Synchroniser showDomainInfo et showCategories quand le domaine change (préférences indépendantes par domaine)
+  useEffect(() => {
+    const localShowDomainInfo = localStorage.getItem(`showDomainInfo-${domain.id}`);
+    setShowDomainInfo(localShowDomainInfo !== null ? localShowDomainInfo === 'true' : true);
+    
+    const localShowCategories = localStorage.getItem(`showCategories-${domain.id}`);
+    setShowCategories(localShowCategories !== null ? localShowCategories === 'true' : true);
+  }, [domain.id]);
+
   // Restaurer l'état sauvegardé quand on change de domaine
   useEffect(() => {
     if (lastDomainIdRef.current !== domain.id) {

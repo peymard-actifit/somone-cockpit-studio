@@ -1007,6 +1007,15 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     }
   }, [domain.id, domain.enableClustering, _readOnly]);
 
+  // Synchroniser showDomainInfo et showCategories quand le domaine change (préférences indépendantes par domaine)
+  useEffect(() => {
+    const localShowDomainInfo = localStorage.getItem(`showDomainInfo-${domain.id}`);
+    setShowDomainInfo(localShowDomainInfo !== null ? localShowDomainInfo === 'true' : true);
+    
+    const localShowCategories = localStorage.getItem(`showCategories-${domain.id}`);
+    setShowCategories(localShowCategories !== null ? localShowCategories === 'true' : true);
+  }, [domain.id]);
+
   // ============================================================================
   // VÉRIFICATION DE SÉCURITÉ APRÈS LES HOOKS
   // (Doit être après tous les hooks pour respecter les règles React)
