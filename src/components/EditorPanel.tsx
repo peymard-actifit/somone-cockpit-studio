@@ -294,7 +294,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
     getLinkedSubElements,
     copyDomainElements,
     clearDomainElements,
-    applySizeToAllElements
+    applySizeToAllElements,
+    copyElementSubContent
   } = useCockpitStore();
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
@@ -355,6 +356,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   
   // État pour le modal de copie des éléments entre domaines
   const [showCopyElementsModal, setShowCopyElementsModal] = useState(false);
+  
+  // État pour le modal de copie des sous-catégories entre éléments
+  const [showCopySubCategoriesModal, setShowCopySubCategoriesModal] = useState(false);
   
   const [pendingNameChange, setPendingNameChange] = useState<{
     type: 'element' | 'subElement';
@@ -1322,22 +1326,35 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition élément</h3>
               <p className="text-sm text-[#64748B]">{element.name}</p>
             </div>
-            <button
-              onClick={async () => {
-                const confirmed = await confirm({
-                  title: 'Supprimer l\'élément',
-                  message: `Voulez-vous supprimer l'élément "${element.name}" et tous ses sous-éléments ?`,
-                });
-                if (confirmed) {
-                  deleteElement(element.id);
-                  setCurrentElement(null);
-                }
-              }}
-              className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Supprimer cet élément"
-            >
-              <MuiIcon name="Delete" size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Bouton copier les sous-catégories vers un autre élément */}
+              {(element.subCategories || []).length > 0 && (
+                <button
+                  onClick={() => setShowCopySubCategoriesModal(true)}
+                  className="p-2 text-[#64748B] hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Copier les sous-catégories vers un autre élément"
+                >
+                  <MuiIcon name="FileCopy" size={18} />
+                </button>
+              )}
+              {/* Bouton supprimer l'élément */}
+              <button
+                onClick={async () => {
+                  const confirmed = await confirm({
+                    title: 'Supprimer l\'élément',
+                    message: `Voulez-vous supprimer l'élément "${element.name}" et tous ses sous-éléments ?`,
+                  });
+                  if (confirmed) {
+                    deleteElement(element.id);
+                    setCurrentElement(null);
+                  }
+                }}
+                className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Supprimer cet élément"
+              >
+                <MuiIcon name="Delete" size={18} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2626,6 +2643,126 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               setExistingMatches([]);
             }}
           />
+        )}
+
+        {/* Modal de copie des sous-catégories vers un autre élément */}
+        {showCopySubCategoriesModal && element && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+            <div className="bg-white rounded-xl shadow-2xl w-[520px] max-h-[80vh] overflow-hidden">
+              <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                      <MuiIcon name="FileCopy" size={20} className="text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-[#1E3A5F]">Copier les sous-catégories</h3>
+                      <p className="text-sm text-[#64748B]">Depuis "{element.name}"</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowCopySubCategoriesModal(false)}
+                    className="p-2 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#E2E8F0] rounded-lg transition-colors"
+                  >
+                    <MuiIcon name="Close" size={20} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-700 flex items-start gap-2">
+                    <MuiIcon name="Info" size={16} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      Cette action copie toutes les sous-catégories et sous-éléments de cet élément vers l'élément cible. 
+                      Chaque sous-élément copié sera <strong>lié</strong> à son sous-élément d'origine (synchronisation des statuts et valeurs).
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                    Élément cible
+                  </label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {(currentCockpit?.domains || []).flatMap(d => 
+                      (d.categories || []).flatMap(c =>
+                        (c.elements || [])
+                          .filter(e => e.id !== element.id) // Exclure l'élément actuel
+                          .map(targetElement => {
+                            const subCatCount = (targetElement.subCategories || []).length;
+                            const subElCount = (targetElement.subCategories || []).reduce((sum, sc) => sum + (sc.subElements || []).length, 0);
+                            
+                            return (
+                              <button
+                                key={targetElement.id}
+                                onClick={async () => {
+                                  const result = copyElementSubContent(element.id, targetElement.id);
+                                  if (result.success) {
+                                    alert(result.message);
+                                    setShowCopySubCategoriesModal(false);
+                                  } else {
+                                    alert(`Erreur: ${result.message}`);
+                                  }
+                                }}
+                                className="w-full flex items-center gap-3 p-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
+                              >
+                                <div className="w-8 h-8 rounded-lg bg-[#1E3A5F] flex items-center justify-center flex-shrink-0">
+                                  {targetElement.icon ? (
+                                    <MuiIcon name={targetElement.icon} size={16} className="text-white" />
+                                  ) : (
+                                    <MuiIcon name="ViewModule" size={16} className="text-white" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-[#1E3A5F] truncate">{targetElement.name}</p>
+                                  <p className="text-xs text-[#64748B] truncate">
+                                    {d.name} &gt; {c.name}
+                                    {subCatCount > 0 && ` • ${subCatCount} sous-cat., ${subElCount} sous-él.`}
+                                  </p>
+                                </div>
+                                <MuiIcon name="ArrowForward" size={16} className="text-[#64748B]" />
+                              </button>
+                            );
+                          })
+                      )
+                    )}
+                    {(currentCockpit?.domains || []).flatMap(d => (d.categories || []).flatMap(c => c.elements || [])).filter(e => e.id !== element.id).length === 0 && (
+                      <p className="text-sm text-[#94A3B8] italic p-4 text-center">Aucun autre élément disponible</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Liste des sous-catégories à copier */}
+                <div className="border-t border-[#E2E8F0] pt-4">
+                  <h4 className="text-sm font-medium text-[#1E3A5F] mb-2">Sous-catégories à copier</h4>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {(element.subCategories || []).map(sc => (
+                      <div key={sc.id} className="flex items-center gap-2 text-sm text-[#64748B] p-1">
+                        <MuiIcon name="ChevronRight" size={14} />
+                        <span>{sc.name}</span>
+                        <span className="text-xs text-[#94A3B8]">
+                          ({(sc.subElements || []).length} sous-élément{(sc.subElements || []).length > 1 ? 's' : ''})
+                        </span>
+                      </div>
+                    ))}
+                    {(element.subCategories || []).length === 0 && (
+                      <p className="text-sm text-[#94A3B8] italic">Aucune sous-catégorie dans cet élément</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-[#E2E8F0] bg-[#F5F7FA]">
+                <button
+                  onClick={() => setShowCopySubCategoriesModal(false)}
+                  className="w-full px-4 py-2 text-sm text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#E2E8F0] rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );
@@ -4592,7 +4729,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   <p className="text-sm text-blue-700 flex items-start gap-2">
                     <MuiIcon name="Info" size={16} className="flex-shrink-0 mt-0.5" />
                     <span>
-                      Cette action copie tous les éléments du domaine actuel vers le domaine cible. 
+                      Cette action copie toutes les <strong>catégories</strong> et tous les <strong>éléments</strong> du domaine actuel vers le domaine cible. 
                       Chaque élément copié sera <strong>lié</strong> à son élément d'origine (synchronisation des statuts et valeurs).
                     </span>
                   </p>
@@ -4662,23 +4799,34 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   </div>
                 </div>
 
-                {/* Résumé des éléments à copier */}
+                {/* Résumé des catégories et éléments à copier */}
                 <div className="border-t border-[#E2E8F0] pt-4">
-                  <h4 className="text-sm font-medium text-[#1E3A5F] mb-2">Éléments à copier</h4>
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
-                    {(domain.categories || []).flatMap(c => c.elements || []).map(el => (
-                      <div key={el.id} className="flex items-center gap-2 text-sm text-[#64748B] p-1">
-                        <MuiIcon name="ChevronRight" size={14} />
-                        <span>{el.name}</span>
-                        {(el.subCategories || []).length > 0 && (
-                          <span className="text-xs bg-[#E2E8F0] px-1.5 py-0.5 rounded">
-                            {(el.subCategories || []).reduce((sum, sc) => sum + (sc.subElements || []).length, 0)} sous-éléments
+                  <h4 className="text-sm font-medium text-[#1E3A5F] mb-2">Catégories et éléments à copier</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {(domain.categories || []).map(cat => (
+                      <div key={cat.id} className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm font-medium text-[#1E3A5F] bg-[#F5F7FA] p-1.5 rounded">
+                          <MuiIcon name="Folder" size={14} />
+                          <span>{cat.name}</span>
+                          <span className="text-xs text-[#64748B]">
+                            ({(cat.elements || []).length} élément{(cat.elements || []).length > 1 ? 's' : ''})
                           </span>
-                        )}
+                        </div>
+                        {(cat.elements || []).map(el => (
+                          <div key={el.id} className="flex items-center gap-2 text-sm text-[#64748B] p-1 pl-6">
+                            <MuiIcon name="ChevronRight" size={14} />
+                            <span>{el.name}</span>
+                            {(el.subCategories || []).length > 0 && (
+                              <span className="text-xs bg-[#E2E8F0] px-1.5 py-0.5 rounded">
+                                {(el.subCategories || []).reduce((sum, sc) => sum + (sc.subElements || []).length, 0)} sous-él.
+                              </span>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     ))}
-                    {(domain.categories || []).flatMap(c => c.elements || []).length === 0 && (
-                      <p className="text-sm text-[#94A3B8] italic">Aucun élément dans ce domaine</p>
+                    {(domain.categories || []).length === 0 && (
+                      <p className="text-sm text-[#94A3B8] italic">Aucune catégorie dans ce domaine</p>
                     )}
                   </div>
                 </div>

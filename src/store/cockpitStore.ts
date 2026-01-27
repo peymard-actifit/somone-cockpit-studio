@@ -143,8 +143,11 @@ interface CockpitState {
   moveElementToCategory: (elementId: string, targetCategoryId: string) => void;
   moveSubElementToSubCategory: (subElementId: string, targetSubCategoryId: string) => void;
   
-  // Copie d'éléments entre domaines (BackgroundView)
-  copyDomainElements: (sourceDomainId: string, targetDomainId: string) => { success: boolean; message: string; copiedCount: number };
+  // Copie d'éléments entre domaines (BackgroundView) - copie aussi les catégories
+  copyDomainElements: (sourceDomainId: string, targetDomainId: string) => { success: boolean; message: string; copiedCount: number; copiedCategoriesCount: number };
+  
+  // Copie des sous-catégories et sous-éléments d'un élément vers un autre
+  copyElementSubContent: (sourceElementId: string, targetElementId: string) => { success: boolean; message: string; copiedSubCategoriesCount: number; copiedSubElementsCount: number };
   
   // Suppression de tous les éléments d'un domaine
   clearDomainElements: (domainId: string) => { success: boolean; message: string; deletedCount: number };
@@ -3915,13 +3918,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     get().triggerAutoSave();
   },
 
-  // Copier tous les éléments d'un domaine source vers un domaine cible
+  // Copier tous les éléments ET catégories d'un domaine source vers un domaine cible
   // Chaque élément copié est lié à son élément source via linkedGroupId
   // Chaque sous-élément copié est lié à son sous-élément source via linkedGroupId
+  // Les catégories sont également copiées (pas seulement les éléments)
   copyDomainElements: (sourceDomainId: string, targetDomainId: string) => {
     const cockpit = get().currentCockpit;
     if (!cockpit) {
-      return { success: false, message: 'Aucun cockpit sélectionné', copiedCount: 0 };
+      return { success: false, message: 'Aucun cockpit sélectionné', copiedCount: 0, copiedCategoriesCount: 0 };
     }
 
     // Trouver les domaines source et cible
@@ -3929,82 +3933,100 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const targetDomain = (cockpit.domains || []).find(d => d.id === targetDomainId);
 
     if (!sourceDomain) {
-      return { success: false, message: 'Domaine source introuvable', copiedCount: 0 };
+      return { success: false, message: 'Domaine source introuvable', copiedCount: 0, copiedCategoriesCount: 0 };
     }
     if (!targetDomain) {
-      return { success: false, message: 'Domaine cible introuvable', copiedCount: 0 };
+      return { success: false, message: 'Domaine cible introuvable', copiedCount: 0, copiedCategoriesCount: 0 };
     }
 
     // Vérifier que les domaines sont de type background ou map
     const validTypes = ['background', 'map'];
     if (!validTypes.includes(sourceDomain.templateType)) {
-      return { success: false, message: 'Le domaine source doit être de type Background ou Map', copiedCount: 0 };
+      return { success: false, message: 'Le domaine source doit être de type Background ou Map', copiedCount: 0, copiedCategoriesCount: 0 };
     }
     if (!validTypes.includes(targetDomain.templateType)) {
-      return { success: false, message: 'Le domaine cible doit être de type Background ou Map', copiedCount: 0 };
+      return { success: false, message: 'Le domaine cible doit être de type Background ou Map', copiedCount: 0, copiedCategoriesCount: 0 };
     }
 
-    // Collecter tous les éléments du domaine source
-    const sourceElements: Element[] = [];
-    for (const category of (sourceDomain.categories || [])) {
-      for (const element of (category.elements || [])) {
-        sourceElements.push(element);
-      }
+    // Collecter toutes les catégories et éléments du domaine source
+    const sourceCategories = sourceDomain.categories || [];
+    let totalElements = 0;
+    for (const category of sourceCategories) {
+      totalElements += (category.elements || []).length;
     }
 
-    if (sourceElements.length === 0) {
-      return { success: false, message: 'Aucun élément à copier dans le domaine source', copiedCount: 0 };
+    if (totalElements === 0) {
+      return { success: false, message: 'Aucun élément à copier dans le domaine source', copiedCount: 0, copiedCategoriesCount: 0 };
     }
 
-    // Trouver ou créer la première catégorie du domaine cible
-    let targetCategoryId: string;
-    if ((targetDomain.categories || []).length > 0) {
-      targetCategoryId = targetDomain.categories[0].id;
-    } else {
-      // Créer une catégorie par défaut
-      targetCategoryId = generateId();
-    }
-
-    // Préparer les nouveaux éléments avec leurs liaisons
-    const newElements: Element[] = [];
+    // Préparer les nouvelles catégories avec leurs éléments et liaisons
+    const newCategories: Category[] = [];
     const elementLinkMap: Map<string, string> = new Map(); // sourceId -> newLinkedGroupId
+    const allNewElements: Element[] = []; // Pour référencer les sous-éléments lors de la mise à jour des sources
 
-    for (const sourceElement of sourceElements) {
-      // Générer un linkedGroupId pour la liaison (utiliser l'existant ou en créer un nouveau)
-      const linkedGroupId = sourceElement.linkedGroupId || generateId();
-      elementLinkMap.set(sourceElement.id, linkedGroupId);
+    // Récupérer l'ordre maximum des catégories existantes dans le domaine cible
+    const existingMaxOrder = Math.max(0, ...(targetDomain.categories || []).map(c => c.order || 0));
 
-      // Créer le nouvel élément
-      const newElementId = generateId();
-      const newElement: Element = {
-        ...JSON.parse(JSON.stringify(sourceElement)), // Deep clone
-        id: newElementId,
-        categoryId: targetCategoryId,
-        linkedGroupId: linkedGroupId,
-        // Décaler légèrement la position pour éviter la superposition
-        positionX: sourceElement.positionX !== undefined ? Math.min(95, sourceElement.positionX + 2) : undefined,
-        positionY: sourceElement.positionY !== undefined ? Math.min(95, sourceElement.positionY + 2) : undefined,
+    for (let catIndex = 0; catIndex < sourceCategories.length; catIndex++) {
+      const sourceCategory = sourceCategories[catIndex];
+      const newCategoryId = generateId();
+      
+      // Créer les nouveaux éléments pour cette catégorie
+      const newElements: Element[] = [];
+      
+      for (const sourceElement of (sourceCategory.elements || [])) {
+        // Générer un linkedGroupId pour la liaison (utiliser l'existant ou en créer un nouveau)
+        const linkedGroupId = sourceElement.linkedGroupId || generateId();
+        elementLinkMap.set(sourceElement.id, linkedGroupId);
+
+        // Créer le nouvel élément
+        const newElementId = generateId();
+        const newElement: Element = {
+          ...JSON.parse(JSON.stringify(sourceElement)), // Deep clone
+          id: newElementId,
+          categoryId: newCategoryId,
+          linkedGroupId: linkedGroupId,
+          // Décaler légèrement la position pour éviter la superposition
+          positionX: sourceElement.positionX !== undefined ? Math.min(95, sourceElement.positionX + 2) : undefined,
+          positionY: sourceElement.positionY !== undefined ? Math.min(95, sourceElement.positionY + 2) : undefined,
+        };
+
+        // Mettre à jour les sous-catégories et sous-éléments avec de nouveaux IDs et liaisons
+        newElement.subCategories = (newElement.subCategories || []).map((sc: SubCategory) => {
+          const newSubCategoryId = generateId();
+          return {
+            ...sc,
+            id: newSubCategoryId,
+            elementId: newElementId,
+            subElements: (sc.subElements || []).map((se: SubElement) => {
+              // Générer un linkedGroupId pour le sous-élément
+              const subElementLinkedGroupId = se.linkedGroupId || generateId();
+              return {
+                ...se,
+                id: generateId(),
+                subCategoryId: newSubCategoryId,
+                linkedGroupId: subElementLinkedGroupId,
+              };
+            }),
+          };
+        });
+
+        newElements.push(newElement);
+        allNewElements.push(newElement);
+      }
+
+      // Créer la nouvelle catégorie avec ses éléments
+      const newCategory: Category = {
+        id: newCategoryId,
+        domainId: targetDomainId,
+        name: sourceCategory.name,
+        icon: sourceCategory.icon,
+        orientation: sourceCategory.orientation,
+        order: existingMaxOrder + catIndex + 1,
+        elements: newElements,
       };
 
-      // Mettre à jour les sous-catégories et sous-éléments avec de nouveaux IDs et liaisons
-      newElement.subCategories = (newElement.subCategories || []).map((sc: SubCategory) => {
-        const newSubCategoryId = generateId();
-        return {
-          ...sc,
-          id: newSubCategoryId,
-          subElements: (sc.subElements || []).map((se: SubElement) => {
-            // Générer un linkedGroupId pour le sous-élément
-            const subElementLinkedGroupId = se.linkedGroupId || generateId();
-            return {
-              ...se,
-              id: generateId(),
-              linkedGroupId: subElementLinkedGroupId,
-            };
-          }),
-        };
-      });
-
-      newElements.push(newElement);
+      newCategories.push(newCategory);
     }
 
     // Appliquer les modifications
@@ -4025,7 +4047,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                     const newLinkedGroupId = elementLinkMap.get(e.id);
                     if (newLinkedGroupId && !e.linkedGroupId) {
                       // Mettre à jour aussi les sous-éléments sources avec leurs linkedGroupId
-                      const newEl = newElements.find(ne => ne.linkedGroupId === newLinkedGroupId);
+                      const newEl = allNewElements.find(ne => ne.linkedGroupId === newLinkedGroupId);
                       
                       return {
                         ...e,
@@ -4050,32 +4072,11 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
               };
             }
 
-            // Ajouter les nouveaux éléments au domaine cible
+            // Ajouter les nouvelles catégories au domaine cible
             if (d.id === targetDomainId) {
-              // S'assurer qu'il y a au moins une catégorie
-              let categories = d.categories || [];
-              if (categories.length === 0) {
-                categories = [{
-                  id: targetCategoryId,
-                  domainId: targetDomainId,
-                  name: 'Éléments',
-                  orientation: 'vertical' as const,
-                  order: 0,
-                  elements: [],
-                }];
-              }
-
               return {
                 ...d,
-                categories: categories.map((c, index) => {
-                  if (index === 0) {
-                    return {
-                      ...c,
-                      elements: [...(c.elements || []), ...newElements],
-                    };
-                  }
-                  return c;
-                }),
+                categories: [...(d.categories || []), ...newCategories],
               };
             }
 
@@ -4089,14 +4090,167 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     get().addRecentChange({ 
       type: 'domain', 
       action: 'add', 
-      name: `${sourceElements.length} éléments copiés vers ${targetDomain.name}` 
+      name: `${newCategories.length} catégorie(s) et ${totalElements} élément(s) copiés vers ${targetDomain.name}` 
     });
     get().triggerAutoSave();
 
     return { 
       success: true, 
-      message: `${sourceElements.length} élément(s) copié(s) avec succès vers "${targetDomain.name}"`, 
-      copiedCount: sourceElements.length 
+      message: `${newCategories.length} catégorie(s) et ${totalElements} élément(s) copié(s) avec succès vers "${targetDomain.name}"`, 
+      copiedCount: totalElements,
+      copiedCategoriesCount: newCategories.length
+    };
+  },
+
+  // Copier les sous-catégories et sous-éléments d'un élément source vers un élément cible
+  // Les sous-catégories existantes dans la cible sont préservées, les nouvelles sont ajoutées
+  // Chaque sous-élément copié est lié à son sous-élément source via linkedGroupId
+  copyElementSubContent: (sourceElementId: string, targetElementId: string) => {
+    const cockpit = get().currentCockpit;
+    if (!cockpit) {
+      return { success: false, message: 'Aucun cockpit sélectionné', copiedSubCategoriesCount: 0, copiedSubElementsCount: 0 };
+    }
+
+    // Trouver l'élément source et l'élément cible
+    let sourceElement: Element | null = null;
+    let targetElement: Element | null = null;
+
+    for (const d of (cockpit.domains || [])) {
+      for (const c of (d.categories || [])) {
+        for (const e of (c.elements || [])) {
+          if (e.id === sourceElementId) {
+            sourceElement = e;
+          }
+          if (e.id === targetElementId) {
+            targetElement = e;
+          }
+        }
+      }
+    }
+
+    if (!sourceElement) {
+      return { success: false, message: 'Élément source introuvable', copiedSubCategoriesCount: 0, copiedSubElementsCount: 0 };
+    }
+    if (!targetElement) {
+      return { success: false, message: 'Élément cible introuvable', copiedSubCategoriesCount: 0, copiedSubElementsCount: 0 };
+    }
+    if (sourceElementId === targetElementId) {
+      return { success: false, message: 'L\'élément source et cible sont identiques', copiedSubCategoriesCount: 0, copiedSubElementsCount: 0 };
+    }
+
+    const sourceSubCategories = sourceElement.subCategories || [];
+    if (sourceSubCategories.length === 0) {
+      return { success: false, message: 'Aucune sous-catégorie à copier dans l\'élément source', copiedSubCategoriesCount: 0, copiedSubElementsCount: 0 };
+    }
+
+    // Compter les sous-éléments
+    let totalSubElements = 0;
+    for (const sc of sourceSubCategories) {
+      totalSubElements += (sc.subElements || []).length;
+    }
+
+    // Préparer les nouvelles sous-catégories avec leurs sous-éléments et liaisons
+    const newSubCategories: SubCategory[] = [];
+    const subElementLinkMap: Map<string, string> = new Map(); // sourceId -> newLinkedGroupId
+
+    // Récupérer l'ordre maximum des sous-catégories existantes dans l'élément cible
+    const existingMaxOrder = Math.max(0, ...(targetElement.subCategories || []).map(sc => sc.order || 0));
+
+    for (let scIndex = 0; scIndex < sourceSubCategories.length; scIndex++) {
+      const sourceSubCategory = sourceSubCategories[scIndex];
+      const newSubCategoryId = generateId();
+
+      // Créer les nouveaux sous-éléments pour cette sous-catégorie
+      const newSubElements: SubElement[] = [];
+
+      for (const sourceSubElement of (sourceSubCategory.subElements || [])) {
+        // Générer un linkedGroupId pour la liaison (utiliser l'existant ou en créer un nouveau)
+        const linkedGroupId = sourceSubElement.linkedGroupId || generateId();
+        subElementLinkMap.set(sourceSubElement.id, linkedGroupId);
+
+        // Créer le nouveau sous-élément
+        const newSubElement: SubElement = {
+          ...JSON.parse(JSON.stringify(sourceSubElement)), // Deep clone
+          id: generateId(),
+          subCategoryId: newSubCategoryId,
+          linkedGroupId: linkedGroupId,
+        };
+
+        newSubElements.push(newSubElement);
+      }
+
+      // Créer la nouvelle sous-catégorie avec ses sous-éléments
+      const newSubCategory: SubCategory = {
+        id: newSubCategoryId,
+        elementId: targetElementId,
+        name: sourceSubCategory.name,
+        icon: sourceSubCategory.icon,
+        orientation: sourceSubCategory.orientation,
+        order: existingMaxOrder + scIndex + 1,
+        subElements: newSubElements,
+      };
+
+      newSubCategories.push(newSubCategory);
+    }
+
+    // Appliquer les modifications
+    set((state) => {
+      if (!state.currentCockpit) return state;
+
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: (state.currentCockpit.domains || []).map(d => ({
+            ...d,
+            categories: (d.categories || []).map(c => ({
+              ...c,
+              elements: (c.elements || []).map(e => {
+                // Mettre à jour l'élément source pour ajouter les linkedGroupId aux sous-éléments d'origine
+                if (e.id === sourceElementId) {
+                  return {
+                    ...e,
+                    subCategories: (e.subCategories || []).map((sc) => ({
+                      ...sc,
+                      subElements: (sc.subElements || []).map((se) => {
+                        const newLinkedGroupId = subElementLinkMap.get(se.id);
+                        if (newLinkedGroupId && !se.linkedGroupId) {
+                          return { ...se, linkedGroupId: newLinkedGroupId };
+                        }
+                        return se;
+                      }),
+                    })),
+                  };
+                }
+
+                // Ajouter les nouvelles sous-catégories à l'élément cible
+                if (e.id === targetElementId) {
+                  return {
+                    ...e,
+                    subCategories: [...(e.subCategories || []), ...newSubCategories],
+                  };
+                }
+
+                return e;
+              }),
+            })),
+          })),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+
+    get().addRecentChange({ 
+      type: 'element', 
+      action: 'add', 
+      name: `${newSubCategories.length} sous-catégorie(s) copiées vers ${targetElement.name}` 
+    });
+    get().triggerAutoSave();
+
+    return { 
+      success: true, 
+      message: `${newSubCategories.length} sous-catégorie(s) et ${totalSubElements} sous-élément(s) copié(s) avec succès de "${sourceElement.name}" vers "${targetElement.name}"`, 
+      copiedSubCategoriesCount: newSubCategories.length,
+      copiedSubElementsCount: totalSubElements
     };
   },
 
