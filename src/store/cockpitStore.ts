@@ -118,6 +118,7 @@ interface CockpitState {
 
   // Utilitaires
   triggerAutoSave: () => void;
+  triggerImmediateSave: () => Promise<void>; // Sauvegarde immédiate pour opérations critiques
   forceSave: () => Promise<boolean>;
   clearError: () => void;
 
@@ -625,6 +626,82 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     set({ autoSaveTimeout: timeout });
   },
 
+  // Sauvegarde immédiate pour opérations critiques (création/suppression de domaines, etc.)
+  triggerImmediateSave: async () => {
+    const { autoSaveTimeout } = get();
+
+    // Annuler tout auto-save en attente
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+      set({ autoSaveTimeout: null });
+    }
+
+    const currentState = get();
+    const currentCockpit = currentState.currentCockpit;
+    const zones = currentState.zones;
+    
+    if (!currentCockpit) {
+      console.warn('[Immediate-save] Pas de cockpit à sauvegarder');
+      return;
+    }
+
+    const token = useAuthStore.getState().token;
+    if (!token) {
+      console.warn('[Immediate-save] Pas de token d\'authentification');
+      return;
+    }
+    
+    const payload: any = {
+      name: currentCockpit.name,
+      domains: currentCockpit.domains || [],
+      logo: currentCockpit.logo,
+      scrollingBanner: currentCockpit.scrollingBanner,
+      sharedWith: currentCockpit.sharedWith || [],
+      useOriginalView: currentCockpit.useOriginalView || false,
+      zones: zones || [],
+      templateIcons: currentCockpit.templateIcons || {},
+      clientUpdatedAt: currentCockpit.updatedAt,
+    };
+
+    const payloadStr = JSON.stringify(payload);
+    const payloadSizeMB = payloadStr.length / 1024 / 1024;
+    
+    console.log(`[Immediate-save] 📦 Sauvegarde immédiate... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines)`);
+    
+    // Toujours sauvegarder une copie locale
+    offlineSync.backupCockpit(currentCockpit);
+
+    // Vérifier la taille
+    if (payloadSizeMB > 4.0) {
+      console.error(`[Immediate-save] ❌ Payload trop volumineux: ${payloadSizeMB.toFixed(2)} MB`);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/cockpits/${currentCockpit.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: payloadStr,
+      });
+
+      if (response.status === 409) {
+        console.warn('[Immediate-save] ⚠️ Conflit détecté');
+      } else if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error(`[Immediate-save] ❌ Erreur: ${response.status} - ${errorText}`);
+      } else {
+        console.log(`[Immediate-save] ✅ Sauvegarde réussie`);
+        offlineSync.clearBackup(currentCockpit.id);
+      }
+    } catch (error: any) {
+      console.warn('[Immediate-save] ⚠️ Erreur réseau:', error.message);
+      offlineSync.enqueue(currentCockpit.id, 'update', payload);
+    }
+  },
+
   // Sauvegarde forcée et synchrone - retourne une promesse
   forceSave: async () => {
     const { autoSaveTimeout, currentCockpit } = get();
@@ -799,7 +876,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         currentDomainId: newDomain.id,
       };
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la création de domaine (opération critique)
+    get().triggerImmediateSave();
+    get().addRecentChange({ type: 'domain', action: 'add', name });
   },
 
   updateDomain: (domainId: string, updates: Partial<Domain>) => {
@@ -823,6 +902,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   deleteDomain: (domainId: string) => {
+    const domainName = (get().currentCockpit?.domains || []).find(d => d.id === domainId)?.name || 'Domaine';
     set((state) => {
       if (!state.currentCockpit) return state;
       const domains = (state.currentCockpit.domains || []).filter(d => d.id !== domainId);
@@ -837,7 +917,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           : state.currentDomainId,
       };
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la suppression de domaine (opération critique)
+    get().triggerImmediateSave();
+    get().addRecentChange({ type: 'domain', action: 'delete', name: domainName });
   },
 
   duplicateDomain: (domainId: string) => {
@@ -1015,7 +1097,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         },
       };
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la création de catégorie (opération critique)
+    get().triggerImmediateSave();
+    get().addRecentChange({ type: 'category', action: 'add', name });
   },
 
   updateCategory: (categoryId: string, updates: Partial<Category>) => {
@@ -1049,6 +1133,19 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   deleteCategory: (categoryId: string) => {
+    // Trouver le nom de la catégorie avant suppression
+    let categoryName = 'Catégorie';
+    const cockpit = get().currentCockpit;
+    if (cockpit) {
+      for (const domain of cockpit.domains || []) {
+        const cat = (domain.categories || []).find(c => c.id === categoryId);
+        if (cat) {
+          categoryName = cat.name;
+          break;
+        }
+      }
+    }
+    
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -1062,7 +1159,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         },
       };
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la suppression de catégorie (opération critique)
+    get().triggerImmediateSave();
+    get().addRecentChange({ type: 'category', action: 'delete', name: categoryName });
   },
 
   reorderCategory: (domainId: string, categoryIds: string[]) => {
@@ -1136,7 +1235,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         },
       };
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la création d'élément (opération critique)
+    get().triggerImmediateSave();
+    get().addRecentChange({ type: 'element', action: 'add', name });
   },
 
   updateElement: (elementId: string, updates: Partial<Element>, _propagating?: boolean) => {
@@ -1255,6 +1356,21 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   deleteElement: (elementId: string) => {
+    // Trouver le nom de l'élément avant suppression
+    let elementName = 'Élément';
+    const cockpit = get().currentCockpit;
+    if (cockpit) {
+      for (const d of cockpit.domains || []) {
+        for (const c of d.categories || []) {
+          const el = (c.elements || []).find(e => e.id === elementId);
+          if (el) {
+            elementName = el.name;
+            break;
+          }
+        }
+      }
+    }
+    
     set((state) => {
       if (!state.currentCockpit) return state;
       return {
@@ -1272,7 +1388,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         currentElementId: state.currentElementId === elementId ? null : state.currentElementId,
       };
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la suppression d'élément (opération critique)
+    get().triggerImmediateSave();
+    get().addRecentChange({ type: 'element', action: 'delete', name: elementName });
   },
 
   addSubCategory: (elementId: string, name: string, orientation: 'horizontal' | 'vertical', _propagating?: boolean) => {

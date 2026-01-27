@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.14.5';
+const APP_VERSION = '16.14.6';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -513,7 +513,7 @@ async function fetchFromJSON(url: string): Promise<any> {
   return await response.json();
 }
 
-async function fetchFromCSV(url: string, fields?: string): Promise<any> {
+async function fetchFromCSV(url: string, _fields?: string): Promise<any> {
   if (!url) return null;
   
   const response = await fetch(url);
@@ -537,7 +537,8 @@ async function fetchFromCSV(url: string, fields?: string): Promise<any> {
   return data;
 }
 
-async function fetchFromExcel(url: string, fields?: string): Promise<any> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _fetchFromExcel(url: string, fields?: string): Promise<any> {
   // Pour Excel, on attend une URL vers un fichier .xlsx
   // Le parsing Excel nécessite une lib spéciale, on utilise xlsx qui est déjà importé
   if (!url) return null;
@@ -569,7 +570,7 @@ async function fetchFromExcel(url: string, fields?: string): Promise<any> {
   }
 }
 
-async function fetchFromDatabase(connection: string, query?: string): Promise<any> {
+async function fetchFromDatabase(_connection: string, query?: string): Promise<any> {
   // Pour les BDD, on utilise la connexion PostgreSQL configurée
   if (!sql || !query) return null;
   
@@ -587,7 +588,7 @@ async function fetchFromDatabase(connection: string, query?: string): Promise<an
   }
 }
 
-async function fetchFromMonitoring(type: string, url: string, connection?: string): Promise<any> {
+async function fetchFromMonitoring(_type: string, url: string, connection?: string): Promise<any> {
   // Les outils de monitoring exposent généralement des APIs REST
   return await fetchFromAPI(url, connection);
 }
@@ -618,10 +619,10 @@ async function fetchFromEmail(
   const { 
     provider, // 'microsoft', 'gmail', 'custom'
     token,
-    apiKey,
-    clientId,
-    clientSecret,
-    refreshToken,
+    apiKey: _apiKey, // Reserved for future OAuth implementations
+    clientId: _clientId, // Reserved for OAuth
+    clientSecret: _clientSecret, // Reserved for OAuth
+    refreshToken: _refreshToken, // Reserved for OAuth refresh
     apiUrl,
     folder = 'inbox',
     subject, // Filtre sur le sujet
@@ -731,9 +732,11 @@ async function fetchFromEmail(
         throw new Error(`Custom email API error: ${customResponse.status}`);
       }
 
-      emails = await customResponse.json();
-      if (!Array.isArray(emails)) {
-        emails = emails.emails || emails.messages || emails.data || [emails];
+      const customResult = await customResponse.json();
+      if (Array.isArray(customResult)) {
+        emails = customResult;
+      } else {
+        emails = customResult.emails || customResult.messages || customResult.data || [customResult];
       }
     }
     // Pas de configuration valide
@@ -1092,7 +1095,7 @@ function getFieldValue(obj: any, fieldPath: string): any {
   return value;
 }
 
-function evaluateFormula(formula: string, data: any[], sourceData: Record<string, any>): number | string {
+function evaluateFormula(formula: string, data: any[], _sourceData: Record<string, any>): number | string {
   // Évaluation basique de formules
   // Variables disponibles: COUNT, SUM, AVG, MIN, MAX + accès aux données
   
@@ -1275,7 +1278,7 @@ async function saveDb(db: Database): Promise<boolean> {
   try {
     // Étape 2: Envoi vers Redis avec timeout explicite
     const startTime = Date.now();
-    const result = await redis.set(DB_KEY, db);
+    const result = await redis.set(DB_KEY, db) as unknown;
     const duration = Date.now() - startTime;
     
     // Log seulement si lent ou si première sauvegarde
@@ -1297,7 +1300,7 @@ async function saveDb(db: Database): Promise<boolean> {
 }
 
 // JWT verification (using simple implementation)
-function verifyToken(token: string): { id: string; isAdmin: boolean } | null {
+function verifyToken(token: string): { id: string; isAdmin: boolean; exp?: number } | null {
   return verifyTokenSimple(token);
 }
 
@@ -1482,6 +1485,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           username: 'peymard@somone.fr',
           password: '',
           isAdmin: true,
+          userType: 'admin' as UserType,
           createdAt: new Date().toISOString()
         };
       }
@@ -1494,6 +1498,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           username: 'peymard@somone.fr',
           password: '',
           isAdmin: true,
+          userType: 'admin' as UserType,
           createdAt: new Date().toISOString()
         };
       }
@@ -2426,6 +2431,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             username: 'peymard@somone.fr',
             password: '',
             isAdmin: true,
+            userType: 'admin' as UserType,
             createdAt: new Date().toISOString()
           };
         }
@@ -2439,6 +2445,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             username: 'peymard@somone.fr',
             password: '',
             isAdmin: true,
+            userType: 'admin' as UserType,
             createdAt: new Date().toISOString()
           };
         }
@@ -2451,6 +2458,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             username: 'admin-temp',
             password: '',
             isAdmin: true,
+            userType: 'admin' as UserType,
             createdAt: new Date().toISOString()
           };
         }
@@ -2469,6 +2477,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (path === '/debug/status' && method === 'GET') {
       const db = await getDb();
       return res.json({
+        version: APP_VERSION,
         timestamp: new Date().toISOString(),
         auth: {
           hasAuthHeader: !!authHeader,
@@ -2627,11 +2636,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // Créer l'utilisateur
           console.log('[DEBUG fix-user] Création nouvel utilisateur...');
           const id = generateId();
+          const isFirstUser = db.users.length === 0;
           user = {
             id,
             username,
             password: hashPassword(password),
-            isAdmin: db.users.length === 0,
+            isAdmin: isFirstUser,
+            userType: isFirstUser ? 'admin' as UserType : 'standard' as UserType,
             createdAt: new Date().toISOString()
           };
           db.users.push(user);
@@ -2641,11 +2652,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await saveDb(db);
         console.log('[DEBUG fix-user] Sauvegarde OK');
 
+        // user est garanti d'exister à ce point car soit il existait, soit il a été créé
+        const finalUser = user!;
         return res.json({
           success: true,
-          message: user.id && db.users.find(u => u.id === user.id) ? 'Mot de passe réinitialisé' : 'Utilisateur créé',
-          username: user.username,
-          userId: user.id
+          message: db.users.some(u => u.id === finalUser.id && u.password === finalUser.password) ? 'Mot de passe réinitialisé' : 'Utilisateur créé',
+          username: finalUser.username,
+          userId: finalUser.id
         });
       } catch (error: any) {
         console.error('[DEBUG fix-user] ERREUR:', error);
@@ -3467,10 +3480,10 @@ INSTRUCTIONS:
           Array.isArray(c.data.sharedWith) && 
           c.data.sharedWith.includes(currentUser.id)
         );
-        const sharedFolderIds = [...new Set(sharedCockpits
+        const sharedFolderIds = Array.from(new Set(sharedCockpits
           .filter(c => c.data?.folderId)
           .map(c => c.data.folderId)
-        )];
+        ));
         
         folders = db.folders.filter(f => 
           f.userId === currentUser.id || sharedFolderIds.includes(f.id)
@@ -4281,6 +4294,11 @@ INSTRUCTIONS:
       }
 
       if (cockpit.data) {
+        // Supprimer le snapshot de PostgreSQL si présent
+        if (cockpit.data.publicId) {
+          await deleteSnapshot(cockpit.data.publicId);
+          console.log(`[Unpublish] Snapshot supprimé de PostgreSQL: ${cockpit.data.publicId}`);
+        }
         cockpit.data.isPublished = false;
       }
 
@@ -4547,8 +4565,8 @@ INSTRUCTIONS:
       },
     };
 
-    // Traduire le nom d'un onglet Excel
-    const translateSheetName = async (sheetName: string, targetLang: string): Promise<string> => {
+    // Traduire le nom d'un onglet Excel (préparé pour utilisation future)
+    const _translateSheetName = async (sheetName: string, targetLang: string): Promise<string> => {
       if (targetLang === 'FR') return sheetName;
 
       const sheetNames: Record<string, Record<string, string>> = {
@@ -6486,7 +6504,7 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
               // Tentative 1: Chercher un bloc JSON avec backticks (multiligne pour gérer gros JSON)
-              let jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/s);
+              let jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/);
               if (!jsonMatch) {
                 // Tentative 2: Chercher un bloc code avec json
                 jsonMatch = text.match(/```\n?([\s\S]*?)\n?```/);
@@ -6507,7 +6525,7 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
               }
 
               // Tentative 3: Chercher un objet JSON direct (multiligne pour gérer gros JSON)
-              const directMatch = text.match(/\{[\s\S]*?"actions"[\s\S]*?\}/s);
+              const directMatch = text.match(/\{[\s\S]*?"actions"[\s\S]*?\}/);
               if (directMatch) {
                 try {
                   const parsed = JSON.parse(directMatch[0]);
@@ -6537,7 +6555,7 @@ COMPORTEMENT INTELLIGENT ET CLARIFICATION:
               }
 
               // Tentative 3b: Chercher directement un tableau d'actions très grand
-              const actionsArrayMatch = text.match(/"actions"\s*:\s*\[\s*([\s\S]*?)\s*\]/s);
+              const actionsArrayMatch = text.match(/"actions"\s*:\s*\[\s*([\s\S]*?)\s*\]/);
               if (actionsArrayMatch) {
                 try {
                   const actionsArray = JSON.parse(`[${actionsArrayMatch[1]}]`);
@@ -7683,7 +7701,7 @@ Tu dois retourner un JSON structuré avec:
     // POST /presentations/generate-video - Générer une vidéo avec RENDI
     // Accepte soit des URLs déjà uploadées, soit des base64 (qui seront uploadées ici)
     if (path === '/presentations/generate-video' && method === 'POST') {
-      const { cockpitId, cockpitName, images, imageUrls: preUploadedUrls, scenario, durationPerSlide = 5 } = req.body;
+      const { cockpitId, cockpitName, images, imageUrls: preUploadedUrls, scenario: _scenario, durationPerSlide = 5 } = req.body;
       
       // Accepter soit des images avec URL, soit des URLs pré-uploadées
       const hasImages = images && images.length > 0;
