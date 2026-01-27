@@ -3684,24 +3684,30 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                   const existingSubCatNames = (e.subCategories || []).map(sc => sc.name.toLowerCase());
                   
                   // Créer les nouvelles sous-catégories (celles de source qui n'existent pas dans target)
+                  // Utiliser deep clone pour garantir la copie de toutes les propriétés
                   const newSubCategories = sourceElement!.subCategories
                     .filter(sc => !existingSubCatNames.includes(sc.name.toLowerCase()))
                     .map(sc => {
                       const newSubCatId = generateId();
+                      const clonedSubCategory = JSON.parse(JSON.stringify(sc));
                       return {
-                        ...sc,
+                        ...clonedSubCategory,
                         id: newSubCatId,
                         elementId: targetElementId,
-                        subElements: (sc.subElements || []).map(se => ({
-                          ...se,
-                          id: generateId(),
-                          subCategoryId: newSubCatId,
-                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
-                        })),
+                        subElements: (clonedSubCategory.subElements || []).map((se: SubElement) => {
+                          const clonedSubElement = JSON.parse(JSON.stringify(se));
+                          return {
+                            ...clonedSubElement,
+                            id: generateId(),
+                            subCategoryId: newSubCatId,
+                            linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                          };
+                        }),
                       };
                     });
 
                   // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
+                  // Utiliser deep clone pour garantir la copie de toutes les propriétés
                   const mergedSubCategories = (e.subCategories || []).map(sc => {
                     const matchingSourceSubCat = (sourceElement!.subCategories || []).find(
                       ssc => ssc.name.toLowerCase() === sc.name.toLowerCase()
@@ -3710,12 +3716,15 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                       const existingSubElNames = (sc.subElements || []).map(se => se.name.toLowerCase());
                       const newSubElements = matchingSourceSubCat.subElements
                         .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
-                        .map(se => ({
-                          ...se,
-                          id: generateId(),
-                          subCategoryId: sc.id,
-                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
-                        }));
+                        .map(se => {
+                          const clonedSubElement = JSON.parse(JSON.stringify(se));
+                          return {
+                            ...clonedSubElement,
+                            id: generateId(),
+                            subCategoryId: sc.id,
+                            linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                          };
+                        });
                       return {
                         ...sc,
                         subElements: [...sc.subElements, ...newSubElements],
@@ -3735,24 +3744,30 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                   const existingSubCatNames = (e.subCategories || []).map(sc => sc.name.toLowerCase());
                   
                   // Créer les nouvelles sous-catégories (celles de target qui n'existent pas dans source)
+                  // Utiliser deep clone pour garantir la copie de toutes les propriétés
                   const newSubCategories = targetElement!.subCategories
                     .filter(sc => !existingSubCatNames.includes(sc.name.toLowerCase()))
                     .map(sc => {
                       const newSubCatId = generateId();
+                      const clonedSubCategory = JSON.parse(JSON.stringify(sc));
                       return {
-                        ...sc,
+                        ...clonedSubCategory,
                         id: newSubCatId,
                         elementId: sourceElementId,
-                        subElements: (sc.subElements || []).map(se => ({
-                          ...se,
-                          id: generateId(),
-                          subCategoryId: newSubCatId,
-                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
-                        })),
+                        subElements: (clonedSubCategory.subElements || []).map((se: SubElement) => {
+                          const clonedSubElement = JSON.parse(JSON.stringify(se));
+                          return {
+                            ...clonedSubElement,
+                            id: generateId(),
+                            subCategoryId: newSubCatId,
+                            linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                          };
+                        }),
                       };
                     });
 
                   // Fusionner les sous-éléments dans les sous-catégories existantes de même nom
+                  // Utiliser deep clone pour garantir la copie de toutes les propriétés
                   const mergedSubCategories = (e.subCategories || []).map(sc => {
                     const matchingTargetSubCat = (targetElement!.subCategories || []).find(
                       tsc => tsc.name.toLowerCase() === sc.name.toLowerCase()
@@ -3761,12 +3776,15 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
                       const existingSubElNames = (sc.subElements || []).map(se => se.name.toLowerCase());
                       const newSubElements = matchingTargetSubCat.subElements
                         .filter(se => !existingSubElNames.includes(se.name.toLowerCase()))
-                        .map(se => ({
-                          ...se,
-                          id: generateId(),
-                          subCategoryId: sc.id,
-                          linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
-                        }));
+                        .map(se => {
+                          const clonedSubElement = JSON.parse(JSON.stringify(se));
+                          return {
+                            ...clonedSubElement,
+                            id: generateId(),
+                            subCategoryId: sc.id,
+                            linkedGroupId: linkSubElements ? (se.linkedGroupId || se.id) : undefined,
+                          };
+                        });
                       return {
                         ...sc,
                         subElements: [...sc.subElements, ...newSubElements],
@@ -3992,17 +4010,22 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         };
 
         // Mettre à jour les sous-catégories et sous-éléments avec de nouveaux IDs et liaisons
+        // Utiliser JSON.parse/stringify pour garantir une copie profonde de chaque sous-catégorie
         newElement.subCategories = (newElement.subCategories || []).map((sc: SubCategory) => {
           const newSubCategoryId = generateId();
+          // Deep clone de la sous-catégorie pour éviter les problèmes de référence
+          const clonedSubCategory: SubCategory = JSON.parse(JSON.stringify(sc));
           return {
-            ...sc,
+            ...clonedSubCategory,
             id: newSubCategoryId,
             elementId: newElementId,
-            subElements: (sc.subElements || []).map((se: SubElement) => {
+            subElements: (clonedSubCategory.subElements || []).map((se: SubElement) => {
               // Générer un linkedGroupId pour le sous-élément
               const subElementLinkedGroupId = se.linkedGroupId || generateId();
+              // Deep clone du sous-élément
+              const clonedSubElement: SubElement = JSON.parse(JSON.stringify(se));
               return {
-                ...se,
+                ...clonedSubElement,
                 id: generateId(),
                 subCategoryId: newSubCategoryId,
                 linkedGroupId: subElementLinkedGroupId,
@@ -4168,9 +4191,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         const linkedGroupId = sourceSubElement.linkedGroupId || generateId();
         subElementLinkMap.set(sourceSubElement.id, linkedGroupId);
 
-        // Créer le nouveau sous-élément
+        // Créer le nouveau sous-élément avec deep clone complet
+        const clonedSubElement: SubElement = JSON.parse(JSON.stringify(sourceSubElement));
         const newSubElement: SubElement = {
-          ...JSON.parse(JSON.stringify(sourceSubElement)), // Deep clone
+          ...clonedSubElement,
           id: generateId(),
           subCategoryId: newSubCategoryId,
           linkedGroupId: linkedGroupId,
@@ -4179,13 +4203,12 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         newSubElements.push(newSubElement);
       }
 
-      // Créer la nouvelle sous-catégorie avec ses sous-éléments
+      // Créer la nouvelle sous-catégorie avec ses sous-éléments (deep clone des propriétés)
+      const clonedSubCategory = JSON.parse(JSON.stringify(sourceSubCategory));
       const newSubCategory: SubCategory = {
+        ...clonedSubCategory,
         id: newSubCategoryId,
         elementId: targetElementId,
-        name: sourceSubCategory.name,
-        icon: sourceSubCategory.icon,
-        orientation: sourceSubCategory.orientation,
         order: existingMaxOrder + scIndex + 1,
         subElements: newSubElements,
       };
