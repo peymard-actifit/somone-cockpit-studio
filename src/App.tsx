@@ -9,6 +9,8 @@ import PublicUserCockpitsPage from './pages/PublicUserCockpitsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import { ConfirmProvider } from './contexts/ConfirmContext';
 import { ContextualHelpProvider } from './contexts/ContextualHelpContext';
+import { TutorialProvider } from './contexts/TutorialContext';
+import TutorialPlayer from './components/TutorialPlayer';
 import React, { useEffect, useState } from 'react';
 
 // Error Boundary pour attraper les erreurs React
@@ -110,8 +112,9 @@ function App() {
     <ErrorBoundary>
       <ConfirmProvider>
         <ContextualHelpProvider>
-          <div className="min-h-screen bg-cockpit-bg-dark">
-            <Routes>
+          <TutorialProvider>
+            <div className="min-h-screen bg-cockpit-bg-dark">
+              <Routes>
             <Route 
               path="/auth" 
               element={user ? <Navigate to="/" replace /> : <AuthPage />} 
@@ -137,10 +140,13 @@ function App() {
             <Route path="/public/user/:userId" element={<PublicUserCockpitsPage />} />
             {/* Route de réinitialisation de mot de passe via QR code */}
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <SpeedInsights />
-          </div>
+              <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+              <SpeedInsights />
+              {/* Lecteur de tutoriel pour les clients */}
+              <TutorialPlayer />
+            </div>
+          </TutorialProvider>
         </ContextualHelpProvider>
       </ConfirmProvider>
     </ErrorBoundary>

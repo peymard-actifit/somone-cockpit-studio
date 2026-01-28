@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useContextualHelp } from '../contexts/ContextualHelpContext';
+import { useTutorial } from '../contexts/TutorialContext';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY, APP_VERSION } from '../config/version';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, useDroppable } from '@dnd-kit/core';
@@ -10,6 +11,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import type { Cockpit, Folder } from '../types';
 import UserManagement from '../components/UserManagement';
+import TutorialEditorModal from '../components/TutorialEditorModal';
 
 // Composant pour une carte de répertoire
 function FolderCard({
@@ -523,6 +525,12 @@ export default function HomePage() {
   // État pour la gestion des utilisateurs (admin uniquement)
   const [showUserManagement, setShowUserManagement] = useState(false);
   
+  // État pour l'éditeur de tutoriel (admin uniquement)
+  const [showTutorialEditor, setShowTutorialEditor] = useState(false);
+  
+  // Hook tutoriel pour les clients
+  const { startTutorial, progress, isPlaying: isTutorialPlaying } = useTutorial();
+  
   // Helpers pour les types d'utilisateurs
   const isClientUser = user?.userType === 'client';
   
@@ -542,6 +550,17 @@ export default function HomePage() {
     fetchAllUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Ne pas inclure les fonctions dans les dépendances pour éviter les rechargements inutiles
+  
+  // Démarrage automatique du tutoriel pour les clients qui n'ont jamais vu le tutoriel
+  useEffect(() => {
+    if (isClientUser && !progress && !isTutorialPlaying) {
+      // Petit délai pour laisser la page se charger
+      const timer = setTimeout(() => {
+        startTutorial();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isClientUser, progress, isTutorialPlaying, startTutorial]);
   
   // Récupérer la liste des utilisateurs pour afficher leurs noms
   const fetchAllUsers = async () => {
@@ -1282,6 +1301,30 @@ export default function HomePage() {
               >
                 <MuiIcon name="Group" size={18} />
                 Utilisateurs
+              </button>
+            )}
+            {/* Bouton Tutoriel (admin uniquement, pour éditer le tutoriel) */}
+            {!currentFolderId && !viewingUserId && user?.isAdmin && (
+              <button
+                onClick={() => setShowTutorialEditor(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
+                title="Éditer le tutoriel interactif pour les clients"
+                data-help-key="home-btn-tutorial"
+              >
+                <MuiIcon name="School" size={18} />
+                Tutoriel
+              </button>
+            )}
+            {/* Bouton Lancer le tutoriel (clients uniquement) */}
+            {isClientUser && !isTutorialPlaying && (
+              <button
+                onClick={startTutorial}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-emerald-500/25 text-sm"
+                title="Lancer le tutoriel d'introduction"
+                data-help-key="home-btn-start-tutorial"
+              >
+                <MuiIcon name="PlayCircle" size={18} />
+                {progress?.completed ? 'Revoir le tutoriel' : 'Tutoriel'}
               </button>
             )}
             {/* Bouton Mes cockpits publiés (uniquement à la racine) */}
@@ -2501,6 +2544,12 @@ export default function HomePage() {
       {showUserManagement && (
         <UserManagement onClose={() => setShowUserManagement(false)} />
       )}
+
+      {/* Modal: Éditeur de tutoriel (admin uniquement) */}
+      <TutorialEditorModal 
+        isOpen={showTutorialEditor} 
+        onClose={() => setShowTutorialEditor(false)} 
+      />
 
       {/* Footer */}
       <footer className="bg-cockpit-nav-bg/50 border-t border-slate-700/50 py-4 mt-12">

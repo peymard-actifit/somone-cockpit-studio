@@ -712,3 +712,54 @@ export interface PresentationSection {
   notes?: string; // Notes pour le présentateur
 }
 
+// ============================================================================
+// TUTORIEL INTERACTIF (pour utilisateurs Client)
+// ============================================================================
+
+// Sous-chapitre du tutoriel
+export interface TutorialSubChapter {
+  id: string;
+  title: string;
+  titleEN?: string; // Titre traduit en anglais
+  content: string; // Contenu HTML
+  contentEN?: string; // Contenu traduit en anglais
+  order: number;
+  targetElement?: string; // data-help-key de l'élément ciblé (optionnel)
+  action?: 'click' | 'input' | 'observe'; // Type d'action attendue
+}
+
+// Chapitre du tutoriel
+export interface TutorialChapter {
+  id: string;
+  title: string;
+  titleEN?: string; // Titre traduit en anglais
+  description?: string; // Description courte
+  descriptionEN?: string;
+  icon?: string; // Nom de l'icône MUI
+  order: number;
+  subChapters: TutorialSubChapter[];
+}
+
+// Structure complète du tutoriel
+export interface Tutorial {
+  id: string;
+  version: number;
+  chapters: TutorialChapter[];
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string; // ID de l'admin qui a créé/modifié
+}
+
+// Progression utilisateur dans le tutoriel
+export interface TutorialProgress {
+  userId: string;
+  completed: boolean;
+  startedAt?: string;
+  completedAt?: string;
+  currentChapterId?: string;
+  currentSubChapterId?: string;
+  completedChapters: string[]; // IDs des chapitres terminés
+  completedSubChapters: string[]; // IDs des sous-chapitres terminés
+  skipped: boolean; // Si l'utilisateur a sauté le tutoriel
+}
+
