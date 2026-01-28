@@ -6,6 +6,7 @@ import AlertPopup from './AlertPopup';
 import { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useTracking } from '../contexts/TrackingContext';
+import { useZoom } from '../contexts/ZoomContext';
 
 interface SubElementTileProps {
   subElement: SubElement;
@@ -31,6 +32,8 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
   const confirm = useConfirm();
   const { trackEvent, isTracking } = useTracking();
   const colors = STATUS_COLORS[subElement.status] || STATUS_COLORS.ok;
+  // Récupérer le contexte de zoom pour compenser la taille du texte
+  const { textCompensation } = useZoom();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const hasDraggedRef = useRef<boolean>(false); // Pour distinguer drag du clic
@@ -224,20 +227,36 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
             )}
           </div>
 
-          {/* Nom du sous-élément */}
-          <h4 className="text-white font-semibold text-sm leading-tight line-clamp-2 flex-1">
+          {/* Nom du sous-élément - compensé pour rester lisible à bas zoom */}
+          <h4 
+            className="text-white font-semibold leading-tight flex-1 overflow-hidden"
+            style={{ 
+              fontSize: `${0.875 * textCompensation}rem`, // text-sm = 0.875rem
+              display: '-webkit-box',
+              WebkitLineClamp: textCompensation > 1.5 ? 1 : 2,
+              WebkitBoxOrient: 'vertical',
+            }}
+          >
             {subElement.name}
           </h4>
         </div>
 
-        {/* Valeur et unité (si présent) */}
+        {/* Valeur et unité (si présent) - compensé pour rester lisible à bas zoom */}
         {subElement.value && (
           <div className={`flex items-baseline gap-1 mt-2 pt-2 border-t border-white/20 ${isVertical ? 'px-2' : ''}`}>
-            <span className="text-lg font-bold text-white">
+            <span 
+              className="font-bold text-white truncate"
+              style={{ fontSize: `${1.125 * textCompensation}rem` }} // text-lg = 1.125rem
+            >
               {subElement.value}
             </span>
             {subElement.unit && (
-              <span className="text-xs text-white/80">{subElement.unit}</span>
+              <span 
+                className="text-white/80 flex-shrink-0"
+                style={{ fontSize: `${0.75 * textCompensation}rem` }} // text-xs = 0.75rem
+              >
+                {subElement.unit}
+              </span>
             )}
           </div>
         )}

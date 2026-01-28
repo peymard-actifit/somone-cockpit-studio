@@ -401,13 +401,17 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
       {/* Contenu principal */}
       <div className="relative z-20 p-8">
         {/* Titre du domaine (cliquable pour voir tous les sous-éléments) */}
+        {/* La taille du texte est compensée quand le zoom est < 100% pour rester lisible */}
         <div className="mb-10">
           <button
             onClick={() => setShowFullDomainView(true)}
             className="group flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
             title="Cliquez pour voir tous les indicateurs du domaine"
           >
-            <h2 className="text-4xl font-bold text-[#1E3A5F] tracking-tight group-hover:underline decoration-2 underline-offset-4">
+            <h2 
+              className="font-bold text-[#1E3A5F] tracking-tight group-hover:underline decoration-2 underline-offset-4"
+              style={{ fontSize: 'calc(2.25rem * var(--text-compensation, 1))' }} // text-4xl = 2.25rem
+            >
               {domain.name}
             </h2>
             <MuiIcon 
@@ -448,7 +452,10 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                         <MuiIcon name="Store" size={20} className="text-white" />
                       </div>
                     )}
-                    <h3 className="text-base font-bold text-[#1E3A5F] flex-1">
+                    <h3 
+                      className="font-bold text-[#1E3A5F] flex-1"
+                      style={{ fontSize: 'calc(1rem * var(--text-compensation, 1))' }} // text-base = 1rem
+                    >
                       {category.name}
                     </h3>
                     {!readOnly && (

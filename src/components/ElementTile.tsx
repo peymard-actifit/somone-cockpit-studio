@@ -3,6 +3,7 @@ import { useCockpitStore } from '../store/cockpitStore';
 import { STATUS_COLORS, getEffectiveColors } from '../types';
 import { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { useZoom } from '../contexts/ZoomContext';
 import { useState, useRef, useEffect } from 'react';
 
 interface ElementTileProps {
@@ -29,6 +30,9 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   const [isDragging, setIsDragging] = useState(false);
   const isOkStatus = colors.hex === STATUS_COLORS.ok.hex;
   const buttonRef = useRef<HTMLButtonElement>(null);
+  
+  // Récupérer le contexte de zoom pour compenser la taille du texte
+  const { textCompensation } = useZoom();
 
   // Préférence pour l'affichage des tuiles vertes (ok) - avec état React pour réactivité (indépendante par domaine)
   const storageKey = domainId ? `domain_${domainId}` : 'global';
@@ -236,8 +240,18 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
       {/* Contenu principal */}
       <div className="flex-1 p-3 flex flex-col min-h-0">
         {/* Nom de l'élément en haut - plus d'espace */}
+        {/* La taille du texte est compensée quand le zoom est < 100% pour rester lisible */}
         <div className="flex items-start gap-1 mb-2 pr-6">
-          <h4 className="text-[#1E3A5F] font-semibold text-sm leading-snug line-clamp-3 flex-1">
+          <h4 
+            className="text-[#1E3A5F] font-semibold leading-snug flex-1 overflow-hidden"
+            style={{ 
+              fontSize: `${0.875 * textCompensation}rem`, // text-sm = 0.875rem
+              // Réduire le nombre de lignes quand le texte est compensé pour qu'il reste dans la tuile
+              display: '-webkit-box',
+              WebkitLineClamp: textCompensation > 1.5 ? 2 : 3,
+              WebkitBoxOrient: 'vertical',
+            }}
+          >
             {element.name}
           </h4>
         </div>
@@ -274,16 +288,25 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
           </div>
 
           {/* Valeur et unité (si présent) - alignés à droite */}
+          {/* La taille du texte est compensée quand le zoom est < 100% pour rester lisible */}
           {element.value ? (
-            <div className="flex items-baseline gap-1 flex-1 justify-end">
+            <div className="flex items-baseline gap-1 flex-1 justify-end overflow-hidden">
               <span
-                className="text-base font-bold"
-                style={{ color: colors.hex }}
+                className="font-bold truncate"
+                style={{ 
+                  color: colors.hex,
+                  fontSize: `${1 * textCompensation}rem`, // text-base = 1rem
+                }}
               >
                 {element.value}
               </span>
               {element.unit && (
-                <span className="text-[10px] text-[#64748B]">{element.unit}</span>
+                <span 
+                  className="text-[#64748B] flex-shrink-0"
+                  style={{ fontSize: `${0.625 * textCompensation}rem` }} // 10px = 0.625rem
+                >
+                  {element.unit}
+                </span>
               )}
             </div>
           ) : (

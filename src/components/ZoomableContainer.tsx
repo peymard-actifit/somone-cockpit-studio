@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import { useState, useRef, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { MuiIcon } from './IconPicker';
+import { ZoomProvider, calculateTextCompensation } from '../contexts/ZoomContext';
 
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
@@ -254,6 +255,12 @@ export default function ZoomableContainer({
     setScale(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)));
   }, []);
 
+  // Calcul du contexte de zoom pour les enfants
+  const zoomContextValue = useMemo(() => ({
+    scale,
+    textCompensation: calculateTextCompensation(scale),
+  }), [scale]);
+
   // Empêcher le zoom du navigateur sur ce conteneur
   useEffect(() => {
     const container = containerRef.current;
@@ -382,10 +389,15 @@ export default function ZoomableContainer({
         style={{ 
           transform: `scale(${scale})`,
           width: `${100 / scale}%`,
-          minHeight: `${100 / scale}%`
-        }}
+          minHeight: `${100 / scale}%`,
+          // CSS custom property pour la compensation de texte
+          // Permet aux composants enfants d'ajuster leur taille de police
+          '--text-compensation': zoomContextValue.textCompensation,
+        } as React.CSSProperties}
       >
-        {children}
+        <ZoomProvider value={zoomContextValue}>
+          {children}
+        </ZoomProvider>
       </div>
     </div>
   );

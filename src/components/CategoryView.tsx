@@ -91,8 +91,11 @@ export default function CategoryView({
           </div>
         </button>
 
-        {/* Titre de la vue */}
-        <h1 className="text-3xl font-bold text-[#1E3A5F] mb-2">
+        {/* Titre de la vue - compensé pour rester lisible à bas zoom */}
+        <h1 
+          className="font-bold text-[#1E3A5F] mb-2"
+          style={{ fontSize: 'calc(1.875rem * var(--text-compensation, 1))' }} // text-3xl = 1.875rem
+        >
           {category.name}
         </h1>
       </div>
@@ -104,7 +107,10 @@ export default function CategoryView({
           className="group flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
           title="Cliquez pour voir tous les indicateurs du domaine"
         >
-          <h2 className="text-xl font-semibold text-[#1E3A5F] group-hover:underline decoration-2 underline-offset-4">
+          <h2 
+            className="font-semibold text-[#1E3A5F] group-hover:underline decoration-2 underline-offset-4"
+            style={{ fontSize: 'calc(1.25rem * var(--text-compensation, 1))' }} // text-xl = 1.25rem
+          >
             {domain.name}
           </h2>
           <MuiIcon name="ChevronRight" size={20} className="text-[#64748B] group-hover:text-[#1E3A5F] transition-colors" />
@@ -143,7 +149,10 @@ export default function CategoryView({
                 </div>
 
                 {/* Nom de l'élément */}
-                <h3 className="text-lg font-bold text-[#1E3A5F] flex-1 text-left">
+                <h3 
+                  className="font-bold text-[#1E3A5F] flex-1 text-left"
+                  style={{ fontSize: 'calc(1.125rem * var(--text-compensation, 1))' }} // text-lg = 1.125rem
+                >
                   {element.name}
                 </h3>
 

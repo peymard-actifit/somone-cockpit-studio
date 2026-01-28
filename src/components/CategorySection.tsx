@@ -4,6 +4,7 @@ import ElementTile from './ElementTile';
 import { MuiIcon } from './IconPicker';
 import { useState, useEffect } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { useZoom } from '../contexts/ZoomContext';
 import LinkElementModal from './LinkElementModal';
 
 interface CategorySectionProps {
@@ -24,6 +25,8 @@ interface CategorySectionProps {
 export default function CategorySection({ category, onElementClick, onCategoryClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth, domains, useGridLayout = false, useOriginalView = false }: CategorySectionProps) {
   const { addElement, deleteCategory, moveElement, reorderElement, findElementsByName, linkElement } = useCockpitStore();
   const confirm = useConfirm();
+  // Récupérer le contexte de zoom pour compenser la taille du texte
+  const { textCompensation } = useZoom();
   const [isAddingElement, setIsAddingElement] = useState(false);
   const [newElementName, setNewElementName] = useState('');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -241,7 +244,10 @@ export default function CategorySection({ category, onElementClick, onCategoryCl
           </div>
         )}
 
-        <h3 className="text-lg font-bold text-[#1E3A5F] whitespace-nowrap">
+        <h3 
+          className="font-bold text-[#1E3A5F] whitespace-nowrap"
+          style={{ fontSize: `${1.125 * textCompensation}rem` }} // text-lg = 1.125rem
+        >
           {category.name}
         </h3>
 
