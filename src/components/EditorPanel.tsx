@@ -4673,22 +4673,44 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </label>
             </div>
 
-            {/* Option Vue Cockpit Original - cochée par défaut */}
+            {/* Mode d'affichage du cockpit publié */}
             <div className="border-t border-[#E2E8F0] pt-4">
-              <label className="flex items-center gap-3 cursor-pointer p-3 bg-[#F5F7FA] rounded-lg hover:bg-[#E2E8F0] transition-colors">
-                <input
-                  type="checkbox"
-                  checked={currentCockpit?.useOriginalView !== false}
-                  onChange={(e) => updateCockpit({ useOriginalView: e.target.checked })}
-                  className="w-5 h-5 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F] focus:ring-2"
-                />
-                <div>
-                  <span className="block text-sm font-medium text-[#1E3A5F]">Vue Cockpit Original</span>
-                  <span className="block text-xs text-[#94A3B8]">
-                    Affiche le cockpit publié avec le design original (activé par défaut)
-                  </span>
+              <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                  Mode d'affichage (cockpit publié)
+                </label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="cockpitViewMode"
+                      checked={currentCockpit?.useOriginalView !== false}
+                      onChange={() => updateCockpit({ useOriginalView: true })}
+                      className="w-4 h-4 text-[#1E3A5F] border-[#CBD5E1] focus:ring-[#1E3A5F]"
+                    />
+                    <div>
+                      <span className="text-sm text-[#1E3A5F] font-medium">Vue originale</span>
+                      <span className="text-xs text-[#94A3B8] ml-2">(défaut)</span>
+                    </div>
+                  </label>
+                  <p className="text-xs text-[#64748B] ml-6 -mt-1 mb-1">
+                    Design épuré avec bandeau titre stylisé et catégories transparentes
+                  </p>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="cockpitViewMode"
+                      checked={currentCockpit?.useOriginalView === false}
+                      onChange={() => updateCockpit({ useOriginalView: false })}
+                      className="w-4 h-4 text-[#1E3A5F] border-[#CBD5E1] focus:ring-[#1E3A5F]"
+                    />
+                    <span className="text-sm text-[#64748B]">Vue normale</span>
+                  </label>
+                  <p className="text-xs text-[#64748B] ml-6 -mt-1">
+                    Affichage standard avec header complet et catégories bordées
+                  </p>
                 </div>
-              </label>
+              </div>
             </div>
 
             {/* Partage avec d'autres utilisateurs */}
