@@ -2983,7 +2983,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             {[
               { type: 'standard' as TemplateType, label: 'Standard', desc: 'Catégories et éléments' },
               { type: 'grid' as TemplateType, label: 'Grille', desc: 'Tuiles en grille simple', clientRestricted: true },
-              { type: 'map' as TemplateType, label: 'Carte', desc: 'Carte dynamique', clientRestricted: true },
+              { type: 'map' as TemplateType, label: 'Carte', desc: 'Carte dynamique' }, // Accessible aux Clients
               { type: 'background' as TemplateType, label: 'Image de fond', desc: 'Positionnement libre' },
               { type: 'hours-tracking' as TemplateType, label: 'Suivi des heures', desc: 'Suivi des heures et coûts du projet', clientRestricted: true },
               { type: 'alerts' as TemplateType, label: 'Alertes', desc: 'Liste d\'incidents et statistiques' },
