@@ -103,6 +103,17 @@ function PublicCockpitContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cockpit?.id]); // Ne tracker qu'une fois au chargement initial
 
+  // Mettre à jour le titre de l'onglet du navigateur avec le nom du cockpit
+  useEffect(() => {
+    if (cockpit?.name) {
+      document.title = cockpit.name;
+    }
+    // Restaurer le titre original quand on quitte la page
+    return () => {
+      document.title = 'SOMONE Cockpit Studio';
+    };
+  }, [cockpit?.name]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-cockpit-bg-dark flex items-center justify-center">
