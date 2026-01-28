@@ -3,7 +3,7 @@ import { createContext, useContext } from 'react';
 interface ZoomContextType {
   scale: number;
   // Facteur de compensation pour garder le texte lisible
-  // Quand scale < 1, on compense pour que le texte reste à minimum 100%
+  // Quand scale < minVisualSize, on compense pour que le texte reste à minimum 75%
   textCompensation: number;
 }
 
@@ -20,11 +20,18 @@ export function useZoom(): ZoomContextType {
 
 /**
  * Calcule le facteur de compensation pour le texte
- * - Si scale >= 1 : pas de compensation (facteur = 1)
- * - Si scale < 1 : compensation = 1/scale pour maintenir la taille visuelle
- * Le facteur est limité pour éviter que le texte déborde trop des tuiles
+ * - Si scale >= minVisualSize (75%) : pas de compensation, le texte se réduit naturellement
+ * - Si scale < minVisualSize : compensation pour maintenir le texte à 75% minimum
+ * 
+ * Comportement :
+ * - À 100% zoom : texte à 100%
+ * - À 75% zoom : texte à 75% (pas de compensation)
+ * - À 50% zoom : texte à 75% (compensation de 1.5x)
+ * - À 30% zoom : texte à 75% (compensation de 2.5x)
  */
-export function calculateTextCompensation(scale: number, maxCompensation: number = 2.5): number {
-  if (scale >= 1) return 1;
-  return Math.min(1 / scale, maxCompensation);
+export function calculateTextCompensation(scale: number, minVisualSize: number = 0.75): number {
+  // Si le zoom est assez grand pour que le texte reste lisible (>= 75%), pas de compensation
+  if (scale >= minVisualSize) return 1;
+  // Sinon, compenser pour maintenir le texte à 75% de sa taille normale
+  return minVisualSize / scale;
 }
