@@ -4181,6 +4181,40 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               onToggle={() => toggleSection('display-preferences')}
             >
               <div className="space-y-4">
+                {/* Zoom minimum police - Vue standard uniquement */}
+                {domain?.templateType === 'standard' && (
+                  <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
+                    <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
+                      Zoom minimum police (%)
+                    </label>
+                    <p className="text-xs text-[#64748B] mb-2">
+                      Taille minimale du texte dans les tuiles lors du dézoom (défaut: 50%)
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="10"
+                        max="100"
+                        value={domain.minFontZoom ?? 50}
+                        onChange={(e) => updateDomain(domain.id, { minFontZoom: parseInt(e.target.value) })}
+                        className="flex-1 h-2 bg-[#E2E8F0] rounded-lg appearance-none cursor-pointer accent-[#1E3A5F]"
+                      />
+                      <input
+                        type="number"
+                        min="10"
+                        max="100"
+                        value={domain.minFontZoom ?? 50}
+                        onChange={(e) => {
+                          const value = Math.max(10, Math.min(100, parseInt(e.target.value) || 50));
+                          updateDomain(domain.id, { minFontZoom: value });
+                        }}
+                        className="w-16 px-2 py-1 bg-white border border-[#E2E8F0] rounded-lg text-sm text-center text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]"
+                      />
+                      <span className="text-sm text-[#64748B]">%</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Mode de coloration des onglets de domaine */}
                 <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0]">
                   <label className="block text-sm font-medium text-[#1E3A5F] mb-2">

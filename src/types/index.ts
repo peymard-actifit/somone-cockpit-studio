@@ -108,6 +108,7 @@ export interface Domain {
   backgroundDarkness?: number;  // Opacité du voile assombrissant (0-100, défaut: 60)
   mapBounds?: MapBounds;  // Coordonnées GPS des coins de la carte
   enableClustering?: boolean;  // Activer/désactiver le regroupement des éléments (défaut: true)
+  minFontZoom?: number;  // Valeur minimale de zoom pour la police (0-100, défaut: 50) - vue standard uniquement
   categories: Category[];
   mapElements?: MapElement[];
   // Données pour la vue "Suivi des heures"

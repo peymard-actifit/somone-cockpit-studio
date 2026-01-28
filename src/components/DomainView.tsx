@@ -363,7 +363,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   }
 
   return (
-    <ZoomableContainer domainId={domain.id} className="bg-[#F5F7FA]" readOnly={readOnly}>
+    <ZoomableContainer domainId={domain.id} className="bg-[#F5F7FA]" readOnly={readOnly} minFontZoom={domain.minFontZoom}>
       <div
         className="min-h-full relative"
       >

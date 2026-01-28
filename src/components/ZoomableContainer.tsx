@@ -12,6 +12,7 @@ interface ZoomableContainerProps {
   className?: string;
   showControls?: boolean;
   readOnly?: boolean; // Mode lecture seule (cockpits publiés) - active l'auto-hide
+  minFontZoom?: number; // Valeur minimale de zoom pour la police (0-100, défaut: 50)
 }
 
 // Helper pour charger la position du panneau de contrôle depuis localStorage
@@ -39,7 +40,8 @@ export default function ZoomableContainer({
   domainId, 
   className = '',
   showControls = true,
-  readOnly = false
+  readOnly = false,
+  minFontZoom = 50
 }: ZoomableContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -256,10 +258,12 @@ export default function ZoomableContainer({
   }, []);
 
   // Calcul du contexte de zoom pour les enfants
+  // minFontZoom est en % (0-100), on le convertit en décimal (0-1)
+  const minVisualSize = minFontZoom / 100;
   const zoomContextValue = useMemo(() => ({
     scale,
-    textCompensation: calculateTextCompensation(scale),
-  }), [scale]);
+    textCompensation: calculateTextCompensation(scale, minVisualSize),
+  }), [scale, minVisualSize]);
 
   // Empêcher le zoom du navigateur sur ce conteneur
   useEffect(() => {
