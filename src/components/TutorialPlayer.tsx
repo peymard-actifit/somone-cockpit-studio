@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { MuiIcon } from './IconPicker';
 import { useTutorial } from '../contexts/TutorialContext';
 
@@ -6,7 +6,7 @@ import { useTutorial } from '../contexts/TutorialContext';
  * TutorialPlayer - Lecteur de tutoriel interactif pour les utilisateurs Client
  * 
  * Affiche les étapes du tutoriel avec :
- * - Un modal pour les explications
+ * - Un modal pour les explications (déplaçable et redimensionnable)
  * - Un highlight de l'élément ciblé
  * - Navigation entre les étapes
  */
@@ -27,7 +27,80 @@ export default function TutorialPlayer() {
   
   const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
   const [modalPosition, setModalPosition] = useState<{ top: number; left: number }>({ top: 100, left: 100 });
+  const [modalSize, setModalSize] = useState<{ width: number; height: number }>({ width: 420, height: 'auto' as any });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [hasUserMoved, setHasUserMoved] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
+  
+  // Gestion du déplacement (drag)
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    if (modalRef.current) {
+      const rect = modalRef.current.getBoundingClientRect();
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+      setIsDragging(true);
+      setHasUserMoved(true);
+    }
+  }, []);
+  
+  const handleDragMove = useCallback((e: MouseEvent) => {
+    if (isDragging) {
+      const newLeft = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - (modalSize.width || 420)));
+      const newTop = Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - 100));
+      setModalPosition({ top: newTop, left: newLeft });
+    }
+  }, [isDragging, dragOffset, modalSize.width]);
+  
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+  
+  // Gestion du redimensionnement (resize)
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setHasUserMoved(true);
+  }, []);
+  
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (isResizing && modalRef.current) {
+      const rect = modalRef.current.getBoundingClientRect();
+      const newWidth = Math.max(320, Math.min(e.clientX - rect.left, window.innerWidth - rect.left - 20));
+      const newHeight = Math.max(200, Math.min(e.clientY - rect.top, window.innerHeight - rect.top - 20));
+      setModalSize({ width: newWidth, height: newHeight });
+    }
+  }, [isResizing]);
+  
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+  
+  // Écouteurs globaux pour drag et resize
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [isDragging, handleDragMove, handleDragEnd]);
+  
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResizeMove);
+      window.addEventListener('mouseup', handleResizeEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleResizeMove);
+        window.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
   
   // Trouver et mettre en évidence l'élément ciblé
   useEffect(() => {
@@ -42,43 +115,55 @@ export default function TutorialPlayer() {
     if (element) {
       setHighlightedElement(element);
       
-      // Calculer la position du modal près de l'élément
-      const rect = element.getBoundingClientRect();
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      const modalWidth = 400;
-      const modalHeight = 300;
-      
-      let top = rect.bottom + 20;
-      let left = rect.left;
-      
-      // Ajuster si le modal dépasse à droite
-      if (left + modalWidth > windowWidth - 20) {
-        left = windowWidth - modalWidth - 20;
+      // Ne positionner automatiquement que si l'utilisateur n'a pas déplacé le modal
+      if (!hasUserMoved) {
+        const rect = element.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const modalWidth = modalSize.width || 420;
+        const modalHeight = 300;
+        
+        let top = rect.bottom + 20;
+        let left = rect.left;
+        
+        // Ajuster si le modal dépasse à droite
+        if (left + modalWidth > windowWidth - 20) {
+          left = windowWidth - modalWidth - 20;
+        }
+        
+        // Ajuster si le modal dépasse en bas
+        if (top + modalHeight > windowHeight - 20) {
+          top = rect.top - modalHeight - 20;
+        }
+        
+        // S'assurer que le modal reste visible
+        top = Math.max(20, top);
+        left = Math.max(20, left);
+        
+        setModalPosition({ top, left });
       }
-      
-      // Ajuster si le modal dépasse en bas
-      if (top + modalHeight > windowHeight - 20) {
-        top = rect.top - modalHeight - 20;
-      }
-      
-      // S'assurer que le modal reste visible
-      top = Math.max(20, top);
-      left = Math.max(20, left);
-      
-      setModalPosition({ top, left });
       
       // Faire défiler jusqu'à l'élément
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
       setHighlightedElement(null);
-      // Position par défaut au centre
-      setModalPosition({
-        top: window.innerHeight / 2 - 150,
-        left: window.innerWidth / 2 - 200
-      });
+      // Position par défaut au centre (seulement si pas déjà déplacé)
+      if (!hasUserMoved) {
+        setModalPosition({
+          top: window.innerHeight / 2 - 150,
+          left: window.innerWidth / 2 - 200
+        });
+      }
     }
-  }, [isPlaying, currentSubChapter]);
+  }, [isPlaying, currentSubChapter, hasUserMoved, modalSize.width]);
+  
+  // Réinitialiser la position quand on démarre le tutoriel
+  useEffect(() => {
+    if (isPlaying) {
+      setHasUserMoved(false);
+      setModalSize({ width: 420, height: 'auto' as any });
+    }
+  }, [isPlaying]);
   
   // Calculer la progression
   const totalSteps = tutorial?.chapters.reduce((sum, ch) => sum + ch.subChapters.length, 0) || 0;
@@ -126,19 +211,44 @@ export default function TutorialPlayer() {
         />
       )}
       
-      {/* Modal du tutoriel */}
+      {/* Modal du tutoriel - Déplaçable et redimensionnable */}
       <div
         ref={modalRef}
-        className="fixed z-[1002] w-[400px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="fixed z-[1002] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{
           top: modalPosition.top,
           left: modalPosition.left,
+          width: modalSize.width,
+          height: typeof modalSize.height === 'number' ? modalSize.height : undefined,
+          minWidth: 320,
+          minHeight: 200,
+          maxWidth: '90vw',
+          maxHeight: '90vh',
+          cursor: isDragging ? 'grabbing' : 'default',
         }}
       >
-        {/* Header avec le chapitre */}
-        <div className="bg-gradient-to-r from-[#1E3A5F] to-[#2a4a6f] p-4">
+        {/* Header avec le chapitre - Zone de drag */}
+        <div 
+          className="bg-gradient-to-r from-[#1E3A5F] to-[#2a4a6f] p-4 cursor-grab active:cursor-grabbing select-none"
+          onMouseDown={handleDragStart}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {/* Indicateur de déplacement */}
+              <div className="flex flex-col gap-0.5 mr-1 opacity-50">
+                <div className="flex gap-0.5">
+                  <div className="w-1 h-1 bg-white rounded-full" />
+                  <div className="w-1 h-1 bg-white rounded-full" />
+                </div>
+                <div className="flex gap-0.5">
+                  <div className="w-1 h-1 bg-white rounded-full" />
+                  <div className="w-1 h-1 bg-white rounded-full" />
+                </div>
+                <div className="flex gap-0.5">
+                  <div className="w-1 h-1 bg-white rounded-full" />
+                  <div className="w-1 h-1 bg-white rounded-full" />
+                </div>
+              </div>
               {currentChapter.icon && (
                 <div className="p-2 bg-white/20 rounded-lg">
                   <MuiIcon name={currentChapter.icon as any} size={20} className="text-white" />
@@ -153,6 +263,7 @@ export default function TutorialPlayer() {
             </div>
             <button
               onClick={stopTutorial}
+              onMouseDown={(e) => e.stopPropagation()}
               className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               title="Fermer le tutoriel"
             >
@@ -174,8 +285,8 @@ export default function TutorialPlayer() {
           </div>
         </div>
         
-        {/* Contenu de l'étape */}
-        <div className="p-4">
+        {/* Contenu de l'étape - Scrollable */}
+        <div className="p-4 flex-1 overflow-y-auto">
           <h4 className="text-[#1E3A5F] font-semibold mb-3">{title}</h4>
           <div 
             className="prose prose-sm max-w-none text-[#64748B] [&_strong]:text-[#1E3A5F] [&_li]:my-1"
@@ -258,6 +369,14 @@ export default function TutorialPlayer() {
             })}
           </div>
         </details>
+        
+        {/* Poignée de redimensionnement (coin bas-droit) */}
+        <div
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize group"
+          onMouseDown={handleResizeStart}
+        >
+          <div className="absolute bottom-1 right-1 w-2 h-2 border-r-2 border-b-2 border-[#94A3B8] group-hover:border-[#1E3A5F] transition-colors" />
+        </div>
       </div>
       
       {/* Style pour l'animation pulse */}
