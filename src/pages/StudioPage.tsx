@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCockpitStore, RecentChange } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 import { useContextualHelp } from '../contexts/ContextualHelpContext';
+import { useTutorial } from '../contexts/TutorialContext';
 import Navbar from '../components/Navbar';
 import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
@@ -97,6 +98,7 @@ export default function StudioPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { enableGlobalContextMenu, disableGlobalContextMenu, enableHoverHelp, disableHoverHelp } = useContextualHelp();
+  const { startTutorial, isPlaying: isTutorialPlaying, progress: tutorialProgress } = useTutorial();
   const {
     currentCockpit,
     currentDomainId,
@@ -307,6 +309,20 @@ export default function StudioPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Bouton Tutoriel (visible pour admin en test ou client) */}
+          {!isTutorialPlaying && (user?.isAdmin || user?.userType === 'client') && (
+            <button
+              onClick={startTutorial}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600/80 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+              title={user?.isAdmin ? "Tester le tutoriel (mode admin)" : "Lancer le tutoriel"}
+            >
+              <MuiIcon name="School" size={16} />
+              <span className="text-sm font-medium">
+                {tutorialProgress?.completed ? 'Revoir' : 'Tutoriel'}
+              </span>
+            </button>
+          )}
+
           {/* Bouton Présentation (générateur de présentations IA) */}
           <button
             onClick={() => setShowPresentation(true)}
