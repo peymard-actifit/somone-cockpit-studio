@@ -10,6 +10,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import { ConfirmProvider } from './contexts/ConfirmContext';
 import { ContextualHelpProvider } from './contexts/ContextualHelpContext';
 import { TutorialProvider } from './contexts/TutorialContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import TutorialPlayer from './components/TutorialPlayer';
 import React, { useEffect, useState } from 'react';
 
@@ -110,10 +111,11 @@ function App() {
   
   return (
     <ErrorBoundary>
-      <ConfirmProvider>
-        <ContextualHelpProvider>
-          <TutorialProvider>
-            <div className="min-h-screen bg-cockpit-bg-dark">
+      <LanguageProvider>
+        <ConfirmProvider>
+          <ContextualHelpProvider>
+            <TutorialProvider>
+              <div className="min-h-screen bg-cockpit-bg-dark">
               <Routes>
             <Route 
               path="/auth" 
@@ -143,12 +145,13 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               <SpeedInsights />
-              {/* Lecteur de tutoriel pour les clients */}
-              <TutorialPlayer />
-            </div>
-          </TutorialProvider>
-        </ContextualHelpProvider>
-      </ConfirmProvider>
+                {/* Lecteur de tutoriel pour les clients */}
+                <TutorialPlayer />
+              </div>
+            </TutorialProvider>
+          </ContextualHelpProvider>
+        </ConfirmProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.19.3';
+const APP_VERSION = '16.20.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -8003,6 +8003,117 @@ Tu dois retourner un JSON structuré avec:
       } catch (error: any) {
         console.error('[PROXY] Erreur téléchargement vidéo:', error);
         return res.status(500).json({ error: 'Erreur serveur: ' + error.message });
+      }
+    }
+
+    // ============================================================================
+    // GESTION DES LANGUES / TRADUCTIONS
+    // ============================================================================
+    
+    // GET /translations - Récupérer les traductions personnalisées
+    if (path === '/translations' && method === 'GET') {
+      try {
+        const translationsData = await redis.get('somone_translations');
+        return res.json({ translations: translationsData || {} });
+      } catch (error: any) {
+        console.error('[Translations] Erreur GET:', error);
+        return res.status(500).json({ error: 'Erreur serveur' });
+      }
+    }
+    
+    // POST /translations - Sauvegarder les traductions (admin uniquement)
+    if (path === '/translations' && method === 'POST') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: 'Token manquant' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      
+      if (!decoded || !decoded.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      try {
+        const { translations } = req.body;
+        
+        if (!translations || typeof translations !== 'object') {
+          return res.status(400).json({ error: 'Données de traduction invalides' });
+        }
+        
+        // Sauvegarder dans Redis
+        await redis.set('somone_translations', translations);
+        
+        console.log(`[Translations] Sauvegardées par ${decoded.id} - ${Object.keys(translations).length} clés`);
+        
+        return res.json({ success: true });
+      } catch (error: any) {
+        console.error('[Translations] Erreur POST:', error);
+        return res.status(500).json({ error: 'Erreur serveur' });
+      }
+    }
+    
+    // POST /translations/translate - Traduire un texte via DeepL
+    if (path === '/translations/translate' && method === 'POST') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: 'Token manquant' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      
+      if (!decoded || !decoded.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      try {
+        const { text, targetLang = 'EN' } = req.body;
+        
+        if (!text) {
+          return res.status(400).json({ error: 'Texte manquant' });
+        }
+        
+        if (!DEEPL_API_KEY) {
+          return res.status(400).json({ error: 'Clé DeepL non configurée' });
+        }
+        
+        // Utiliser l'API DeepL
+        const isFreeApi = DEEPL_API_KEY.startsWith('fx-') || DEEPL_API_KEY.startsWith('free-');
+        const isUuidFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(DEEPL_API_KEY);
+        const isPaidApi = DEEPL_API_KEY.includes(':') || isUuidFormat;
+        const apiUrl = isFreeApi
+          ? 'https://api-free.deepl.com/v2/translate'
+          : isPaidApi
+            ? 'https://api.deepl.com/v2/translate'
+            : 'https://api-free.deepl.com/v2/translate';
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `DeepL-Auth-Key ${DEEPL_API_KEY}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            text: text,
+            target_lang: targetLang,
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[Translations] Erreur DeepL:', errorText);
+          return res.status(response.status).json({ error: 'Erreur traduction DeepL' });
+        }
+        
+        const data = await response.json();
+        const translatedText = data.translations?.[0]?.text || text;
+        
+        return res.json({ translatedText });
+      } catch (error: any) {
+        console.error('[Translations] Erreur traduction:', error);
+        return res.status(500).json({ error: 'Erreur serveur' });
       }
     }
 

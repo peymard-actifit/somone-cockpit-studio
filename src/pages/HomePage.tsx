@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useContextualHelp } from '../contexts/ContextualHelpContext';
 import { useTutorial } from '../contexts/TutorialContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY, APP_VERSION } from '../config/version';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, useDroppable } from '@dnd-kit/core';
@@ -12,6 +13,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Cockpit, Folder } from '../types';
 import UserManagement from '../components/UserManagement';
 import TutorialEditorModal from '../components/TutorialEditorModal';
+import LanguageEditorModal from '../components/LanguageEditorModal';
 
 // Composant pour une carte de répertoire
 function FolderCard({
@@ -528,8 +530,14 @@ export default function HomePage() {
   // État pour l'éditeur de tutoriel (admin uniquement)
   const [showTutorialEditor, setShowTutorialEditor] = useState(false);
   
+  // État pour l'éditeur de langues (admin uniquement)
+  const [showLanguageEditor, setShowLanguageEditor] = useState(false);
+  
   // Hook tutoriel pour les clients
   const { startTutorial, progress, isPlaying: isTutorialPlaying } = useTutorial();
+  
+  // Hook pour les traductions
+  const { language, setLanguage, t } = useLanguage();
   
   // Helpers pour les types d'utilisateurs
   const isClientUser = user?.userType === 'client';
@@ -1096,6 +1104,35 @@ export default function HomePage() {
                           </button>
                         </>
                       )}
+                      {/* Sous-menu Langue */}
+                      <div className="mb-2">
+                        <div className="w-full flex items-center gap-3 px-4 py-2 text-white/70 text-sm">
+                          <MuiIcon name="Language" size={16} className="text-cyan-400" />
+                          <span>{t('user.language')}</span>
+                        </div>
+                        <div className="flex gap-2 px-4 pb-2">
+                          <button
+                            onClick={() => setLanguage('FR')}
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                              language === 'FR'
+                                ? 'bg-cyan-500 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            Français
+                          </button>
+                          <button
+                            onClick={() => setLanguage('EN')}
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                              language === 'EN'
+                                ? 'bg-cyan-500 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            English
+                          </button>
+                        </div>
+                      </div>
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
@@ -1104,7 +1141,7 @@ export default function HomePage() {
                         className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-blue-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-blue-500/50 mb-2"
                       >
                         <MuiIcon name="VpnKey" size={18} className="text-blue-400" />
-                        <span className="text-base">Changer le mot de passe</span>
+                        <span className="text-base">{t('user.changePassword')}</span>
                       </button>
                       {/* Option admin : pas pour les clients, et seulement si canBecomeAdmin !== false pour les standard */}
                       {!isClientUser && (user?.isAdmin || user?.userType === 'standard' && user?.canBecomeAdmin !== false) && (
@@ -1137,7 +1174,7 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-4">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -1237,167 +1274,176 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Bouton Retour (quand on visualise des maquettes partagées) */}
-            {viewingSharedByUserId && (
-              <button
-                onClick={() => {
-                  if (currentFolderId) {
-                    // Revenir à la racine des partages de cet utilisateur
-                    setCurrentFolder(null);
-                  } else {
-                    // Quitter le mode partage
-                    setViewingSharedByUserId(null);
-                  }
-                }}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
-                title={currentFolderId ? `Retourner aux partages de ${viewingSharedByUserName}` : "Retourner à mes maquettes"}
-              >
-                <MuiIcon name="ArrowBack" size={18} />
-                {currentFolderId ? viewingSharedByUserName : 'Mes maquettes'}
-              </button>
-            )}
-            {/* Bouton Retour (quand on visualise un autre compte - mode admin) */}
-            {viewingUserId && (
-              <button
-                onClick={() => {
-                  if (currentFolderId) {
-                    // Si on est dans un répertoire, retourner à la racine du compte visualisé
-                    setCurrentFolder(null);
-                  } else {
-                    // Sinon, quitter le mode visualisation
-                    setViewingUserId(null);
-                  }
-                }}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
-                title={currentFolderId ? "Retourner à la racine de ce compte" : "Retourner à mes maquettes"}
-              >
-                <MuiIcon name="ArrowBack" size={18} />
-                {currentFolderId ? "Racine" : "Mes maquettes"}
-              </button>
-            )}
-            {/* Bouton Informations (admin uniquement, à la racine) */}
-            {!currentFolderId && !viewingUserId && user?.isAdmin && !isClientUser && (
-              <button
-                onClick={() => {
-                  setShowStatsModal(true);
-                  fetchDashboardStats();
-                }}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-500 hover:from-slate-500 hover:to-slate-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-slate-500/25 text-sm"
-                title="Statistiques d'utilisation du studio"
-                data-help-key="home-btn-infos"
-              >
-                <MuiIcon name="Analytics" size={18} />
-                Infos
-              </button>
-            )}
-            {/* Bouton Gestion des utilisateurs (admin uniquement, à la racine) */}
-            {!currentFolderId && !viewingUserId && user?.isAdmin && (
-              <button
-                onClick={() => setShowUserManagement(true)}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-500/25 text-sm"
-                title="Gérer les utilisateurs du studio"
-                data-help-key="home-btn-users"
-              >
-                <MuiIcon name="Group" size={18} />
-                Utilisateurs
-              </button>
-            )}
-            {/* Bouton Tutoriel (admin uniquement, pour éditer le tutoriel) */}
-            {!currentFolderId && !viewingUserId && user?.isAdmin && (
-              <button
-                onClick={() => setShowTutorialEditor(true)}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
-                title="Éditer le tutoriel interactif pour les clients"
-                data-help-key="home-btn-tutorial"
-              >
-                <MuiIcon name="School" size={18} />
-                Tutoriel
-              </button>
-            )}
-            {/* Bouton Lancer le tutoriel (clients uniquement) */}
-            {isClientUser && !isTutorialPlaying && (
-              <button
-                onClick={startTutorial}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-emerald-500/25 text-sm"
-                title="Lancer le tutoriel d'introduction"
-                data-help-key="home-btn-start-tutorial"
-              >
-                <MuiIcon name="PlayCircle" size={18} />
-                {progress?.completed ? 'Revoir le tutoriel' : 'Tutoriel'}
-              </button>
-            )}
-            {/* Bouton Mes cockpits publiés (uniquement à la racine) */}
-            {!currentFolderId && !viewingUserId && user?.id && (
-              <button
-                onClick={() => {
-                  const url = `${window.location.origin}/public/user/${user.id}`;
-                  window.open(url, '_blank');
-                }}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 text-sm"
-                title="Voir et partager la liste de vos cockpits publiés"
-                data-help-key="home-btn-publications"
-              >
-                <MuiIcon name="Share" size={18} />
-                Publications
-              </button>
-            )}
-            {/* Bouton Nouveau répertoire (uniquement à la racine de nos maquettes, pas pour les clients) */}
-            {!currentFolderId && !viewingUserId && !isClientUser && (
-              <button
-                onClick={() => {
-                  setNewFolderName('');
-                  setShowNewFolderModal(true);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-amber-500/25 text-sm"
-                data-help-key="home-btn-new-folder"
-              >
-                <MuiIcon name="CreateNewFolder" size={18} />
-                Répertoire
-              </button>
-            )}
-            {/* Boutons de création uniquement quand on est sur nos propres maquettes */}
-            {!viewingUserId && (
-              <>
-                <input
-                  type="file"
-                  accept=".json"
-                  ref={importFileInputRef}
-                  onChange={handleImport}
-                  className="hidden"
-                  id="import-cockpit-input"
-                />
-                <label
-                  htmlFor="import-cockpit-input"
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-green-500/25 cursor-pointer text-sm"
-                  data-help-key="home-btn-import"
-                >
-                  <MuiIcon name="Upload" size={18} />
-                  Import
-                </label>
-                {/* Bouton IA (accessible à tous) */}
+          {/* Zone des boutons sur deux lignes */}
+          <div className="flex flex-col gap-1.5">
+            {/* Ligne 1 : Boutons admin et navigation */}
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              {/* Bouton Retour (quand on visualise des maquettes partagées) */}
+              {viewingSharedByUserId && (
                 <button
                   onClick={() => {
-                    setShowSystemPromptModal(true);
-                    fetchSystemPrompt();
+                    if (currentFolderId) {
+                      setCurrentFolder(null);
+                    } else {
+                      setViewingSharedByUserId(null);
+                    }
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-violet-500/25 text-sm"
-                  title="Configurer le prompt système de l'IA"
-                  data-help-key="home-btn-ia"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                  title={currentFolderId ? `Retourner aux partages de ${viewingSharedByUserName}` : "Retourner à mes maquettes"}
                 >
-                  <MuiIcon name="Psychology" size={18} />
-                  IA
+                  <MuiIcon name="ArrowBack" size={14} />
+                  {currentFolderId ? viewingSharedByUserName : t('home.myMockups')}
                 </button>
+              )}
+              {/* Bouton Retour (quand on visualise un autre compte - mode admin) */}
+              {viewingUserId && (
                 <button
-                  onClick={() => setShowNewModal(true)}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/25 text-sm"
-                  data-help-key="home-btn-new-cockpit"
+                  onClick={() => {
+                    if (currentFolderId) {
+                      setCurrentFolder(null);
+                    } else {
+                      setViewingUserId(null);
+                    }
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                  title={currentFolderId ? "Retourner à la racine de ce compte" : "Retourner à mes maquettes"}
                 >
-                  <MuiIcon name="Add" size={18} />
-                  Nouvelle
+                  <MuiIcon name="ArrowBack" size={14} />
+                  {currentFolderId ? "Racine" : t('home.myMockups')}
                 </button>
-              </>
-            )}
+              )}
+              {/* Boutons admin uniquement à la racine */}
+              {!currentFolderId && !viewingUserId && user?.isAdmin && (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowStatsModal(true);
+                      fetchDashboardStats();
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-slate-600 to-slate-500 hover:from-slate-500 hover:to-slate-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                    title="Statistiques d'utilisation du studio"
+                    data-help-key="home-btn-infos"
+                  >
+                    <MuiIcon name="Analytics" size={14} />
+                    {t('home.infos')}
+                  </button>
+                  <button
+                    onClick={() => setShowUserManagement(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                    title="Gérer les utilisateurs du studio"
+                    data-help-key="home-btn-users"
+                  >
+                    <MuiIcon name="Group" size={14} />
+                    {t('home.users')}
+                  </button>
+                  <button
+                    onClick={() => setShowTutorialEditor(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                    title="Éditer le tutoriel interactif pour les clients"
+                    data-help-key="home-btn-tutorial"
+                  >
+                    <MuiIcon name="School" size={14} />
+                    {t('home.tutorial')}
+                  </button>
+                  <button
+                    onClick={() => setShowLanguageEditor(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                    title="Gérer les traductions du studio"
+                    data-help-key="home-btn-language"
+                  >
+                    <MuiIcon name="Translate" size={14} />
+                    {t('home.language')}
+                  </button>
+                </>
+              )}
+              {/* Bouton Lancer le tutoriel (clients uniquement) */}
+              {isClientUser && !isTutorialPlaying && (
+                <button
+                  onClick={startTutorial}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                  title="Lancer le tutoriel d'introduction"
+                  data-help-key="home-btn-start-tutorial"
+                >
+                  <MuiIcon name="PlayCircle" size={14} />
+                  {progress?.completed ? t('tutorial.review') : t('tutorial.start')}
+                </button>
+              )}
+            </div>
+            
+            {/* Ligne 2 : Boutons actions maquettes */}
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              {/* Bouton Mes cockpits publiés (uniquement à la racine) */}
+              {!currentFolderId && !viewingUserId && user?.id && (
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/public/user/${user.id}`;
+                    window.open(url, '_blank');
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                  title="Voir et partager la liste de vos cockpits publiés"
+                  data-help-key="home-btn-publications"
+                >
+                  <MuiIcon name="Share" size={14} />
+                  {t('home.publications')}
+                </button>
+              )}
+              {/* Bouton Nouveau répertoire (uniquement à la racine de nos maquettes, pas pour les clients) */}
+              {!currentFolderId && !viewingUserId && !isClientUser && (
+                <button
+                  onClick={() => {
+                    setNewFolderName('');
+                    setShowNewFolderModal(true);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                  data-help-key="home-btn-new-folder"
+                >
+                  <MuiIcon name="CreateNewFolder" size={14} />
+                  {t('home.newFolder')}
+                </button>
+              )}
+              {/* Boutons de création uniquement quand on est sur nos propres maquettes */}
+              {!viewingUserId && (
+                <>
+                  <input
+                    type="file"
+                    accept=".json"
+                    ref={importFileInputRef}
+                    onChange={handleImport}
+                    className="hidden"
+                    id="import-cockpit-input"
+                  />
+                  <label
+                    htmlFor="import-cockpit-input"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium rounded-lg transition-all shadow-md cursor-pointer text-xs"
+                    data-help-key="home-btn-import"
+                  >
+                    <MuiIcon name="Upload" size={14} />
+                    {t('home.import')}
+                  </label>
+                  {/* Bouton IA (accessible à tous) */}
+                  <button
+                    onClick={() => {
+                      setShowSystemPromptModal(true);
+                      fetchSystemPrompt();
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                    title="Configurer le prompt système de l'IA"
+                    data-help-key="home-btn-ia"
+                  >
+                    <MuiIcon name="Psychology" size={14} />
+                    IA
+                  </button>
+                  <button
+                    onClick={() => setShowNewModal(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                    data-help-key="home-btn-new-cockpit"
+                  >
+                    <MuiIcon name="Add" size={14} />
+                    {t('home.newMockup')}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -2549,6 +2595,12 @@ export default function HomePage() {
       <TutorialEditorModal 
         isOpen={showTutorialEditor} 
         onClose={() => setShowTutorialEditor(false)} 
+      />
+
+      {/* Modal: Éditeur de langues (admin uniquement) */}
+      <LanguageEditorModal 
+        isOpen={showLanguageEditor} 
+        onClose={() => setShowLanguageEditor(false)} 
       />
 
       {/* Footer */}
