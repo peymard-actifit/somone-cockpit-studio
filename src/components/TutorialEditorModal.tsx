@@ -13,7 +13,7 @@ interface TutorialEditorModalProps {
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorModalProps) {
-  const { tutorial, saveTutorial, loadTutorial, isLoading } = useTutorial();
+  const { tutorial, saveTutorial } = useTutorial();
   const { token } = useAuthStore();
   
   const [localTutorial, setLocalTutorial] = useState<Tutorial | null>(null);

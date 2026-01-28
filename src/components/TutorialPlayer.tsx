@@ -82,7 +82,6 @@ export default function TutorialPlayer() {
   
   // Calculer la progression
   const totalSteps = tutorial?.chapters.reduce((sum, ch) => sum + ch.subChapters.length, 0) || 0;
-  const completedSteps = progress?.completedSubChapters.length || 0;
   const currentChapterIndex = tutorial?.chapters.findIndex(c => c.id === currentChapter?.id) || 0;
   const currentStepIndex = currentChapter?.subChapters.findIndex(s => s.id === currentSubChapter?.id) || 0;
   const globalStepIndex = (tutorial?.chapters.slice(0, currentChapterIndex).reduce((sum, ch) => sum + ch.subChapters.length, 0) || 0) + currentStepIndex + 1;
