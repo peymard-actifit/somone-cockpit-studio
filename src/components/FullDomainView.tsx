@@ -3,6 +3,7 @@ import type { Domain, Element } from '../types';
 import { STATUS_COLORS, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
 import SubElementTile from './SubElementTile';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface FullDomainViewProps {
   domain: Domain;
@@ -25,6 +26,8 @@ export default function FullDomainView({
   readOnly = false,
   domains 
 }: FullDomainViewProps) {
+  const { t } = useLanguage();
+  
   // Préférence d'espacement horizontal (stockée par domaine)
   const storageKey = domain.id ? `domain_${domain.id}` : 'global';
   const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
@@ -231,11 +234,11 @@ export default function FullDomainView({
 
       {/* Légende des couleurs */}
       <div className="mt-12 flex items-center justify-start gap-8 flex-wrap py-4">
-        <LegendItem color="#8B5CF6" label="Fatal" />
-        <LegendItem color="#E57373" label="Critique" />
-        <LegendItem color="#FFB74D" label="Mineur" />
-        <LegendItem color="#9CCC65" label="OK" />
-        <LegendItem color="#9E9E9E" label="Déconnecté" />
+        <LegendItem color="#8B5CF6" label={t('status.fatal')} />
+        <LegendItem color="#E57373" label={t('status.critical')} />
+        <LegendItem color="#FFB74D" label={t('status.minor')} />
+        <LegendItem color="#9CCC65" label={t('status.ok')} />
+        <LegendItem color="#9E9E9E" label={t('status.disconnected')} />
       </div>
     </div>
   );

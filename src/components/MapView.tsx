@@ -9,6 +9,7 @@ import LinkElementModal from './LinkElementModal';
 import BulkEditMapModal from './BulkEditMapModal';
 import MapCategoryElementsView from './MapCategoryElementsView';
 import StatusSummary, { formatLastUpdate } from './StatusSummary';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Liste des icônes populaires pour les points de carte
 const POPULAR_MAP_ICONS = [
@@ -52,6 +53,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement, lastClonedMapElementId, clearLastClonedMapElementId } = useCockpitStore();
   const { token } = useAuthStore();
+  const { t } = useLanguage();
 
   // Fonction pour charger l'état sauvegardé depuis localStorage
   const loadSavedViewState = (domainId: string) => {
@@ -1976,11 +1978,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       {/* Légende */}
       <div className="absolute bottom-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">
         <div className="flex items-center gap-6">
-          <LegendItem color="#8B5CF6" label="Fatal" />
-          <LegendItem color="#E57373" label="Critique" />
-          <LegendItem color="#FFB74D" label="Mineur" />
-          <LegendItem color="#9CCC65" label="OK" />
-          <LegendItem color="#9E9E9E" label="Déconnecté" />
+          <LegendItem color="#8B5CF6" label={t('status.fatal')} />
+          <LegendItem color="#E57373" label={t('status.critical')} />
+          <LegendItem color="#FFB74D" label={t('status.minor')} />
+          <LegendItem color="#9CCC65" label={t('status.ok')} />
+          <LegendItem color="#9E9E9E" label={t('status.disconnected')} />
         </div>
       </div>
 
