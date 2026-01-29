@@ -204,6 +204,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const [helpContent, setHelpContent] = useState<ContextualHelp | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [editContentEN, setEditContentEN] = useState(''); // Contenu anglais pour les aides globales
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -602,6 +603,36 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     setIsEditing(true);
   }, [helpContent]);
 
+  // Translate French content to English using DeepL API
+  const translateToEnglish = useCallback(async () => {
+    if (!editContent || editContent.trim() === '' || !token) return;
+    
+    setIsTranslating(true);
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: editContent, targetLang: 'EN' }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.translatedText) {
+          setEditContentEN(data.translatedText);
+        }
+      } else {
+        console.error('Translation failed:', await response.text());
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [editContent, token]);
+
   // Save and close editing - utilise le cockpitId pour les aides locales
   const saveAndClose = useCallback(async () => {
     if (!currentKey) return;
@@ -687,7 +718,18 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">🇬🇧 {t('help.englishContent')}</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium text-slate-600">🇬🇧 {t('help.englishContent')}</label>
+                          <button
+                            onClick={translateToEnglish}
+                            disabled={isTranslating || !editContent.trim()}
+                            className="flex items-center gap-1 px-2 py-0.5 text-xs bg-violet-100 text-violet-700 hover:bg-violet-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={t('help.translate')}
+                          >
+                            <MuiIcon name="Translate" size={12} />
+                            {isTranslating ? t('help.translating') : t('help.translate')}
+                          </button>
+                        </div>
                         <textarea
                           value={editContentEN}
                           onChange={(e) => setEditContentEN(e.target.value)}

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.23.5';
+const APP_VERSION = '16.23.6';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -5360,6 +5360,32 @@ INSTRUCTIONS:
     // =====================
     // TRANSLATION ROUTES
     // =====================
+
+    // Traduire un texte avec DeepL (usage général)
+    if (path === '/translate' && method === 'POST') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const { text, targetLang = 'EN' } = req.body || {};
+      
+      if (!text || typeof text !== 'string' || text.trim() === '') {
+        return res.status(400).json({ error: 'Texte requis' });
+      }
+
+      if (!DEEPL_API_KEY) {
+        return res.status(500).json({ error: 'API de traduction non configurée' });
+      }
+
+      try {
+        const translatedText = await translateWithDeepL(text, targetLang);
+        return res.json({ translatedText, originalText: text, targetLang });
+      } catch (error: any) {
+        console.error('[Translate API] Erreur:', error);
+        return res.status(500).json({ error: 'Erreur de traduction: ' + error.message });
+      }
+    }
 
     // Obtenir les langues disponibles DeepL
     if (path === '/translation/languages' && method === 'GET') {

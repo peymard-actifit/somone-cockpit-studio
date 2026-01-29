@@ -304,6 +304,8 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'help.frenchContent': { FR: 'Contenu français', EN: 'French content' },
   'help.englishContent': { FR: 'Contenu anglais', EN: 'English content' },
   'help.translation': { FR: 'Traduction', EN: 'Translation' },
+  'help.translate': { FR: 'Traduire', EN: 'Translate' },
+  'help.translating': { FR: 'Traduction...', EN: 'Translating...' },
   
   // === Tutorial Editor ===
   'tutorial.editor': { FR: 'Éditeur de Tutoriel', EN: 'Tutorial Editor' },
