@@ -210,10 +210,11 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [globalEnabled, setGlobalEnabled] = useState(false);
   const [hoverEnabled, setHoverEnabled] = useState(false);
-  const [hoverTooltip, setHoverTooltip] = useState<{ content: string; x: number; y: number } | null>(null);
+  const [hoverTooltip, setHoverTooltip] = useState<{ content: string; contentEN?: string; x: number; y: number } | null>(null);
   const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   // Cache séparé pour aides globales et locales (clé = cockpitId:elementKey ou global:elementKey)
-  const helpCacheRef = React.useRef<Map<string, string | null>>(new Map());
+  // Stocke maintenant les deux versions (FR et EN)
+  const helpCacheRef = React.useRef<Map<string, { content: string; contentEN?: string } | null>>(new Map());
   const currentHoverKeyRef = React.useRef<string | null>(null);
 
   const isAdmin = user?.isAdmin === true;
@@ -427,7 +428,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
 
   // Check if help exists for a key (with cache) - supporte cockpitId pour aides locales
   // FALLBACK: Si aide locale non trouvée, cherche aussi aide globale
-  const checkHelpExists = useCallback(async (elementKey: string, cockpitId: string | null = null): Promise<string | null> => {
+  const checkHelpExists = useCallback(async (elementKey: string, cockpitId: string | null = null): Promise<{ content: string; contentEN?: string } | null> => {
     const cacheKey = getCacheKey(elementKey, cockpitId);
     
     // Check cache first
@@ -448,8 +449,9 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
         if (localResponse.ok) {
           const data = await localResponse.json();
           if (data.help?.content) {
-            helpCacheRef.current.set(cacheKey, data.help.content);
-            return data.help.content;
+            const helpData = { content: data.help.content, contentEN: data.help.contentEN };
+            helpCacheRef.current.set(cacheKey, helpData);
+            return helpData;
           }
         }
       }
@@ -462,9 +464,11 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       
       if (globalResponse.ok) {
         const data = await globalResponse.json();
-        const content = data.help?.content || null;
-        helpCacheRef.current.set(cacheKey, content);
-        return content;
+        if (data.help?.content) {
+          const helpData = { content: data.help.content, contentEN: data.help.contentEN };
+          helpCacheRef.current.set(cacheKey, helpData);
+          return helpData;
+        }
       }
     } catch (error) {
       console.error('Error checking help:', error);
@@ -541,10 +545,11 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       if (currentHoverKeyRef.current !== hoverKey) return;
       
       // Passer le cockpitId pour les aides locales
-      const content = await checkHelpExists(hoverKey, hoverCockpitId);
-      if (content && currentHoverKeyRef.current === hoverKey) {
+      const helpData = await checkHelpExists(hoverKey, hoverCockpitId);
+      if (helpData && currentHoverKeyRef.current === hoverKey) {
         setHoverTooltip({
-          content,
+          content: helpData.content,
+          contentEN: helpData.contentEN,
           x: event.clientX + 15,
           y: event.clientY + 15
         });
@@ -851,7 +856,11 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
         >
           <div 
             className="[&>p]:mb-1 [&>ul]:list-disc [&>ul]:pl-3 [&>ol]:list-decimal [&>ol]:pl-3"
-            dangerouslySetInnerHTML={{ __html: hoverTooltip.content }}
+            dangerouslySetInnerHTML={{ 
+              __html: language === 'EN' && hoverTooltip.contentEN 
+                ? hoverTooltip.contentEN 
+                : hoverTooltip.content 
+            }}
           />
         </div>
       )}
