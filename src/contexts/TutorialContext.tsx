@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { Tutorial, TutorialChapter, TutorialSubChapter, TutorialProgress } from '../types';
 import { useAuthStore } from '../store/authStore';
+import { useLanguage } from './LanguageContext';
 
 // Chapitres par défaut du tutoriel
 const DEFAULT_TUTORIAL: Tutorial = {
@@ -225,15 +226,15 @@ interface TutorialContextType {
   skipTutorial: () => void;
   resetProgress: () => void;
   
-  // Langue
+  // Langue (depuis LanguageContext)
   language: 'FR' | 'EN';
-  setLanguage: (lang: 'FR' | 'EN') => void;
 }
 
 const TutorialContext = createContext<TutorialContextType | null>(null);
 
 export function TutorialProvider({ children }: { children: ReactNode }) {
   const { user, token } = useAuthStore();
+  const { language } = useLanguage(); // Utiliser la langue du contexte global
   const [tutorial, setTutorial] = useState<Tutorial | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -243,9 +244,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [currentSubChapterIndex, setCurrentSubChapterIndex] = useState(0);
   const [progress, setProgress] = useState<TutorialProgress | null>(null);
-  
-  // Langue
-  const [language, setLanguage] = useState<'FR' | 'EN'>('FR');
   
   // Charger le tutoriel depuis l'API
   const loadTutorial = useCallback(async () => {
@@ -482,8 +480,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       goToChapter,
       skipTutorial,
       resetProgress,
-      language,
-      setLanguage
+      language
     }}>
       {children}
     </TutorialContext.Provider>

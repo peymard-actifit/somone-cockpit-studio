@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MuiIcon } from './IconPicker';
 import { useTutorial } from '../contexts/TutorialContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 /**
  * TutorialPlayer - Lecteur de tutoriel interactif pour les utilisateurs Client
@@ -24,6 +25,8 @@ export default function TutorialPlayer() {
     goToChapter,
     language
   } = useTutorial();
+  
+  const { t } = useLanguage();
   
   const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
   const [modalPosition, setModalPosition] = useState<{ top: number; left: number }>({ top: 100, left: 100 });
@@ -256,7 +259,7 @@ export default function TutorialPlayer() {
               )}
               <div>
                 <p className="text-white/70 text-xs font-medium">
-                  Chapitre {currentChapterIndex + 1} / {tutorial?.chapters.length || 0}
+                  {t('tutorial.chapter')} {currentChapterIndex + 1} / {tutorial?.chapters.length || 0}
                 </p>
                 <h3 className="text-white font-bold">{chapterTitle}</h3>
               </div>
@@ -265,7 +268,7 @@ export default function TutorialPlayer() {
               onClick={stopTutorial}
               onMouseDown={(e) => e.stopPropagation()}
               className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Fermer le tutoriel"
+              title={t('tutorial.skip')}
             >
               <MuiIcon name="Close" size={20} />
             </button>
@@ -297,7 +300,7 @@ export default function TutorialPlayer() {
           {currentSubChapter.action === 'click' && highlightedElement && (
             <div className="mt-4 flex items-center gap-2 p-2 bg-blue-50 rounded-lg text-sm text-blue-700">
               <MuiIcon name="TouchApp" size={18} />
-              <span>Cliquez sur l'élément surligné pour continuer</span>
+              <span>{t('tutorial.clickToContinue')}</span>
             </div>
           )}
         </div>
@@ -309,7 +312,7 @@ export default function TutorialPlayer() {
               onClick={skipTutorial}
               className="text-sm text-[#94A3B8] hover:text-[#64748B] transition-colors"
             >
-              Passer le tutoriel
+              {t('tutorial.skip')}
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -319,13 +322,13 @@ export default function TutorialPlayer() {
               className="flex items-center gap-1 px-3 py-1.5 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#E2E8F0] rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <MuiIcon name="ArrowBack" size={16} />
-              Précédent
+              {t('tutorial.previous')}
             </button>
             <button
               onClick={nextStep}
               className="flex items-center gap-1 px-4 py-1.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-500 hover:to-blue-400 transition-colors"
             >
-              {globalStepIndex === totalSteps ? 'Terminer' : 'Suivant'}
+              {globalStepIndex === totalSteps ? t('tutorial.finish') : t('tutorial.next')}
               <MuiIcon name="ArrowForward" size={16} />
             </button>
           </div>
@@ -335,7 +338,7 @@ export default function TutorialPlayer() {
         <details className="border-t border-[#E2E8F0]">
           <summary className="p-3 text-sm text-[#64748B] cursor-pointer hover:bg-[#F5F7FA] flex items-center gap-2">
             <MuiIcon name="List" size={16} />
-            Voir tous les chapitres
+            {t('tutorial.allChapters')}
           </summary>
           <div className="max-h-48 overflow-y-auto border-t border-[#E2E8F0]">
             {tutorial?.chapters.map((ch, index) => {

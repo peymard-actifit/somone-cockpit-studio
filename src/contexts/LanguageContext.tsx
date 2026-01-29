@@ -448,6 +448,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'tutorial.finish': { FR: 'Terminer', EN: 'Finish' },
   'tutorial.chapter': { FR: 'Chapitre', EN: 'Chapter' },
   'tutorial.allChapters': { FR: 'Voir tous les chapitres', EN: 'View all chapters' },
+  'tutorial.clickToContinue': { FR: 'Cliquez sur l\'élément surligné pour continuer', EN: 'Click on the highlighted element to continue' },
   
   // === Gestion des langues ===
   'lang.title': { FR: 'Gestion des langues', EN: 'Language Management' },

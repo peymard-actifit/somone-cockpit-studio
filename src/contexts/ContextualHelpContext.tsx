@@ -736,7 +736,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
                 <div 
                   className="prose prose-sm max-w-none text-slate-700 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 pr-8"
                   dangerouslySetInnerHTML={{ 
-                    __html: !currentCockpitId && language === 'EN' && helpContent.contentEN 
+                    __html: language === 'EN' && helpContent.contentEN 
                       ? helpContent.contentEN 
                       : helpContent.content 
                   }}
