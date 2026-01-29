@@ -152,6 +152,7 @@ function SortableCategoryItem({ category, onIconClick, onNameChange, onDelete, s
   subElementsCount: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id });
+  const { t } = useLanguage();
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -166,14 +167,14 @@ function SortableCategoryItem({ category, onIconClick, onNameChange, onDelete, s
         {...attributes}
         {...listeners}
         className="cursor-grab active:cursor-grabbing p-0.5 text-[#94A3B8] hover:text-[#1E3A5F] shrink-0"
-        title="Glisser pour réorganiser"
+        title={t('editor.dragToReorder')}
       >
         <MuiIcon name="DragIndicator" size={14} />
       </div>
       <button
         onClick={onIconClick}
         className="flex items-center justify-center w-6 h-6 bg-white border border-[#E2E8F0] rounded hover:border-[#1E3A5F] transition-colors shrink-0"
-        title="Choisir une icône"
+        title={t('editor.chooseIcon')}
       >
         {category.icon ? (
           <MuiIcon name={category.icon} size={14} className="text-[#1E3A5F]" />
@@ -188,7 +189,7 @@ function SortableCategoryItem({ category, onIconClick, onNameChange, onDelete, s
       <button
         onClick={onDelete}
         className="p-1 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded transition-colors shrink-0"
-        title="Supprimer la catégorie"
+        title={t('editor.deleteCategory')}
       >
         <MuiIcon name="Delete" size={16} />
       </button>
@@ -205,6 +206,7 @@ function SortableSubCategoryItem({ subCategory, onIconClick, onNameChange, onDel
   subElementsCount: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subCategory.id });
+  const { t } = useLanguage();
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -219,14 +221,14 @@ function SortableSubCategoryItem({ subCategory, onIconClick, onNameChange, onDel
         {...attributes}
         {...listeners}
         className="cursor-grab active:cursor-grabbing p-1 text-[#94A3B8] hover:text-[#1E3A5F]"
-        title="Glisser pour réorganiser"
+        title={t('editor.dragToReorder')}
       >
         <MuiIcon name="DragIndicator" size={16} />
       </div>
       <button
         onClick={onIconClick}
         className="flex items-center justify-center w-8 h-8 bg-white border border-[#E2E8F0] rounded-lg hover:border-[#1E3A5F] transition-colors"
-        title="Choisir une icône"
+        title={t('editor.chooseIcon')}
       >
         {subCategory.icon ? (
           <MuiIcon name={subCategory.icon} size={18} className="text-[#1E3A5F]" />
@@ -236,12 +238,12 @@ function SortableSubCategoryItem({ subCategory, onIconClick, onNameChange, onDel
       </button>
       <EditableInput value={subCategory.name} onChange={onNameChange} className="flex-1 px-2 py-1 bg-white border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] focus:outline-none focus:border-[#1E3A5F]" />
       <span className="text-xs text-[#94A3B8]">
-        {subElementsCount} sous-élément{subElementsCount > 1 ? 's' : ''}
+        {subElementsCount} {subElementsCount > 1 ? t('editor.subElementsCount') : t('editor.subElementCount')}
       </span>
       <button
         onClick={onDelete}
         className="p-1 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-        title="Supprimer la sous-catégorie"
+        title={t('editor.deleteSubCategory')}
       >
         <MuiIcon name="Delete" size={16} />
       </button>
@@ -864,8 +866,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             <button
               onClick={async () => {
                 const confirmed = await confirm({
-                  title: 'Supprimer le sous-élément',
-                  message: `Voulez-vous supprimer le sous-élément "${selectedSubElement.name}" ?`,
+                  title: t('editor.deleteSubElement'),
+                  message: t('editor.deleteSubElementConfirm').replace('{name}', selectedSubElement.name),
                 });
                 if (confirmed) {
                   deleteSubElement(selectedSubElement.id);
@@ -906,7 +908,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-[#64748B] mb-1">Nom</label>
+              <label className="block text-sm text-[#64748B] mb-1">{t('editor.nameLabel')}</label>
               <input
                 type="text"
                 value={editingSubElementName}
@@ -926,7 +928,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-[#64748B] mb-1">Valeur</label>
+                <label className="block text-sm text-[#64748B] mb-1">{t('editor.valueLabel')}</label>
                 <EditableInput
 
                   value={selectedSubElement.value || ''}
@@ -939,7 +941,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 />
               </div>
               <div>
-                <label className="block text-sm text-[#64748B] mb-1">Unité</label>
+                <label className="block text-sm text-[#64748B] mb-1">{t('editor.unitLabel')}</label>
                 <EditableInput
 
                   value={selectedSubElement.unit || ''}
@@ -955,7 +957,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
             {/* Icône du sous-élément */}
             <div>
-              <label className="block text-sm text-[#64748B] mb-2">Icône</label>
+              <label className="block text-sm text-[#64748B] mb-2">{t('editor.iconLabel')}</label>
               <button
                 onClick={() => setShowIconPicker('subElement')}
                 className="w-full flex items-center gap-3 px-3 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] hover:border-[#1E3A5F] transition-colors"
@@ -971,8 +973,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 )}
                 <span className="text-sm truncate flex-1">
                   {selectedSubElement.icon
-                    ? (isCustomIcon(selectedSubElement.icon) ? '📷 Image personnalisée' : selectedSubElement.icon)
-                    : 'Choisir une icône...'}
+                    ? (isCustomIcon(selectedSubElement.icon) ? `📷 ${t('editor.customImage')}` : selectedSubElement.icon)
+                    : t('editor.chooseIcon')}
                 </span>
               </button>
             </div>
@@ -1334,7 +1336,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <button
                   onClick={() => setShowCopySubCategoriesModal(true)}
                   className="p-2 text-[#64748B] hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title="Copier les sous-catégories vers un autre élément"
+                  title={t('editor.copySubCategoriesToAnotherElement')}
                 >
                   <MuiIcon name="FileCopy" size={18} />
                 </button>
@@ -1343,8 +1345,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <button
                 onClick={async () => {
                   const confirmed = await confirm({
-                    title: 'Supprimer l\'élément',
-                    message: `Voulez-vous supprimer l'élément "${element.name}" et tous ses sous-éléments ?`,
+                    title: t('editor.deleteElement'),
+                    message: t('editor.deleteElementConfirm').replace('{name}', element.name),
                   });
                   if (confirmed) {
                     deleteElement(element.id);
@@ -1381,17 +1383,17 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-[#64748B] mb-1">Nom</label>
+              <label className="block text-sm text-[#64748B] mb-1">{t('editor.nameLabel')}</label>
               <EditableInput value={element.name} onChange={(v) => handleElementNameChange(element.id, v, element.name)} className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-[#64748B] mb-1">Valeur</label>
+                <label className="block text-sm text-[#64748B] mb-1">{t('editor.valueLabel')}</label>
                 <EditableInput value={element.value || ""} onChange={(v) => updateElement(element.id, { value: v })} placeholder="123" allowEmpty={true} className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]" />
               </div>
               <div>
-                <label className="block text-sm text-[#64748B] mb-1">Unité</label>
+                <label className="block text-sm text-[#64748B] mb-1">{t('editor.unitLabel')}</label>
                 <EditableInput value={element.unit || ""} onChange={(v) => updateElement(element.id, { unit: v })} placeholder="kg" allowEmpty={true} className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]" />
               </div>
             </div>
@@ -1405,13 +1407,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-4 h-4 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F]"
               />
               <label htmlFor={`element-publiable-${element.id}`} className="text-sm text-[#64748B] cursor-pointer">
-                Publiable
+                {t('editor.publiable')}
               </label>
             </div>
 
             {/* Icônes - Sélection via Material Icons */}
             <div>
-              <label className="block text-sm text-[#64748B] mb-2">Icône principale</label>
+              <label className="block text-sm text-[#64748B] mb-2">{t('editor.mainIcon')}</label>
               <button
                 onClick={() => setShowIconPicker('icon')}
                 className="w-full flex items-center gap-3 px-3 py-3 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] hover:border-[#1E3A5F] transition-colors"
@@ -1427,15 +1429,15 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 )}
                 <span className="text-sm truncate flex-1">
                   {element.icon
-                    ? (isCustomIcon(element.icon) ? '📷 Image personnalisée' : element.icon)
-                    : 'Choisir une icône...'}
+                    ? (isCustomIcon(element.icon) ? `📷 ${t('editor.customImage')}` : element.icon)
+                    : t('editor.chooseIcon')}
                 </span>
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-[#64748B] mb-2">Icône 2</label>
+                <label className="block text-sm text-[#64748B] mb-2">{t('editor.icon2')}</label>
                 <button
                   onClick={() => setShowIconPicker('icon2')}
                   className="w-full flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] hover:border-[#1E3A5F] transition-colors"
@@ -1453,7 +1455,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </button>
               </div>
               <div>
-                <label className="block text-sm text-[#64748B] mb-2">Icône 3</label>
+                <label className="block text-sm text-[#64748B] mb-2">{t('editor.icon3')}</label>
                 <button
                   onClick={() => setShowIconPicker('icon3')}
                   className="w-full flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] hover:border-[#1E3A5F] transition-colors"
@@ -1710,7 +1712,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                                   setShowIconPicker('template');
                                 }}
                                 className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0] hover:border-[#1E3A5F] transition-colors cursor-pointer"
-                                title="Choisir une icône"
+                                title={t('editor.chooseIcon')}
                               >
                                 {templateIcon ? (
                                   <MuiIcon name={templateIcon} size={18} className="text-[#1E3A5F]" />
@@ -1723,7 +1725,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                                 <button
                                   onClick={() => updateTemplateIcon(templateName, undefined)}
                                   className="p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
-                                  title="Supprimer l'icône"
+                                  title={t('editor.deleteIcon')}
                                 >
                                   <MuiIcon name="Close" size={14} />
                                 </button>
@@ -2054,8 +2056,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       onNameChange={(name) => updateSubCategory(subCategory.id, { name })}
                       onDelete={async () => {
                         const confirmed = await confirm({
-                          title: 'Supprimer la sous-catégorie',
-                          message: `Voulez-vous supprimer la sous-catégorie "${subCategory.name}" ?`,
+                          title: t('editor.deleteSubCategory'),
+                          message: t('editor.deleteSubCategoryConfirm').replace('{name}', subCategory.name),
                         });
                         if (confirmed) {
                           deleteSubCategory(subCategory.id);
@@ -2356,7 +2358,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   {element.icon && isCustomIcon(element.icon) && (
                     <button
                       className="p-2 rounded-lg border border-[#1E3A5F] bg-[#1E3A5F]/10"
-                      title="Image personnalisée"
+                      title={t('editor.customImage')}
                     >
                       <MuiIcon name={element.icon} size={24} color={STATUS_COLORS[element.status]?.hex || '#9E9E9E'} />
                     </button>
@@ -2482,7 +2484,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 </div>
 
                 <div>
-                  <label className="block text-sm text-[#64748B] mb-2">Icône du point</label>
+                  <label className="block text-sm text-[#64748B] mb-2">{t('editor.pointIcon')}</label>
                   <div className="flex flex-wrap gap-2 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] max-h-32 overflow-y-auto">
                     {[
                       'Store', 'Business', 'Factory', 'Warehouse', 'Home', 'Domain',
@@ -2511,8 +2513,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   <button
                     onClick={async () => {
                       const confirmed = await confirm({
-                        title: 'Supprimer le point de carte',
-                        message: `Voulez-vous supprimer le point "${mapElement.name}" de la carte ?`,
+                        title: t('editor.deleteMapPoint'),
+                        message: t('editor.deleteMapPointConfirm').replace('{name}', mapElement.name),
                       });
                       if (confirmed) {
                         deleteMapElement(mapElement.id);
@@ -2590,7 +2592,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                             setShowIconPicker('zone');
                           }}
                           className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white rounded border border-[#E2E8F0] hover:border-[#1E3A5F] transition-colors cursor-pointer"
-                          title="Choisir une icône"
+                          title={t('editor.chooseIcon')}
                         >
                           {zone.icon ? (
                             <MuiIcon name={zone.icon} size={18} className="text-[#1E3A5F]" />
@@ -2603,7 +2605,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           <button
                             onClick={() => updateZone(zone.id, { icon: undefined })}
                             className="p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
-                            title="Supprimer l'icône"
+                            title={t('editor.deleteIcon')}
                           >
                             <MuiIcon name="Close" size={14} />
                           </button>
@@ -2760,7 +2762,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   onClick={() => setShowCopySubCategoriesModal(false)}
                   className="w-full px-4 py-2 text-sm text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#E2E8F0] rounded-lg transition-colors"
                 >
-                  Annuler
+                  {t('modal.cancel')}
                 </button>
               </div>
             </div>
@@ -2788,7 +2790,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   <button
                     onClick={() => setShowCopyElementsModal(true)}
                     className="p-2 text-[#64748B] hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="Copier les éléments vers un autre domaine"
+                    title={t('editor.copyElementsToAnotherDomain')}
                   >
                     <MuiIcon name="FileCopy" size={18} />
                   </button>
@@ -2804,8 +2806,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       }
                       
                       const confirmed = await confirm({
-                        title: 'Supprimer tous les éléments',
-                        message: `Voulez-vous supprimer les ${elementCount} élément(s) du domaine "${domain.name}" ?\n\nCette action supprimera également toutes les sous-catégories et sous-éléments associés.\n\n⚠️ Cette action est irréversible.`,
+                        title: t('editor.deleteAllElements'),
+                        message: t('editor.deleteAllElementsConfirm').replace('{count}', String(elementCount)).replace('{name}', domain.name),
                       });
                       
                       if (confirmed) {
@@ -2818,7 +2820,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       }
                     }}
                     className="p-2 text-[#64748B] hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                    title="Supprimer tous les éléments du domaine"
+                    title={t('editor.deleteAllElementsFromDomain')}
                   >
                     <MuiIcon name="DeleteSweep" size={18} />
                   </button>
@@ -2828,7 +2830,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               <button
                 onClick={() => duplicateDomain(domain.id)}
                 className="p-2 text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#F5F7FA] rounded-lg transition-colors"
-                title="Dupliquer ce domaine"
+                title={t('editor.duplicateDomain')}
               >
                 <MuiIcon name="ContentCopy" size={18} />
               </button>
@@ -2837,8 +2839,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <button
                   onClick={async () => {
                     const confirmed = await confirm({
-                      title: 'Supprimer le domaine',
-                      message: `Voulez-vous supprimer le domaine "${domain.name}" et tout son contenu ?`,
+                      title: t('editor.deleteDomain'),
+                      message: t('editor.deleteDomainConfirm').replace('{name}', domain.name),
                     });
                     if (confirmed) {
                       deleteDomain(domain.id);
@@ -2891,7 +2893,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-[#64748B] mb-1">Nom</label>
+              <label className="block text-sm text-[#64748B] mb-1">{t('editor.nameLabel')}</label>
               <EditableInput
 
                 value={domain.name}
@@ -2918,7 +2920,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     <MuiIcon name="Add" size={20} className="text-white" />
                   </div>
                 )}
-                <span className="text-sm">{domain.icon || 'Choisir une icône...'}</span>
+                <span className="text-sm">{domain.icon || t('editor.chooseIcon')}</span>
                 {domain.icon && (
                   <button
                     onClick={(e) => {
@@ -2926,7 +2928,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       updateDomain(domain.id, { icon: undefined });
                     }}
                     className="ml-auto p-1 text-[#94A3B8] hover:text-red-500 transition-colors"
-                    title="Supprimer l'icône"
+                    title={t('editor.deleteIcon')}
                   >
                     <MuiIcon name="Close" size={16} />
                   </button>
@@ -2968,7 +2970,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 className="w-4 h-4 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F]"
               />
               <label htmlFor={`domain-publiable-${domain.id}`} className="text-sm text-[#64748B] cursor-pointer">
-                Publiable
+                {t('editor.publiable')}
               </label>
             </div>
           </div>
@@ -3410,8 +3412,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                         onNameChange={(name) => updateCategory(category.id, { name })}
                         onDelete={async () => {
                           const confirmed = await confirm({
-                            title: 'Supprimer la catégorie',
-                            message: `Voulez-vous supprimer la catégorie "${category.name}" ?`,
+                            title: t('editor.deleteCategory'),
+                            message: t('editor.deleteCategoryConfirm').replace('{name}', category.name),
                           });
                           if (confirmed) {
                             deleteCategory(category.id);
@@ -4769,8 +4771,8 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       <MuiIcon name="FileCopy" size={20} className="text-green-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-[#1E3A5F]">Copier les éléments</h3>
-                      <p className="text-sm text-[#64748B]">Depuis "{domain.name}"</p>
+                      <h3 className="text-lg font-semibold text-[#1E3A5F]">{t('editor.copyElements')}</h3>
+                      <p className="text-sm text-[#64748B]">{t('editor.from')} "{domain.name}"</p>
                     </div>
                   </div>
                   <button
@@ -4786,16 +4788,13 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-sm text-blue-700 flex items-start gap-2">
                     <MuiIcon name="Info" size={16} className="flex-shrink-0 mt-0.5" />
-                    <span>
-                      Cette action copie toutes les <strong>catégories</strong> et tous les <strong>éléments</strong> du domaine actuel vers le domaine cible. 
-                      Chaque élément copié sera <strong>lié</strong> à son élément d'origine (synchronisation des statuts et valeurs).
-                    </span>
+                    <span dangerouslySetInnerHTML={{ __html: t('editor.copyElementsDescription') }} />
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-[#1E3A5F] mb-2">
-                    Domaine cible
+                    {t('editor.targetDomain')}
                   </label>
                   <div className="space-y-2">
                     {currentCockpit?.domains
@@ -4831,7 +4830,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-[#1E3A5F] truncate">{targetDomain.name}</p>
                               <p className="text-xs text-[#64748B]">
-                                {targetDomain.templateType === 'background' ? 'Vue Background' : 'Vue Map'} • {elementCount} élément(s)
+                                {targetDomain.templateType === 'background' ? t('editor.backgroundView') : t('editor.mapView')} • {elementCount} {t('editor.elementsCount')}
                               </p>
                             </div>
                             <MuiIcon name="ArrowForward" size={16} className="text-[#94A3B8]" />
@@ -4847,10 +4846,10 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       <div className="p-4 bg-[#F5F7FA] rounded-lg text-center">
                         <MuiIcon name="Info" size={24} className="text-[#94A3B8] mx-auto mb-2" />
                         <p className="text-sm text-[#64748B]">
-                          Aucun autre domaine de type Background ou Map disponible.
+                          {t('editor.noOtherDomainAvailable')}
                         </p>
                         <p className="text-xs text-[#94A3B8] mt-1">
-                          Créez d'abord un domaine cible de type Background ou Map.
+                          {t('editor.createTargetDomainFirst')}
                         </p>
                       </div>
                     )}
@@ -4859,7 +4858,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
                 {/* Résumé des catégories et éléments à copier */}
                 <div className="border-t border-[#E2E8F0] pt-4">
-                  <h4 className="text-sm font-medium text-[#1E3A5F] mb-2">Catégories et éléments à copier</h4>
+                  <h4 className="text-sm font-medium text-[#1E3A5F] mb-2">{t('editor.categoriesToCopy')}</h4>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {(domain.categories || []).map(cat => (
                       <div key={cat.id} className="space-y-1">
@@ -4867,7 +4866,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           <MuiIcon name="Folder" size={14} />
                           <span>{cat.name}</span>
                           <span className="text-xs text-[#64748B]">
-                            ({(cat.elements || []).length} élément{(cat.elements || []).length > 1 ? 's' : ''})
+                            ({(cat.elements || []).length} {t('editor.elementsCount')})
                           </span>
                         </div>
                         {(cat.elements || []).map(el => (
@@ -4876,7 +4875,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                             <span>{el.name}</span>
                             {(el.subCategories || []).length > 0 && (
                               <span className="text-xs bg-[#E2E8F0] px-1.5 py-0.5 rounded">
-                                {(el.subCategories || []).reduce((sum, sc) => sum + (sc.subElements || []).length, 0)} sous-él.
+                                {(el.subCategories || []).reduce((sum, sc) => sum + (sc.subElements || []).length, 0)} {t('editor.subElem')}
                               </span>
                             )}
                           </div>
@@ -4884,7 +4883,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       </div>
                     ))}
                     {(domain.categories || []).length === 0 && (
-                      <p className="text-sm text-[#94A3B8] italic">Aucune catégorie dans ce domaine</p>
+                      <p className="text-sm text-[#94A3B8] italic">{t('editor.noCategoryInDomain')}</p>
                     )}
                   </div>
                 </div>
@@ -4895,7 +4894,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   onClick={() => setShowCopyElementsModal(false)}
                   className="w-full px-4 py-2 text-sm text-[#64748B] hover:text-[#1E3A5F] hover:bg-[#E2E8F0] rounded-lg transition-colors"
                 >
-                  Annuler
+                  {t('modal.cancel')}
                 </button>
               </div>
             </div>

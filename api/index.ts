@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.22.4';
+const APP_VERSION = '16.23.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -191,7 +191,8 @@ interface Folder {
 interface ContextualHelp {
   id: string;
   elementKey: string; // Clé unique pour identifier l'élément (ex: 'domain.menu.grid', 'element.properties.zone')
-  content: string; // Contenu HTML de l'aide
+  content: string; // Contenu HTML de l'aide (FR)
+  contentEN?: string; // Traduction anglaise de l'aide (pour les aides globales)
   createdAt: string;
   updatedAt: string;
   createdBy: string; // ID de l'admin qui a créé l'aide
@@ -2160,7 +2161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const elementKey = decodeURIComponent(path.split('/')[2]);
-      const { content } = req.body;
+      const { content, contentEN } = req.body;
 
       if (!content) {
         return res.status(400).json({ error: 'Contenu requis' });
@@ -2177,6 +2178,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (existingIndex >= 0) {
         // Mettre à jour
         db.contextualHelps[existingIndex].content = content;
+        db.contextualHelps[existingIndex].contentEN = contentEN || ''; // Traduction anglaise
         db.contextualHelps[existingIndex].updatedAt = new Date().toISOString();
         db.contextualHelps[existingIndex].updatedBy = currentUser.id;
         db.contextualHelps[existingIndex].updatedByUsername = currentUser.username;
@@ -2186,6 +2188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           id: generateId(),
           elementKey,
           content,
+          contentEN: contentEN || '', // Traduction anglaise
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           createdBy: currentUser.id,

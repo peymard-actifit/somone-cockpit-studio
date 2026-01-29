@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { MuiIcon } from '../components/IconPicker';
+import { useLanguage } from './LanguageContext';
 
 interface ContextualHelp {
   id: string;
   elementKey: string;
   content: string;
+  contentEN?: string; // Traduction anglaise pour les aides globales
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -195,6 +197,7 @@ interface ContextualHelpProviderProps {
 
 export function ContextualHelpProvider({ children }: ContextualHelpProviderProps) {
   const { user, token } = useAuthStore();
+  const { t, language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
   const [currentCockpitId, setCurrentCockpitId] = useState<string | null>(null); // Pour les aides locales aux maquettes
@@ -202,6 +205,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
+  const [editContentEN, setEditContentEN] = useState(''); // Contenu anglais pour les aides globales
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [globalEnabled, setGlobalEnabled] = useState(false);
   const [hoverEnabled, setHoverEnabled] = useState(false);
@@ -272,19 +276,21 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   }, [token]);
 
   // Save help content (avec support cockpitId pour aides locales)
-  const saveHelp = useCallback(async (elementKey: string, content: string, cockpitId: string | null = null) => {
+  const saveHelp = useCallback(async (elementKey: string, content: string, cockpitId: string | null = null, contentEN?: string) => {
     if (!token || !isAdmin) return false;
     
     setIsLoading(true);
     try {
       const url = getApiUrl(elementKey, cockpitId);
+      // Inclure contentEN seulement pour les aides globales (cockpitId === null)
+      const bodyData = cockpitId ? { content } : { content, contentEN: contentEN || '' };
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(bodyData),
       });
       
       if (response.ok) {
@@ -592,6 +598,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
   // Start editing
   const startEditing = useCallback(() => {
     setEditContent(helpContent?.content || '');
+    setEditContentEN(helpContent?.contentEN || '');
     setIsEditing(true);
   }, [helpContent]);
 
@@ -600,16 +607,18 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     if (!currentKey) return;
     
     // Passer le currentCockpitId pour sauvegarder dans la maquette si c'est une aide locale
-    const success = await saveHelp(currentKey, editContent, currentCockpitId);
+    // Pour les aides globales, passer aussi contentEN
+    const success = await saveHelp(currentKey, editContent, currentCockpitId, currentCockpitId ? undefined : editContentEN);
     if (success) {
       setIsEditing(false);
     }
-  }, [currentKey, editContent, saveHelp, currentCockpitId]);
+  }, [currentKey, editContent, editContentEN, saveHelp, currentCockpitId]);
 
   // Cancel editing
   const cancelEditing = useCallback(() => {
     setIsEditing(false);
     setEditContent('');
+    setEditContentEN('');
   }, []);
 
   return (
@@ -637,7 +646,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
                 <button
                   onClick={startEditing}
                   className="p-1.5 bg-white/80 hover:bg-slate-100 rounded-full transition-colors shadow-sm"
-                  title="Modifier l'aide"
+                  title={t('help.editHelp')}
                 >
                   <MuiIcon name="Edit" size={16} className="text-slate-500" />
                 </button>
@@ -645,7 +654,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
               <button
                 onClick={closeHelp}
                 className="p-1.5 bg-white/80 hover:bg-slate-100 rounded-full transition-colors shadow-sm"
-                title="Fermer"
+                title={t('help.close')}
               >
                 <MuiIcon name="Close" size={16} className="text-slate-500" />
               </button>
@@ -661,35 +670,56 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-700">
                     <MuiIcon name="Info" size={14} />
-                    <span>Utilisez du HTML pour formater. Ex: &lt;b&gt;gras&lt;/b&gt;, &lt;ul&gt;&lt;li&gt;liste&lt;/li&gt;&lt;/ul&gt;</span>
+                    <span>{t('help.htmlHint')}</span>
                   </div>
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full h-48 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="<p>Entrez l'aide contextuelle ici...</p>
-
-Exemples:
-<p>Description de la fonctionnalité.</p>
-<ul>
-  <li>Point 1</li>
-  <li>Point 2</li>
-</ul>"
-                    autoFocus
-                  />
+                  
+                  {/* Pour les aides globales : 2 zones (FR et EN) */}
+                  {!currentCockpitId ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">🇫🇷 {t('help.frenchContent')}</label>
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="w-full h-32 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder={t('help.placeholder')}
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">🇬🇧 {t('help.englishContent')}</label>
+                        <textarea
+                          value={editContentEN}
+                          onChange={(e) => setEditContentEN(e.target.value)}
+                          className="w-full h-32 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder={t('help.placeholder')}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    /* Pour les aides locales : 1 seule zone */
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full h-48 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={t('help.placeholder')}
+                      autoFocus
+                    />
+                  )}
+                  
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2 text-xs text-slate-400">
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${currentCockpitId ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
-                        {currentCockpitId ? 'AIDE LOCALE (maquette)' : 'AIDE GLOBALE (studio)'}
+                        {currentCockpitId ? t('help.localHelp') : t('help.globalHelp')}
                       </span>
-                      <span>Clé: {currentKey}</span>
+                      <span>{t('help.key')}: {currentKey}</span>
                     </div>
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={cancelEditing}
                         className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                       >
-                        Annuler
+                        {t('help.cancel')}
                       </button>
                       <button
                         onClick={saveAndClose}
@@ -697,7 +727,7 @@ Exemples:
                         className="px-4 py-1.5 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2a4a6f] transition-colors disabled:opacity-50 flex items-center gap-2"
                       >
                         <MuiIcon name="Save" size={14} />
-                        Enregistrer
+                        {t('help.save')}
                       </button>
                     </div>
                   </div>
@@ -705,12 +735,16 @@ Exemples:
               ) : helpContent?.content ? (
                 <div 
                   className="prose prose-sm max-w-none text-slate-700 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 pr-8"
-                  dangerouslySetInnerHTML={{ __html: helpContent.content }}
+                  dangerouslySetInnerHTML={{ 
+                    __html: !currentCockpitId && language === 'EN' && helpContent.contentEN 
+                      ? helpContent.contentEN 
+                      : helpContent.content 
+                  }}
                 />
               ) : (
                 <div className="text-center py-6">
                   <p className="text-sm text-slate-400 mb-3">
-                    Aucune aide disponible.
+                    {t('help.noHelpAvailable')}
                   </p>
                   {isAdmin && (
                     <button
@@ -718,7 +752,7 @@ Exemples:
                       className="px-4 py-2 text-sm bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2a4a6f] transition-colors flex items-center gap-2 mx-auto"
                     >
                       <MuiIcon name="Add" size={16} />
-                      Créer l'aide
+                      {t('help.createHelp')}
                     </button>
                   )}
                 </div>
@@ -731,9 +765,9 @@ Exemples:
                 <div className="flex items-center gap-2">
                   {/* Indicateur aide locale ou globale */}
                   <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium ${currentCockpitId ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
-                    {currentCockpitId ? 'LOCAL' : 'GLOBAL'}
+                    {currentCockpitId ? t('help.local') : t('help.global')}
                   </span>
-                  <span>Mis à jour le {new Date(helpContent.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>{t('help.updatedOn')} {new Date(helpContent.updatedAt).toLocaleDateString(language === 'EN' ? 'en-US' : 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {helpContent.updatedByUsername && (
@@ -742,8 +776,8 @@ Exemples:
                   {isAdmin && (
                     <button
                       onClick={async () => {
-                        const typeAide = currentCockpitId ? 'locale (spécifique à cette maquette)' : 'globale (studio)';
-                        if (currentKey && window.confirm(`Supprimer cette aide contextuelle ${typeAide} ?`)) {
+                        const typeAide = currentCockpitId ? t('help.localType') : t('help.globalType');
+                        if (currentKey && window.confirm(`${t('help.deleteConfirm')} ${typeAide} ?`)) {
                           // Passer le cockpitId pour supprimer l'aide locale si applicable
                           const success = await deleteHelp(currentKey, currentCockpitId);
                           if (success) {
@@ -752,7 +786,7 @@ Exemples:
                         }
                       }}
                       className="text-red-400 hover:text-red-600"
-                      title={currentCockpitId ? "Supprimer l'aide locale" : "Supprimer l'aide globale"}
+                      title={currentCockpitId ? t('help.deleteLocalHelp') : t('help.deleteGlobalHelp')}
                     >
                       <MuiIcon name="Delete" size={10} />
                     </button>

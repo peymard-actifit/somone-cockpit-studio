@@ -3,6 +3,7 @@ import { MuiIcon } from './IconPicker';
 import { useTutorial } from '../contexts/TutorialContext';
 import type { Tutorial, TutorialChapter, TutorialSubChapter } from '../types';
 import { useAuthStore } from '../store/authStore';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface TutorialEditorModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9
 export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorModalProps) {
   const { tutorial, saveTutorial } = useTutorial();
   const { token } = useAuthStore();
+  const { t } = useLanguage();
   
   const [localTutorial, setLocalTutorial] = useState<Tutorial | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
@@ -268,9 +270,9 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
               <MuiIcon name="School" size={24} className="text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1E3A5F]">Éditeur de Tutoriel</h2>
+              <h2 className="text-xl font-bold text-[#1E3A5F]">{t('tutorial.editor')}</h2>
               <p className="text-sm text-[#64748B]">
-                Version {localTutorial?.version || 1} • {localTutorial?.chapters.length || 0} chapitres
+                {t('tutorial.version')} {localTutorial?.version || 1} • {localTutorial?.chapters.length || 0} {t('tutorial.chapters')}
               </p>
             </div>
           </div>
@@ -288,7 +290,7 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-500 hover:to-blue-400 disabled:opacity-50"
             >
               <MuiIcon name={isSaving ? 'HourglassTop' : 'Save'} size={18} />
-              {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+              {isSaving ? t('tutorial.saving') : t('tutorial.save')}
             </button>
             <button
               onClick={onClose}
@@ -304,11 +306,11 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
           {/* Liste des chapitres (gauche) */}
           <div className="w-64 border-r border-[#E2E8F0] flex flex-col bg-[#F8FAFC]">
             <div className="p-3 border-b border-[#E2E8F0] flex items-center justify-between">
-              <span className="text-sm font-medium text-[#64748B]">Chapitres</span>
+              <span className="text-sm font-medium text-[#64748B]">{t('tutorial.chaptersList')}</span>
               <button
                 onClick={addChapter}
                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                title="Ajouter un chapitre"
+                title={t('tutorial.addChapter')}
               >
                 <MuiIcon name="Add" size={18} />
               </button>
@@ -367,7 +369,7 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                   <div className="flex items-start gap-4">
                     <div className="flex-1 space-y-3">
                       <div>
-                        <label className="block text-xs text-[#64748B] mb-1">Titre (FR)</label>
+                        <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.titleFr')}</label>
                         <input
                           type="text"
                           value={selectedChapter.title}
@@ -376,29 +378,29 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#64748B] mb-1">Titre (EN)</label>
+                        <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.titleEn')}</label>
                         <input
                           type="text"
                           value={selectedChapter.titleEN || ''}
                           onChange={(e) => updateChapter(selectedChapter.id, { titleEN: e.target.value })}
                           className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg text-[#64748B] focus:outline-none focus:border-[#1E3A5F]"
-                          placeholder="English title..."
+                          placeholder={t('tutorial.englishTitle')}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#64748B] mb-1">Description (FR)</label>
+                        <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.descriptionFr')}</label>
                         <input
                           type="text"
                           value={selectedChapter.description || ''}
                           onChange={(e) => updateChapter(selectedChapter.id, { description: e.target.value })}
                           className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm focus:outline-none focus:border-[#1E3A5F]"
-                          placeholder="Description courte..."
+                          placeholder={t('tutorial.shortDescription')}
                         />
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
                       <div>
-                        <label className="block text-xs text-[#64748B] mb-1">Icône</label>
+                        <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.iconLabel')}</label>
                         <input
                           type="text"
                           value={selectedChapter.icon || ''}
@@ -413,7 +415,7 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                         className="flex items-center justify-center gap-1 px-3 py-1.5 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 text-sm disabled:opacity-50"
                       >
                         <MuiIcon name={isTranslating ? 'HourglassTop' : 'Translate'} size={16} />
-                        {isTranslating ? '...' : 'Traduire'}
+                        {isTranslating ? '...' : t('tutorial.translate')}
                       </button>
                     </div>
                   </div>
@@ -424,11 +426,11 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                   {/* Liste des sous-chapitres */}
                   <div className="w-56 border-r border-[#E2E8F0] flex flex-col bg-[#FAFBFC]">
                     <div className="p-2 border-b border-[#E2E8F0] flex items-center justify-between">
-                      <span className="text-xs font-medium text-[#64748B]">Étapes ({selectedChapter.subChapters.length})</span>
+                      <span className="text-xs font-medium text-[#64748B]">{t('tutorial.steps')} ({selectedChapter.subChapters.length})</span>
                       <button
                         onClick={() => addSubChapter(selectedChapter.id)}
                         className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                        title="Ajouter une étape"
+                        title={t('tutorial.addStep')}
                       >
                         <MuiIcon name="Add" size={16} />
                       </button>
@@ -456,7 +458,7 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                       ))}
                       {selectedChapter.subChapters.length === 0 && (
                         <p className="text-xs text-[#94A3B8] text-center p-4">
-                          Aucune étape.<br/>Cliquez sur + pour ajouter.
+                          {t('tutorial.noStep')}<br/>{t('tutorial.clickToAdd')}
                         </p>
                       )}
                     </div>
@@ -468,7 +470,7 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs text-[#64748B] mb-1">Titre étape (FR)</label>
+                            <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.stepTitleFr')}</label>
                             <input
                               type="text"
                               value={selectedSubChapter.title}
@@ -477,44 +479,44 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-[#64748B] mb-1">Titre étape (EN)</label>
+                            <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.stepTitleEn')}</label>
                             <input
                               type="text"
                               value={selectedSubChapter.titleEN || ''}
                               onChange={(e) => updateSubChapter(selectedChapter.id, selectedSubChapter.id, { titleEN: e.target.value })}
                               className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:border-[#1E3A5F]"
-                              placeholder="English title..."
+                              placeholder={t('tutorial.englishTitle')}
                             />
                           </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs text-[#64748B] mb-1">Élément ciblé (data-help-key)</label>
+                            <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.targetElement')}</label>
                             <input
                               type="text"
                               value={selectedSubChapter.targetElement || ''}
                               onChange={(e) => updateSubChapter(selectedChapter.id, selectedSubChapter.id, { targetElement: e.target.value })}
                               className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:border-[#1E3A5F] text-sm"
-                              placeholder="home-btn-new-cockpit"
+                              placeholder={t('tutorial.cssSelector')}
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-[#64748B] mb-1">Action attendue</label>
+                            <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.action')}</label>
                             <select
                               value={selectedSubChapter.action || 'observe'}
                               onChange={(e) => updateSubChapter(selectedChapter.id, selectedSubChapter.id, { action: e.target.value as any })}
                               className="w-full px-3 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:border-[#1E3A5F] text-sm"
                             >
-                              <option value="observe">Observer (lecture seule)</option>
-                              <option value="click">Cliquer sur l'élément</option>
-                              <option value="input">Saisir du texte</option>
+                              <option value="observe">{t('tutorial.observe')}</option>
+                              <option value="click">{t('tutorial.click')}</option>
+                              <option value="input">{t('tutorial.input')}</option>
                             </select>
                           </div>
                         </div>
                         
                         <div>
-                          <label className="block text-xs text-[#64748B] mb-1">Contenu HTML (FR)</label>
+                          <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.contentFr')}</label>
                           <textarea
                             value={selectedSubChapter.content}
                             onChange={(e) => updateSubChapter(selectedChapter.id, selectedSubChapter.id, { content: e.target.value })}
@@ -524,7 +526,7 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                         </div>
                         
                         <div>
-                          <label className="block text-xs text-[#64748B] mb-1">Contenu HTML (EN)</label>
+                          <label className="block text-xs text-[#64748B] mb-1">{t('tutorial.contentEn')}</label>
                           <textarea
                             value={selectedSubChapter.contentEN || ''}
                             onChange={(e) => updateSubChapter(selectedChapter.id, selectedSubChapter.id, { contentEN: e.target.value })}
@@ -535,7 +537,7 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                         
                         {/* Prévisualisation */}
                         <div>
-                          <label className="block text-xs text-[#64748B] mb-1">Prévisualisation</label>
+                          <label className="block text-xs text-[#64748B] mb-1">{t('editor.preview')}</label>
                           <div 
                             className="p-4 border border-[#E2E8F0] rounded-lg bg-[#F8FAFC] prose prose-sm max-w-none"
                             dangerouslySetInnerHTML={{ __html: selectedSubChapter.content }}
@@ -545,8 +547,8 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full text-[#94A3B8]">
                         <MuiIcon name="TouchApp" size={48} className="mb-2" />
-                        <p>Sélectionnez une étape à éditer</p>
-                        <p className="text-sm">ou créez-en une nouvelle avec le bouton +</p>
+                        <p>{t('tutorial.selectStep')}</p>
+                        <p className="text-sm">{t('tutorial.clickToAdd')}</p>
                       </div>
                     )}
                   </div>
@@ -555,14 +557,14 @@ export default function TutorialEditorModal({ isOpen, onClose }: TutorialEditorM
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-[#94A3B8]">
                 <MuiIcon name="School" size={64} className="mb-4" />
-                <p className="text-lg">Aucun chapitre sélectionné</p>
-                <p className="text-sm mb-4">Sélectionnez un chapitre ou créez-en un nouveau</p>
+                <p className="text-lg">{t('tutorial.selectChapter')}</p>
+                <p className="text-sm mb-4">{t('tutorial.clickToAdd')}</p>
                 <button
                   onClick={addChapter}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
                 >
                   <MuiIcon name="Add" size={18} />
-                  Créer un chapitre
+                  {t('tutorial.addChapter')}
                 </button>
               </div>
             )}
