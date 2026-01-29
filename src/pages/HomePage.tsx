@@ -1120,23 +1120,25 @@ export default function HomePage() {
                         <div className="flex gap-2 px-4 pb-2">
                           <button
                             onClick={() => setLanguage('FR')}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                               language === 'FR'
                                 ? 'bg-cyan-500 text-white'
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                           >
-                            Français
+                            <span className="text-lg">🇫🇷</span>
+                            <span>FR</span>
                           </button>
                           <button
                             onClick={() => setLanguage('EN')}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                               language === 'EN'
                                 ? 'bg-cyan-500 text-white'
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                           >
-                            English
+                            <span className="text-lg">🇬🇧</span>
+                            <span>EN</span>
                           </button>
                         </div>
                       </div>

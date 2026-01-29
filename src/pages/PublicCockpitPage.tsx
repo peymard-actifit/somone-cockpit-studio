@@ -265,23 +265,25 @@ function PublicCockpitContent() {
               <div className="flex items-center gap-1 bg-[#2D4A63] rounded-lg border border-[#4A6D8C] p-1">
                 <button
                   onClick={() => setLanguage('FR')}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 ${
                     language === 'FR'
                       ? 'bg-cyan-500 text-white'
                       : 'text-slate-300 hover:bg-slate-600'
                   }`}
+                  title="Français"
                 >
-                  FR
+                  <span className="text-sm">🇫🇷</span>
                 </button>
                 <button
                   onClick={() => setLanguage('EN')}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 ${
                     language === 'EN'
                       ? 'bg-cyan-500 text-white'
                       : 'text-slate-300 hover:bg-slate-600'
                   }`}
+                  title="English"
                 >
-                  EN
+                  <span className="text-sm">🇬🇧</span>
                 </button>
               </div>
               
@@ -345,23 +347,25 @@ function PublicCockpitContent() {
             <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg border border-slate-600/50 p-1">
               <button
                 onClick={() => setLanguage('FR')}
-                className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 ${
                   language === 'FR'
                     ? 'bg-cyan-500 text-white'
                     : 'text-slate-300 hover:bg-slate-600'
                 }`}
+                title="Français"
               >
-                FR
+                <span className="text-sm">🇫🇷</span>
               </button>
               <button
                 onClick={() => setLanguage('EN')}
-                className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 ${
                   language === 'EN'
                     ? 'bg-cyan-500 text-white'
                     : 'text-slate-300 hover:bg-slate-600'
                 }`}
+                title="English"
               >
-                EN
+                <span className="text-sm">🇬🇧</span>
               </button>
             </div>
 
