@@ -1601,7 +1601,7 @@ export default function HomePage() {
                       <div className="p-2.5">
                         <div className="flex items-center gap-1.5 text-[10px] text-purple-600 mb-2">
                           <MuiIcon name="Description" size={12} />
-                          <span>{sharedFolder.cockpitsCount} maquette{sharedFolder.cockpitsCount !== 1 ? 's' : ''}</span>
+                          <span>{sharedFolder.cockpitsCount} {sharedFolder.cockpitsCount !== 1 ? t('folder.mockups') : t('folder.mockup')}</span>
                         </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); setViewingSharedByUserId(sharedFolder.userId); }}
@@ -1658,7 +1658,7 @@ export default function HomePage() {
                   <div className="p-2.5">
                     <div className="flex items-center gap-1.5 text-[10px] text-purple-600">
                       <MuiIcon name="Description" size={10} />
-                      <span>{userFolder.cockpitsCount} maquette{userFolder.cockpitsCount !== 1 ? 's' : ''}</span>
+                      <span>{userFolder.cockpitsCount} {userFolder.cockpitsCount !== 1 ? t('folder.mockups') : t('folder.mockup')}</span>
                     </div>
                   </div>
                 </div>
@@ -1904,7 +1904,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <MuiIcon name="Globe" size={20} className="text-blue-400" />
-                Publier la maquette
+                {t('modal.publishMockup')}
               </h3>
               <button
                 onClick={() => { setShowPublishModal(null); setPublishWelcomeMessage(''); }}
@@ -1916,17 +1916,17 @@ export default function HomePage() {
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Message d'accueil (optionnel)
+                  {t('modal.welcomeMessage')}
                 </label>
                 <textarea
                   value={publishWelcomeMessage}
                   onChange={(e) => setPublishWelcomeMessage(e.target.value)}
-                  placeholder="Ce message s'affichera à chaque ouverture du cockpit publié..."
+                  placeholder={t('modal.welcomeMessagePlaceholder')}
                   rows={4}
                   className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
                 />
                 <p className="mt-2 text-xs text-slate-500">
-                  Les visiteurs verront ce message dans un popup avant d'accéder au cockpit.
+                  {t('modal.welcomeMessageHint')}
                 </p>
               </div>
               <div className="flex flex-col gap-3 pt-2">
@@ -1935,7 +1935,7 @@ export default function HomePage() {
                     onClick={() => { setShowPublishModal(null); setPublishWelcomeMessage(''); }}
                     className="flex-1 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl transition-colors"
                   >
-                    Annuler
+                    {t('modal.cancel')}
                   </button>
                   <button
                     onClick={async () => {
@@ -1951,7 +1951,7 @@ export default function HomePage() {
                     ) : (
                       <>
                         <MuiIcon name="Campaign" size={16} />
-                        Publier avec message
+                        {t('modal.publishWithMessage')}
                       </>
                     )}
                   </button>
@@ -1970,7 +1970,7 @@ export default function HomePage() {
                   ) : (
                     <>
                       <MuiIcon name="Globe" size={16} />
-                      Publier sans message
+                      {t('modal.publishWithoutMessage')}
                     </>
                   )}
                 </button>
@@ -1987,7 +1987,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <MuiIcon name="Campaign" size={20} className="text-amber-400" />
-                Message d'accueil
+                {t('modal.editWelcomeMessage')}
               </h3>
               <button
                 onClick={() => { setShowEditWelcomeModal(null); setEditWelcomeMessage(''); }}
@@ -1999,17 +1999,17 @@ export default function HomePage() {
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Message affiché aux visiteurs
+                  {t('modal.messageForVisitors')}
                 </label>
                 <textarea
                   value={editWelcomeMessage}
                   onChange={(e) => setEditWelcomeMessage(e.target.value)}
-                  placeholder="Ce message s'affichera à chaque ouverture du cockpit publié..."
+                  placeholder={t('modal.welcomeMessagePlaceholder')}
                   rows={4}
                   className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 resize-none"
                 />
                 <p className="mt-2 text-xs text-slate-500">
-                  Laissez vide pour supprimer le message d'accueil.
+                  {t('modal.leaveEmptyToRemove')}
                 </p>
               </div>
               <div className="flex gap-3 pt-2">
@@ -2017,7 +2017,7 @@ export default function HomePage() {
                   onClick={() => { setShowEditWelcomeModal(null); setEditWelcomeMessage(''); }}
                   className="flex-1 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl transition-colors"
                 >
-                  Annuler
+                  {t('modal.cancel')}
                 </button>
                 <button
                   onClick={async () => {
@@ -2028,7 +2028,7 @@ export default function HomePage() {
                   className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   <MuiIcon name="Save" size={16} />
-                  Enregistrer
+                  {t('modal.save')}
                 </button>
               </div>
             </div>
@@ -2043,7 +2043,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <MuiIcon name="Person" size={20} className="text-green-400" />
-                Modifier mon nom
+                {t('modal.changeMyName')}
               </h3>
               <button
                 onClick={() => { setShowChangeNameModal(false); clearError(); }}
@@ -2059,13 +2059,13 @@ export default function HomePage() {
                 </div>
               )}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Nouveau nom</label>
+                <label className="block text-sm text-slate-400 mb-2">{t('modal.newName')}</label>
                 <input
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-green-500"
-                  placeholder="Entrez votre nom"
+                  placeholder={t('modal.enterYourName')}
                   autoFocus
                 />
               </div>
@@ -2075,7 +2075,7 @@ export default function HomePage() {
                 onClick={() => { setShowChangeNameModal(false); clearError(); }}
                 className="flex-1 px-4 py-3 text-slate-400 hover:text-white border border-slate-600/50 rounded-xl transition-colors"
               >
-                Annuler
+                {t('modal.cancel')}
               </button>
               <button
                 onClick={async () => {
@@ -2090,7 +2090,7 @@ export default function HomePage() {
                 disabled={authLoading || editName.trim().length < 2}
                 className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-colors disabled:opacity-50"
               >
-                {authLoading ? 'Enregistrement...' : 'Enregistrer'}
+                {authLoading ? t('modal.saving') : t('modal.save')}
               </button>
             </div>
           </div>
@@ -2104,7 +2104,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <MuiIcon name="Email" size={20} className="text-purple-400" />
-                Modifier mon email
+                {t('modal.changeMyEmail')}
               </h3>
               <button
                 onClick={() => { setShowChangeEmailModal(false); clearError(); }}
@@ -2120,13 +2120,13 @@ export default function HomePage() {
                 </div>
               )}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Nouvel email</label>
+                <label className="block text-sm text-slate-400 mb-2">{t('modal.newEmail')}</label>
                 <input
                   type="email"
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
-                  placeholder="Entrez votre email"
+                  placeholder={t('modal.enterYourEmail')}
                   autoFocus
                 />
               </div>
@@ -2136,7 +2136,7 @@ export default function HomePage() {
                 onClick={() => { setShowChangeEmailModal(false); clearError(); }}
                 className="flex-1 px-4 py-3 text-slate-400 hover:text-white border border-slate-600/50 rounded-xl transition-colors"
               >
-                Annuler
+                {t('modal.cancel')}
               </button>
               <button
                 onClick={async () => {
@@ -2151,7 +2151,7 @@ export default function HomePage() {
                 disabled={authLoading || !editEmail.includes('@')}
                 className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-colors disabled:opacity-50"
               >
-                {authLoading ? 'Enregistrement...' : 'Enregistrer'}
+                {authLoading ? t('modal.saving') : t('modal.save')}
               </button>
             </div>
           </div>
@@ -2165,7 +2165,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <MuiIcon name="VpnKey" size={20} className="text-blue-400" />
-                Changer le mot de passe
+                {t('modal.changePassword')}
               </h3>
               <button
                 onClick={() => {
@@ -2189,36 +2189,36 @@ export default function HomePage() {
               )}
 
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Ancien mot de passe</label>
+                <label className="block text-sm text-slate-400 mb-2">{t('modal.oldPassword')}</label>
                 <input
                   type="password"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                  placeholder="Entrez votre ancien mot de passe"
+                  placeholder={t('modal.enterOldPassword')}
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Nouveau mot de passe</label>
+                <label className="block text-sm text-slate-400 mb-2">{t('modal.newPassword')}</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                  placeholder="Entrez votre nouveau mot de passe"
+                  placeholder={t('modal.enterNewPassword')}
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Confirmer le nouveau mot de passe</label>
+                <label className="block text-sm text-slate-400 mb-2">{t('modal.confirmNewPassword')}</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                  placeholder="Confirmez votre nouveau mot de passe"
+                  placeholder={t('modal.confirmNewPassword')}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       handleChangePassword();
@@ -2229,7 +2229,7 @@ export default function HomePage() {
 
               {newPassword && confirmPassword && newPassword !== confirmPassword && (
                 <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-                  <p className="text-sm text-amber-400">Les mots de passe ne correspondent pas</p>
+                  <p className="text-sm text-amber-400">{t('modal.passwordsNotMatch')}</p>
                 </div>
               )}
             </div>
@@ -2246,7 +2246,7 @@ export default function HomePage() {
                 className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
                 disabled={authLoading}
               >
-                Annuler
+                {t('modal.cancel')}
               </button>
               <button
                 onClick={handleChangePassword}
@@ -2254,7 +2254,7 @@ export default function HomePage() {
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {authLoading && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
-                Changer
+                {t('modal.change')}
               </button>
             </div>
           </div>
