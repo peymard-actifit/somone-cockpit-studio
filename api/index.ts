@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.20.0';
+const APP_VERSION = '16.20.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3932,6 +3932,13 @@ INSTRUCTIONS:
         originals: cockpit.data.originals,
         // IMPORTANT: Préserver le dossier parent
         folderId: cockpit.data.folderId,
+        // IMPORTANT: Préserver les aides contextuelles locales (exportées avec la maquette)
+        contextualHelps: cockpit.data.contextualHelps || [],
+        // IMPORTANT: Préserver la préférence d'aide au survol
+        showHelpOnHover: cockpit.data.showHelpOnHover,
+        // IMPORTANT: Préserver les statistiques de vue
+        viewCount: cockpit.data.viewCount,
+        lastViewedAt: cockpit.data.lastViewedAt,
       };
       cockpit.updatedAt = now;
 
