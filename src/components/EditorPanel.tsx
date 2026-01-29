@@ -12,6 +12,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import LinkElementModal from './LinkElementModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Fonction pour compresser une image (évite les erreurs 413 Payload Too Large de Vercel)
 // IMPORTANT: Vercel limite les requêtes à 4.5MB, donc on compresse agressivement
@@ -299,6 +300,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   } = useCockpitStore();
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
+  const { t } = useLanguage();
   
   // Vérifier si l'utilisateur est de type client (fonctionnalités restreintes)
   const isClientUser = user?.userType === 'client';
@@ -854,9 +856,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 data-help-key="editor-bouton-retour"
               >
                 <div className="rotate-180"><MuiIcon name="ChevronRightIcon" size={16} /></div>
-                Retour
+                {t('editor.back')}
               </button>
-              <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition sous-élément</h3>
+              <h3 className="text-lg font-semibold text-[#1E3A5F]">{t('editor.editSubElement')}</h3>
               <p className="text-sm text-[#64748B]">{selectedSubElement.name}</p>
             </div>
             <button
@@ -871,7 +873,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 }
               }}
               className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Supprimer ce sous-élément"
+              title={t('editor.deleteThisSubElement')}
             >
               <MuiIcon name="Delete" size={18} />
             </button>
@@ -880,7 +882,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Prévisualisation du sous-élément */}
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
-          <h4 className="text-sm font-medium text-[#64748B] mb-3">Aperçu</h4>
+          <h4 className="text-sm font-medium text-[#64748B] mb-3">{t('editor.preview')}</h4>
           <div className="flex justify-center">
             <SubElementTile
               subElement={selectedSubElement}
@@ -897,7 +899,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Propriétés du sous-élément */}
         <Section
-          title="Propriétés"
+          title={t('editor.properties')}
           iconName="SettingsIcon"
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
@@ -1131,7 +1133,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Statut / Couleur du sous-élément */}
         <Section
-          title="Statut (couleur)"
+          title={t('editor.statusColor')}
           iconName="Palette"
           isOpen={subElementActiveSection === 'status'}
           onToggle={() => toggleSection('status')}
@@ -1323,7 +1325,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]" data-help-key="editor-element-header">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition élément</h3>
+              <h3 className="text-lg font-semibold text-[#1E3A5F]">{t('editor.editElement')}</h3>
               <p className="text-sm text-[#64748B]">{element.name}</p>
             </div>
             <div className="flex items-center gap-1">
@@ -1350,7 +1352,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                   }
                 }}
                 className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Supprimer cet élément"
+                title={t('editor.deleteThisElement')}
               >
                 <MuiIcon name="Delete" size={18} />
               </button>
@@ -1360,7 +1362,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Prévisualisation de l'élément */}
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]">
-          <h4 className="text-sm font-medium text-[#64748B] mb-3">Aperçu</h4>
+          <h4 className="text-sm font-medium text-[#64748B] mb-3">{t('editor.preview')}</h4>
           <div className="flex justify-center">
             <ElementTile
               element={element}
@@ -1372,7 +1374,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Propriétés */}
         <Section
-          title="Propriétés"
+          title={t('editor.properties')}
           iconName="SettingsIcon"
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
@@ -1955,7 +1957,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Couleur / Statut */}
         <Section
-          title="Statut (couleur)"
+          title={t('editor.statusColor')}
           iconName="Palette"
           isOpen={activeSection === 'status'}
           onToggle={() => toggleSection('status')}
@@ -2026,7 +2028,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Édition des sous-catégories */}
         {element.subCategories && element.subCategories.length > 0 && (
           <Section
-            title={`Sous-catégories (${element.subCategories.length})`}
+            title={`${t('editor.subCategories')} (${element.subCategories.length})`}
             iconName="FolderOpen"
             isOpen={activeSection === 'subcategories'}
             onToggle={() => toggleSection('subcategories')}
@@ -2223,7 +2225,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Liste des sous-éléments à éditer */}
         {allSubElements.length > 0 && (
           <Section
-            title={`Sous-éléments (${allSubElements.length})`}
+            title={`${t('editor.subElements')} (${allSubElements.length})`}
             iconName="Label"
             isOpen={activeSection === 'subelements'}
             onToggle={() => toggleSection('subelements')}
@@ -2775,7 +2777,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         <div className="p-4 border-b border-[#E2E8F0] bg-[#F5F7FA]" data-help-key="editor-domaine-header">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-[#1E3A5F]">Édition domaine</h3>
+              <h3 className="text-lg font-semibold text-[#1E3A5F]">{t('editor.editDomain')}</h3>
               <p className="text-sm text-[#64748B]">{domain.name}</p>
             </div>
             <div className="flex items-center gap-1">
@@ -2843,7 +2845,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     }
                   }}
                   className="p-2 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Supprimer ce domaine"
+                  title={t('editor.deleteThisDomain')}
                 >
                   <MuiIcon name="Delete" size={18} />
                 </button>
@@ -2882,7 +2884,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
 
         {/* Propriétés du domaine */}
         <Section
-          title="Propriétés"
+          title={t('editor.properties')}
           iconName="SettingsIcon"
           isOpen={activeSection === 'properties'}
           onToggle={() => toggleSection('properties')}
@@ -3365,7 +3367,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
         {/* Édition des catégories - Visible pour map, background et standard */}
         {domain.templateType !== 'hours-tracking' && domain.templateType !== 'alerts' && domain.templateType !== 'stats' && (
           <Section
-            title={`Catégories (${domain.categories?.length || 0})`}
+            title={`${t('editor.categories')} (${domain.categories?.length || 0})`}
             iconName="FolderOpen"
             isOpen={activeSection === 'categories'}
             onToggle={() => toggleSection('categories')}
@@ -4907,7 +4909,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   return (
     <div className="fixed right-0 top-[105px] bottom-0 w-80 bg-white border-l border-[#E2E8F0] flex items-center justify-center shadow-lg">
       <p className="text-[#94A3B8] text-center px-8">
-        Sélectionnez un domaine ou un élément pour l'éditer
+        {t('editor.selectToEdit')}
       </p>
     </div>
   );

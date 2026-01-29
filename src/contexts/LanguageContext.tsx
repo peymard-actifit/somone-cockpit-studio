@@ -150,6 +150,77 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'domain.categoryName': { FR: 'Nom de la catégorie', EN: 'Category name' },
   'domain.newCategory': { FR: 'Nouvelle catégorie', EN: 'New category' },
   
+  // === Editor Panel - Menus d'édition ===
+  'editor.editDomain': { FR: 'Édition domaine', EN: 'Edit domain' },
+  'editor.editElement': { FR: 'Édition élément', EN: 'Edit element' },
+  'editor.editSubElement': { FR: 'Édition sous-élément', EN: 'Edit sub-element' },
+  'editor.back': { FR: 'Retour', EN: 'Back' },
+  'editor.preview': { FR: 'Aperçu', EN: 'Preview' },
+  'editor.properties': { FR: 'Propriétés', EN: 'Properties' },
+  'editor.statusColor': { FR: 'Statut (couleur)', EN: 'Status (color)' },
+  'editor.deleteIcon': { FR: 'Supprimer l\'icône', EN: 'Delete icon' },
+  'editor.deleteImage': { FR: 'Supprimer l\'image', EN: 'Delete image' },
+  'editor.standard': { FR: 'Standard', EN: 'Standard' },
+  'editor.categoriesAndElements': { FR: 'Catégories et éléments', EN: 'Categories and elements' },
+  
+  // Domain actions
+  'editor.copyElementsToAnotherDomain': { FR: 'Copier les éléments vers un autre domaine', EN: 'Copy elements to another domain' },
+  'editor.deleteAllElements': { FR: 'Supprimer tous les éléments', EN: 'Delete all elements' },
+  'editor.deleteAllElementsConfirm': { FR: 'Voulez-vous supprimer les {count} élément(s) du domaine "{name}" ?\n\nCette action supprimera également toutes les sous-catégories et sous-éléments associés.\n\n⚠️ Cette action est irréversible.', EN: 'Do you want to delete the {count} element(s) from domain "{name}"?\n\nThis action will also delete all associated sub-categories and sub-elements.\n\n⚠️ This action is irreversible.' },
+  'editor.deleteAllElementsFromDomain': { FR: 'Supprimer tous les éléments du domaine', EN: 'Delete all elements from domain' },
+  'editor.duplicateDomain': { FR: 'Dupliquer ce domaine', EN: 'Duplicate this domain' },
+  'editor.deleteDomain': { FR: 'Supprimer le domaine', EN: 'Delete domain' },
+  'editor.deleteDomainConfirm': { FR: 'Voulez-vous supprimer le domaine "{name}" et tout son contenu ?', EN: 'Do you want to delete the domain "{name}" and all its content?' },
+  'editor.deleteThisDomain': { FR: 'Supprimer ce domaine', EN: 'Delete this domain' },
+  'editor.categories': { FR: 'Catégories', EN: 'Categories' },
+  'editor.addCategory': { FR: 'Ajouter une catégorie', EN: 'Add a category' },
+  'editor.deleteCategoryConfirm': { FR: 'Voulez-vous supprimer la catégorie "{name}" ?', EN: 'Do you want to delete the category "{name}"?' },
+  
+  // Element actions
+  'editor.copySubCategoriesToAnotherElement': { FR: 'Copier les sous-catégories vers un autre élément', EN: 'Copy sub-categories to another element' },
+  'editor.deleteElement': { FR: 'Supprimer l\'élément', EN: 'Delete element' },
+  'editor.deleteElementConfirm': { FR: 'Voulez-vous supprimer l\'élément "{name}" et tous ses sous-éléments ?', EN: 'Do you want to delete the element "{name}" and all its sub-elements?' },
+  'editor.deleteThisElement': { FR: 'Supprimer cet élément', EN: 'Delete this element' },
+  'editor.unlinkElement': { FR: 'Délier cet élément', EN: 'Unlink this element' },
+  'editor.linkToAnotherElement': { FR: 'Lier à un autre élément...', EN: 'Link to another element...' },
+  'editor.unlinkFromAll': { FR: 'Délier cet élément de tous', EN: 'Unlink this element from all' },
+  'editor.elementNotLinked': { FR: 'Cet élément n\'est pas lié.', EN: 'This element is not linked.' },
+  'editor.moveElementToCategory': { FR: 'Déplacer l\'élément vers une autre catégorie', EN: 'Move element to another category' },
+  'editor.createNewCategoryAndMove': { FR: 'Créer une nouvelle catégorie et y déplacer l\'élément', EN: 'Create a new category and move the element' },
+  'editor.moveToCategory': { FR: 'Déplacez l\'élément vers une autre catégorie ou créez-en une nouvelle', EN: 'Move the element to another category or create a new one' },
+  'editor.createNewTemplate': { FR: 'Créer un nouveau template', EN: 'Create a new template' },
+  'editor.subCategories': { FR: 'Sous-catégories', EN: 'Sub-categories' },
+  'editor.deleteSubCategoryConfirm': { FR: 'Voulez-vous supprimer la sous-catégorie "{name}" ?', EN: 'Do you want to delete the sub-category "{name}"?' },
+  'editor.subElements': { FR: 'Sous-éléments', EN: 'Sub-elements' },
+  
+  // Sub-element actions  
+  'editor.deleteSubElement': { FR: 'Supprimer le sous-élément', EN: 'Delete sub-element' },
+  'editor.deleteSubElementConfirm': { FR: 'Voulez-vous supprimer le sous-élément "{name}" ?', EN: 'Do you want to delete the sub-element "{name}"?' },
+  'editor.deleteThisSubElement': { FR: 'Supprimer ce sous-élément', EN: 'Delete this sub-element' },
+  'editor.unlinkSubElement': { FR: 'Délier ce sous-élément', EN: 'Unlink this sub-element' },
+  'editor.linkToAnotherSubElement': { FR: 'Lier à un autre sous-élément...', EN: 'Link to another sub-element...' },
+  'editor.unlinkSubElementFromAll': { FR: 'Délier ce sous-élément de tous', EN: 'Unlink this sub-element from all' },
+  'editor.subElementNotLinked': { FR: 'Ce sous-élément n\'est pas lié.', EN: 'This sub-element is not linked.' },
+  'editor.deleteAlert': { FR: 'Supprimer l\'alerte', EN: 'Delete alert' },
+  
+  // Copy modals
+  'editor.copyElements': { FR: 'Copier les éléments', EN: 'Copy elements' },
+  'editor.copyElementsDescription': { FR: 'Cette action copie toutes les <strong>catégories</strong> et tous les <strong>éléments</strong> du domaine actuel vers le domaine cible. Chaque élément copié sera <strong>lié</strong> à son élément d\'origine (synchronisation des statuts et valeurs).', EN: 'This action copies all <strong>categories</strong> and <strong>elements</strong> from the current domain to the target domain. Each copied element will be <strong>linked</strong> to its original element (status and value synchronization).' },
+  'editor.targetDomain': { FR: 'Domaine cible', EN: 'Target domain' },
+  'editor.noOtherDomainAvailable': { FR: 'Aucun autre domaine de type Background ou Map disponible.', EN: 'No other Background or Map type domain available.' },
+  'editor.createTargetDomainFirst': { FR: 'Créez d\'abord un domaine cible de type Background ou Map.', EN: 'First create a target domain of type Background or Map.' },
+  'editor.categoriesToCopy': { FR: 'Catégories et éléments à copier', EN: 'Categories and elements to copy' },
+  'editor.noCategoryInDomain': { FR: 'Aucune catégorie dans ce domaine', EN: 'No category in this domain' },
+  'editor.copySubCategories': { FR: 'Copier les sous-catégories', EN: 'Copy sub-categories' },
+  'editor.copySubCategoriesDescription': { FR: 'Cette action copie toutes les sous-catégories et sous-éléments de cet élément vers l\'élément cible. Chaque sous-élément copié sera <strong>lié</strong> à son sous-élément d\'origine (synchronisation des statuts et valeurs).', EN: 'This action copies all sub-categories and sub-elements from this element to the target element. Each copied sub-element will be <strong>linked</strong> to its original sub-element (status and value synchronization).' },
+  'editor.targetElement': { FR: 'Élément cible', EN: 'Target element' },
+  'editor.noOtherElementAvailable': { FR: 'Aucun autre élément disponible', EN: 'No other element available' },
+  'editor.subCategoriesToCopy': { FR: 'Sous-catégories à copier', EN: 'Sub-categories to copy' },
+  'editor.noSubCategoryInElement': { FR: 'Aucune sous-catégorie dans cet élément', EN: 'No sub-category in this element' },
+  
+  // Default message
+  'editor.selectToEdit': { FR: 'Sélectionnez un domaine ou un élément pour l\'éditer', EN: 'Select a domain or element to edit' },
+  
   // === Panneau d'édition ===
   'editor.cockpit': { FR: 'Cockpit', EN: 'Cockpit' },
   'editor.domain': { FR: 'Domaine', EN: 'Domain' },
