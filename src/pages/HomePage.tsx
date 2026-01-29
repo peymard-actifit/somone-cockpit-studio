@@ -151,11 +151,13 @@ function FolderCard({
 function DroppableBreadcrumb({ 
   isActive, 
   onNavigate,
-  isDragging 
+  isDragging,
+  t
 }: { 
   isActive: boolean; 
   onNavigate: () => void;
   isDragging: boolean;
+  t: (key: string) => string;
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: 'breadcrumb-root',
@@ -176,12 +178,12 @@ function DroppableBreadcrumb({
             : ''
       }`}
       onClick={() => isActive && onNavigate()}
-      title={isDragging && isActive ? 'Déposer ici pour remettre à la racine' : undefined}
+      title={isDragging && isActive ? t('home.dropToRoot') : undefined}
     >
-      Mes maquettes
+      {t('home.myMockups')}
       {isDragging && isActive && (
         <span className="ml-2 text-sm font-normal text-blue-600">
-          ← Déposer ici
+          ← {t('home.dropHere')}
         </span>
       )}
     </h2>
@@ -1015,7 +1017,7 @@ export default function HomePage() {
               ) : (
                 <h1 className="text-xl font-bold text-white">SOMONE Cockpit Studio</h1>
               )}
-              <p className="text-xs text-white/80">Studio de création de maquettes · {VERSION_DISPLAY}</p>
+              <p className="text-xs text-white/80">{t('home.subtitle')} · {VERSION_DISPLAY}</p>
             </div>
           </div>
 
@@ -1059,19 +1061,19 @@ export default function HomePage() {
                   <div className="fixed inset-0" onClick={() => setShowUserMenu(false)} />
                   <div className="absolute right-0 mt-2 w-64 bg-cockpit-bg-card border-2 border-slate-600 rounded-xl shadow-2xl overflow-hidden z-50">
                     <div className="p-4 border-b border-slate-700/50 bg-slate-800/50">
-                      <p className="text-xs text-slate-300 mb-1 font-medium">Connecté en tant que</p>
+                      <p className="text-xs text-slate-300 mb-1 font-medium">{t('user.connectedAs')}</p>
                       <p className="text-white font-bold text-lg">{user?.username}</p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {user?.isAdmin && (
                           <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500/30 text-amber-300 text-xs rounded-full font-semibold border border-amber-500/50">
                             <MuiIcon name="Shield" size={14} />
-                            Administrateur
+                            {t('user.admin')}
                           </span>
                         )}
                         {isClientUser && (
                           <span className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-500/30 text-cyan-300 text-xs rounded-full font-semibold border border-cyan-500/50">
                             <MuiIcon name="Person" size={14} />
-                            Client
+                            {t('user.client')}
                           </span>
                         )}
                       </div>
@@ -1089,7 +1091,7 @@ export default function HomePage() {
                             className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-green-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-green-500/50 mb-2"
                           >
                             <MuiIcon name="Person" size={18} className="text-green-400" />
-                            <span className="text-base">Modifier mon nom</span>
+                            <span className="text-base">{t('user.changeName')}</span>
                           </button>
                           <button
                             onClick={() => {
@@ -1100,7 +1102,7 @@ export default function HomePage() {
                             className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-purple-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-purple-500/50 mb-2"
                           >
                             <MuiIcon name="Email" size={18} className="text-purple-400" />
-                            <span className="text-base">Modifier mon email</span>
+                            <span className="text-base">{t('user.changeEmail')}</span>
                           </button>
                         </>
                       )}
@@ -1153,7 +1155,7 @@ export default function HomePage() {
                           className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-amber-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-amber-500/50 mb-2"
                         >
                           <MuiIcon name="Settings" size={18} className="text-amber-400" />
-                          <span className="text-base">{user?.isAdmin ? 'Quitter le mode admin' : 'Passer administrateur'}</span>
+                          <span className="text-base">{user?.isAdmin ? t('user.exitAdmin') : t('user.adminMode')}</span>
                         </button>
                       )}
                       <hr className="my-3 border-slate-700" />
@@ -1162,7 +1164,7 @@ export default function HomePage() {
                         className="w-full flex items-center gap-3 px-4 py-3 text-white font-semibold hover:bg-red-600/30 rounded-lg transition-colors text-left border border-transparent hover:border-red-500/50"
                       >
                         <MuiIcon name="Logout" size={18} className="text-red-400" />
-                        <span className="text-base">Déconnexion</span>
+                        <span className="text-base">{t('user.logout')}</span>
                       </button>
                     </div>
                   </div>
@@ -1194,6 +1196,7 @@ export default function HomePage() {
                   setViewingSharedByUserId(null);
                 }}
                 isDragging={!!draggedCockpitId}
+                t={t}
               />
               {/* Mode admin : visualisation d'un autre compte */}
               {viewingUserId && viewingUserName && (
@@ -1260,16 +1263,16 @@ export default function HomePage() {
             </div>
             <p className="text-slate-400">
               {viewingSharedByUserId && currentFolderId
-                ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} partagée${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
+                ? `${filteredCockpits.length} ${t('home.mockupsSharedInFolder')}`
                 : viewingSharedByUserId
-                  ? `${sharedUserFolders.length > 0 ? `${sharedUserFolders.length} répertoire${sharedUserFolders.length !== 1 ? 's' : ''} • ` : ''}${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} partagée${filteredCockpits.length !== 1 ? 's' : ''} avec vous`
+                  ? `${sharedUserFolders.length > 0 ? `${sharedUserFolders.length} ${t('home.foldersCount')} • ` : ''}${filteredCockpits.length} ${t('home.mockupsSharedWithYou')}`
                   : viewingUserId && currentFolderId
-                    ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire (mode admin)`
+                    ? `${filteredCockpits.length} ${t('home.mockupsInFolderAdmin')}`
                     : viewingUserId 
-                      ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} à la racine de ce compte (mode admin)`
+                      ? `${filteredCockpits.length} ${t('home.mockupsRootAdmin')}`
                       : currentFolderId 
-                        ? `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} dans ce répertoire`
-                        : `${filteredCockpits.length} maquette${filteredCockpits.length !== 1 ? 's' : ''} disponible${filteredCockpits.length !== 1 ? 's' : ''}`
+                        ? `${filteredCockpits.length} ${t('home.mockupsInFolder')}`
+                        : `${filteredCockpits.length} ${t('home.mockupsAvailable')}`
               }
             </p>
           </div>
@@ -1460,14 +1463,14 @@ export default function HomePage() {
             <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MuiIcon name="Dashboard" size={40} className="text-slate-600" />
             </div>
-            <h3 className="text-xl font-medium text-white mb-2">Aucune maquette</h3>
-            <p className="text-slate-400 mb-6">Créez votre première maquette de cockpit</p>
+            <h3 className="text-xl font-medium text-white mb-2">{t('home.noMockups')}</h3>
+            <p className="text-slate-400 mb-6">{t('home.createFirst')}</p>
             <button
               onClick={() => setShowNewModal(true)}
               className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-colors"
             >
               <MuiIcon name="Add" size={20} />
-              Créer une maquette
+              {t('home.createMockup')}
             </button>
           </div>
         )}
@@ -1478,14 +1481,14 @@ export default function HomePage() {
             <div className="w-20 h-20 bg-purple-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MuiIcon name="AccountCircle" size={40} className="text-purple-400" />
             </div>
-            <h3 className="text-xl font-medium text-white mb-2">Aucune maquette</h3>
-            <p className="text-slate-400 mb-6">Ce compte n'a pas encore de maquettes ni de répertoires</p>
+            <h3 className="text-xl font-medium text-white mb-2">{t('home.noMockups')}</h3>
+            <p className="text-slate-400 mb-6">{t('home.noMockupsAccount')}</p>
             <button
               onClick={() => setViewingUserId(null)}
               className="inline-flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-xl transition-colors"
             >
               <MuiIcon name="ArrowBack" size={20} />
-              Retourner à mes maquettes
+              {t('home.returnToMyMockups')}
             </button>
           </div>
         )}
@@ -1597,7 +1600,7 @@ export default function HomePage() {
                           className="mt-1 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-purple-200 hover:bg-purple-300 text-purple-700 rounded-lg transition-colors text-xs font-medium"
                         >
                           <MuiIcon name="FolderOpen" size={14} />
-                          Voir les maquettes
+                          {t('user.viewMockups')}
                         </button>
                       </div>
                     </div>
@@ -2256,7 +2259,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <MuiIcon name="Settings" size={20} className="text-blue-400" />
-                {user?.isAdmin ? 'Quitter le mode administrateur' : 'Activer le mode administrateur'}
+                {user?.isAdmin ? t('user.exitAdminMode') : t('user.activateAdminMode')}
               </h3>
               <button
                 onClick={() => {
@@ -2280,21 +2283,19 @@ export default function HomePage() {
               <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
                 <MuiIcon name="Info" size={20} className="text-amber-400" />
                 <p className="text-sm text-amber-300">
-                  {user?.isAdmin
-                    ? 'Vous allez quitter le mode administrateur. Vous perdrez les privilèges d\'administration.'
-                    : 'Entrez le code administrateur pour activer les privilèges d\'administration.'}
+                  {user?.isAdmin ? t('user.exitAdminInfo') : t('user.enterAdminCode')}
                 </p>
               </div>
 
               {!user?.isAdmin && (
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">Code administrateur</label>
+                  <label className="block text-sm text-slate-400 mb-2">{t('user.adminCode')}</label>
                   <input
                     type="password"
                     value={adminCode}
                     onChange={(e) => setAdminCode(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    placeholder="Entrez le code administrateur"
+                    placeholder={t('user.adminCodePlaceholder')}
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -2316,7 +2317,7 @@ export default function HomePage() {
                 className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
                 disabled={authLoading}
               >
-                Annuler
+                {t('modal.cancel')}
               </button>
               <button
                 onClick={handleToggleAdmin}
@@ -2324,7 +2325,7 @@ export default function HomePage() {
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {authLoading && <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>}
-                {user?.isAdmin ? 'Quitter le mode admin' : 'Activer'}
+                {user?.isAdmin ? t('user.exitAdmin') : t('user.activate')}
               </button>
             </div>
           </div>
