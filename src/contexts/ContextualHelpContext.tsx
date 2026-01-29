@@ -298,9 +298,9 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       if (response.ok) {
         const data = await response.json();
         setHelpContent(data.help);
-        // Mettre à jour le cache
+        // Mettre à jour le cache avec les deux versions
         const cacheKey = getCacheKey(elementKey, cockpitId);
-        helpCacheRef.current.set(cacheKey, content);
+        helpCacheRef.current.set(cacheKey, { content, contentEN });
         return true;
       }
     } catch (error) {
