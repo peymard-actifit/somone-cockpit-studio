@@ -22,7 +22,7 @@ function PublicCockpitContent() {
   const [showMindMap, setShowMindMap] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const { trackEvent } = useTracking();
-  const { language, t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
     const fetchPublicCockpit = async () => {
@@ -261,6 +261,30 @@ function PublicCockpitContent() {
                 <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
               )}
               
+              {/* Sélecteur de langue */}
+              <div className="flex items-center gap-1 bg-[#2D4A63] rounded-lg border border-[#4A6D8C] p-1">
+                <button
+                  onClick={() => setLanguage('FR')}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                    language === 'FR'
+                      ? 'bg-cyan-500 text-white'
+                      : 'text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  FR
+                </button>
+                <button
+                  onClick={() => setLanguage('EN')}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                    language === 'EN'
+                      ? 'bg-cyan-500 text-white'
+                      : 'text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  EN
+                </button>
+              </div>
+              
               {/* Badge "A jour" */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2D4A63] rounded-lg border border-[#4A6D8C]">
                 <span className="text-sm text-green-400">{t('public.upToDate')}</span>
@@ -317,9 +341,33 @@ function PublicCockpitContent() {
               <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
             )}
 
+            {/* Sélecteur de langue */}
+            <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg border border-slate-600/50 p-1">
+              <button
+                onClick={() => setLanguage('FR')}
+                className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                  language === 'FR'
+                    ? 'bg-cyan-500 text-white'
+                    : 'text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                FR
+              </button>
+              <button
+                onClick={() => setLanguage('EN')}
+                className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                  language === 'EN'
+                    ? 'bg-cyan-500 text-white'
+                    : 'text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+
             <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg">
               <MuiIcon name="Visibility" size={16} className="text-blue-400" />
-              <span className="text-sm text-blue-400">Lecture seule</span>
+              <span className="text-sm text-blue-400">{t('public.readOnly')}</span>
             </div>
           </div>
         </div>

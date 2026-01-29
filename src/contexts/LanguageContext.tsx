@@ -131,6 +131,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'public.visitor': { FR: 'Visiteur', EN: 'Visitor' },
   'public.consultationMode': { FR: 'Mode consultation', EN: 'Consultation mode' },
   'public.published': { FR: 'Version publiée', EN: 'Published version' },
+  'public.readOnly': { FR: 'Lecture seule', EN: 'Read only' },
   
   // === Types d'éléments (pour les modifications récentes) ===
   'type.domain': { FR: 'Domaine', EN: 'Domain' },
