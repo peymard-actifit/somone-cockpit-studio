@@ -4,6 +4,7 @@ import { useCockpitStore, RecentChange } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 import { useContextualHelp } from '../contexts/ContextualHelpContext';
 import { useTutorial } from '../contexts/TutorialContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import Navbar from '../components/Navbar';
 import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
@@ -19,6 +20,7 @@ import { VERSION_DISPLAY } from '../config/version';
 function RecentChangesMarquee({ changes }: { changes: RecentChange[] }) {
   const [displayedChanges, setDisplayedChanges] = useState<RecentChange[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   // Ajouter les nouvelles modifications avec animation
   useEffect(() => {
@@ -51,12 +53,12 @@ function RecentChangesMarquee({ changes }: { changes: RecentChange[] }) {
 
   const getTypeLabel = (type: RecentChange['type']) => {
     switch (type) {
-      case 'domain': return 'Domaine';
-      case 'category': return 'Cat.';
-      case 'element': return 'Élém.';
-      case 'subCategory': return 'Sous-cat.';
-      case 'subElement': return 'Sous-élém.';
-      case 'mapElement': return 'Point';
+      case 'domain': return t('type.domain');
+      case 'category': return t('type.category');
+      case 'element': return t('type.element');
+      case 'subCategory': return t('type.subCategory');
+      case 'subElement': return t('type.subElement');
+      case 'mapElement': return t('type.mapElement');
       default: return '';
     }
   };
@@ -97,6 +99,7 @@ export default function StudioPage() {
   const { cockpitId } = useParams<{ cockpitId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { t } = useLanguage();
   const { enableGlobalContextMenu, disableGlobalContextMenu, enableHoverHelp, disableHoverHelp } = useContextualHelp();
   const { startTutorial, isPlaying: isTutorialPlaying, progress: tutorialProgress } = useTutorial();
   const {
@@ -272,10 +275,10 @@ export default function StudioPage() {
             <button
               onClick={handleReturnToMindMap}
               className="flex items-center gap-2 px-3 py-2 text-cyan-300 hover:text-white hover:bg-cyan-600/50 rounded-lg transition-colors"
-              title="Retour à la vue éclatée"
+              title={t('studio.backToExplodedView')}
             >
               <MuiIcon name="ArrowLeft" size={20} />
-              <span className="text-sm font-medium">Vue éclatée</span>
+              <span className="text-sm font-medium">{t('studio.explodedView')}</span>
             </button>
           ) : (
             <button
@@ -289,7 +292,7 @@ export default function StudioPage() {
           <div>
             <h1 className="text-lg font-semibold text-white">{currentCockpit.name}</h1>
             <p className="text-xs text-white/60">
-              Par {user?.username} · Modifié il y a quelques secondes · {VERSION_DISPLAY}
+              {t('studio.by')} {user?.username} · {t('studio.modifiedAgo')} · {VERSION_DISPLAY}
             </p>
           </div>
 
@@ -300,7 +303,7 @@ export default function StudioPage() {
                 : 'bg-white/10 text-white/60'
               }`}>
               <MuiIcon name="Save" size={12} />
-              {isSaving ? 'Sauvegardé' : 'Auto-save'}
+              {isSaving ? t('studio.saved') : t('studio.autoSave')}
             </div>
 
             {/* Fil des modifications récentes */}
@@ -314,11 +317,11 @@ export default function StudioPage() {
             <button
               onClick={startTutorial}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600/80 hover:bg-emerald-500 text-white rounded-lg transition-colors"
-              title={user?.isAdmin ? "Tester le tutoriel (mode admin)" : "Lancer le tutoriel"}
+              title={user?.isAdmin ? t('studio.testTutorial') : t('studio.startTutorial')}
             >
               <MuiIcon name="School" size={16} />
               <span className="text-sm font-medium">
-                {tutorialProgress?.completed ? 'Revoir' : 'Tutoriel'}
+                {tutorialProgress?.completed ? t('studio.reviewTutorial') : t('studio.tutorial')}
               </span>
             </button>
           )}
@@ -327,20 +330,20 @@ export default function StudioPage() {
           <button
             onClick={() => setShowPresentation(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600/80 hover:bg-purple-500 text-white rounded-lg transition-colors"
-            title="Générateur de présentations automatisées"
+            title={t('studio.presentationGenerator')}
           >
             <MuiIcon name="Slideshow" size={16} />
-            <span className="text-sm font-medium">Présentation</span>
+            <span className="text-sm font-medium">{t('studio.presentation')}</span>
           </button>
 
           {/* Bouton Vue éclatée (Mind Map) */}
           <button
             onClick={() => setShowMindMap(true)}
             className="flex items-center gap-2 px-4 py-2 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-            title="Vue éclatée de la maquette"
+            title={t('studio.explodedViewTitle')}
           >
             <MuiIcon name="AccountTree" size={16} />
-            <span className="text-sm font-medium">Vue éclatée</span>
+            <span className="text-sm font-medium">{t('studio.explodedView')}</span>
           </button>
 
           {/* Bouton de traduction */}
@@ -359,13 +362,13 @@ export default function StudioPage() {
             ) : (
               <MuiIcon name="Download" size={16} />
             )}
-            Export Excel
+            {t('studio.exportExcel')}
           </button>
 
           <button
             onClick={() => setShowEditor(!showEditor)}
             className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title={showEditor ? 'Masquer le panneau' : 'Afficher le panneau'}
+            title={showEditor ? t('studio.hidePanel') : t('studio.showPanel')}
           >
             {showEditor ? (
               <MuiIcon name="MenuOpen" size={20} />

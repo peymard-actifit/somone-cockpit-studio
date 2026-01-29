@@ -6,6 +6,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, h
 import { CSS } from '@dnd-kit/utilities';
 import { getDomainWorstStatus, STATUS_COLORS } from '../types';
 import { useSyncState, offlineSync } from '../services/offlineSync';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Clés pour les préférences d'affichage des onglets
 const DOMAIN_TAB_COLOR_MODE_KEY = 'domainTabColorMode';
@@ -20,6 +21,7 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
   statusIcon: string; // Icône à afficher pour le mode 'icon'
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: domain.id });
+  const { t } = useLanguage();
 
   // Calculer le statut le plus critique pour ce domaine - protection pour les tableaux
   const { currentCockpit } = useCockpitStore();
@@ -117,7 +119,7 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
         {...listeners}
         className="opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={(e) => e.stopPropagation()}
-        title="Glisser pour réorganiser"
+        title={t('folder.dragToReorder')}
       >
         <MuiIcon
           name="DragIndicator"

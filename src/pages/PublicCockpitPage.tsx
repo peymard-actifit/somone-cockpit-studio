@@ -9,6 +9,7 @@ import PublicAIChat from '../components/PublicAIChat';
 import { VERSION_DISPLAY } from '../config/version';
 import { getDomainWorstStatus, STATUS_COLORS } from '../types';
 import { TrackingProvider, useTracking } from '../contexts/TrackingContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 function PublicCockpitContent() {
   const { publicId } = useParams();
@@ -21,6 +22,7 @@ function PublicCockpitContent() {
   const [showMindMap, setShowMindMap] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const { trackEvent } = useTracking();
+  const { language, t } = useLanguage();
 
   useEffect(() => {
     const fetchPublicCockpit = async () => {
@@ -248,10 +250,10 @@ function PublicCockpitContent() {
               <button
                 onClick={() => setShowMindMap(true)}
                 className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-                title="Vue éclatée de la maquette"
+                title={t('studio.explodedViewTitle')}
               >
                 <MuiIcon name="AccountTree" size={16} />
-                <span className="text-sm font-medium">Vue éclatée</span>
+                <span className="text-sm font-medium">{t('studio.explodedView')}</span>
               </button>
               
               {/* Assistant IA stylisé */}
@@ -261,7 +263,7 @@ function PublicCockpitContent() {
               
               {/* Badge "A jour" */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2D4A63] rounded-lg border border-[#4A6D8C]">
-                <span className="text-sm text-green-400">A jour</span>
+                <span className="text-sm text-green-400">{t('public.upToDate')}</span>
                 <MuiIcon name="Check" size={14} className="text-green-400" />
               </div>
               
@@ -271,9 +273,9 @@ function PublicCockpitContent() {
                   <MuiIcon name="Person" size={24} className="text-slate-400" />
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-white">Visiteur</p>
+                  <p className="text-sm font-medium text-white">{t('public.visitor')}</p>
                   <p className="text-xs text-slate-400">
-                    {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date().toLocaleTimeString(language === 'EN' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>
@@ -295,7 +297,7 @@ function PublicCockpitContent() {
             <div>
               <h1 className="text-xl font-bold text-white">{cockpit.name}</h1>
               <p className="text-xs text-slate-500">
-                Mode consultation {VERSION_DISPLAY}
+                {t('public.consultationMode')} {VERSION_DISPLAY}
               </p>
             </div>
           </div>
@@ -304,10 +306,10 @@ function PublicCockpitContent() {
             <button
               onClick={() => setShowMindMap(true)}
               className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-              title="Vue éclatée de la maquette"
+              title={t('studio.explodedViewTitle')}
             >
               <MuiIcon name="AccountTree" size={16} />
-              <span className="text-sm font-medium">Vue éclatée</span>
+              <span className="text-sm font-medium">{t('studio.explodedView')}</span>
             </button>
             
             {/* Assistant IA */}

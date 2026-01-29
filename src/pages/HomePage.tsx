@@ -25,6 +25,7 @@ function FolderCard({
   isUserFolder = true, // true = répertoire de l'utilisateur, false = répertoire d'un autre compte (admin)
   isDraggingCockpit = false, // true si une maquette est en cours de drag
   showActions = true, // Afficher les actions (renommer/supprimer)
+  t,
 }: {
   folder: Folder;
   onClick: () => void;
@@ -34,6 +35,7 @@ function FolderCard({
   isUserFolder?: boolean;
   isDraggingCockpit?: boolean;
   showActions?: boolean;
+  t: (key: string) => string;
 }) {
   const {
     attributes,
@@ -98,7 +100,7 @@ function FolderCard({
               {...listeners}
               onClick={(e) => e.stopPropagation()}
               className="p-1 bg-amber-100 hover:bg-amber-200 rounded cursor-grab active:cursor-grabbing transition-colors"
-              title="Glisser pour réorganiser"
+              title={t('folder.dragToReorder')}
             >
               <MuiIcon name="DragIndicator" size={12} className="text-amber-500" />
             </div>
@@ -111,7 +113,7 @@ function FolderCard({
         {/* Nombre de maquettes */}
         <div className={`flex items-center gap-1.5 text-[10px] mb-2 ${isUserFolder ? 'text-amber-600' : 'text-purple-600'}`}>
           <MuiIcon name="Description" size={10} />
-          <span>{cockpitsCount} maquette{cockpitsCount !== 1 ? 's' : ''}</span>
+          <span>{cockpitsCount} {cockpitsCount !== 1 ? t('folder.mockups') : t('folder.mockup')}</span>
         </div>
 
         {/* Actions */}
@@ -126,7 +128,7 @@ function FolderCard({
               }`}
             >
               <MuiIcon name="Edit" size={12} />
-              Renommer
+              {t('folder.rename')}
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -135,7 +137,7 @@ function FolderCard({
                   ? 'text-gray-300 cursor-not-allowed' 
                   : 'text-red-400 hover:text-red-300 hover:bg-red-500/20'
               }`}
-              title={cockpitsCount > 0 ? 'Le répertoire doit être vide pour être supprimé' : 'Supprimer'}
+              title={cockpitsCount > 0 ? t('folder.mustBeEmpty') : t('mockup.delete')}
               disabled={cockpitsCount > 0}
             >
               <MuiIcon name="Delete" size={12} />
@@ -202,7 +204,8 @@ function SortableCockpitCard({
   setShowDuplicateModal,
   handleExportClick,
   setShowDeleteModal,
-  formatDate
+  formatDate,
+  t
 }: {
   cockpit: Cockpit;
   navigate: (path: string) => void;
@@ -215,6 +218,7 @@ function SortableCockpitCard({
   handleExportClick: (id: string) => void;
   setShowDeleteModal: (id: string) => void;
   formatDate: (dateString: string) => string;
+  t: (key: string) => string;
 }) {
   // État local pour le chargement de cette carte uniquement
   const [isUnpublishing, setIsUnpublishing] = useState(false);
@@ -258,9 +262,9 @@ function SortableCockpitCard({
           <h3
             onClick={() => navigate(`/studio/${cockpit.id}`)}
             className="flex-1 text-sm font-semibold text-[#1E3A5F] truncate cursor-pointer hover:text-blue-600 transition-colors"
-            title="Cliquer pour ouvrir"
+            title={t('mockup.clickToOpen')}
           >
-            {cockpit.name || 'Sans nom'}
+            {cockpit.name || t('mockup.noName')}
           </h3>
 
           {/* Handle de drag */}
@@ -268,7 +272,7 @@ function SortableCockpitCard({
             {...attributes}
             {...listeners}
             className="p-1 bg-slate-700/50 hover:bg-slate-600/50 rounded cursor-grab active:cursor-grabbing transition-colors"
-            title="Glisser pour réorganiser"
+            title={t('mockup.dragToReorder')}
           >
             <MuiIcon name="DragIndicator" size={12} className="text-slate-400" />
           </div>
@@ -299,7 +303,7 @@ function SortableCockpitCard({
                 await navigator.clipboard.writeText(url);
               }}
               className="p-0.5 hover:bg-slate-200 rounded transition-colors"
-              title="Copier l'URL"
+              title={t('mockup.copyUrl')}
             >
               <MuiIcon name="ContentCopy" size={10} className="text-slate-600" />
             </button>
@@ -321,7 +325,7 @@ function SortableCockpitCard({
                 ) : (
                   <>
                     <MuiIcon name="Globe" size={12} />
-                    Dépublier
+                    {t('mockup.unpublish')}
                   </>
                 )}
               </button>
@@ -331,7 +335,7 @@ function SortableCockpitCard({
                     window.open(`${getPublicBaseUrl()}/public/${cockpit.publicId}`, '_blank');
                   }}
                   className="p-1 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 rounded transition-colors"
-                  title="Ouvrir la version publiée"
+                  title={t('mockup.openPublished')}
                   data-help-key="home-card-btn-open-published"
                 >
                   <MuiIcon name="OpenInBrowser" size={12} />
@@ -345,7 +349,7 @@ function SortableCockpitCard({
               data-help-key="home-card-btn-publish"
             >
               <MuiIcon name="Globe" size={12} />
-              Publier
+              {t('mockup.publish')}
             </button>
           )}
           {/* Bouton message d'accueil - toujours visible pour préparer avant publication */}
@@ -356,18 +360,18 @@ function SortableCockpitCard({
                 ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' 
                 : 'text-slate-500 hover:text-slate-300 hover:bg-slate-600/50'
             }`}
-            title={cockpit.welcomeMessage ? "Modifier le message d'accueil" : "Ajouter un message d'accueil"}
+            title={cockpit.welcomeMessage ? t('mockup.editWelcome') : t('mockup.addWelcome')}
             data-help-key="home-card-btn-welcome"
           >
             <MuiIcon name="Campaign" size={12} />
           </button>
           <button
             onClick={() => {
-              setNewName(cockpit.name + ' - Copie');
+              setNewName(cockpit.name + ' ' + t('mockup.copy'));
               setShowDuplicateModal(cockpit.id);
             }}
             className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-600/50 rounded transition-colors"
-            title="Dupliquer"
+            title={t('mockup.duplicate')}
             data-help-key="home-card-btn-duplicate"
           >
             <MuiIcon name="ContentCopy" size={12} />
@@ -375,7 +379,7 @@ function SortableCockpitCard({
           <button
             onClick={() => handleExportClick(cockpit.id)}
             className="p-1 text-slate-500 hover:text-green-400 hover:bg-green-500/10 rounded transition-colors"
-            title="Exporter"
+            title={t('mockup.export')}
             data-help-key="home-card-btn-export"
           >
             <MuiIcon name="Download" size={12} />
@@ -383,7 +387,7 @@ function SortableCockpitCard({
           <button
             onClick={() => setShowDeleteModal(cockpit.id)}
             className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
-            title="Supprimer"
+            title={t('mockup.delete')}
             data-help-key="home-card-btn-delete"
           >
             <MuiIcon name="Delete" size={12} />
@@ -942,7 +946,8 @@ export default function HomePage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
+    const locale = language === 'EN' ? 'en-US' : 'fr-FR';
+    return new Date(dateString).toLocaleDateString(locale, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -1515,12 +1520,13 @@ export default function HomePage() {
                   onDelete={async () => {
                     const success = await deleteFolder(folder.id);
                     if (!success) {
-                      alert('Le répertoire doit être vide pour être supprimé');
+                      alert(t('folder.mustBeEmpty'));
                     }
                   }}
                   cockpitsCount={cockpits.filter(c => c.folderId === folder.id).length}
                   isUserFolder={!viewingUserId}
                   isDraggingCockpit={!!draggedCockpitId}
+                  t={t}
                 />
               ))}
               
@@ -1536,6 +1542,7 @@ export default function HomePage() {
                   isUserFolder={false}
                   isDraggingCockpit={false}
                   showActions={false}
+                  t={t}
                 />
               ))}
               
@@ -1554,6 +1561,7 @@ export default function HomePage() {
                   handleExportClick={handleExportClick}
                   setShowDeleteModal={setShowDeleteModal}
                   formatDate={formatDate}
+                  t={t}
                 />
               ))}
               
@@ -1623,6 +1631,7 @@ export default function HomePage() {
                   handleExportClick={handleExportClick}
                   setShowDeleteModal={setShowDeleteModal}
                   formatDate={formatDate}
+                  t={t}
                 />
               ))}
 
@@ -1663,7 +1672,7 @@ export default function HomePage() {
       {/* Modal: Nouveau répertoire */}
       {showNewFolderModal && (
         <Modal
-          title="Nouveau répertoire"
+          title={t('modal.newFolder')}
           onClose={() => { setShowNewFolderModal(false); setNewFolderName(''); }}
           onConfirm={async () => {
             if (newFolderName.trim()) {
@@ -1672,14 +1681,14 @@ export default function HomePage() {
               setNewFolderName('');
             }
           }}
-          confirmText="Créer"
+          confirmText={t('modal.create')}
           isLoading={isLoading}
         >
           <input
             type="text"
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
-            placeholder="Nom du répertoire"
+            placeholder={t('modal.folderName')}
             className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
             autoFocus
           />
@@ -1689,7 +1698,7 @@ export default function HomePage() {
       {/* Modal: Renommer répertoire */}
       {showRenameFolderModal && (
         <Modal
-          title="Renommer le répertoire"
+          title={t('modal.renameFolder')}
           onClose={() => { setShowRenameFolderModal(null); setRenameFolderName(''); }}
           onConfirm={async () => {
             if (renameFolderName.trim() && showRenameFolderModal) {
@@ -1698,14 +1707,14 @@ export default function HomePage() {
               setRenameFolderName('');
             }
           }}
-          confirmText="Renommer"
+          confirmText={t('folder.rename')}
           isLoading={isLoading}
         >
           <input
             type="text"
             value={renameFolderName}
             onChange={(e) => setRenameFolderName(e.target.value)}
-            placeholder="Nouveau nom"
+            placeholder={t('modal.folderName')}
             className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
             autoFocus
           />
@@ -1715,17 +1724,17 @@ export default function HomePage() {
       {/* Modal: Nouvelle maquette */}
       {showNewModal && (
         <Modal
-          title="Nouvelle maquette"
+          title={t('modal.newMockup')}
           onClose={() => { setShowNewModal(false); setNewName(''); }}
           onConfirm={handleCreate}
-          confirmText="Créer"
+          confirmText={t('modal.create')}
           isLoading={isLoading}
         >
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nom de la maquette"
+            placeholder={t('modal.mockupName')}
             className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
             autoFocus
           />
@@ -1735,17 +1744,17 @@ export default function HomePage() {
       {/* Modal: Dupliquer */}
       {showDuplicateModal && (
         <Modal
-          title="Dupliquer la maquette"
+          title={t('modal.duplicateMockup')}
           onClose={() => { setShowDuplicateModal(null); setNewName(''); }}
           onConfirm={() => handleDuplicate(showDuplicateModal)}
-          confirmText="Dupliquer"
+          confirmText={t('mockup.duplicate')}
           isLoading={isLoading}
         >
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nom de la copie"
+            placeholder={t('modal.newMockupName')}
             className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
             autoFocus
           />
@@ -1755,15 +1764,15 @@ export default function HomePage() {
       {/* Modal: Supprimer */}
       {showDeleteModal && (
         <Modal
-          title="Supprimer la maquette"
+          title={t('modal.deleteMockup')}
           onClose={() => setShowDeleteModal(null)}
           onConfirm={() => handleDelete(showDeleteModal)}
-          confirmText="Supprimer"
+          confirmText={t('modal.delete')}
           confirmVariant="danger"
           isLoading={isLoading}
         >
           <p className="text-slate-300">
-            ÃŠtes-vous sÃ»r de vouloir supprimer cette maquette ? Cette action est irréversible.
+            {t('modal.deleteMockupConfirm')}
           </p>
         </Modal>
       )}
@@ -1772,7 +1781,7 @@ export default function HomePage() {
       {/* Modal: Exporter */}
       {showExportModal && (
         <Modal
-          title="Exporter la maquette"
+          title={t('modal.exportMockup')}
           onClose={() => {
             setShowExportModal(null);
             setExportFileName('');
@@ -1784,17 +1793,17 @@ export default function HomePage() {
               handleExport(showExportModal, exportFileName);
             }
           }}
-          confirmText="Exporter"
+          confirmText={t('mockup.export')}
           isLoading={isLoading}
         >
           <div className="space-y-4">
             <p className="text-slate-300 text-sm">
-              Choisissez le nom du fichier à exporter. Le fichier sera téléchargé dans votre dossier de téléchargements par défaut.
+              {t('modal.exportDescription')}
             </p>
 
             <div>
               <label className="block text-sm font-medium text-slate-400 mb-2">
-                Nom du fichier
+                {t('modal.fileName')}
               </label>
               <input
                 type="text"
@@ -1805,7 +1814,7 @@ export default function HomePage() {
                 autoFocus
               />
               <p className="text-xs text-slate-500 mt-1">
-                L'extension .json sera ajoutée automatiquement
+                {t('modal.jsonExtension')}
               </p>
             </div>
 

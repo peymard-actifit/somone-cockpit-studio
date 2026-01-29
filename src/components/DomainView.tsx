@@ -16,6 +16,7 @@ import LinkElementModal from './LinkElementModal';
 import { useState, useEffect, useMemo } from 'react';
 import ElementTile from './ElementTile';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface DomainViewProps {
   domain: Domain;
@@ -27,6 +28,7 @@ interface DomainViewProps {
 export default function DomainView({ domain, onElementClick, readOnly = false, cockpit: cockpitProp }: DomainViewProps) {
   const { addCategory, deleteCategory, addElement, moveElement, reorderElement, findElementsByName, linkElement } = useCockpitStore();
   const confirm = useConfirm();
+  const { t } = useLanguage();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryOrientation, setNewCategoryOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
@@ -406,7 +408,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
           <button
             onClick={() => setShowFullDomainView(true)}
             className="group flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
-            title="Cliquez pour voir tous les indicateurs du domaine"
+            title={t('domain.clickToSeeIndicators')}
           >
             <h2 
               className="font-bold text-[#1E3A5F] tracking-tight group-hover:underline decoration-2 underline-offset-4"
@@ -462,15 +464,15 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                       <button
                         onClick={async () => {
                           const confirmed = await confirm({
-                            title: 'Supprimer la catégorie',
-                            message: `Voulez-vous supprimer la catégorie "${category.name}" et tous ses éléments ?`,
+                            title: t('domain.deleteCategory'),
+                            message: `${t('domain.deleteCategoryConfirm')} "${category.name}"`,
                           });
                           if (confirmed) {
                             deleteCategory(category.id);
                           }
                         }}
                         className="p-1.5 text-[#E57373] hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                        title="Supprimer"
+                        title={t('mockup.delete')}
                       >
                         <MuiIcon name="Delete" size={16} />
                       </button>
@@ -550,7 +552,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                           className="flex items-center justify-center gap-2 border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] rounded-xl transition-colors bg-[#F5F7FA]/50 py-4"
                         >
                           <MuiIcon name="Add" size={20} />
-                          <span className="text-sm font-medium">Ajouter</span>
+                          <span className="text-sm font-medium">{t('domain.add')}</span>
                         </button>
                       )}
                       {!readOnly && addingElementToCategory === category.id && (
@@ -645,11 +647,11 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
             className="mt-10 flex items-center gap-3 px-6 py-4 border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] rounded-xl transition-colors w-full justify-center bg-white/50"
           >
             <MuiIcon name="Add" size={24} />
-            <span className="font-semibold">Ajouter une catégorie</span>
+            <span className="font-semibold">{t('domain.addCategory')}</span>
           </button>
         ) : (
           <div className="mt-10 bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-sm">
-            <h4 className="text-[#1E3A5F] font-semibold text-lg mb-4">Nouvelle catégorie</h4>
+            <h4 className="text-[#1E3A5F] font-semibold text-lg mb-4">{t('domain.newCategory')}</h4>
 
             <div className="space-y-4">
               <input
@@ -702,13 +704,13 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                   }}
                   className="px-5 py-2 text-[#64748B] hover:text-[#1E3A5F] transition-colors"
                 >
-                  Annuler
+                  {t('modal.cancel')}
                 </button>
                 <button
                   onClick={() => handleAddCategory(false)} // Clic = terminer
                   className="px-5 py-2 bg-[#1E3A5F] hover:bg-[#2C4A6E] text-white font-medium rounded-lg transition-colors"
                 >
-                  Ajouter
+                  {t('domain.add')}
                 </button>
               </div>
             </div>
