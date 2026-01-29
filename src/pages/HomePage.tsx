@@ -1126,7 +1126,11 @@ export default function HomePage() {
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                           >
-                            <span className="text-lg">🇫🇷</span>
+                            <svg width="20" height="14" viewBox="0 0 30 20" className="rounded-sm overflow-hidden">
+                              <rect x="0" y="0" width="10" height="20" fill="#002395"/>
+                              <rect x="10" y="0" width="10" height="20" fill="#FFFFFF"/>
+                              <rect x="20" y="0" width="10" height="20" fill="#ED2939"/>
+                            </svg>
                             <span>FR</span>
                           </button>
                           <button
@@ -1137,7 +1141,13 @@ export default function HomePage() {
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                           >
-                            <span className="text-lg">🇬🇧</span>
+                            <svg width="20" height="14" viewBox="0 0 60 40" className="rounded-sm overflow-hidden">
+                              <rect width="60" height="40" fill="#012169"/>
+                              <path d="M0,0 L60,40 M60,0 L0,40" stroke="#FFFFFF" strokeWidth="8"/>
+                              <path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" strokeWidth="4"/>
+                              <path d="M30,0 V40 M0,20 H60" stroke="#FFFFFF" strokeWidth="12"/>
+                              <path d="M30,0 V40 M0,20 H60" stroke="#C8102E" strokeWidth="6"/>
+                            </svg>
                             <span>EN</span>
                           </button>
                         </div>
