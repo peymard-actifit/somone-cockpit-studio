@@ -204,7 +204,6 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'modal.newMockupName': { FR: 'Nouveau nom de la maquette', EN: 'New mockup name' },
   'modal.deleteMockup': { FR: 'Supprimer la maquette', EN: 'Delete mockup' },
   'modal.deleteMockupConfirm': { FR: 'Êtes-vous sûr de vouloir supprimer cette maquette ? Cette action est irréversible.', EN: 'Are you sure you want to delete this mockup? This action cannot be undone.' },
-  'modal.confirmNewPassword': { FR: 'Confirmer le nouveau mot de passe', EN: 'Confirm new password' },
   'modal.renameFolder': { FR: 'Renommer le répertoire', EN: 'Rename folder' },
   'modal.publishMockup': { FR: 'Publier la maquette', EN: 'Publish mockup' },
   'modal.welcomeMessage': { FR: 'Message d\'accueil (optionnel)', EN: 'Welcome message (optional)' },
