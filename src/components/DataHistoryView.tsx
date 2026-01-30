@@ -491,8 +491,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         'Domaine': firstLocation?.domainName || '',
         'Élément': firstLocation?.elementName || '',
         'Sous-élément': se.name,
-        'Lié': se.linkedGroupId ? `Oui (${se.linkedCount} liés)` : 'Non',
-        'ID Groupe': se.linkedGroupId || se.id,
+        'Lié': se.linkedGroupId ? `Oui (${se.linkedCount})` : 'Non',
         'Criticité': STATUS_EXPORT_MAP[cellData.status] || cellData.status,
         'Valeur': cellData.value || '',
         'Unité': cellData.unit || '',
@@ -509,7 +508,6 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
       { wch: 20 }, // Élément
       { wch: 25 }, // Sous-élément
       { wch: 15 }, // Lié
-      { wch: 40 }, // ID Groupe
       { wch: 12 }, // Criticité
       { wch: 15 }, // Valeur
       { wch: 10 }, // Unité
@@ -567,23 +565,34 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
 
       // Traiter chaque ligne du fichier
       for (const row of jsonData) {
+        const domainName = row['Domaine'] || row['Domain'];
+        const elementName = row['Élément'] || row['Element'];
         const subElementName = row['Sous-élément'] || row['Sous-element'] || row['SubElement'];
-        const groupId = row['ID Groupe'] || row['ID_Groupe'] || row['GroupId'];
         const criticite = row['Criticité'] || row['Criticite'] || row['Status'];
         const valeur = row['Valeur'] || row['Value'];
         const unite = row['Unité'] || row['Unite'] || row['Unit'];
 
-        if (!subElementName && !groupId) {
+        if (!subElementName) {
           notFound++;
           continue;
         }
 
-        // Trouver le sous-élément correspondant
-        let matchedSE = uniqueSubElements.find(se => se.id === groupId);
-        if (!matchedSE) {
-          // Essayer de trouver par nom
-          matchedSE = uniqueSubElements.find(se => se.name === subElementName);
-        }
+        // Trouver le sous-élément correspondant par Domaine + Élément + Nom
+        let matchedSE = uniqueSubElements.find(se => {
+          // Vérifier si le nom correspond
+          if (se.name !== subElementName) return false;
+          
+          // Si domaine et élément sont spécifiés, vérifier qu'ils correspondent
+          if (domainName || elementName) {
+            return se.locationInfos.some(loc => {
+              const domainMatch = !domainName || loc.domainName === domainName;
+              const elementMatch = !elementName || loc.elementName === elementName;
+              return domainMatch && elementMatch;
+            });
+          }
+          
+          return true;
+        });
 
         if (!matchedSE) {
           notFound++;
