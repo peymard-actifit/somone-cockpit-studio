@@ -144,13 +144,13 @@ interface CockpitState {
   moveSubElementToSubCategory: (subElementId: string, targetSubCategoryId: string) => void;
   
   // Copie d'éléments entre domaines (BackgroundView) - copie aussi les catégories
-  copyDomainElements: (sourceDomainId: string, targetDomainId: string) => { success: boolean; message: string; copiedCount: number; copiedCategoriesCount: number };
+  copyDomainElements: (sourceDomainId: string, targetDomainId: string) => Promise<{ success: boolean; message: string; copiedCount: number; copiedCategoriesCount: number }>;
   
   // Copie des sous-catégories et sous-éléments d'un élément vers un autre
-  copyElementSubContent: (sourceElementId: string, targetElementId: string) => { success: boolean; message: string; copiedSubCategoriesCount: number; copiedSubElementsCount: number };
+  copyElementSubContent: (sourceElementId: string, targetElementId: string) => Promise<{ success: boolean; message: string; copiedSubCategoriesCount: number; copiedSubElementsCount: number }>;
   
   // Suppression de tous les éléments d'un domaine
-  clearDomainElements: (domainId: string) => { success: boolean; message: string; deletedCount: number };
+  clearDomainElements: (domainId: string) => Promise<{ success: boolean; message: string; deletedCount: number }>;
   
   // Appliquer la taille d'un élément à tous les autres éléments du même domaine
   applySizeToAllElements: (elementId: string) => { success: boolean; message: string; updatedCount: number };
@@ -3958,7 +3958,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   // Chaque élément copié est lié à son élément source via linkedGroupId
   // Chaque sous-élément copié est lié à son sous-élément source via linkedGroupId
   // Les catégories sont également copiées (pas seulement les éléments)
-  copyDomainElements: (sourceDomainId: string, targetDomainId: string) => {
+  copyDomainElements: async (sourceDomainId: string, targetDomainId: string) => {
     const cockpit = get().currentCockpit;
     if (!cockpit) {
       return { success: false, message: 'Aucun cockpit sélectionné', copiedCount: 0, copiedCategoriesCount: 0 };
@@ -4134,7 +4134,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       name: `${newCategories.length} catégorie(s) et ${totalElements} élément(s) copiés vers ${targetDomain.name}` 
     });
     // Sauvegarde immédiate pour la copie d'éléments entre domaines (opération critique)
-    get().triggerImmediateSave();
+    // IMPORTANT: await pour s'assurer que la sauvegarde est terminée avant de retourner
+    await get().triggerImmediateSave();
 
     return { 
       success: true, 
@@ -4147,7 +4148,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   // Copier les sous-catégories et sous-éléments d'un élément source vers un élément cible
   // Les sous-catégories existantes dans la cible sont préservées, les nouvelles sont ajoutées
   // Chaque sous-élément copié est lié à son sous-élément source via linkedGroupId
-  copyElementSubContent: (sourceElementId: string, targetElementId: string) => {
+  copyElementSubContent: async (sourceElementId: string, targetElementId: string) => {
     const cockpit = get().currentCockpit;
     if (!cockpit) {
       return { success: false, message: 'Aucun cockpit sélectionné', copiedSubCategoriesCount: 0, copiedSubElementsCount: 0 };
@@ -4287,7 +4288,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       name: `${newSubCategories.length} sous-catégorie(s) copiées vers ${targetElement.name}` 
     });
     // Sauvegarde immédiate pour la copie de sous-éléments (opération critique)
-    get().triggerImmediateSave();
+    // IMPORTANT: await pour s'assurer que la sauvegarde est terminée avant de retourner
+    await get().triggerImmediateSave();
 
     return { 
       success: true, 
@@ -4298,7 +4300,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   // Supprimer tous les éléments d'un domaine (avec leurs sous-catégories et sous-éléments)
-  clearDomainElements: (domainId: string) => {
+  clearDomainElements: async (domainId: string) => {
     const cockpit = get().currentCockpit;
     if (!cockpit) {
       return { success: false, message: 'Aucun cockpit sélectionné', deletedCount: 0 };
@@ -4349,7 +4351,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       name: `${deletedCount} éléments supprimés de ${domain.name}` 
     });
     // Sauvegarde immédiate pour la suppression d'éléments (opération critique)
-    get().triggerImmediateSave();
+    // IMPORTANT: await pour s'assurer que la sauvegarde est terminée avant de retourner
+    await get().triggerImmediateSave();
 
     return { 
       success: true, 

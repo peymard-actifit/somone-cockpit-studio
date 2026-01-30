@@ -2702,7 +2702,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                               <button
                                 key={targetElement.id}
                                 onClick={async () => {
-                                  const result = copyElementSubContent(element.id, targetElement.id);
+                                  const result = await copyElementSubContent(element.id, targetElement.id);
                                   if (result.success) {
                                     alert(result.message);
                                     setShowCopySubCategoriesModal(false);
@@ -2812,7 +2812,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                       });
                       
                       if (confirmed) {
-                        const result = clearDomainElements(domain.id);
+                        const result = await clearDomainElements(domain.id);
                         if (result.success) {
                           alert(result.message);
                         } else {
@@ -4812,7 +4812,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                           <button
                             key={targetDomain.id}
                             onClick={async () => {
-                              const result = copyDomainElements(domain.id, targetDomain.id);
+                              const result = await copyDomainElements(domain.id, targetDomain.id);
                               if (result.success) {
                                 alert(result.message);
                                 setShowCopyElementsModal(false);
