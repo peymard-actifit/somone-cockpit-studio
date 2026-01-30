@@ -22,7 +22,7 @@ interface UniqueSubElement {
 
 export default function DataHistoryView({ cockpit, readOnly = false }: DataHistoryViewProps) {
   const { t } = useLanguage();
-  const { updateCockpit } = useCockpitStore();
+  const { updateCockpit, updateSubElement } = useCockpitStore();
   
   // État local pour les colonnes de données
   const [columns, setColumns] = useState<DataHistoryColumn[]>(
@@ -224,6 +224,27 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     setColumns(updatedColumns);
     saveToStore(updatedColumns);
     setEditingCell(null);
+    
+    // Si c'est la date active, synchroniser avec les sous-éléments
+    const activeDate = cockpit.selectedDataDate || columns[columns.length - 1]?.date;
+    if (columnDate === activeDate) {
+      // Trouver l'UniqueSubElement correspondant pour obtenir les IDs originaux
+      const uniqueSE = uniqueSubElements.find(se => se.id === subElementId);
+      if (uniqueSE) {
+        // Mettre à jour tous les sous-éléments originaux (liés ou non)
+        for (const originalId of uniqueSE.originalIds) {
+          const updates: Partial<{ status: TileStatus; value: string; unit: string }> = {};
+          if (field === 'status') {
+            updates.status = value as TileStatus;
+          } else if (field === 'value') {
+            updates.value = value || undefined;
+          } else if (field === 'unit') {
+            updates.unit = value || undefined;
+          }
+          updateSubElement(originalId, updates);
+        }
+      }
+    }
   };
 
   // Obtenir les données d'une cellule
