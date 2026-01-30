@@ -28,14 +28,21 @@ export function useSubElementData(
       isFromHistory: false,
     };
 
-    // Si pas de cockpit, pas de date sélectionnée, ou pas d'historique, utiliser les données actuelles
-    if (!cockpit?.selectedDataDate || !cockpit?.dataHistory?.columns?.length) {
+    // Si pas de cockpit ou pas d'historique, utiliser les données actuelles
+    if (!cockpit?.dataHistory?.columns?.length) {
       return defaultData;
     }
 
-    // Trouver la colonne correspondant à la date sélectionnée
+    // Utiliser la date sélectionnée ou la dernière date disponible par défaut
+    const activeDate = cockpit.selectedDataDate || cockpit.dataHistory.columns[cockpit.dataHistory.columns.length - 1]?.date;
+    
+    if (!activeDate) {
+      return defaultData;
+    }
+
+    // Trouver la colonne correspondant à la date active
     const selectedColumn = cockpit.dataHistory.columns.find(
-      col => col.date === cockpit.selectedDataDate
+      col => col.date === activeDate
     );
 
     if (!selectedColumn) {

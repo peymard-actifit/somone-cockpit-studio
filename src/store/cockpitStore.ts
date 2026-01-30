@@ -613,6 +613,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         zones: zones || [],
         templateIcons: currentCockpit.templateIcons || {},
         clientUpdatedAt: currentCockpit.updatedAt,
+        // Historique des données des sous-éléments
+        dataHistory: currentCockpit.dataHistory,
+        selectedDataDate: currentCockpit.selectedDataDate,
       };
 
       // Vérifier la taille du payload AVANT envoi (limite Vercel ~4.5MB)
@@ -703,6 +706,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       zones: zones || [],
       templateIcons: currentCockpit.templateIcons || {},
       clientUpdatedAt: currentCockpit.updatedAt,
+      // Historique des données des sous-éléments
+      dataHistory: currentCockpit.dataHistory,
+      selectedDataDate: currentCockpit.selectedDataDate,
     };
 
     const payloadStr = JSON.stringify(payload);
@@ -764,6 +770,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       useOriginalView: currentCockpit.useOriginalView !== false, // true par défaut
       templateIcons: currentCockpit.templateIcons || {},
       clientUpdatedAt: currentCockpit.updatedAt,
+      // Historique des données des sous-éléments
+      dataHistory: currentCockpit.dataHistory,
+      selectedDataDate: currentCockpit.selectedDataDate,
     };
     if ((currentCockpit as any).zones) {
       payload.zones = (currentCockpit as any).zones;
@@ -2771,6 +2780,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           templateIcons: currentCockpit.templateIcons || {}, // Icônes des templates
           // IMPORTANT: Inclure useOriginalView pour que la publication utilise la bonne vue (true par défaut)
           useOriginalView: currentCockpit.useOriginalView !== false,
+          // Historique des données des sous-éléments
+          dataHistory: currentCockpit.dataHistory,
+          selectedDataDate: currentCockpit.selectedDataDate,
         };
         if ((currentCockpit as any).zones) {
           payload.zones = (currentCockpit as any).zones;
