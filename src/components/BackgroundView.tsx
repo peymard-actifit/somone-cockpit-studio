@@ -8,6 +8,7 @@ import MapCategoryElementsView from './MapCategoryElementsView';
 import StatusSummary, { formatLastUpdate } from './StatusSummary';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Ordre de priorité des statuts (du plus critique au moins critique)
 const STATUS_PRIORITY: Record<TileStatus, number> = STATUS_PRIORITY_MAP;
@@ -119,6 +120,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const [showCategoryFilter, setShowCategoryFilter] = useState(true);
   // État pour la vue éléments d'une catégorie (quand on clique sur le nom de la catégorie)
   const [categoryViewId, setCategoryViewId] = useState<string | null>(null);
+
+  // État pour le mode plein écran
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { t } = useLanguage();
 
   // Mettre à jour les catégories sélectionnées si les catégories du domaine changent
   useEffect(() => {
@@ -399,6 +404,34 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setScale(1);
     setPosition({ x: 0, y: 0 });
   };
+
+  // Toggle plein écran
+  const toggleFullscreen = useCallback(async () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error('Erreur plein écran:', error);
+    }
+  }, []);
+
+  // Écouter les changements de plein écran (ex: Echap)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
   
   // Fit to content - Calculer le zoom optimal pour voir tous les éléments
   const fitToContent = useCallback(() => {
@@ -1346,8 +1379,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
             <MuiIcon name="Remove" size={20} />
           </button>
-          <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title="Ajuster à la fenêtre">
+          <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
             <MuiIcon name="FitScreen" size={20} />
+          </button>
+          <button onClick={toggleFullscreen} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}>
+            <MuiIcon name={isFullscreen ? "FullscreenExit" : "Fullscreen"} size={20} />
           </button>
         </div>
 

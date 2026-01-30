@@ -6,6 +6,7 @@ import { MuiIcon } from './IconPicker';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 import LinkElementModal from './LinkElementModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Constantes pour le zoom
 const MIN_ZOOM = 0.3;
@@ -74,6 +75,10 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   
   // État pour auto-hide des contrôles en mode lecture seule
   const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
+  
+  // État pour le mode plein écran
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { t } = useLanguage();
   
   // Position du panneau de contrôle (drag and drop) - seulement en mode studio
   const loadControlPanelPosition = (): { x: number; y: number } | null => {
@@ -239,6 +244,34 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   const zoomIn = useCallback(() => setScale(prev => Math.min(MAX_ZOOM, prev + ZOOM_STEP)), []);
   const zoomOut = useCallback(() => setScale(prev => Math.max(MIN_ZOOM, prev - ZOOM_STEP)), []);
   const resetZoom = useCallback(() => fitToContent(), [fitToContent]);
+
+  // Toggle plein écran
+  const toggleFullscreen = useCallback(async () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error('Erreur plein écran:', error);
+    }
+  }, []);
+
+  // Écouter les changements de plein écran (ex: Echap)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
   
   // Zoom avec la molette (Ctrl + molette)
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -539,8 +572,11 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
           <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer (Ctrl + molette)">
             <MuiIcon name="Remove" size={20} />
           </button>
-          <button onClick={resetZoom} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title="Ajuster à la fenêtre">
+          <button onClick={resetZoom} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
             <MuiIcon name="FitScreen" size={20} />
+          </button>
+          <button onClick={toggleFullscreen} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}>
+            <MuiIcon name={isFullscreen ? "FullscreenExit" : "Fullscreen"} size={20} />
           </button>
         </div>
 
