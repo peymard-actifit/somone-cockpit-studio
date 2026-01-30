@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.29.4';
+const APP_VERSION = '16.29.5';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3772,7 +3772,7 @@ INSTRUCTIONS:
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
-      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView, templateIcons, clientUpdatedAt } = req.body;
+      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView, templateIcons, clientUpdatedAt, dataHistory, selectedDataDate } = req.body;
       const now = new Date().toISOString();
 
       // Vérification de la taille totale du payload
@@ -3948,6 +3948,9 @@ INSTRUCTIONS:
         // IMPORTANT: Préserver les statistiques de vue
         viewCount: cockpit.data.viewCount,
         lastViewedAt: cockpit.data.lastViewedAt,
+        // Historique des données des sous-éléments
+        dataHistory: dataHistory !== undefined ? dataHistory : cockpit.data.dataHistory,
+        selectedDataDate: selectedDataDate !== undefined ? selectedDataDate : cockpit.data.selectedDataDate,
       };
       cockpit.updatedAt = now;
 
@@ -3984,6 +3987,9 @@ INSTRUCTIONS:
             zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
             snapshotVersion: newSnapshotVersion,
             snapshotCreatedAt: new Date().toISOString(),
+            // Historique des données des sous-éléments
+            dataHistory: cockpit.data.dataHistory ? JSON.parse(JSON.stringify(cockpit.data.dataHistory)) : null,
+            selectedDataDate: cockpit.data.selectedDataDate || null,
           };
           
           // Sauvegarder le snapshot mis à jour dans PostgreSQL
