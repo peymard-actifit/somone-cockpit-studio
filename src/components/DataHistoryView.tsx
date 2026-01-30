@@ -132,6 +132,8 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   // États pour les filtres hiérarchiques
   const [filterDomainId, setFilterDomainId] = useState<string>('');
   const [filterElementId, setFilterElementId] = useState<string>('');
+  // État pour la recherche textuelle
+  const [searchText, setSearchText] = useState<string>('');
 
   // Collecter tous les sous-éléments uniques avec leurs informations de localisation
   const uniqueSubElements = useMemo(() => {
@@ -212,20 +214,31 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     return elements.sort((a, b) => a.name.localeCompare(b.name));
   }, [cockpit.domains, filterDomainId]);
 
-  // Sous-éléments filtrés
+  // Sous-éléments filtrés (par domaine, élément et recherche textuelle)
   const filteredSubElements = useMemo(() => {
-    if (!filterDomainId && !filterElementId) {
-      return uniqueSubElements;
-    }
-
-    return uniqueSubElements.filter(se => {
-      return se.locationInfos.some(loc => {
-        if (filterDomainId && loc.domainId !== filterDomainId) return false;
-        if (filterElementId && loc.elementId !== filterElementId) return false;
-        return true;
+    let filtered = uniqueSubElements;
+    
+    // Filtre par domaine et élément
+    if (filterDomainId || filterElementId) {
+      filtered = filtered.filter(se => {
+        return se.locationInfos.some(loc => {
+          if (filterDomainId && loc.domainId !== filterDomainId) return false;
+          if (filterElementId && loc.elementId !== filterElementId) return false;
+          return true;
+        });
       });
-    });
-  }, [uniqueSubElements, filterDomainId, filterElementId]);
+    }
+    
+    // Filtre par recherche textuelle (insensible à la casse)
+    if (searchText.trim()) {
+      const searchLower = searchText.toLowerCase().trim();
+      filtered = filtered.filter(se => 
+        se.name.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered;
+  }, [uniqueSubElements, filterDomainId, filterElementId, searchText]);
 
   // Construire le breadcrumb du filtre actuel
   const filterBreadcrumb = useMemo(() => {
@@ -794,13 +807,13 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                       <div className="flex items-center gap-2 text-cyan-300 text-xs font-normal">
                         <MuiIcon name="FilterList" size={14} />
                         <span>{filterBreadcrumb}</span>
-                        {(filterDomainId || filterElementId) && (
+                        {(filterDomainId || filterElementId || searchText) && (
                           <button
-                            onClick={() => { setFilterDomainId(''); setFilterElementId(''); }}
+                            onClick={() => { setFilterDomainId(''); setFilterElementId(''); setSearchText(''); }}
                             className="ml-2 px-1.5 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px]"
-                            title="Réinitialiser les filtres"
+                            title="Réinitialiser tous les filtres"
                           >
-                            ✕ Effacer
+                            ✕ Tout effacer
                           </button>
                         )}
                       </div>
@@ -835,9 +848,31 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                         </select>
                       </div>
                       
+                      {/* Recherche textuelle */}
+                      <div className="relative">
+                        <MuiIcon name="Search" size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-white/50" />
+                        <input
+                          type="text"
+                          value={searchText}
+                          onChange={(e) => setSearchText(e.target.value)}
+                          placeholder="Rechercher un sous-élément..."
+                          className="w-full pl-7 pr-7 py-1 text-xs bg-[#2C4A6E] border border-[#3D5A7E] rounded text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                        />
+                        {searchText && (
+                          <button
+                            onClick={() => setSearchText('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
+                            title="Effacer la recherche"
+                          >
+                            <MuiIcon name="Close" size={14} />
+                          </button>
+                        )}
+                      </div>
+                      
                       {/* Compteur de résultats filtrés */}
                       <div className="text-[10px] text-white/70 font-normal">
                         {filteredSubElements.length} / {uniqueSubElements.length} sous-élément{filteredSubElements.length > 1 ? 's' : ''}
+                        {searchText && <span className="ml-1 text-cyan-300">({t('dataHistory.searchActive') || 'recherche active'})</span>}
                       </div>
                     </div>
                   </th>
