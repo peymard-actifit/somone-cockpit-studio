@@ -4,6 +4,33 @@ import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from './IconPicker';
 import { useLanguage } from '../contexts/LanguageContext';
+import * as XLSX from 'xlsx';
+
+// Mapping des statuts pour l'export/import
+const STATUS_EXPORT_MAP: Record<TileStatus, string> = {
+  'ok': 'OK',
+  'mineur': 'Mineur',
+  'critique': 'Critique',
+  'fatal': 'Fatal',
+  'deconnecte': 'Déconnecté',
+  'information': 'Information',
+  'herite': 'Hérité',
+  'herite_domaine': 'Hérité domaine',
+};
+
+const STATUS_IMPORT_MAP: Record<string, TileStatus> = {
+  'ok': 'ok',
+  'mineur': 'mineur',
+  'critique': 'critique',
+  'fatal': 'fatal',
+  'déconnecté': 'deconnecte',
+  'deconnecte': 'deconnecte',
+  'information': 'information',
+  'hérité': 'herite',
+  'herite': 'herite',
+  'hérité domaine': 'herite_domaine',
+  'herite_domaine': 'herite_domaine',
+};
 
 // Composant d'input isolé pour éviter les re-renders
 interface EditableInputProps {
@@ -428,8 +455,212 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  // Générer le nom du fichier d'export
+  const generateExportFileName = (date: string) => {
+    const now = new Date();
+    const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+    const year = parisTime.getFullYear();
+    const month = String(parisTime.getMonth() + 1).padStart(2, '0');
+    const day = String(parisTime.getDate()).padStart(2, '0');
+    const hours = String(parisTime.getHours()).padStart(2, '0');
+    const minutes = String(parisTime.getMinutes()).padStart(2, '0');
+    const seconds = String(parisTime.getSeconds()).padStart(2, '0');
+    const dateStamp = `${year}${month}${day}`;
+    const timeStamp = `${hours}${minutes}${seconds}`;
+    const cleanName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ');
+    const cleanDate = date.replace(/-/g, '');
+    return `${dateStamp} SOMONE Cockpit Generator ${cleanName} data ${cleanDate} ${timeStamp}.xlsx`;
+  };
+
+  // Exporter les données d'une date vers Excel
+  const handleExportDate = (date: string) => {
+    const column = columns.find(c => c.date === date);
+    if (!column) return;
+
+    // Préparer les données pour l'export
+    const exportData: any[] = [];
+    
+    for (const se of uniqueSubElements) {
+      const cellData = column.data[se.id] || { status: 'ok' };
+      
+      // Pour chaque localisation du sous-élément
+      const firstLocation = se.locationInfos[0];
+      
+      exportData.push({
+        'Maquette': cockpit.name,
+        'Domaine': firstLocation?.domainName || '',
+        'Élément': firstLocation?.elementName || '',
+        'Sous-élément': se.name,
+        'Lié': se.linkedGroupId ? `Oui (${se.linkedCount} liés)` : 'Non',
+        'ID Groupe': se.linkedGroupId || se.id,
+        'Criticité': STATUS_EXPORT_MAP[cellData.status] || cellData.status,
+        'Valeur': cellData.value || '',
+        'Unité': cellData.unit || '',
+      });
+    }
+
+    // Créer le workbook
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Ajuster la largeur des colonnes
+    ws['!cols'] = [
+      { wch: 25 }, // Maquette
+      { wch: 20 }, // Domaine
+      { wch: 20 }, // Élément
+      { wch: 25 }, // Sous-élément
+      { wch: 15 }, // Lié
+      { wch: 40 }, // ID Groupe
+      { wch: 12 }, // Criticité
+      { wch: 15 }, // Valeur
+      { wch: 10 }, // Unité
+    ];
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Données');
+
+    // Télécharger le fichier
+    const fileName = generateExportFileName(date);
+    XLSX.writeFile(wb, fileName);
+  };
+
+  // Référence pour l'input file caché
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importTargetDate, setImportTargetDate] = useState<string>('');
+
+  // Importer les données depuis Excel
+  const handleImportDate = (date: string) => {
+    setImportTargetDate(date);
+    fileInputRef.current?.click();
+  };
+
+  // Traiter le fichier importé
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !importTargetDate) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+      if (jsonData.length === 0) {
+        alert('Le fichier est vide ou mal formaté');
+        return;
+      }
+
+      // Trouver ou créer la colonne pour la date cible
+      let targetColumn = columns.find(c => c.date === importTargetDate);
+      let updatedColumns = [...columns];
+      
+      if (!targetColumn) {
+        targetColumn = {
+          date: importTargetDate,
+          data: {},
+        };
+        updatedColumns.push(targetColumn);
+      }
+
+      // Compteurs pour le feedback
+      let updated = 0;
+      let notFound = 0;
+
+      // Traiter chaque ligne du fichier
+      for (const row of jsonData) {
+        const subElementName = row['Sous-élément'] || row['Sous-element'] || row['SubElement'];
+        const groupId = row['ID Groupe'] || row['ID_Groupe'] || row['GroupId'];
+        const criticite = row['Criticité'] || row['Criticite'] || row['Status'];
+        const valeur = row['Valeur'] || row['Value'];
+        const unite = row['Unité'] || row['Unite'] || row['Unit'];
+
+        if (!subElementName && !groupId) {
+          notFound++;
+          continue;
+        }
+
+        // Trouver le sous-élément correspondant
+        let matchedSE = uniqueSubElements.find(se => se.id === groupId);
+        if (!matchedSE) {
+          // Essayer de trouver par nom
+          matchedSE = uniqueSubElements.find(se => se.name === subElementName);
+        }
+
+        if (!matchedSE) {
+          notFound++;
+          continue;
+        }
+
+        // Mettre à jour les données
+        const newData: SubElementDataSnapshot = {
+          status: targetColumn.data[matchedSE.id]?.status || 'ok',
+        };
+
+        if (criticite) {
+          const normalizedStatus = criticite.toString().toLowerCase().trim();
+          newData.status = STATUS_IMPORT_MAP[normalizedStatus] || newData.status;
+        }
+        if (valeur !== undefined && valeur !== '') {
+          newData.value = valeur.toString();
+        }
+        if (unite !== undefined && unite !== '') {
+          newData.unit = unite.toString();
+        }
+
+        targetColumn.data[matchedSE.id] = newData;
+        updated++;
+
+        // Si c'est la date active, mettre à jour les sous-éléments
+        const activeDate = cockpit.selectedDataDate || columns[columns.length - 1]?.date;
+        if (importTargetDate === activeDate) {
+          for (const originalId of matchedSE.originalIds) {
+            const updates: Partial<{ status: TileStatus; value: string; unit: string }> = {};
+            if (criticite) {
+              const normalizedStatus = criticite.toString().toLowerCase().trim();
+              updates.status = STATUS_IMPORT_MAP[normalizedStatus];
+            }
+            if (valeur !== undefined && valeur !== '') {
+              updates.value = valeur.toString();
+            }
+            if (unite !== undefined && unite !== '') {
+              updates.unit = unite.toString();
+            }
+            if (Object.keys(updates).length > 0) {
+              updateSubElement(originalId, updates);
+            }
+          }
+        }
+      }
+
+      // Sauvegarder les colonnes mises à jour
+      updatedColumns = updatedColumns.map(col => 
+        col.date === importTargetDate ? targetColumn! : col
+      ).sort((a, b) => a.date.localeCompare(b.date));
+      
+      setColumns(updatedColumns);
+      saveToStore(updatedColumns);
+
+      alert(`Import terminé !\n${updated} sous-élément(s) mis à jour\n${notFound} ligne(s) non trouvée(s)`);
+    } catch (error) {
+      console.error('Erreur lors de l\'import:', error);
+      alert('Erreur lors de la lecture du fichier Excel');
+    }
+
+    // Réinitialiser l'input file
+    event.target.value = '';
+    setImportTargetDate('');
+  };
+
   return (
     <div className="h-full flex flex-col bg-[#F5F7FA] overflow-auto">
+      {/* Input file caché pour l'import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={handleFileImport}
+        className="hidden"
+      />
+      
       {/* En-tête */}
       <div className="sticky top-0 z-20 bg-white border-b border-[#E2E8F0] p-4 shadow-sm">
         <div className="flex items-center justify-between">
@@ -601,20 +832,43 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                       colSpan={3} 
                       className="p-2 text-center text-sm font-medium border-r border-[#2C4A6E]"
                     >
-                      <div className="flex items-center justify-center gap-2">
-                        <div>
-                          <div className="font-semibold">{col.label || formatDate(col.date)}</div>
-                          {col.label && <div className="text-xs opacity-70">{formatDate(col.date)}</div>}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-center gap-2">
+                          <div>
+                            <div className="font-semibold">{col.label || formatDate(col.date)}</div>
+                            {col.label && <div className="text-xs opacity-70">{formatDate(col.date)}</div>}
+                          </div>
+                          {!readOnly && (
+                            <button
+                              onClick={() => handleDeleteColumn(col.date)}
+                              className="p-1 hover:bg-white/20 rounded"
+                              title="Supprimer cette colonne"
+                            >
+                              <MuiIcon name="Delete" size={14} />
+                            </button>
+                          )}
                         </div>
-                        {!readOnly && (
+                        {/* Boutons Export/Import */}
+                        <div className="flex items-center justify-center gap-1">
                           <button
-                            onClick={() => handleDeleteColumn(col.date)}
-                            className="p-1 hover:bg-white/20 rounded"
-                            title="Supprimer cette colonne"
+                            onClick={() => handleExportDate(col.date)}
+                            className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-green-600 hover:bg-green-700 rounded transition-colors"
+                            title="Exporter vers Excel"
                           >
-                            <MuiIcon name="Delete" size={14} />
+                            <MuiIcon name="Download" size={12} />
+                            Export
                           </button>
-                        )}
+                          {!readOnly && (
+                            <button
+                              onClick={() => handleImportDate(col.date)}
+                              className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-orange-600 hover:bg-orange-700 rounded transition-colors"
+                              title="Importer depuis Excel"
+                            >
+                              <MuiIcon name="Upload" size={12} />
+                              Import
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </th>
                   ))}
