@@ -40,6 +40,9 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     columnDate: string;
     field: 'status' | 'value' | 'unit';
   } | null>(null);
+  
+  // Valeur temporaire pendant l'édition (pour les inputs texte)
+  const [editingValue, setEditingValue] = useState<string>('');
 
   // Collecter tous les sous-éléments uniques
   const uniqueSubElements = useMemo(() => {
@@ -203,12 +206,13 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     saveToStore(updatedColumns);
   };
 
-  // Mettre à jour une cellule
+  // Mettre à jour une cellule (appelé sur onChange pour les selects, sur onBlur pour les inputs)
   const handleUpdateCell = (
     subElementId: string,
     columnDate: string,
     field: keyof SubElementDataSnapshot,
-    value: string
+    value: string,
+    closeEditor: boolean = true
   ) => {
     const updatedColumns = columns.map(col => {
       if (col.date !== columnDate) return col;
@@ -235,7 +239,10 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     
     setColumns(updatedColumns);
     saveToStore(updatedColumns);
-    setEditingCell(null);
+    
+    if (closeEditor) {
+      setEditingCell(null);
+    }
     
     // Si c'est la date active, synchroniser avec les sous-éléments
     const activeDate = cockpit.selectedDataDate || columns[columns.length - 1]?.date;
@@ -263,6 +270,22 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   const getCellData = (subElementId: string, columnDate: string): SubElementDataSnapshot => {
     const column = columns.find(c => c.date === columnDate);
     return column?.data[subElementId] || { status: 'ok' };
+  };
+
+  // Démarrer l'édition d'une cellule
+  const startEditing = (subElementId: string, columnDate: string, field: 'status' | 'value' | 'unit') => {
+    if (readOnly) return;
+    const cellData = getCellData(subElementId, columnDate);
+    const initialValue = field === 'status' ? cellData.status : (field === 'value' ? cellData.value : cellData.unit) || '';
+    setEditingValue(initialValue);
+    setEditingCell({ subElementId, columnDate, field });
+  };
+
+  // Terminer l'édition et sauvegarder
+  const finishEditing = () => {
+    if (editingCell) {
+      handleUpdateCell(editingCell.subElementId, editingCell.columnDate, editingCell.field, editingValue, true);
+    }
   };
 
   // Formater une date pour l'affichage
@@ -500,9 +523,10 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                               {isEditingValue ? (
                                 <input
                                   type="text"
-                                  value={cellData.value || ''}
-                                  onChange={(e) => handleUpdateCell(se.id, col.date, 'value', e.target.value)}
-                                  onBlur={() => setEditingCell(null)}
+                                  value={editingValue}
+                                  onChange={(e) => setEditingValue(e.target.value)}
+                                  onBlur={finishEditing}
+                                  onKeyDown={(e) => e.key === 'Enter' && finishEditing()}
                                   autoFocus
                                   className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
                                   placeholder="—"
@@ -510,7 +534,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                               ) : (
                                 <span 
                                   className={`text-sm text-[#1E3A5F] ${!readOnly ? 'cursor-pointer hover:underline' : ''}`}
-                                  onClick={() => !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'value' })}
+                                  onClick={() => startEditing(se.id, col.date, 'value')}
                                 >
                                   {cellData.value || '—'}
                                 </span>
@@ -522,9 +546,10 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                               {isEditingUnit ? (
                                 <input
                                   type="text"
-                                  value={cellData.unit || ''}
-                                  onChange={(e) => handleUpdateCell(se.id, col.date, 'unit', e.target.value)}
-                                  onBlur={() => setEditingCell(null)}
+                                  value={editingValue}
+                                  onChange={(e) => setEditingValue(e.target.value)}
+                                  onBlur={finishEditing}
+                                  onKeyDown={(e) => e.key === 'Enter' && finishEditing()}
                                   autoFocus
                                   className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
                                   placeholder="—"
@@ -532,7 +557,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                               ) : (
                                 <span 
                                   className={`text-xs text-[#64748B] ${!readOnly ? 'cursor-pointer hover:underline' : ''}`}
-                                  onClick={() => !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'unit' })}
+                                  onClick={() => startEditing(se.id, col.date, 'unit')}
                                 >
                                   {cellData.unit || '—'}
                                 </span>
