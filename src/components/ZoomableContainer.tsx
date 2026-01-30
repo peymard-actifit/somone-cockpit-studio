@@ -404,20 +404,18 @@ export default function ZoomableContainer({
             </button>
             <button 
               onClick={toggleFullscreen} 
-              className={`p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] ${readOnly ? 'border-b border-[#E2E8F0]' : ''}`}
+              className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]"
               title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}
             >
               <MuiIcon name={isFullscreen ? "FullscreenExit" : "Fullscreen"} size={20} />
             </button>
-            {readOnly && (
-              <button 
-                onClick={centerView} 
-                className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" 
-                title={t('zoom.center')}
-              >
-                <MuiIcon name="CenterFocusStrong" size={20} />
-              </button>
-            )}
+            <button 
+              onClick={centerView} 
+              className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" 
+              title={t('zoom.center')}
+            >
+              <MuiIcon name="CenterFocusStrong" size={20} />
+            </button>
           </div>
 
           {/* Indicateur de zoom éditable */}
