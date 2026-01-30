@@ -1,0 +1,76 @@
+---
+description: Règles pour l'export JSON complet des maquettes - Toutes les données locales doivent être incluses
+globs: "**/cockpitStore.ts"
+alwaysApply: false
+---
+
+# Export JSON des Maquettes
+
+## Règle obligatoire
+
+L'export JSON d'une maquette (`exportCockpit`) doit TOUJOURS inclure TOUTES les données locales à la maquette.
+
+## Fichier concerné
+
+`src/store/cockpitStore.ts` - fonction `exportCockpit`
+
+## Données à exporter (liste exhaustive)
+
+Toute nouvelle propriété ajoutée à l'interface `Cockpit` DOIT être automatiquement exportée.
+
+```typescript
+// Interface Cockpit dans src/types/index.ts
+export interface Cockpit {
+  // Métadonnées (NON exportées - régénérées à l'import)
+  id: string;           // ❌ Régénéré
+  userId: string;       // ❌ Régénéré
+  createdAt: string;    // ❌ Régénéré
+  updatedAt: string;    // ❌ Régénéré
+  
+  // Données exportées (TOUJOURS incluses)
+  name: string;                    // ✅ Nom de la maquette
+  domains: Domain[];               // ✅ Tous les domaines et leurs contenus
+  logo?: string;                   // ✅ Logo
+  scrollingBanner?: string;        // ✅ Bandeau défilant
+  publicId?: string;               // ✅ ID public
+  isPublished?: boolean;           // ✅ État publication
+  publishedAt?: string;            // ✅ Date publication
+  welcomeMessage?: string;         // ✅ Message d'accueil
+  order?: number;                  // ✅ Ordre d'affichage
+  folderId?: string;               // ✅ Répertoire parent
+  sharedWith?: string[];           // ✅ Partage
+  useOriginalView?: boolean;       // ✅ Vue originale
+  templateIcons?: TemplateIcons;   // ✅ Icônes templates
+  showHelpOnHover?: boolean;       // ✅ Aide au survol
+  contextualHelps?: Array<...>;    // ✅ Aides contextuelles locales
+}
+```
+
+## Vérification avant modification
+
+Quand vous ajoutez une propriété à `Cockpit` :
+
+1. **Vérifier** que la propriété n'est pas dans la liste d'exclusion (`id`, `userId`, `createdAt`, `updatedAt`)
+2. **Confirmer** que `exportCockpit` utilise la destructuration avec exclusion explicite
+3. **Tester** l'export/import pour vérifier que la nouvelle propriété est préservée
+
+## Code actuel (version 3.0)
+
+```typescript
+// ✅ CORRECT - Exclut explicitement, exporte tout le reste
+const { id: _id, userId: _userId, createdAt: _createdAt, updatedAt: _updatedAt, ...cockpitData } = cockpit;
+
+const exportData = {
+  exportVersion: '3.0',
+  appVersion: APP_VERSION,
+  exportedAt: new Date().toISOString(),
+  cockpit: cockpitData // Tout le reste est exporté automatiquement
+};
+```
+
+## Checklist pour nouvelles propriétés
+
+- [ ] Propriété ajoutée à l'interface `Cockpit` dans `src/types/index.ts`
+- [ ] Propriété incluse automatiquement dans l'export (grâce au spread operator)
+- [ ] Import gère la nouvelle propriété (fonction `importCockpit`)
+- [ ] Test : export → import préserve la valeur

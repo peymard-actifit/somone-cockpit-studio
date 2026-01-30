@@ -1,0 +1,83 @@
+---
+description: Règles pour l'export Excel - Vérifier que l'export reste fonctionnel et cohérent
+globs: "**/api/index.ts,**/cockpitStore.ts"
+alwaysApply: false
+---
+
+# Export Excel des Maquettes
+
+## Règle obligatoire
+
+L'export Excel d'une maquette DOIT rester fonctionnel et produire des fichiers cohérents après chaque modification.
+
+## Fichiers concernés
+
+- `api/index.ts` - Route `/cockpits/:id/export/:lang` (génération du fichier Excel)
+- `src/store/cockpitStore.ts` - Fonction `exportToExcel` (appel côté client)
+
+## Structure de l'export Excel
+
+L'export produit DEUX fichiers (FR et EN) avec la même structure :
+
+### Onglets du fichier Excel
+
+| Onglet | Contenu |
+|--------|---------|
+| **Cockpit** | Métadonnées générales (nom, logo, bandeau) |
+| **Domains** | Liste des domaines avec leurs propriétés |
+| **Categories** | Catégories de chaque domaine |
+| **SubCategories** | Sous-catégories avec éléments |
+| **Elements** | Éléments détaillés |
+| **SubElements** | Sous-éléments |
+| **Zones** | Zones pour les templates map/background |
+
+### Colonnes traduites
+
+Les colonnes suivantes DOIVENT être traduites selon la langue :
+- `name` / `nameEN` → Utiliser la version appropriée
+- `description` / `descriptionEN`
+- `content` / `contentEN`
+- Labels de statuts (Fatal, Critique, Mineur, OK)
+
+## Vérifications après modification
+
+### 1. Structure cohérente
+```typescript
+// Vérifier que tous les domaines sont exportés
+domains.forEach(domain => {
+  // Toutes les catégories du domaine
+  // Toutes les sous-catégories
+  // Tous les éléments
+  // Tous les sous-éléments
+});
+```
+
+### 2. Traductions présentes
+```typescript
+// Pour chaque élément textuel
+const text = lang === 'EN' && item.nameEN ? item.nameEN : item.name;
+```
+
+### 3. Références intactes
+- IDs des domaines/catégories/éléments préservés
+- Relations parent-enfant correctes
+- Ordre des éléments respecté
+
+## Checklist pour modifications
+
+- [ ] Export FR génère un fichier valide
+- [ ] Export EN génère un fichier valide
+- [ ] Nouvelles propriétés incluses dans l'export
+- [ ] Traductions EN présentes pour les nouveaux champs textuels
+- [ ] Fichier Excel ouvrable sans erreur
+- [ ] Données cohérentes entre FR et EN (même structure, textes différents)
+
+## Test rapide
+
+1. Ouvrir une maquette dans le Studio
+2. Cliquer sur "Exporter Excel"
+3. Vérifier que 2 fichiers sont téléchargés (FR et EN)
+4. Ouvrir chaque fichier et vérifier :
+   - Tous les onglets présents
+   - Données complètes
+   - Pas de cellules #REF! ou #N/A
