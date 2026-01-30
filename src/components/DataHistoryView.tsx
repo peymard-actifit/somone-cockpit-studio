@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Cockpit, TileStatus, DataHistoryColumn, SubElementDataSnapshot } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
@@ -14,7 +14,7 @@ interface DataHistoryViewProps {
 interface UniqueSubElement {
   id: string; // subElementId ou linkedGroupId
   name: string;
-  location: string;
+  locations: string[]; // Toutes les localisations (plusieurs si liés)
   linkedGroupId?: string;
   linkedCount: number;
   originalIds: string[]; // IDs des sous-éléments originaux (pour mise à jour)
@@ -44,7 +44,6 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   // Collecter tous les sous-éléments uniques
   const uniqueSubElements = useMemo(() => {
     const subElementsMap = new Map<string, UniqueSubElement>();
-    const processedLinkedGroups = new Set<string>();
 
     for (const domain of cockpit.domains) {
       for (const category of domain.categories || []) {
@@ -52,30 +51,23 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
           for (const subCat of element.subCategories || []) {
             for (const subElement of subCat.subElements || []) {
               const location = `${domain.name} > ${category.name} > ${element.name} > ${subCat.name}`;
+              const key = subElement.linkedGroupId || subElement.id;
               
-              if (subElement.linkedGroupId) {
-                // Sous-élément lié - regrouper par linkedGroupId
-                if (!processedLinkedGroups.has(subElement.linkedGroupId)) {
-                  processedLinkedGroups.add(subElement.linkedGroupId);
-                  subElementsMap.set(subElement.linkedGroupId, {
-                    id: subElement.linkedGroupId,
-                    name: subElement.name,
-                    location: location + ' (lié)',
-                    linkedGroupId: subElement.linkedGroupId,
-                    linkedCount: 1,
-                    originalIds: [subElement.id],
-                  });
-                } else {
-                  const existing = subElementsMap.get(subElement.linkedGroupId)!;
-                  existing.linkedCount++;
-                  existing.originalIds.push(subElement.id);
+              if (subElementsMap.has(key)) {
+                // Ajouter la localisation si c'est un sous-élément lié
+                const existing = subElementsMap.get(key)!;
+                if (!existing.locations.includes(location)) {
+                  existing.locations.push(location);
                 }
+                existing.linkedCount++;
+                existing.originalIds.push(subElement.id);
               } else {
-                // Sous-élément non lié
-                subElementsMap.set(subElement.id, {
-                  id: subElement.id,
+                // Nouveau sous-élément
+                subElementsMap.set(key, {
+                  id: key,
                   name: subElement.name,
-                  location,
+                  locations: [location],
+                  linkedGroupId: subElement.linkedGroupId,
                   linkedCount: 1,
                   originalIds: [subElement.id],
                 });
@@ -139,7 +131,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
       subElements: uniqueSubElements.map(se => ({
         id: se.id,
         name: se.name,
-        location: se.location,
+        location: se.locations.join(' | '), // Concaténer les localisations
         linkedGroupId: se.linkedGroupId,
         linkedCount: se.linkedCount,
       })),
@@ -354,18 +346,23 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
           <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] overflow-auto">
             <table className="w-full border-collapse">
               <thead>
+                {/* Ligne 1 : En-tête principal avec dates groupées */}
                 <tr className="bg-[#1E3A5F] text-white">
-                  <th className="sticky left-0 z-10 bg-[#1E3A5F] p-3 text-left text-sm font-medium border-r border-[#2C4A6E] min-w-[250px]">
+                  <th 
+                    rowSpan={2} 
+                    className="sticky left-0 z-10 bg-[#1E3A5F] p-3 text-left text-sm font-medium border-r border-[#2C4A6E] min-w-[300px] align-middle"
+                  >
                     Sous-élément
                   </th>
-                  <th className="sticky left-[250px] z-10 bg-[#1E3A5F] p-3 text-left text-sm font-medium border-r border-[#2C4A6E] min-w-[200px]">
-                    Localisation
-                  </th>
                   {columns.map((col) => (
-                    <th key={col.date} className="p-3 text-center text-sm font-medium border-r border-[#2C4A6E] min-w-[180px]">
+                    <th 
+                      key={col.date} 
+                      colSpan={3} 
+                      className="p-2 text-center text-sm font-medium border-r border-[#2C4A6E]"
+                    >
                       <div className="flex items-center justify-center gap-2">
                         <div>
-                          <div>{col.label || formatDate(col.date)}</div>
+                          <div className="font-semibold">{col.label || formatDate(col.date)}</div>
                           {col.label && <div className="text-xs opacity-70">{formatDate(col.date)}</div>}
                         </div>
                         {!readOnly && (
@@ -381,101 +378,139 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                     </th>
                   ))}
                 </tr>
+                {/* Ligne 2 : Sous-en-têtes Criticité / Valeur / Unité */}
+                <tr className="bg-[#2C4A6E] text-white">
+                  {columns.map((col) => (
+                    <React.Fragment key={col.date}>
+                      <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[80px]">
+                        Criticité
+                      </th>
+                      <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[80px]">
+                        Valeur
+                      </th>
+                      <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[60px]">
+                        Unité
+                      </th>
+                    </React.Fragment>
+                  ))}
+                </tr>
               </thead>
               <tbody>
-                {uniqueSubElements.map((se, idx) => (
-                  <tr key={se.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#F5F7FA]'}>
-                    <td className="sticky left-0 z-10 p-3 text-sm font-medium text-[#1E3A5F] border-r border-[#E2E8F0]" style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#F5F7FA' }}>
-                      <div className="flex items-center gap-2">
-                        <span>{se.name}</span>
-                        {se.linkedGroupId && (
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                            🔗 {se.linkedCount} liés
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="sticky left-[250px] z-10 p-3 text-xs text-[#64748B] border-r border-[#E2E8F0]" style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#F5F7FA' }}>
-                      {se.location}
-                    </td>
-                    {columns.map((col) => {
-                      const cellData = getCellData(se.id, col.date);
-                      const colors = STATUS_COLORS[cellData.status] || STATUS_COLORS.ok;
-                      const isEditing = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date;
-                      
-                      return (
-                        <td key={col.date} className="p-2 border-r border-[#E2E8F0]">
-                          <div 
-                            className="flex flex-col gap-1 p-2 rounded-lg cursor-pointer hover:bg-[#F5F7FA]"
-                            onClick={() => !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'status' })}
-                          >
-                            {/* Status */}
-                            {isEditing && editingCell?.field === 'status' ? (
-                              <select
-                                value={cellData.status}
-                                onChange={(e) => handleUpdateCell(se.id, col.date, 'status', e.target.value)}
-                                onBlur={() => setEditingCell(null)}
-                                autoFocus
-                                className="px-2 py-1 text-xs border border-[#E2E8F0] rounded"
-                              >
-                                {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                                  <option key={key} value={key}>{label}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <div 
-                                className="px-2 py-1 rounded text-xs font-medium text-white text-center"
-                                style={{ backgroundColor: colors.hex }}
-                              >
-                                {STATUS_LABELS[cellData.status]}
-                              </div>
+                {uniqueSubElements.map((se, idx) => {
+                  const bgColor = idx % 2 === 0 ? 'white' : '#F5F7FA';
+                  
+                  return (
+                    <tr key={se.id} style={{ backgroundColor: bgColor }}>
+                      {/* Colonne Sous-élément avec nom + localisations */}
+                      <td 
+                        className="sticky left-0 z-10 p-3 border-r border-[#E2E8F0] align-top" 
+                        style={{ backgroundColor: bgColor }}
+                      >
+                        <div className="flex flex-col gap-1">
+                          {/* Nom du sous-élément */}
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-[#1E3A5F]">{se.name}</span>
+                            {se.linkedGroupId && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap">
+                                🔗 {se.linkedCount} liés
+                              </span>
                             )}
+                          </div>
+                          {/* Localisations */}
+                          <div className="flex flex-col gap-0.5">
+                            {se.locations.map((loc, locIdx) => (
+                              <span key={locIdx} className="text-xs text-[#64748B]">
+                                {loc}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+                      
+                      {/* Colonnes de données par date */}
+                      {columns.map((col) => {
+                        const cellData = getCellData(se.id, col.date);
+                        const statusColors = STATUS_COLORS[cellData.status] || STATUS_COLORS.ok;
+                        const isEditingStatus = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'status';
+                        const isEditingValue = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'value';
+                        const isEditingUnit = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'unit';
+                        
+                        return (
+                          <React.Fragment key={col.date}>
+                            {/* Criticité */}
+                            <td className="p-2 border-r border-[#E2E8F0] text-center align-middle">
+                              {isEditingStatus ? (
+                                <select
+                                  value={cellData.status}
+                                  onChange={(e) => handleUpdateCell(se.id, col.date, 'status', e.target.value)}
+                                  onBlur={() => setEditingCell(null)}
+                                  autoFocus
+                                  className="w-full px-1 py-1 text-xs border border-[#E2E8F0] rounded"
+                                >
+                                  {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <div 
+                                  className={`px-2 py-1 rounded text-xs font-medium text-white cursor-pointer hover:opacity-80 ${!readOnly ? 'hover:ring-2 hover:ring-offset-1 hover:ring-[#1E3A5F]' : ''}`}
+                                  style={{ backgroundColor: statusColors.hex }}
+                                  onClick={() => !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'status' })}
+                                >
+                                  {STATUS_LABELS[cellData.status]}
+                                </div>
+                              )}
+                            </td>
                             
-                            {/* Value + Unit */}
-                            <div className="flex items-center gap-1 text-xs">
-                              {isEditing && editingCell?.field === 'value' ? (
+                            {/* Valeur */}
+                            <td className="p-2 border-r border-[#E2E8F0] text-center align-middle">
+                              {isEditingValue ? (
                                 <input
                                   type="text"
                                   value={cellData.value || ''}
                                   onChange={(e) => handleUpdateCell(se.id, col.date, 'value', e.target.value)}
                                   onBlur={() => setEditingCell(null)}
                                   autoFocus
-                                  className="flex-1 px-2 py-1 border border-[#E2E8F0] rounded text-xs"
-                                  placeholder="Valeur"
+                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
+                                  placeholder="—"
                                 />
                               ) : (
                                 <span 
-                                  className="flex-1 text-[#1E3A5F] cursor-pointer hover:underline"
-                                  onClick={(e) => { e.stopPropagation(); !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'value' }); }}
+                                  className={`text-sm text-[#1E3A5F] ${!readOnly ? 'cursor-pointer hover:underline' : ''}`}
+                                  onClick={() => !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'value' })}
                                 >
-                                  {cellData.value || '-'}
+                                  {cellData.value || '—'}
                                 </span>
                               )}
-                              {isEditing && editingCell?.field === 'unit' ? (
+                            </td>
+                            
+                            {/* Unité */}
+                            <td className="p-2 border-r border-[#E2E8F0] text-center align-middle">
+                              {isEditingUnit ? (
                                 <input
                                   type="text"
                                   value={cellData.unit || ''}
                                   onChange={(e) => handleUpdateCell(se.id, col.date, 'unit', e.target.value)}
                                   onBlur={() => setEditingCell(null)}
                                   autoFocus
-                                  className="w-16 px-2 py-1 border border-[#E2E8F0] rounded text-xs"
-                                  placeholder="Unité"
+                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
+                                  placeholder="—"
                                 />
                               ) : (
                                 <span 
-                                  className="text-[#64748B] cursor-pointer hover:underline"
-                                  onClick={(e) => { e.stopPropagation(); !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'unit' }); }}
+                                  className={`text-xs text-[#64748B] ${!readOnly ? 'cursor-pointer hover:underline' : ''}`}
+                                  onClick={() => !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'unit' })}
                                 >
-                                  {cellData.unit || ''}
+                                  {cellData.unit || '—'}
                                 </span>
                               )}
-                            </div>
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                            </td>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
