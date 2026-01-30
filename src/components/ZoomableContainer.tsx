@@ -162,7 +162,7 @@ export default function ZoomableContainer({
     saveControlPanelPosition(null);
   }, [saveControlPanelPosition]);
 
-  // Calculer le zoom optimal pour afficher tout le contenu
+  // Calculer le zoom optimal pour afficher tout le contenu et maximiser l'utilisation de l'espace
   const fitToContent = useCallback(() => {
     const container = containerRef.current;
     const content = contentRef.current;
@@ -191,30 +191,19 @@ export default function ZoomableContainer({
     content.style.width = `${100 / originalScale}%`;
     content.style.minHeight = `${100 / originalScale}%`;
     
-    // Si le contenu est plus petit que le conteneur, pas besoin de dézoomer
-    if (contentWidth <= containerWidth && contentHeight <= containerHeight) {
-      setScale(1);
-      // Centrer la vue
-      container.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
-      return;
-    }
-    
-    // Calculer le zoom pour que tout rentre avec une marge de 5%
-    const scaleX = (containerWidth * 0.95) / contentWidth;
-    const scaleY = (containerHeight * 0.95) / contentHeight;
+    // Toujours calculer le zoom optimal pour maximiser l'utilisation de l'espace
+    // (avec une marge de 2% pour éviter que le contenu touche les bords)
+    const scaleX = (containerWidth * 0.98) / contentWidth;
+    const scaleY = (containerHeight * 0.98) / contentHeight;
     const optimalScale = Math.min(scaleX, scaleY);
     
     // Appliquer le zoom calculé (dans les limites)
     const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, optimalScale));
     setScale(newScale);
     
-    // Centrer la vue après avoir ajusté le zoom (avec un petit délai pour laisser le DOM se mettre à jour)
+    // Caler la vue en haut à gauche après avoir ajusté le zoom
     setTimeout(() => {
-      const newContentWidth = contentWidth * newScale;
-      const newContentHeight = contentHeight * newScale;
-      const scrollX = Math.max(0, (newContentWidth - containerWidth) / 2);
-      const scrollY = Math.max(0, (newContentHeight - containerHeight) / 2);
-      container.scrollTo({ left: scrollX, top: scrollY, behavior: 'smooth' });
+      container.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
     }, 50);
   }, [scale]);
 
@@ -289,25 +278,15 @@ export default function ZoomableContainer({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Centrer la vue (scroll au centre du contenu)
+  // Caler la vue en haut à gauche (pour aligner les catégories/sous-catégories)
   const centerView = useCallback(() => {
     const container = containerRef.current;
-    const content = contentRef.current;
-    if (!container || !content) return;
+    if (!container) return;
 
-    // Calculer la position pour centrer le contenu
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-    const contentWidth = content.scrollWidth;
-    const contentHeight = content.scrollHeight;
-
-    // Scroll vers le centre
-    const scrollX = Math.max(0, (contentWidth - containerWidth) / 2);
-    const scrollY = Math.max(0, (contentHeight - containerHeight) / 2);
-
+    // Scroll vers le coin supérieur gauche
     container.scrollTo({
-      left: scrollX,
-      top: scrollY,
+      left: 0,
+      top: 0,
       behavior: 'smooth'
     });
   }, []);
