@@ -40,6 +40,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
   const effectiveStatus = historicalData.status;
   const effectiveValue = historicalData.value;
   const effectiveUnit = historicalData.unit;
+  const effectiveAlertDescription = historicalData.alertDescription;
   
   const colors = STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
   // Récupérer le contexte de zoom pour compenser la taille du texte
@@ -300,24 +301,17 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         )}
       </button>
 
-      {/* Popup d'alerte */}
-      {showAlert && subElement.alert && (
-        <AlertPopup
-          alert={subElement.alert}
-          subElement={subElement}
-          breadcrumb={breadcrumb}
-          onClose={() => setShowAlert(false)}
-        />
-      )}
-
-      {/* Popup d'alerte par défaut si pas d'alerte définie */}
-      {showAlert && !subElement.alert && (
+      {/* Popup d'alerte - utilise la description historique si disponible */}
+      {showAlert && (
         <AlertPopup
           alert={{
-            id: 'temp',
+            id: subElement.alert?.id || 'temp',
             subElementId: subElement.id,
-            date: new Date().toISOString(),
-            description: `Alerte ${STATUS_LABELS[effectiveStatus]} sur ${subElement.name}`,
+            date: subElement.alert?.date || new Date().toISOString(),
+            description: effectiveAlertDescription || subElement.alert?.description || `Alerte ${STATUS_LABELS[effectiveStatus]} sur ${subElement.name}`,
+            duration: subElement.alert?.duration,
+            ticketNumber: subElement.alert?.ticketNumber,
+            actions: subElement.alert?.actions,
           }}
           subElement={subElement}
           breadcrumb={breadcrumb}

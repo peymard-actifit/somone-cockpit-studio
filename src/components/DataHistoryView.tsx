@@ -126,7 +126,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   const [editingCell, setEditingCell] = useState<{
     subElementId: string;
     columnDate: string;
-    field: 'status' | 'value' | 'unit';
+    field: 'status' | 'value' | 'unit' | 'alertDescription';
   } | null>(null);
 
   // États pour les filtres hiérarchiques
@@ -444,7 +444,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   };
 
   // Démarrer l'édition d'une cellule
-  const startEditing = (subElementId: string, columnDate: string, field: 'status' | 'value' | 'unit') => {
+  const startEditing = (subElementId: string, columnDate: string, field: 'status' | 'value' | 'unit' | 'alertDescription') => {
     if (readOnly) return;
     setEditingCell({ subElementId, columnDate, field });
   };
@@ -495,6 +495,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         'Criticité': STATUS_EXPORT_MAP[cellData.status] || cellData.status,
         'Valeur': cellData.value || '',
         'Unité': cellData.unit || '',
+        'Description': cellData.alertDescription || '',
       });
     }
 
@@ -511,6 +512,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
       { wch: 12 }, // Criticité
       { wch: 15 }, // Valeur
       { wch: 10 }, // Unité
+      { wch: 40 }, // Description
     ];
     
     const wb = XLSX.utils.book_new();
@@ -571,6 +573,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         const criticite = row['Criticité'] || row['Criticite'] || row['Status'];
         const valeur = row['Valeur'] || row['Value'];
         const unite = row['Unité'] || row['Unite'] || row['Unit'];
+        const description = row['Description'];
 
         if (!subElementName) {
           notFound++;
@@ -613,6 +616,9 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         }
         if (unite !== undefined && unite !== '') {
           newData.unit = unite.toString();
+        }
+        if (description !== undefined && description !== '') {
+          newData.alertDescription = description.toString();
         }
 
         targetColumn.data[matchedSE.id] = newData;
@@ -838,7 +844,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                   {columns.map((col) => (
                     <th 
                       key={col.date} 
-                      colSpan={3} 
+                      colSpan={4} 
                       className="p-2 text-center text-sm font-medium border-r border-[#2C4A6E]"
                     >
                       <div className="flex flex-col gap-1">
@@ -882,7 +888,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                     </th>
                   ))}
                 </tr>
-                {/* Ligne 2 : Sous-en-têtes Criticité / Valeur / Unité */}
+                {/* Ligne 2 : Sous-en-têtes Criticité / Valeur / Unité / Description */}
                 <tr className="bg-[#2C4A6E] text-white">
                   {columns.map((col) => (
                     <React.Fragment key={col.date}>
@@ -894,6 +900,9 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                       </th>
                       <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[60px]">
                         Unité
+                      </th>
+                      <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[150px]">
+                        Description
                       </th>
                     </React.Fragment>
                   ))}
@@ -957,6 +966,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                         const isEditingStatus = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'status';
                         const isEditingValue = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'value';
                         const isEditingUnit = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'unit';
+                        const isEditingDescription = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'alertDescription';
                         
                         return (
                           <React.Fragment key={col.date}>
@@ -1025,6 +1035,29 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                                   onClick={() => startEditing(se.id, col.date, 'unit')}
                                 >
                                   {cellData.unit || '—'}
+                                </span>
+                              )}
+                            </td>
+                            
+                            {/* Description */}
+                            <td className="p-2 border-r border-[#E2E8F0] text-left align-middle">
+                              {isEditingDescription ? (
+                                <EditableInput
+                                  initialValue={cellData.alertDescription || ''}
+                                  onSave={(val) => {
+                                    handleUpdateCell(se.id, col.date, 'alertDescription', val, true);
+                                  }}
+                                  onCancel={() => setEditingCell(null)}
+                                  placeholder="Description de l'alerte..."
+                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs"
+                                />
+                              ) : (
+                                <span 
+                                  className={`text-xs text-[#64748B] ${!readOnly ? 'cursor-pointer hover:underline' : ''} line-clamp-2`}
+                                  onClick={() => startEditing(se.id, col.date, 'alertDescription')}
+                                  title={cellData.alertDescription || ''}
+                                >
+                                  {cellData.alertDescription || '—'}
                                 </span>
                               )}
                             </td>
