@@ -457,7 +457,8 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   
   // Fit to content - Calculer le zoom optimal pour voir tous les points
   const fitToContent = useCallback(() => {
-    const container = containerRef.current;
+    // En mode fullscreen, utiliser le conteneur fullscreen pour les dimensions
+    const container = isFullscreen ? fullscreenContainerRef.current : containerRef.current;
     const imageContainer = imageContainerRef.current;
     if (!container || !imageContainer) {
       // Pas encore chargé, utiliser le reset view
@@ -475,15 +476,33 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
       return;
     }
 
-    // Dimensions du conteneur
+    // Dimensions du conteneur (fullscreen ou normal)
     const containerRect = container.getBoundingClientRect();
     const containerWidth = containerRect.width;
     const containerHeight = containerRect.height;
     
-    // Dimensions de l'image
-    const imageRect = imageContainer.getBoundingClientRect();
-    const imageWidth = imageRect.width / scale;
-    const imageHeight = imageRect.height / scale;
+    // Dimensions de l'image (recalculer pour le conteneur actuel)
+    const imageRect = imageContainerRef.current?.getBoundingClientRect();
+    let imageWidth = imageRect ? imageRect.width / scale : containerWidth;
+    let imageHeight = imageRect ? imageRect.height / scale : containerHeight;
+
+    // En mode fullscreen, recalculer les dimensions de l'image
+    if (isFullscreen && domain.backgroundImage) {
+      // L'image s'adapte au conteneur fullscreen avec object-contain
+      const img = imageContainer.querySelector('img');
+      if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+        const containerAspect = containerWidth / containerHeight;
+        const imageAspect = img.naturalWidth / img.naturalHeight;
+        
+        if (imageAspect > containerAspect) {
+          imageWidth = containerWidth;
+          imageHeight = containerWidth / imageAspect;
+        } else {
+          imageHeight = containerHeight;
+          imageWidth = containerHeight * imageAspect;
+        }
+      }
+    }
     
     // Calculer le bounding box des points (en utilisant gpsToPosition)
     let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
@@ -536,7 +555,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 
     setScale(newScale);
     setPosition({ x: newPosX, y: newPosY });
-  }, [domain.mapElements, scale]);
+  }, [domain.mapElements, domain.backgroundImage, scale, isFullscreen]);
 
   // Début du drag
   const handleMouseDown = (e: React.MouseEvent) => {

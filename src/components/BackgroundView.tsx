@@ -441,7 +441,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   
   // Fit to content - Calculer le zoom optimal pour voir tous les éléments
   const fitToContent = useCallback(() => {
-    const container = containerRef.current;
+    // En mode fullscreen, utiliser le conteneur fullscreen pour les dimensions
+    const container = isFullscreen ? fullscreenContainerRef.current : containerRef.current;
     if (!container || !imageBounds) {
       // Pas encore chargé, utiliser le reset view
       setScale(1);
@@ -480,18 +481,41 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     const contentWidth = maxX - minX;
     const contentHeight = maxY - minY;
 
-    // Dimensions du conteneur
+    // Dimensions du conteneur (fullscreen ou normal)
     const containerRect = container.getBoundingClientRect();
     const containerWidth = containerRect.width;
     const containerHeight = containerRect.height;
 
-    // Dimensions de l'image affichée
-    const imageWidth = imageBounds.width;
-    const imageHeight = imageBounds.height;
+    // Recalculer les dimensions de l'image pour ce conteneur
+    // En mode fullscreen, l'image s'adapte aux nouvelles dimensions
+    const img = imageRef.current;
+    let effectiveImageWidth = imageBounds.width;
+    let effectiveImageHeight = imageBounds.height;
+    let effectiveImageX = imageBounds.x;
+    let effectiveImageY = imageBounds.y;
+
+    if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      const containerAspect = containerWidth / containerHeight;
+      const imageAspect = img.naturalWidth / img.naturalHeight;
+      
+      if (imageAspect > containerAspect) {
+        // Image plus large que le conteneur
+        effectiveImageWidth = containerWidth;
+        effectiveImageHeight = containerWidth / imageAspect;
+        effectiveImageX = 0;
+        effectiveImageY = (containerHeight - effectiveImageHeight) / 2;
+      } else {
+        // Image plus haute que le conteneur
+        effectiveImageHeight = containerHeight;
+        effectiveImageWidth = containerHeight * imageAspect;
+        effectiveImageY = 0;
+        effectiveImageX = (containerWidth - effectiveImageWidth) / 2;
+      }
+    }
 
     // Calculer les dimensions du contenu en pixels (à scale=1)
-    const contentPixelWidth = (contentWidth / 100) * imageWidth;
-    const contentPixelHeight = (contentHeight / 100) * imageHeight;
+    const contentPixelWidth = (contentWidth / 100) * effectiveImageWidth;
+    const contentPixelHeight = (contentHeight / 100) * effectiveImageHeight;
 
     // Calculer le zoom pour remplir le conteneur avec le contenu (avec marge)
     const scaleX = (containerWidth * 0.9) / contentPixelWidth;
@@ -499,8 +523,8 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     const newScale = Math.min(Math.max(MIN_ZOOM, Math.min(scaleX, scaleY)), MAX_ZOOM);
 
     // Calculer le centre du contenu en pixels (dans le système de coordonnées de l'image)
-    const contentCenterX = imageBounds.x + ((minX + maxX) / 2 / 100) * imageWidth;
-    const contentCenterY = imageBounds.y + ((minY + maxY) / 2 / 100) * imageHeight;
+    const contentCenterX = effectiveImageX + ((minX + maxX) / 2 / 100) * effectiveImageWidth;
+    const contentCenterY = effectiveImageY + ((minY + maxY) / 2 / 100) * effectiveImageHeight;
 
     // Calculer la position pour centrer le contenu
     // Avec transform-origin: center, le centre du conteneur reste fixe
@@ -512,7 +536,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
     setScale(newScale);
     setPosition({ x: newPosX, y: newPosY });
-  }, [imageBounds, positionedElements]);
+  }, [imageBounds, positionedElements, isFullscreen]);
 
   // Fit-to-content automatique au premier chargement (si pas d'état sauvegardé)
   useEffect(() => {
