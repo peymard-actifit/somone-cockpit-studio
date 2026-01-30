@@ -44,6 +44,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   // (Règle #300 de React : les hooks doivent être appelés dans le même ordre à chaque rendu)
   // ============================================================================
 
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null); // Pour le mode plein écran
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -407,7 +408,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
   // Toggle plein écran
   const toggleFullscreen = useCallback(async () => {
-    const container = containerRef.current;
+    const container = fullscreenContainerRef.current;
     if (!container) return;
 
     try {
@@ -1215,7 +1216,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   }
 
   return (
-    <div className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
+    <div ref={fullscreenContainerRef} className="relative h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
       {/* Header - Style PDF SOMONE mode clair (conditionnel) */}
       {showDomainInfo && (
         <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">

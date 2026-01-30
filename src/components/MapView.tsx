@@ -49,6 +49,7 @@ interface MapViewProps {
 }
 
 export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: _domainsProp }: MapViewProps) {
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null); // Pour le mode plein écran
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement, lastClonedMapElementId, clearLastClonedMapElementId } = useCockpitStore();
@@ -423,7 +424,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
 
   // Toggle plein écran
   const toggleFullscreen = useCallback(async () => {
-    const container = containerRef.current;
+    const container = fullscreenContainerRef.current;
     if (!container) return;
 
     try {
@@ -1176,7 +1177,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   }
 
   return (
-    <div className="relative h-full bg-[#F5F7FA] overflow-hidden flex flex-col">
+    <div ref={fullscreenContainerRef} className="relative h-full bg-[#F5F7FA] overflow-hidden flex flex-col">
       {/* Header (conditionnel) */}
       {showDomainInfo && (
         <div className="absolute top-4 left-4 z-20 bg-white rounded-xl p-4 border border-[#E2E8F0] shadow-md">

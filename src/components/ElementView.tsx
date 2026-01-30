@@ -49,6 +49,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   // ============================================================================
   // ZOOM - Refs et états pour le zoom interne de la vue élément
   // ============================================================================
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null); // Pour le mode plein écran
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -247,7 +248,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
 
   // Toggle plein écran
   const toggleFullscreen = useCallback(async () => {
-    const container = containerRef.current;
+    const container = fullscreenContainerRef.current;
     if (!container) return;
 
     try {
@@ -510,6 +511,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   const combinedContainerRef = useCallback((node: HTMLDivElement | null) => {
     (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
     (mainContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    (fullscreenContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
   }, []);
 
   return (
