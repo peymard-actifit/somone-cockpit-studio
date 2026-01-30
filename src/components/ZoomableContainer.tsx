@@ -194,6 +194,8 @@ export default function ZoomableContainer({
     // Si le contenu est plus petit que le conteneur, pas besoin de dézoomer
     if (contentWidth <= containerWidth && contentHeight <= containerHeight) {
       setScale(1);
+      // Centrer la vue
+      container.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
       return;
     }
     
@@ -205,6 +207,15 @@ export default function ZoomableContainer({
     // Appliquer le zoom calculé (dans les limites)
     const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, optimalScale));
     setScale(newScale);
+    
+    // Centrer la vue après avoir ajusté le zoom (avec un petit délai pour laisser le DOM se mettre à jour)
+    setTimeout(() => {
+      const newContentWidth = contentWidth * newScale;
+      const newContentHeight = contentHeight * newScale;
+      const scrollX = Math.max(0, (newContentWidth - containerWidth) / 2);
+      const scrollY = Math.max(0, (newContentHeight - containerHeight) / 2);
+      container.scrollTo({ left: scrollX, top: scrollY, behavior: 'smooth' });
+    }, 50);
   }, [scale]);
 
   // Restaurer le zoom quand on change de domaine
