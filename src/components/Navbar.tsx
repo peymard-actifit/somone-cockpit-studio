@@ -264,7 +264,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-[#1E3A5F]" data-help-key="navbar" id="navbar">
+    <nav className="bg-[#1E3A5F] sticky top-[60px] z-40" data-help-key="navbar" id="navbar">
       <div className="flex items-center" data-help-key="navbar-domaines">
         {/* Domaines - Style bandeau PDF SOMONE avec drag and drop */}
         <DndContext

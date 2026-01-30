@@ -30,6 +30,10 @@ export function useSubElementData(
 
     // Si pas de cockpit ou pas d'historique, utiliser les données actuelles
     if (!cockpit?.dataHistory?.columns?.length) {
+      // Log uniquement si le cockpit existe mais pas de dataHistory
+      if (cockpit && !cockpit.dataHistory) {
+        console.log(`[useSubElementData] Cockpit "${cockpit.name}" sans dataHistory`);
+      }
       return defaultData;
     }
 
@@ -46,6 +50,7 @@ export function useSubElementData(
     );
 
     if (!selectedColumn) {
+      console.log(`[useSubElementData] Colonne non trouvée pour date ${activeDate}`);
       return defaultData;
     }
 
@@ -55,8 +60,14 @@ export function useSubElementData(
     const historicalData = selectedColumn.data[key];
 
     if (!historicalData) {
+      // Log pour debug - chercher dans toutes les clés disponibles
+      const availableKeys = Object.keys(selectedColumn.data);
+      console.log(`[useSubElementData] SE "${subElement.name}" (key: ${key}) non trouvé. Clés disponibles: ${availableKeys.slice(0, 5).join(', ')}${availableKeys.length > 5 ? '...' : ''}`);
       return defaultData;
     }
+
+    // Log succès
+    console.log(`[useSubElementData] SE "${subElement.name}" trouvé avec description: "${historicalData.alertDescription || 'none'}"`);
 
     // Retourner les données historiques
     return {
