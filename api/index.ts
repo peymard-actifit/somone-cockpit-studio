@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.29.11';
+const APP_VERSION = '16.29.12';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3948,6 +3948,11 @@ INSTRUCTIONS:
         // IMPORTANT: Préserver les statistiques de vue
         viewCount: cockpit.data.viewCount,
         lastViewedAt: cockpit.data.lastViewedAt,
+        // IMPORTANT: Préserver les statistiques de tracking (clics, pages, éléments)
+        clickCount: cockpit.data.clickCount,
+        pagesViewed: cockpit.data.pagesViewed,
+        elementsClicked: cockpit.data.elementsClicked,
+        subElementsClicked: cockpit.data.subElementsClicked,
         // Historique des données des sous-éléments
         dataHistory: dataHistory !== undefined ? dataHistory : cockpit.data.dataHistory,
         selectedDataDate: selectedDataDate !== undefined ? selectedDataDate : cockpit.data.selectedDataDate,
