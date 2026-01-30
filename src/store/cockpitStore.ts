@@ -1053,7 +1053,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       },
       currentDomainId: duplicatedDomain.id, // Sélectionner le nouveau domaine
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la duplication de domaine (opération critique)
+    get().triggerImmediateSave();
   },
 
   reorderDomains: (domainIds: string[]) => {
@@ -2308,7 +2309,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       } : null,
       lastClonedMapElementId: cloneId,
     }));
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour le clonage d'élément de carte (opération critique)
+    get().triggerImmediateSave();
     return cloneId;
   },
 
@@ -2376,7 +2378,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       } : null,
       lastClonedElementId: cloneId,
     }));
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour le clonage d'élément (opération critique)
+    get().triggerImmediateSave();
     return cloneId;
   },
 
@@ -2460,7 +2463,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       };
     });
     get().addRecentChange({ type: 'element', action: 'add', name: `${newElement.name} (lié)` });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la duplication liée d'élément (opération critique)
+    get().triggerImmediateSave();
   },
 
   // Dupliquer un sous-élément avec liaison automatique dans la même sous-catégorie
@@ -2536,7 +2540,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       };
     });
     get().addRecentChange({ type: 'subElement', action: 'add', name: `${newSubElement.name} (lié)` });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la duplication liée de sous-élément (opération critique)
+    get().triggerImmediateSave();
   },
 
   updateMapBounds: (domainId: string, bounds: MapBounds) => {
@@ -3819,7 +3824,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         },
       };
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la copie de contenu d'élément (opération critique)
+    get().triggerImmediateSave();
   },
 
   // Copier le contenu d'un sous-élément source vers un sous-élément cible
@@ -4127,7 +4133,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       action: 'add', 
       name: `${newCategories.length} catégorie(s) et ${totalElements} élément(s) copiés vers ${targetDomain.name}` 
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la copie d'éléments entre domaines (opération critique)
+    get().triggerImmediateSave();
 
     return { 
       success: true, 
@@ -4279,7 +4286,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       action: 'add', 
       name: `${newSubCategories.length} sous-catégorie(s) copiées vers ${targetElement.name}` 
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la copie de sous-éléments (opération critique)
+    get().triggerImmediateSave();
 
     return { 
       success: true, 
@@ -4340,7 +4348,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       action: 'delete', 
       name: `${deletedCount} éléments supprimés de ${domain.name}` 
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour la suppression d'éléments (opération critique)
+    get().triggerImmediateSave();
 
     return { 
       success: true, 
@@ -4446,7 +4455,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       action: 'update', 
       name: `Taille appliquée à ${updateCount} élément(s)` 
     });
-    get().triggerAutoSave();
+    // Sauvegarde immédiate pour l'application de taille à tous les éléments (opération critique)
+    get().triggerImmediateSave();
 
     return { 
       success: true, 
