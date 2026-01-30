@@ -42,6 +42,9 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   });
   const shouldUseWhiteBackground = isOkStatus && !greenTilesAsColored;
 
+  // État pour le survol (gestion unifiée via state React pour compatibilité navigateurs)
+  const [isHovered, setIsHovered] = useState(false);
+
   // Écouter les changements de préférence
   useEffect(() => {
     const handlePreferenceChange = () => {
@@ -63,15 +66,14 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
-  // Appliquer le style de fond quand le statut change
-  useEffect(() => {
-    if (!buttonRef.current || mini) return;
+  // Calculer la couleur de fond basée sur l'état (compatible tous navigateurs)
+  const getBackgroundColor = () => {
     if (shouldUseWhiteBackground) {
-      buttonRef.current.style.backgroundColor = '#FFFFFF';
+      return isHovered && !isDragging ? '#FAFBFC' : '#FFFFFF';
     } else {
-      buttonRef.current.style.backgroundColor = hexToRgba(colors.hex, 0.2);
+      return isHovered && !isDragging ? hexToRgba(colors.hex, 0.3) : hexToRgba(colors.hex, 0.2);
     }
-  }, [element.status, colors.hex, shouldUseWhiteBackground, mini]);
+  };
 
   // Gestion du drag and drop
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
@@ -89,12 +91,6 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
     e.currentTarget.style.opacity = '1';
     setIsDraggingOver(false);
     setIsDragging(false);
-    // Réinitialiser le style de fond
-    if (shouldUseWhiteBackground) {
-      e.currentTarget.style.backgroundColor = '#FFFFFF';
-    } else {
-      e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.2);
-    }
   };
 
   // Gestion du drop sur cette tuile (pour réordonnancement)
@@ -209,27 +205,11 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
         ${isDraggingOver ? 'border-[#1E3A5F] border-2 ring-2 ring-[#1E3A5F]/20' : 'border-[#E2E8F0] hover:border-[#CBD5E1]'}
       `}
       style={{
-        backgroundColor: shouldUseWhiteBackground ? '#FFFFFF' : hexToRgba(colors.hex, 0.2),
+        backgroundColor: getBackgroundColor(),
         transition: 'background-color 0.2s ease-out',
-      } as React.CSSProperties & { backgroundColor?: string }}
-      onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
-        if (!isDragging) {
-          if (shouldUseWhiteBackground) {
-            e.currentTarget.style.backgroundColor = '#FAFBFC';
-          } else {
-            e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.3);
-          }
-        }
       }}
-      onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
-        if (!isDragging) {
-          if (shouldUseWhiteBackground) {
-            e.currentTarget.style.backgroundColor = '#FFFFFF';
-          } else {
-            e.currentTarget.style.backgroundColor = hexToRgba(colors.hex, 0.2);
-          }
-        }
-      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Barre de couleur À GAUCHE - Style PDF SOMONE */}
       <div
