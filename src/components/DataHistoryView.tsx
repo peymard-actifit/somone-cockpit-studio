@@ -151,13 +151,25 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
       return;
     }
 
-    // Copier les données de la dernière colonne ou initialiser à vide
-    const lastColumn = columns[columns.length - 1];
+    // Trouver la date la plus proche pour copier ses données
     const newData: Record<string, SubElementDataSnapshot> = {};
     
-    if (lastColumn) {
-      // Copier les données de la dernière colonne
-      for (const [key, value] of Object.entries(lastColumn.data)) {
+    if (columns.length > 0) {
+      // Calculer la distance en jours pour chaque colonne existante
+      const newDateMs = new Date(newColumnDate).getTime();
+      let closestColumn = columns[0];
+      let minDistance = Math.abs(new Date(columns[0].date).getTime() - newDateMs);
+      
+      for (const col of columns) {
+        const distance = Math.abs(new Date(col.date).getTime() - newDateMs);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestColumn = col;
+        }
+      }
+      
+      // Copier les données de la date la plus proche
+      for (const [key, value] of Object.entries(closestColumn.data)) {
         newData[key] = { ...value };
       }
     } else {
