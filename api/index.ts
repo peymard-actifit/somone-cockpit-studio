@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.29.2';
+const APP_VERSION = '16.29.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2878,9 +2878,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             snapshotVersion: snapshot.snapshotVersion,
             snapshotCreatedAt: snapshot.snapshotCreatedAt,
             snapshotStorage: data.snapshotStorage || 'unknown',
+            // Historique des données des sous-éléments
+            dataHistory: snapshot.dataHistory || null,
+            selectedDataDate: snapshot.selectedDataDate || null,
           };
 
-          console.log(`[Public API] Envoi reponse SNAPSHOT avec ${response.domains.length} domaines`);
+          console.log(`[Public API] Envoi reponse SNAPSHOT avec ${response.domains.length} domaines, dataHistory: ${snapshot.dataHistory ? 'OUI' : 'NON'}`);
           return res.json(response);
         }
       }
@@ -2952,6 +2955,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         welcomeMessage: data.welcomeMessage || null,
         // IMPORTANT: Toujours inclure useOriginalView même dans le fallback (true par défaut)
         useOriginalView: data.useOriginalView !== false,
+        // Historique des données des sous-éléments
+        dataHistory: data.dataHistory || null,
+        selectedDataDate: data.selectedDataDate || null,
       };
 
       // Log final pour vérifier ce qui est envoyé
@@ -4282,6 +4288,9 @@ INSTRUCTIONS:
             }))
         )),
         zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
+        // Historique des données des sous-éléments
+        dataHistory: cockpit.data.dataHistory ? JSON.parse(JSON.stringify(cockpit.data.dataHistory)) : null,
+        selectedDataDate: cockpit.data.selectedDataDate || null,
       };
 
       // Stocker le snapshot dans PostgreSQL (Neon)
