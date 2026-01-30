@@ -57,11 +57,25 @@ interface DataHistoryViewProps {
   readOnly?: boolean;
 }
 
+// Informations de localisation détaillée
+interface LocationInfo {
+  domainId: string;
+  domainName: string;
+  categoryId: string;
+  categoryName: string;
+  elementId: string;
+  elementName: string;
+  subCategoryId: string;
+  subCategoryName: string;
+  fullPath: string; // Chemin complet pour affichage
+}
+
 // Collecter tous les sous-éléments uniques de la maquette
 interface UniqueSubElement {
   id: string; // subElementId ou linkedGroupId
   name: string;
-  locations: string[]; // Toutes les localisations (plusieurs si liés)
+  locations: string[]; // Toutes les localisations (plusieurs si liés) - pour compatibilité
+  locationInfos: LocationInfo[]; // Informations détaillées de localisation
   linkedGroupId?: string;
   linkedCount: number;
   originalIds: string[]; // IDs des sous-éléments originaux (pour mise à jour)
@@ -88,7 +102,11 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     field: 'status' | 'value' | 'unit';
   } | null>(null);
 
-  // Collecter tous les sous-éléments uniques
+  // États pour les filtres hiérarchiques
+  const [filterDomainId, setFilterDomainId] = useState<string>('');
+  const [filterElementId, setFilterElementId] = useState<string>('');
+
+  // Collecter tous les sous-éléments uniques avec leurs informations de localisation
   const uniqueSubElements = useMemo(() => {
     const subElementsMap = new Map<string, UniqueSubElement>();
 
@@ -98,6 +116,17 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
           for (const subCat of element.subCategories || []) {
             for (const subElement of subCat.subElements || []) {
               const location = `${domain.name} > ${category.name} > ${element.name} > ${subCat.name}`;
+              const locationInfo: LocationInfo = {
+                domainId: domain.id,
+                domainName: domain.name,
+                categoryId: category.id,
+                categoryName: category.name,
+                elementId: element.id,
+                elementName: element.name,
+                subCategoryId: subCat.id,
+                subCategoryName: subCat.name,
+                fullPath: location,
+              };
               const key = subElement.linkedGroupId || subElement.id;
               
               if (subElementsMap.has(key)) {
@@ -105,6 +134,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                 const existing = subElementsMap.get(key)!;
                 if (!existing.locations.includes(location)) {
                   existing.locations.push(location);
+                  existing.locationInfos.push(locationInfo);
                 }
                 existing.linkedCount++;
                 existing.originalIds.push(subElement.id);
@@ -114,6 +144,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                   id: key,
                   name: subElement.name,
                   locations: [location],
+                  locationInfos: [locationInfo],
                   linkedGroupId: subElement.linkedGroupId,
                   linkedCount: 1,
                   originalIds: [subElement.id],
@@ -127,6 +158,75 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
 
     return Array.from(subElementsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [cockpit.domains]);
+
+  // Liste des domaines disponibles
+  const availableDomains = useMemo(() => {
+    return cockpit.domains.map(d => ({ id: d.id, name: d.name }));
+  }, [cockpit.domains]);
+
+  // Liste des éléments disponibles (filtrés par domaine si sélectionné)
+  const availableElements = useMemo(() => {
+    const elements: { id: string; name: string; domainName: string }[] = [];
+    const seen = new Set<string>();
+    
+    for (const domain of cockpit.domains) {
+      if (filterDomainId && domain.id !== filterDomainId) continue;
+      
+      for (const category of domain.categories || []) {
+        for (const element of category.elements || []) {
+          if (!seen.has(element.id)) {
+            seen.add(element.id);
+            elements.push({ id: element.id, name: element.name, domainName: domain.name });
+          }
+        }
+      }
+    }
+    
+    return elements.sort((a, b) => a.name.localeCompare(b.name));
+  }, [cockpit.domains, filterDomainId]);
+
+  // Sous-éléments filtrés
+  const filteredSubElements = useMemo(() => {
+    if (!filterDomainId && !filterElementId) {
+      return uniqueSubElements;
+    }
+
+    return uniqueSubElements.filter(se => {
+      return se.locationInfos.some(loc => {
+        if (filterDomainId && loc.domainId !== filterDomainId) return false;
+        if (filterElementId && loc.elementId !== filterElementId) return false;
+        return true;
+      });
+    });
+  }, [uniqueSubElements, filterDomainId, filterElementId]);
+
+  // Construire le breadcrumb du filtre actuel
+  const filterBreadcrumb = useMemo(() => {
+    const parts = [cockpit.name];
+    
+    if (filterDomainId) {
+      const domain = availableDomains.find(d => d.id === filterDomainId);
+      if (domain) parts.push(domain.name);
+    }
+    
+    if (filterElementId) {
+      const element = availableElements.find(e => e.id === filterElementId);
+      if (element) parts.push(element.name);
+    }
+    
+    return parts.join(' / ');
+  }, [cockpit.name, filterDomainId, filterElementId, availableDomains, availableElements]);
+
+  // Reset du filtre élément quand on change de domaine
+  useEffect(() => {
+    if (filterDomainId) {
+      // Vérifier si l'élément sélectionné appartient toujours au domaine
+      const elementStillValid = availableElements.some(e => e.id === filterElementId);
+      if (!elementStillValid) {
+        setFilterElementId('');
+      }
+    }
+  }, [filterDomainId, availableElements, filterElementId]);
 
   // Initialiser les colonnes avec les valeurs actuelles si vide
   useEffect(() => {
@@ -436,13 +536,64 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
           <div className="bg-white rounded-lg shadow-sm border border-[#E2E8F0] overflow-auto">
             <table className="w-full border-collapse">
               <thead>
-                {/* Ligne 1 : En-tête principal avec dates groupées */}
+                {/* Ligne 1 : En-tête principal avec filtres et dates groupées */}
                 <tr className="bg-[#1E3A5F] text-white">
                   <th 
                     rowSpan={2} 
-                    className="sticky left-0 z-10 bg-[#1E3A5F] p-3 text-left text-sm font-medium border-r border-[#2C4A6E] min-w-[300px] align-middle"
+                    className="sticky left-0 z-10 bg-[#1E3A5F] p-3 text-left text-sm font-medium border-r border-[#2C4A6E] min-w-[350px] align-top"
                   >
-                    Sous-élément
+                    {/* Zone de filtres hiérarchiques */}
+                    <div className="flex flex-col gap-2">
+                      {/* Breadcrumb du filtre actuel */}
+                      <div className="flex items-center gap-2 text-cyan-300 text-xs font-normal">
+                        <MuiIcon name="FilterList" size={14} />
+                        <span>{filterBreadcrumb}</span>
+                        {(filterDomainId || filterElementId) && (
+                          <button
+                            onClick={() => { setFilterDomainId(''); setFilterElementId(''); }}
+                            className="ml-2 px-1.5 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px]"
+                            title="Réinitialiser les filtres"
+                          >
+                            ✕ Effacer
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Sélecteurs de filtres */}
+                      <div className="flex flex-col gap-1.5">
+                        {/* Filtre Domaine */}
+                        <select
+                          value={filterDomainId}
+                          onChange={(e) => setFilterDomainId(e.target.value)}
+                          className="w-full px-2 py-1 text-xs bg-[#2C4A6E] border border-[#3D5A7E] rounded text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                        >
+                          <option value="">Tous les domaines</option>
+                          {availableDomains.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                        
+                        {/* Filtre Élément */}
+                        <select
+                          value={filterElementId}
+                          onChange={(e) => setFilterElementId(e.target.value)}
+                          className="w-full px-2 py-1 text-xs bg-[#2C4A6E] border border-[#3D5A7E] rounded text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                          disabled={availableElements.length === 0}
+                        >
+                          <option value="">Tous les éléments</option>
+                          {availableElements.map(e => (
+                            <option key={e.id} value={e.id}>
+                              {filterDomainId ? e.name : `${e.name} (${e.domainName})`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {/* Compteur de résultats filtrés */}
+                      <div className="text-[10px] text-white/70 font-normal">
+                        {filteredSubElements.length} / {uniqueSubElements.length} sous-élément{filteredSubElements.length > 1 ? 's' : ''}
+                      </div>
+                    </div>
                   </th>
                   {columns.map((col) => (
                     <th 
@@ -486,7 +637,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                 </tr>
               </thead>
               <tbody>
-                {uniqueSubElements.map((se, idx) => {
+                {filteredSubElements.map((se, idx) => {
                   const bgColor = idx % 2 === 0 ? 'white' : '#F5F7FA';
                   
                   return (
@@ -506,13 +657,32 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                               </span>
                             )}
                           </div>
-                          {/* Localisations */}
+                          {/* Localisations filtrées */}
                           <div className="flex flex-col gap-0.5">
-                            {se.locations.map((loc, locIdx) => (
-                              <span key={locIdx} className="text-xs text-[#64748B]">
-                                {loc}
-                              </span>
-                            ))}
+                            {se.locationInfos
+                              .filter(loc => {
+                                if (filterDomainId && loc.domainId !== filterDomainId) return false;
+                                if (filterElementId && loc.elementId !== filterElementId) return false;
+                                return true;
+                              })
+                              .map((loc, locIdx) => {
+                                // Construire le chemin en fonction des filtres actifs
+                                let path = '';
+                                if (!filterDomainId) {
+                                  path = loc.fullPath;
+                                } else if (!filterElementId) {
+                                  // Domaine filtré : afficher Cat > Elem > SubCat
+                                  path = `${loc.categoryName} > ${loc.elementName} > ${loc.subCategoryName}`;
+                                } else {
+                                  // Élément filtré : afficher SubCat uniquement
+                                  path = loc.subCategoryName;
+                                }
+                                return (
+                                  <span key={locIdx} className="text-xs text-[#64748B]">
+                                    {path}
+                                  </span>
+                                );
+                              })}
                           </div>
                         </div>
                       </td>
