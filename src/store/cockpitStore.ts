@@ -153,7 +153,7 @@ interface CockpitState {
   clearDomainElements: (domainId: string) => Promise<{ success: boolean; message: string; deletedCount: number }>;
   
   // Appliquer la taille d'un élément à tous les autres éléments du même domaine
-  applySizeToAllElements: (elementId: string) => { success: boolean; message: string; updatedCount: number };
+  applySizeToAllElements: (elementId: string) => Promise<{ success: boolean; message: string; updatedCount: number }>;
 
   // Incidents (Vue Alertes)
   addIncident: (domainId: string, incident: Omit<Incident, 'id' | 'domainId' | 'createdAt' | 'updatedAt'>) => void;
@@ -4362,7 +4362,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   // Appliquer la taille d'un élément à tous les autres éléments du même domaine
-  applySizeToAllElements: (elementId: string) => {
+  applySizeToAllElements: async (elementId: string) => {
     const cockpit = get().currentCockpit;
     if (!cockpit) {
       return { success: false, message: 'Aucun cockpit sélectionné', updatedCount: 0 };
@@ -4459,7 +4459,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       name: `Taille appliquée à ${updateCount} élément(s)` 
     });
     // Sauvegarde immédiate pour l'application de taille à tous les éléments (opération critique)
-    get().triggerImmediateSave();
+    // IMPORTANT: await pour s'assurer que la sauvegarde est terminée avant de retourner
+    await get().triggerImmediateSave();
 
     return { 
       success: true, 

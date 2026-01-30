@@ -2389,7 +2389,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     });
                     
                     if (confirmed) {
-                      const result = applySizeToAllElements(element.id);
+                      const result = await applySizeToAllElements(element.id);
                       alert(result.message);
                     }
                   }}
