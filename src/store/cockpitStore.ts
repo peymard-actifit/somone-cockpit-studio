@@ -714,7 +714,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const payloadStr = JSON.stringify(payload);
     const payloadSizeMB = payloadStr.length / 1024 / 1024;
     
+    // Log détaillé pour le diagnostic
+    const domainsInfo = (currentCockpit.domains || []).map(d => ({
+      name: d.name,
+      categoriesCount: d.categories?.length || 0,
+      elementsCount: (d.categories || []).reduce((sum, c) => sum + (c.elements?.length || 0), 0)
+    }));
     console.log(`[Immediate-save] 📦 Sauvegarde immédiate... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines)`);
+    console.log(`[Immediate-save] Domaines:`, domainsInfo);
     
     // Toujours sauvegarder une copie locale
     offlineSync.backupCockpit(currentCockpit);
@@ -4133,9 +4140,22 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       action: 'add', 
       name: `${newCategories.length} catégorie(s) et ${totalElements} élément(s) copiés vers ${targetDomain.name}` 
     });
+    
+    // IMPORTANT: Attendre que l'état Zustand soit bien propagé avant de sauvegarder
+    // Utiliser un micro-task pour garantir que set() a terminé
+    await Promise.resolve();
+    
+    // Vérification que les données sont bien en place avant sauvegarde
+    const updatedCockpit = get().currentCockpit;
+    const updatedTargetDomain = updatedCockpit?.domains?.find(d => d.id === targetDomainId);
+    const updatedCategoriesCount = updatedTargetDomain?.categories?.length || 0;
+    console.log(`[CopyDomainElements] État après set(): ${updatedCategoriesCount} catégories dans domaine cible`);
+    
     // Sauvegarde immédiate pour la copie d'éléments entre domaines (opération critique)
     // IMPORTANT: await pour s'assurer que la sauvegarde est terminée avant de retourner
     await get().triggerImmediateSave();
+    
+    console.log(`[CopyDomainElements] ✅ Sauvegarde immédiate terminée`);
 
     return { 
       success: true, 
