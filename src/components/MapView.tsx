@@ -111,6 +111,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
   // État pour la vue éléments d'une catégorie (quand on clique sur le nom de la catégorie)
   const [categoryViewId, setCategoryViewId] = useState<string | null>(null);
 
+  // État pour le mode plein écran
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // Mettre à jour les catégories sélectionnées si les catégories du domaine changent
   useEffect(() => {
     const currentCategoryIds = domain.categories?.map(c => c.id) || [];
@@ -417,6 +420,34 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     setScale(1);
     setPosition({ x: 0, y: 0 });
   };
+
+  // Toggle plein écran
+  const toggleFullscreen = useCallback(async () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error('Erreur plein écran:', error);
+    }
+  }, []);
+
+  // Écouter les changements de plein écran (ex: Echap)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
   
   // Fit to content - Calculer le zoom optimal pour voir tous les points
   const fitToContent = useCallback(() => {
@@ -1336,8 +1367,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
             <MuiIcon name="Remove" size={20} />
           </button>
-          <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title="Ajuster à la fenêtre">
+          <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
             <MuiIcon name="FitScreen" size={20} />
+          </button>
+          <button onClick={toggleFullscreen} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}>
+            <MuiIcon name={isFullscreen ? "FullscreenExit" : "Fullscreen"} size={20} />
           </button>
         </div>
 

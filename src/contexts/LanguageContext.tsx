@@ -366,6 +366,10 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'editor.cancel': { FR: 'Annuler', EN: 'Cancel' },
   'editor.preferences': { FR: 'Préférences d\'affichage', EN: 'Display preferences' },
   
+  // === Zoom ===
+  'zoom.fullscreen': { FR: 'Mode plein écran', EN: 'Fullscreen mode' },
+  'zoom.exitFullscreen': { FR: 'Quitter le plein écran', EN: 'Exit fullscreen' },
+  
   // === Statuts ===
   'status.ok': { FR: 'OK', EN: 'OK' },
   'status.minor': { FR: 'Mineur', EN: 'Minor' },

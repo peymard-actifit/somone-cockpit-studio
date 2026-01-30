@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { MuiIcon } from './IconPicker';
 import { ZoomProvider, calculateTextCompensation } from '../contexts/ZoomContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
@@ -71,6 +72,10 @@ export default function ZoomableContainer({
   
   // État pour l'auto-hide des contrôles en mode lecture seule
   const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
+  
+  // État pour le mode plein écran
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { t } = useLanguage();
   
   // Position du panneau de contrôle (drag and drop) - seulement en mode studio
   const [controlPanelPosition, setControlPanelPosition] = useState<{ x: number; y: number } | null>(() => 
@@ -245,6 +250,34 @@ export default function ZoomableContainer({
     fitToContent();
   }, [fitToContent]);
 
+  // Toggle plein écran
+  const toggleFullscreen = useCallback(async () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error('Erreur plein écran:', error);
+    }
+  }, []);
+
+  // Écouter les changements de plein écran (ex: Echap)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   // Zoom avec la molette
   const handleWheel = useCallback((e: React.WheelEvent) => {
     // Ne zoomer que si Ctrl est enfoncé (pour ne pas interférer avec le scroll normal)
@@ -350,10 +383,17 @@ export default function ZoomableContainer({
             </button>
             <button 
               onClick={resetZoom} 
-              className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" 
+              className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" 
               title="Ajuster à la fenêtre"
             >
               <MuiIcon name="FitScreen" size={20} />
+            </button>
+            <button 
+              onClick={toggleFullscreen} 
+              className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" 
+              title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}
+            >
+              <MuiIcon name={isFullscreen ? "FullscreenExit" : "Fullscreen"} size={20} />
             </button>
           </div>
 
