@@ -10,6 +10,7 @@ import { VERSION_DISPLAY } from '../config/version';
 import { getDomainWorstStatus, STATUS_COLORS } from '../types';
 import { TrackingProvider, useTracking } from '../contexts/TrackingContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useCockpitStore } from '../store/cockpitStore';
 
 function PublicCockpitContent() {
   const { publicId } = useParams();
@@ -78,6 +79,10 @@ function PublicCockpitContent() {
         }
 
         setCockpit(data);
+        
+        // Mettre le cockpit dans le store pour que les composants enfants puissent y accéder
+        // (nécessaire pour les données historiques dans SubElementTile)
+        useCockpitStore.setState({ currentCockpit: data });
 
         // Sélectionner le premier domaine par défaut
         if (data.domains && data.domains.length > 0) {
@@ -95,6 +100,11 @@ function PublicCockpitContent() {
     if (publicId) {
       fetchPublicCockpit();
     }
+    
+    // Nettoyer le store quand le composant est démonté
+    return () => {
+      useCockpitStore.setState({ currentCockpit: null });
+    };
   }, [publicId]);
 
   // Tracker la première page vue une fois le cockpit chargé
