@@ -230,15 +230,41 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     }
     
     // Filtre par recherche textuelle (insensible à la casse)
+    // Recherche dans : nom, chemins, criticités, valeurs, unités, descriptions
     if (searchText.trim()) {
       const searchLower = searchText.toLowerCase().trim();
-      filtered = filtered.filter(se => 
-        se.name.toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter(se => {
+        // Recherche dans le nom
+        if (se.name.toLowerCase().includes(searchLower)) return true;
+        
+        // Recherche dans les chemins (localisations)
+        if (se.locations.some(loc => loc.toLowerCase().includes(searchLower))) return true;
+        
+        // Recherche dans les données de toutes les colonnes
+        for (const col of columns) {
+          const cellData = col.data[se.id];
+          if (cellData) {
+            // Recherche dans la criticité (label traduit)
+            const statusLabel = STATUS_LABELS[cellData.status] || '';
+            if (statusLabel.toLowerCase().includes(searchLower)) return true;
+            
+            // Recherche dans la valeur
+            if (cellData.value && cellData.value.toLowerCase().includes(searchLower)) return true;
+            
+            // Recherche dans l'unité
+            if (cellData.unit && cellData.unit.toLowerCase().includes(searchLower)) return true;
+            
+            // Recherche dans la description
+            if (cellData.alertDescription && cellData.alertDescription.toLowerCase().includes(searchLower)) return true;
+          }
+        }
+        
+        return false;
+      });
     }
     
     return filtered;
-  }, [uniqueSubElements, filterDomainId, filterElementId, searchText]);
+  }, [uniqueSubElements, filterDomainId, filterElementId, searchText, columns]);
 
   // Construire le breadcrumb du filtre actuel
   const filterBreadcrumb = useMemo(() => {
