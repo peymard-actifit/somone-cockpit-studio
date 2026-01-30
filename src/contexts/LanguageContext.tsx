@@ -388,6 +388,19 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'template.background': { FR: 'Background', EN: 'Background' },
   'template.hoursTracking': { FR: 'Suivi des heures', EN: 'Hours Tracking' },
   'template.library': { FR: 'Bibliothèque', EN: 'Library' },
+  'template.dataHistory': { FR: 'Historique données', EN: 'Data History' },
+  
+  // === Historique des données ===
+  'dataHistory.title': { FR: 'Historique des données', EN: 'Data History' },
+  'dataHistory.addDate': { FR: 'Ajouter une date', EN: 'Add date' },
+  'dataHistory.initWithCurrent': { FR: 'Initialiser avec valeurs actuelles', EN: 'Initialize with current values' },
+  'dataHistory.subElement': { FR: 'Sous-élément', EN: 'Sub-element' },
+  'dataHistory.location': { FR: 'Localisation', EN: 'Location' },
+  'dataHistory.linked': { FR: 'liés', EN: 'linked' },
+  'dataHistory.deleteColumn': { FR: 'Supprimer cette colonne', EN: 'Delete this column' },
+  'dataHistory.currentData': { FR: 'Données actuelles', EN: 'Current data' },
+  'dataHistory.selectDate': { FR: 'Sélectionner la date d\'affichage', EN: 'Select display date' },
+  'dataHistory.noData': { FR: 'Aucune donnée pour cette date', EN: 'No data for this date' },
   
   // === Modales ===
   'modal.confirm': { FR: 'Confirmer', EN: 'Confirm' },

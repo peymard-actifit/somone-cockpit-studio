@@ -2994,6 +2994,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               { type: 'alerts' as TemplateType, label: 'Alertes', desc: 'Liste d\'incidents et statistiques' },
               { type: 'stats' as TemplateType, label: 'Stats', desc: 'Graphiques de disponibilité' },
               { type: 'library' as TemplateType, label: 'Bibliothèque', desc: 'Zones et templates supervisables', clientRestricted: true },
+              { type: 'data-history' as TemplateType, label: 'Historique données', desc: 'Tableau des données par date' },
             ].filter(item => !isClientUser || !item.clientRestricted).map(({ type, label, desc }) => (
               <button
                 key={type}

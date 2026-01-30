@@ -10,6 +10,7 @@ import GridView from './GridView';
 import AlertsView from './AlertsView';
 import StatsView from './StatsView';
 import LibraryView from './LibraryView';
+import DataHistoryView from './DataHistoryView';
 import ZoomableContainer from './ZoomableContainer';
 import { MuiIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
@@ -225,6 +226,16 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
         <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom}>
           <LibraryView domain={domain} cockpit={cockpit} readOnly={readOnly} />
         </ZoomableContainer>
+      </div>
+    );
+  }
+
+  // Vue historique des données
+  if (domain.templateType === 'data-history') {
+    if (!cockpit) return null;
+    return (
+      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
+        <DataHistoryView cockpit={cockpit} readOnly={readOnly} />
       </div>
     );
   }

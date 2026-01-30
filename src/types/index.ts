@@ -13,7 +13,8 @@ export type TemplateType =
   | 'hours-tracking' // Vue suivi des heures
   | 'alerts'        // Vue alertes/incidents
   | 'stats'         // Vue statistiques
-  | 'library';      // Vue bibliothèque (zones + templates)
+  | 'library'       // Vue bibliothèque (zones + templates)
+  | 'data-history'; // Vue historique des données (tableau par date)
 
 // Orientation des catégories
 export type Orientation = 'horizontal' | 'vertical';
@@ -76,6 +77,43 @@ export interface Cockpit {
     updatedAt: string;
     updatedByUsername?: string;
   }>;
+  // Historique des données des sous-éléments
+  dataHistory?: DataHistory;
+  // Date sélectionnée pour afficher les données (format YYYY-MM-DD)
+  selectedDataDate?: string;
+}
+
+// ============================================================================
+// HISTORIQUE DES DONNÉES DES SOUS-ÉLÉMENTS
+// ============================================================================
+
+// Données d'un sous-élément pour une date donnée
+export interface SubElementDataSnapshot {
+  status: TileStatus;
+  value?: string;
+  unit?: string;
+  alertDescription?: string;
+}
+
+// Colonne de données pour une date
+export interface DataHistoryColumn {
+  date: string; // Format YYYY-MM-DD
+  label?: string; // Label optionnel (ex: "Semaine 1", "Janvier 2024")
+  data: Record<string, SubElementDataSnapshot>; // Clé = subElementId ou linkedGroupId
+}
+
+// Historique complet des données
+export interface DataHistory {
+  columns: DataHistoryColumn[];
+  // Liste des sous-éléments uniques (les liés sont regroupés)
+  subElements: Array<{
+    id: string; // subElementId ou linkedGroupId
+    name: string;
+    location: string; // Chemin: Domaine > Catégorie > Élément > Sous-catégorie
+    linkedGroupId?: string; // Si c'est un groupe lié
+    linkedCount?: number; // Nombre de sous-éléments liés
+  }>;
+  lastUpdated?: string;
 }
 
 // Coordonnées GPS
