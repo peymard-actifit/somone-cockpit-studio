@@ -405,6 +405,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setScale(1);
     setPosition({ x: 0, y: 0 });
   };
+  
+  // Centrer la vue (remet la position au centre sans changer le zoom)
+  const centerView = useCallback(() => {
+    setPosition({ x: 0, y: 0 });
+  }, []);
 
   // Toggle plein écran
   const toggleFullscreen = useCallback(async () => {
@@ -1383,9 +1388,14 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
           <button onClick={fitToContent} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
             <MuiIcon name="FitScreen" size={20} />
           </button>
-          <button onClick={toggleFullscreen} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}>
+          <button onClick={toggleFullscreen} className={`p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] ${_readOnly ? 'border-b border-[#E2E8F0]' : ''}`} title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}>
             <MuiIcon name={isFullscreen ? "FullscreenExit" : "Fullscreen"} size={20} />
           </button>
+          {_readOnly && (
+            <button onClick={centerView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title={t('zoom.center')}>
+              <MuiIcon name="CenterFocusStrong" size={20} />
+            </button>
+          )}
         </div>
 
         {/* Indicateur de zoom éditable */}

@@ -369,6 +369,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   // === Zoom ===
   'zoom.fullscreen': { FR: 'Mode plein écran', EN: 'Fullscreen mode' },
   'zoom.exitFullscreen': { FR: 'Quitter le plein écran', EN: 'Exit fullscreen' },
+  'zoom.center': { FR: 'Centrer la vue', EN: 'Center view' },
   
   // === Statuts ===
   'status.ok': { FR: 'OK', EN: 'OK' },

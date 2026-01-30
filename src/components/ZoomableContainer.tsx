@@ -278,6 +278,29 @@ export default function ZoomableContainer({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Centrer la vue (scroll au centre du contenu)
+  const centerView = useCallback(() => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+
+    // Calculer la position pour centrer le contenu
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    const contentWidth = content.scrollWidth;
+    const contentHeight = content.scrollHeight;
+
+    // Scroll vers le centre
+    const scrollX = Math.max(0, (contentWidth - containerWidth) / 2);
+    const scrollY = Math.max(0, (contentHeight - containerHeight) / 2);
+
+    container.scrollTo({
+      left: scrollX,
+      top: scrollY,
+      behavior: 'smooth'
+    });
+  }, []);
+
   // Zoom avec la molette
   const handleWheel = useCallback((e: React.WheelEvent) => {
     // Ne zoomer que si Ctrl est enfoncé (pour ne pas interférer avec le scroll normal)
@@ -390,11 +413,20 @@ export default function ZoomableContainer({
             </button>
             <button 
               onClick={toggleFullscreen} 
-              className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" 
+              className={`p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] ${readOnly ? 'border-b border-[#E2E8F0]' : ''}`}
               title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}
             >
               <MuiIcon name={isFullscreen ? "FullscreenExit" : "Fullscreen"} size={20} />
             </button>
+            {readOnly && (
+              <button 
+                onClick={centerView} 
+                className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" 
+                title={t('zoom.center')}
+              >
+                <MuiIcon name="CenterFocusStrong" size={20} />
+              </button>
+            )}
           </div>
 
           {/* Indicateur de zoom éditable */}

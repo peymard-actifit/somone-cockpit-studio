@@ -246,6 +246,29 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
   const zoomOut = useCallback(() => setScale(prev => Math.max(MIN_ZOOM, prev - ZOOM_STEP)), []);
   const resetZoom = useCallback(() => fitToContent(), [fitToContent]);
 
+  // Centrer la vue (scroll au centre du contenu)
+  const centerView = useCallback(() => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+
+    // Calculer la position pour centrer le contenu
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    const contentWidth = content.scrollWidth;
+    const contentHeight = content.scrollHeight;
+
+    // Scroll vers le centre
+    const scrollX = Math.max(0, (contentWidth - containerWidth) / 2);
+    const scrollY = Math.max(0, (contentHeight - containerHeight) / 2);
+
+    container.scrollTo({
+      left: scrollX,
+      top: scrollY,
+      behavior: 'smooth'
+    });
+  }, []);
+
   // Toggle plein écran
   const toggleFullscreen = useCallback(async () => {
     const container = fullscreenContainerRef.current;
@@ -577,9 +600,14 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
           <button onClick={resetZoom} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
             <MuiIcon name="FitScreen" size={20} />
           </button>
-          <button onClick={toggleFullscreen} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}>
+          <button onClick={toggleFullscreen} className={`p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] ${readOnly ? 'border-b border-[#E2E8F0]' : ''}`} title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}>
             <MuiIcon name={isFullscreen ? "FullscreenExit" : "Fullscreen"} size={20} />
           </button>
+          {readOnly && (
+            <button onClick={centerView} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title={t('zoom.center')}>
+              <MuiIcon name="CenterFocusStrong" size={20} />
+            </button>
+          )}
         </div>
 
         {/* Indicateur de zoom éditable */}
