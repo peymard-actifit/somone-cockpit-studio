@@ -7,6 +7,7 @@ import { MuiIcon } from './IconPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useTracking } from '../contexts/TrackingContext';
 import { useZoom } from '../contexts/ZoomContext';
+import { useSubElementData } from '../hooks/useDataHistory';
 
 interface SubElementTileProps {
   subElement: SubElement;
@@ -28,10 +29,19 @@ interface SubElementTileProps {
 
 export default function SubElementTile({ subElement, breadcrumb, readOnly = false, subCategoryId, index, totalElements, onReorder, onSubElementClick, isVertical = false, columnWidth }: SubElementTileProps) {
   const [showAlert, setShowAlert] = useState(false);
-  const { deleteSubElement, duplicateSubElementLinked } = useCockpitStore();
+  const { deleteSubElement, duplicateSubElementLinked, currentCockpit } = useCockpitStore();
   const confirm = useConfirm();
   const { trackEvent, isTracking } = useTracking();
-  const colors = STATUS_COLORS[subElement.status] || STATUS_COLORS.ok;
+  
+  // Récupérer les données historiques si une date est sélectionnée
+  const historicalData = useSubElementData(subElement, currentCockpit);
+  
+  // Utiliser les données historiques si disponibles, sinon les données du sous-élément
+  const effectiveStatus = historicalData.status;
+  const effectiveValue = historicalData.value;
+  const effectiveUnit = historicalData.unit;
+  
+  const colors = STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
   // Récupérer le contexte de zoom pour compenser la taille du texte
   const { textCompensation } = useZoom();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -136,7 +146,8 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
   };
 
   // Les tuiles vertes et grises ne montrent pas d'alerte
-  const hasAlert = ['fatal', 'critique', 'mineur'].includes(subElement.status);
+  // Utiliser le statut effectif (historique si sélectionné)
+  const hasAlert = ['fatal', 'critique', 'mineur'].includes(effectiveStatus);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -242,20 +253,20 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         </div>
 
         {/* Valeur et unité (si présent) - compensé pour rester lisible à bas zoom */}
-        {subElement.value && (
+        {effectiveValue && (
           <div className={`flex items-baseline gap-1 mt-2 pt-2 border-t border-white/20 ${isVertical ? 'px-2' : ''}`}>
             <span 
               className="font-bold text-white truncate"
               style={{ fontSize: `${1.125 * textCompensation}rem` }} // text-lg = 1.125rem
             >
-              {subElement.value}
+              {effectiveValue}
             </span>
-            {subElement.unit && (
+            {effectiveUnit && (
               <span 
                 className="text-white/80 flex-shrink-0"
                 style={{ fontSize: `${0.75 * textCompensation}rem` }} // text-xs = 0.75rem
               >
-                {subElement.unit}
+                {effectiveUnit}
               </span>
             )}
           </div>
@@ -306,7 +317,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
             id: 'temp',
             subElementId: subElement.id,
             date: new Date().toISOString(),
-            description: `Alerte ${STATUS_LABELS[subElement.status]} sur ${subElement.name}`,
+            description: `Alerte ${STATUS_LABELS[effectiveStatus]} sur ${subElement.name}`,
           }}
           subElement={subElement}
           breadcrumb={breadcrumb}
