@@ -175,7 +175,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'hours-tracking') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom}>
           <HoursTrackingView domain={domain} readOnly={readOnly} />
         </ZoomableContainer>
       </div>
@@ -186,7 +186,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'grid') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom}>
           <GridView domain={domain} onElementClick={onElementClick} readOnly={readOnly} viewMode={gridViewMode} domains={cockpit?.domains} />
         </ZoomableContainer>
       </div>
@@ -198,7 +198,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom}>
           <AlertsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
         </ZoomableContainer>
       </div>
@@ -210,7 +210,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom}>
           <StatsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
         </ZoomableContainer>
       </div>
@@ -222,7 +222,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom}>
           <LibraryView domain={domain} cockpit={cockpit} readOnly={readOnly} />
         </ZoomableContainer>
       </div>
@@ -323,7 +323,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (showFullDomainView) {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={`${domain.id}-full`} readOnly={readOnly}>
+        <ZoomableContainer domainId={`${domain.id}-full`} readOnly={readOnly} minFontZoom={domain.minFontZoom}>
           <FullDomainView
             domain={domain}
             onBack={() => setShowFullDomainView(false)}
@@ -345,7 +345,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (selectedCategory) {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={`${domain.id}-cat-${selectedCategory.id}`} readOnly={readOnly}>
+        <ZoomableContainer domainId={`${domain.id}-cat-${selectedCategory.id}`} readOnly={readOnly} minFontZoom={domain.minFontZoom}>
           <CategoryView
             category={selectedCategory}
             domain={domain}

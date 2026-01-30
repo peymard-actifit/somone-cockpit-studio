@@ -8,7 +8,14 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html {
+  height: 100%;
+  width: 100%;
+  /* Taille de base fixe pour cohérence entre navigateurs (Chrome, Firefox, Edge) */
+  font-size: 16px;
+}
+
+body, #root {
   height: 100%;
   width: 100%;
 }
