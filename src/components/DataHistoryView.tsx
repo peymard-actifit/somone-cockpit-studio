@@ -469,7 +469,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     const timeStamp = `${hours}${minutes}${seconds}`;
     const cleanName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ');
     const cleanDate = date.replace(/-/g, '');
-    return `${dateStamp} SOMONE Cockpit Generator ${cleanName} data ${cleanDate} ${timeStamp}.xlsx`;
+    return `${dateStamp} SOMONE Cockpit Data ${cleanName} ${cleanDate} ${timeStamp}.xlsx`;
   };
 
   // Exporter les données d'une date vers Excel
