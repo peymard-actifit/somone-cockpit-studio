@@ -226,7 +226,7 @@ export default function CategorySection({ category, onElementClick, onCategoryCl
       {/* En-tête de catégorie - Style PDF SOMONE mode clair */}
       {/* Cliquable pour ouvrir la vue Catégorie */}
       <div
-        className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'} ${useGridLayout && useInlineLayout ? getMarginBottomClass(categorySpacing) : ''} ${onCategoryClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+        className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0 self-start' : 'mb-4'} ${useGridLayout && useInlineLayout ? getMarginBottomClass(categorySpacing) : ''} ${onCategoryClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
         style={useInlineLayout && categoryHeaderMinWidth && !useGridLayout ? { minWidth: `${categoryHeaderMinWidth}px` } : undefined}
         onClick={() => onCategoryClick?.(category.id)}
         role={onCategoryClick ? 'button' : undefined}
@@ -300,7 +300,7 @@ export default function CategorySection({ category, onElementClick, onCategoryCl
             <MuiIcon name="Delete" size={16} />
           </button>
         )}
-        <div className={`flex flex-row flex-wrap ${getGapClass(horizontalSpacing)}`}>
+        <div className={`flex flex-row flex-wrap items-start ${getGapClass(horizontalSpacing)}`}>
           {(category.elements || []).map((element, index) => (
             <ElementTile
               key={element.id}

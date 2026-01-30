@@ -602,7 +602,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
         {/* Catégories HORIZONTALES */}
         {/* Utiliser CSS Grid pour aligner les tuiles quand mode inline est activé */}
         <div 
-          className={horizontalCategoriesInline ? 'grid gap-x-4' : ''}
+          className={horizontalCategoriesInline ? 'grid gap-x-4 items-start' : ''}
           style={horizontalCategoriesInline ? { gridTemplateColumns: 'max-content 1fr' } : undefined}
         >
           {horizontalCategories.map((category) => {
