@@ -1,0 +1,48 @@
+---
+description: Règles d'internationalisation - Toujours mettre à jour les traductions FR/EN
+alwaysApply: true
+---
+
+# Internationalisation (i18n)
+
+## Règle obligatoire
+
+Toute évolution du code qui ajoute ou modifie du texte affiché à l'utilisateur DOIT inclure les traductions FR et EN.
+
+## Fichier de traductions
+
+Les traductions sont définies dans `src/contexts/LanguageContext.tsx` dans l'objet `defaultTranslations`.
+
+## Processus à suivre
+
+1. **Identifier les textes** : Repérer tout nouveau texte (labels, tooltips, messages, titres, boutons)
+2. **Ajouter les clés** : Créer une clé descriptive dans `defaultTranslations`
+3. **Fournir les deux langues** : Toujours FR et EN
+
+```typescript
+// ❌ BAD - Texte hardcodé
+<button title="Ajuster à la fenêtre">
+
+// ✅ GOOD - Utilise le système de traduction
+<button title={t('zoom.fitToWindow')}>
+
+// Dans LanguageContext.tsx :
+'zoom.fitToWindow': { FR: 'Ajuster à la fenêtre', EN: 'Fit to window' },
+```
+
+## Organisation des clés
+
+Regrouper les clés par catégorie avec des préfixes :
+- `status.*` - États (ok, fatal, critical, minor)
+- `zoom.*` - Contrôles de zoom
+- `help.*` - Aide contextuelle
+- `tutorial.*` - Tutoriels
+- `action.*` - Actions utilisateur
+- `common.*` - Textes communs
+
+## Vérification avant déploiement
+
+- [ ] Aucun texte hardcodé en français ou anglais
+- [ ] Toutes les nouvelles clés ont FR et EN
+- [ ] Les tooltips utilisent `t('...')`
+- [ ] Les labels utilisent `t('...')`
