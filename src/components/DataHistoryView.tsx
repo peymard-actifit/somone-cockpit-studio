@@ -1,9 +1,56 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Cockpit, TileStatus, DataHistoryColumn, SubElementDataSnapshot } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from './IconPicker';
 import { useLanguage } from '../contexts/LanguageContext';
+
+// Composant d'input isolé pour éviter les re-renders
+interface EditableInputProps {
+  initialValue: string;
+  onSave: (value: string) => void;
+  onCancel: () => void;
+  placeholder?: string;
+  className?: string;
+}
+
+function EditableInput({ initialValue, onSave, onCancel, placeholder, className }: EditableInputProps) {
+  const [value, setValue] = useState(initialValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Focus l'input au montage
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const handleBlur = () => {
+    onSave(value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onSave(value);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      placeholder={placeholder}
+      className={className}
+    />
+  );
+}
 
 interface DataHistoryViewProps {
   cockpit: Cockpit;
@@ -40,9 +87,6 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     columnDate: string;
     field: 'status' | 'value' | 'unit';
   } | null>(null);
-  
-  // Valeur temporaire pendant l'édition (pour les inputs texte)
-  const [editingValue, setEditingValue] = useState<string>('');
 
   // Collecter tous les sous-éléments uniques
   const uniqueSubElements = useMemo(() => {
@@ -275,17 +319,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   // Démarrer l'édition d'une cellule
   const startEditing = (subElementId: string, columnDate: string, field: 'status' | 'value' | 'unit') => {
     if (readOnly) return;
-    const cellData = getCellData(subElementId, columnDate);
-    const initialValue = field === 'status' ? cellData.status : (field === 'value' ? cellData.value : cellData.unit) || '';
-    setEditingValue(initialValue);
     setEditingCell({ subElementId, columnDate, field });
-  };
-
-  // Terminer l'édition et sauvegarder
-  const finishEditing = () => {
-    if (editingCell) {
-      handleUpdateCell(editingCell.subElementId, editingCell.columnDate, editingCell.field, editingValue, true);
-    }
   };
 
   // Formater une date pour l'affichage
@@ -521,15 +555,14 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                             {/* Valeur */}
                             <td className="p-2 border-r border-[#E2E8F0] text-center align-middle">
                               {isEditingValue ? (
-                                <input
-                                  type="text"
-                                  value={editingValue}
-                                  onChange={(e) => setEditingValue(e.target.value)}
-                                  onBlur={finishEditing}
-                                  onKeyDown={(e) => e.key === 'Enter' && finishEditing()}
-                                  autoFocus
-                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
+                                <EditableInput
+                                  initialValue={cellData.value || ''}
+                                  onSave={(val) => {
+                                    handleUpdateCell(se.id, col.date, 'value', val, true);
+                                  }}
+                                  onCancel={() => setEditingCell(null)}
                                   placeholder="—"
+                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
                                 />
                               ) : (
                                 <span 
@@ -544,15 +577,14 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                             {/* Unité */}
                             <td className="p-2 border-r border-[#E2E8F0] text-center align-middle">
                               {isEditingUnit ? (
-                                <input
-                                  type="text"
-                                  value={editingValue}
-                                  onChange={(e) => setEditingValue(e.target.value)}
-                                  onBlur={finishEditing}
-                                  onKeyDown={(e) => e.key === 'Enter' && finishEditing()}
-                                  autoFocus
-                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
+                                <EditableInput
+                                  initialValue={cellData.unit || ''}
+                                  onSave={(val) => {
+                                    handleUpdateCell(se.id, col.date, 'unit', val, true);
+                                  }}
+                                  onCancel={() => setEditingCell(null)}
                                   placeholder="—"
+                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
                                 />
                               ) : (
                                 <span 
