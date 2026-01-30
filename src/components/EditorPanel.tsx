@@ -419,8 +419,9 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const elementStorageKey = element ? `element_${element.id}` : 'global';
 
   const [greenTilesAsColored, setGreenTilesAsColored] = useState(() => {
+    // Par défaut true (fond coloré) pour cohérence entre navigateurs
     const saved = domain ? localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`) : localStorage.getItem('greenTilesAsColored');
-    return saved === 'true';
+    return saved !== 'false';
   });
 
   // Préférence pour la position des catégories/sous-catégories horizontales

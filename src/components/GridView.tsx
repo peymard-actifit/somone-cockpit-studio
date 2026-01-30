@@ -124,7 +124,8 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
   const domainStorageKey = `domain_${domain.id}`;
 
   const [greenTilesAsColored, setGreenTilesAsColored] = useState(() => {
-    return localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`) === 'true';
+    // Par défaut true (fond coloré) pour cohérence entre navigateurs
+    return localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`) !== 'false';
   });
 
   const [horizontalCategoriesInline, setHorizontalCategoriesInline] = useState(() => {
@@ -174,7 +175,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
   // Ecouter les changements de preferences
   useEffect(() => {
     const handleGreenTilesChange = () => {
-      setGreenTilesAsColored(localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`) === 'true');
+      setGreenTilesAsColored(localStorage.getItem(`greenTilesAsColored_${domainStorageKey}`) !== 'false');
     };
     const handleCategoriesInlineChange = () => {
       setHorizontalCategoriesInline(localStorage.getItem(`horizontalCategoriesInline_${domainStorageKey}`) === 'true');

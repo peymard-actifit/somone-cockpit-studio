@@ -35,10 +35,11 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   const { textCompensation } = useZoom();
 
   // Préférence pour l'affichage des tuiles vertes (ok) - avec état React pour réactivité (indépendante par domaine)
+  // Valeur par défaut: true (fond coloré) pour cohérence entre navigateurs
   const storageKey = domainId ? `domain_${domainId}` : 'global';
   const [greenTilesAsColored, setGreenTilesAsColored] = useState(() => {
     const saved = localStorage.getItem(`greenTilesAsColored_${storageKey}`);
-    return saved === 'true';
+    return saved !== 'false'; // Par défaut true si pas de valeur stockée
   });
   const shouldUseWhiteBackground = isOkStatus && !greenTilesAsColored;
 
@@ -48,7 +49,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   // Écouter les changements de préférence
   useEffect(() => {
     const handlePreferenceChange = () => {
-      setGreenTilesAsColored(localStorage.getItem(`greenTilesAsColored_${storageKey}`) === 'true');
+      setGreenTilesAsColored(localStorage.getItem(`greenTilesAsColored_${storageKey}`) !== 'false');
     };
 
     window.addEventListener(`greenTilesPreferenceChanged_${storageKey}`, handlePreferenceChange);
