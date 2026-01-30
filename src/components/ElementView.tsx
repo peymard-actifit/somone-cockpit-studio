@@ -589,7 +589,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
           <button onClick={zoomOut} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer (Ctrl + molette)">
             <MuiIcon name="Remove" size={20} />
           </button>
-          <button onClick={resetZoom} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
+          <button onClick={resetZoom} onDoubleClick={() => setScale(1)} className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre (double-clic: 100%)">
             <MuiIcon name="FitScreen" size={20} />
           </button>
           <button onClick={toggleFullscreen} className={`p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] ${readOnly ? 'border-b border-[#E2E8F0]' : ''}`} title={isFullscreen ? t('zoom.exitFullscreen') : t('zoom.fullscreen')}>
