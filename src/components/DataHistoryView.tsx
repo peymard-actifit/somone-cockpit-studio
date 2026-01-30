@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { Cockpit, SubElement, TileStatus, DataHistoryColumn, SubElementDataSnapshot } from '../types';
+import type { Cockpit, TileStatus, DataHistoryColumn, SubElementDataSnapshot } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from './IconPicker';
