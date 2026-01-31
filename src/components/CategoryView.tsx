@@ -172,7 +172,7 @@ export default function CategoryView({
               </button>
 
               {/* Grille des sous-éléments */}
-              <div className={`p-4 flex flex-row flex-wrap ${getGapClass(horizontalSpacing)}`}>
+              <div className={`p-4 flex flex-row flex-wrap items-start justify-start content-start ${getGapClass(horizontalSpacing)}`}>
                 {subElements.map(({ subElement }) => (
                   <SubElementTile
                     key={subElement.id}
