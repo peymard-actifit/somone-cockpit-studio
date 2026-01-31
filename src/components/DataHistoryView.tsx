@@ -656,7 +656,28 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      
+      // Sélection intelligente de l'onglet
+      let sheetName: string;
+      if (workbook.SheetNames.length === 1) {
+        // Un seul onglet : on l'utilise directement
+        sheetName = workbook.SheetNames[0];
+      } else {
+        // Plusieurs onglets : chercher celui qui correspond à la date (format AAAAMMJJ)
+        const dateFormatted = importTargetDate.replace(/-/g, ''); // "2026-01-29" -> "20260129"
+        const matchingSheet = workbook.SheetNames.find(name => name === dateFormatted);
+        
+        if (matchingSheet) {
+          sheetName = matchingSheet;
+        } else {
+          // Pas d'onglet correspondant à la date, proposer un choix
+          const availableSheets = workbook.SheetNames.join(', ');
+          alert(`Aucun onglet "${dateFormatted}" trouvé.\nOnglets disponibles : ${availableSheets}\nUtilisation du premier onglet.`);
+          sheetName = workbook.SheetNames[0];
+        }
+      }
+      
+      const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       if (jsonData.length === 0) {
