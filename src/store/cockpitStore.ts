@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType, Incident, Folder } from '../types';
+import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType, Incident, Folder, DataHistoryColumn } from '../types';
 import { useAuthStore } from './authStore';
 import { APP_VERSION } from '../config/version';
 import { offlineSync } from '../services/offlineSync';
