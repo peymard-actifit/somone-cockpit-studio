@@ -47,6 +47,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'home.mockupsRootAdmin': { FR: 'maquette(s) à la racine de ce compte (mode admin)', EN: 'mockup(s) at root of this account (admin mode)' },
   'home.mockupsInFolderAdmin': { FR: 'maquette(s) dans ce répertoire (mode admin)', EN: 'mockup(s) in this folder (admin mode)' },
   'home.mockupsAvailable': { FR: 'maquette(s) disponible(s)', EN: 'mockup(s) available' },
+  'home.journeyDesigner': { FR: 'Conception Parcours', EN: 'Journey Designer' },
   
   // === Menu utilisateur ===
   'user.connectedAs': { FR: 'Connecté en tant que', EN: 'Connected as' },
@@ -127,6 +128,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'studio.showPanel': { FR: 'Afficher le panneau', EN: 'Show panel' },
   'studio.iaGpt': { FR: 'IA GPT', EN: 'AI GPT' },
   'studio.translation': { FR: 'Traduction', EN: 'Translation' },
+  'studio.journey': { FR: 'Parcours', EN: 'Journey' },
   'public.upToDate': { FR: 'A jour', EN: 'Up to date' },
   'public.visitor': { FR: 'Visiteur', EN: 'Visitor' },
   'public.consultationMode': { FR: 'Mode consultation', EN: 'Consultation mode' },

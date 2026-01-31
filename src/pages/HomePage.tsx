@@ -1381,11 +1381,11 @@ export default function HomePage() {
                   <button
                     onClick={() => setShowJourneyDesigner(true)}
                     className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
-                    title="Concevoir les parcours de création décisionnelle"
+                    title={t('home.journeyDesigner')}
                     data-help-key="home-btn-journey"
                   >
                     <MuiIcon name="Route" size={14} />
-                    {t('home.journeyDesigner') || 'Conception Parcours'}
+                    {t('home.journeyDesigner')}
                   </button>
                 </>
               )}

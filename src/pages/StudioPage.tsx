@@ -358,11 +358,11 @@ export default function StudioPage() {
           <button
             onClick={() => setShowJourneyPlayer(true)}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white rounded-lg transition-all shadow-md"
-            title={t('studio.journey') || 'Parcours de création'}
+            title={t('studio.journey')}
             data-help-key="studio-btn-journey"
           >
             <MuiIcon name="Route" size={16} />
-            <span className="hidden sm:inline">{t('studio.journey') || 'Parcours'}</span>
+            <span className="hidden sm:inline">{t('studio.journey')}</span>
           </button>
 
           <button
