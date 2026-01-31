@@ -716,8 +716,9 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
       />
       
       {/* En-tête */}
-      <div className="sticky top-0 z-20 bg-white border-b border-[#E2E8F0] p-4 shadow-sm">
-        <div className="flex items-center justify-between">
+      <div className="sticky top-0 z-20 bg-white border-b border-[#E2E8F0] shadow-sm">
+        {/* Première ligne : Titre et boutons */}
+        <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
               <MuiIcon name="TableChart" size={24} className="text-white" />
@@ -732,70 +733,8 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
             </div>
           </div>
           
-          {/* Sélecteur de date active */}
-          {columns.length > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-violet-50 border border-violet-200 rounded-lg">
-              <MuiIcon name="Event" size={20} className="text-violet-600" />
-              <span className="text-sm text-violet-700 font-medium">Date active :</span>
-              <select
-                value={cockpit.selectedDataDate || columns[columns.length - 1]?.date || ''}
-                onChange={(e) => updateCockpit({ selectedDataDate: e.target.value })}
-                className="px-3 py-1 border border-violet-300 rounded-lg text-sm bg-white text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                disabled={readOnly}
-              >
-                {columns.map((col) => (
-                  <option key={col.date} value={col.date}>
-                    {col.label ? `${col.label} (${formatDate(col.date)})` : formatDate(col.date)}
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs text-violet-500">
-                Les autres vues utiliseront ces données
-              </span>
-            </div>
-          )}
-          
           {!readOnly && (
             <div className="flex items-center gap-2">
-              {!isAddingColumn ? (
-                <button
-                  onClick={() => setIsAddingColumn(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors"
-                >
-                  <MuiIcon name="Add" size={20} />
-                  <span>Ajouter une date</span>
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={newColumnDate}
-                    onChange={(e) => setNewColumnDate(e.target.value)}
-                    className="px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm"
-                  />
-                  <input
-                    type="text"
-                    value={newColumnLabel}
-                    onChange={(e) => setNewColumnLabel(e.target.value)}
-                    placeholder="Label (optionnel)"
-                    className="px-3 py-2 border border-[#E2E8F0] rounded-lg text-sm w-40"
-                  />
-                  <button
-                    onClick={handleAddColumn}
-                    disabled={!newColumnDate}
-                    className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
-                  >
-                    <MuiIcon name="Check" size={20} />
-                  </button>
-                  <button
-                    onClick={() => { setIsAddingColumn(false); setNewColumnDate(''); setNewColumnLabel(''); }}
-                    className="p-2 text-[#64748B] hover:bg-[#F5F7FA] rounded-lg"
-                  >
-                    <MuiIcon name="Close" size={20} />
-                  </button>
-                </div>
-              )}
-              
               {columns.length === 0 && (
                 <button
                   onClick={initializeWithCurrentValues}
@@ -807,6 +746,138 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
               )}
             </div>
           )}
+        </div>
+        
+        {/* Deuxième ligne : Calendrier horizontal de sélection de dates */}
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <MuiIcon name="CalendarMonth" size={20} className="text-[#1E3A5F]" />
+            <span className="text-sm font-medium text-[#1E3A5F]">Sélectionner la date active pour le cockpit</span>
+            <span className="text-xs text-[#64748B] ml-2">(Les autres vues utiliseront ces données)</span>
+          </div>
+          
+          {/* Calendrier horizontal scrollable */}
+          <div className="flex items-stretch gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#CBD5E1] scrollbar-track-transparent">
+            {columns.map((col, index) => {
+              const isActive = (cockpit.selectedDataDate || columns[columns.length - 1]?.date) === col.date;
+              const dateObj = new Date(col.date);
+              const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
+              const dayNum = dateObj.getDate();
+              const monthName = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
+              const year = dateObj.getFullYear();
+              
+              return (
+                <div
+                  key={col.date}
+                  onClick={() => !readOnly && updateCockpit({ selectedDataDate: col.date })}
+                  className={`
+                    relative flex flex-col items-center min-w-[90px] px-3 py-2 rounded-xl border-2 transition-all cursor-pointer
+                    ${isActive 
+                      ? 'bg-gradient-to-b from-violet-500 to-violet-600 border-violet-700 text-white shadow-lg scale-105' 
+                      : 'bg-white border-[#E2E8F0] text-[#1E3A5F] hover:border-violet-300 hover:bg-violet-50'
+                    }
+                    ${readOnly ? 'cursor-default' : ''}
+                  `}
+                >
+                  {/* Badge date active */}
+                  {isActive && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-amber-400 text-amber-900 text-[9px] font-bold rounded-full uppercase tracking-wider shadow">
+                      Active
+                    </div>
+                  )}
+                  
+                  {/* Jour de la semaine */}
+                  <span className={`text-[10px] uppercase tracking-wider ${isActive ? 'text-violet-200' : 'text-[#64748B]'}`}>
+                    {dayName}
+                  </span>
+                  
+                  {/* Numéro du jour */}
+                  <span className={`text-2xl font-bold leading-tight ${isActive ? 'text-white' : 'text-[#1E3A5F]'}`}>
+                    {dayNum}
+                  </span>
+                  
+                  {/* Mois et année */}
+                  <span className={`text-xs ${isActive ? 'text-violet-200' : 'text-[#64748B]'}`}>
+                    {monthName} {year}
+                  </span>
+                  
+                  {/* Label si présent */}
+                  {col.label && (
+                    <span className={`mt-1 text-[10px] font-medium truncate max-w-[80px] ${isActive ? 'text-violet-200' : 'text-violet-600'}`}>
+                      {col.label}
+                    </span>
+                  )}
+                  
+                  {/* Bouton supprimer (visible au survol) */}
+                  {!readOnly && columns.length > 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.date); }}
+                      className={`
+                        absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity
+                        ${isActive ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600 hover:bg-red-500 hover:text-white'}
+                      `}
+                      title="Supprimer cette date"
+                    >
+                      <MuiIcon name="Close" size={12} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Bouton ajouter une date */}
+            {!readOnly && (
+              <div className="flex items-center">
+                {!isAddingColumn ? (
+                  <button
+                    onClick={() => setIsAddingColumn(true)}
+                    className="flex flex-col items-center justify-center min-w-[90px] h-full px-3 py-2 rounded-xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-[#64748B] hover:border-[#1E3A5F] hover:text-[#1E3A5F] hover:bg-white transition-all"
+                  >
+                    <MuiIcon name="Add" size={24} />
+                    <span className="text-xs mt-1">Ajouter</span>
+                    <span className="text-[10px]">une date</span>
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-2 p-3 bg-white rounded-xl border-2 border-[#1E3A5F] shadow-lg min-w-[200px]">
+                    <div className="flex items-center gap-2 text-[#1E3A5F]">
+                      <MuiIcon name="Event" size={16} />
+                      <span className="text-xs font-medium">Nouvelle date</span>
+                    </div>
+                    <input
+                      type="date"
+                      value={newColumnDate}
+                      onChange={(e) => setNewColumnDate(e.target.value)}
+                      className="px-2 py-1.5 border border-[#E2E8F0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      autoFocus
+                    />
+                    <input
+                      type="text"
+                      value={newColumnLabel}
+                      onChange={(e) => setNewColumnLabel(e.target.value)}
+                      placeholder="Label (optionnel)"
+                      className="px-2 py-1.5 border border-[#E2E8F0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddColumn}
+                        disabled={!newColumnDate}
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium"
+                      >
+                        <MuiIcon name="Check" size={14} />
+                        Ajouter
+                      </button>
+                      <button
+                        onClick={() => { setIsAddingColumn(false); setNewColumnDate(''); setNewColumnLabel(''); }}
+                        className="px-2 py-1.5 text-[#64748B] hover:bg-[#F5F7FA] rounded-lg text-xs"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
