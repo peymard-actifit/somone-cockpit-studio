@@ -61,11 +61,15 @@ function PublicCockpitContent() {
       })),
     }));
     
-    setCockpit({
+    const updatedCockpit = {
       ...cockpit,
       domains: updatedDomains,
       selectedDataDate: newDate,
-    });
+    };
+    
+    setCockpit(updatedCockpit);
+    // Mettre aussi à jour le store pour que les composants enfants voient les bonnes données
+    useCockpitStore.setState({ currentCockpit: updatedCockpit });
     setShowDatePicker(false);
   };
 
@@ -122,11 +126,48 @@ function PublicCockpitContent() {
           console.error('[PublicCockpitPage] ❌ data.domains n\'est pas un tableau:', typeof data.domains);
         }
 
-        setCockpit(data);
+        // Si une date historique est sélectionnée, appliquer les données à tous les sous-éléments
+        let cockpitToSet = data;
+        if (data.selectedDataDate && data.dataHistory?.columns?.length) {
+          const targetColumn = data.dataHistory.columns.find((col: any) => col.date === data.selectedDataDate);
+          if (targetColumn) {
+            console.log('[PublicCockpitPage] Applying historical data for date:', data.selectedDataDate);
+            cockpitToSet = {
+              ...data,
+              domains: data.domains.map((domain: any) => ({
+                ...domain,
+                categories: (domain.categories || []).map((category: any) => ({
+                  ...category,
+                  elements: (category.elements || []).map((element: any) => ({
+                    ...element,
+                    subCategories: (element.subCategories || []).map((subCategory: any) => ({
+                      ...subCategory,
+                      subElements: (subCategory.subElements || []).map((subElement: any) => {
+                        const historyKey = subElement.linkedGroupId || subElement.id;
+                        const historicalData = targetColumn.data[historyKey];
+                        if (historicalData) {
+                          return {
+                            ...subElement,
+                            status: historicalData.status,
+                            value: historicalData.value || '',
+                            unit: historicalData.unit || '',
+                          };
+                        }
+                        return subElement;
+                      }),
+                    })),
+                  })),
+                })),
+              })),
+            };
+          }
+        }
+        
+        setCockpit(cockpitToSet);
         
         // Mettre le cockpit dans le store pour que les composants enfants puissent y accéder
         // (nécessaire pour les données historiques dans SubElementTile)
-        useCockpitStore.setState({ currentCockpit: data });
+        useCockpitStore.setState({ currentCockpit: cockpitToSet });
 
         // Sélectionner le premier domaine par défaut
         if (data.domains && data.domains.length > 0) {
