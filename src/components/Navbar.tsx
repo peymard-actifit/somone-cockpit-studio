@@ -28,7 +28,13 @@ function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }
   const cockpitDomains = currentCockpit?.domains || [];
   const domainData = cockpitDomains.find(d => d.id === domain.id);
   // Passer tous les domaines pour le calcul récursif (éléments avec status herite_domaine)
-  const worstStatus = domainData ? getDomainWorstStatus(domainData, cockpitDomains) : 'ok';
+  // Passer aussi les données historiques pour utiliser les statuts de la date active
+  const worstStatus = domainData ? getDomainWorstStatus(
+    domainData, 
+    cockpitDomains, 
+    undefined, 
+    { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate }
+  ) : 'ok';
   // Protection: vérifier que STATUS_COLORS[worstStatus] existe avant d'accéder à .hex
   const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
   const hasAlert = worstStatus !== 'ok' && worstStatus !== undefined;

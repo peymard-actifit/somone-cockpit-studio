@@ -221,7 +221,12 @@ function PublicCockpitContent() {
             {/* CENTRE : Onglets domaines - centrés */}
             <div className="flex items-center justify-center gap-1">
               {domains.map((domain) => {
-                const worstStatus = getDomainWorstStatus(domain as any, domains as any);
+                const worstStatus = getDomainWorstStatus(
+                  domain as any, 
+                  domains as any, 
+                  undefined, 
+                  { dataHistory: cockpit.dataHistory, selectedDataDate: cockpit.selectedDataDate }
+                );
                 const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
                 const hasAlert = worstStatus !== 'ok';
                 const isActive = currentDomainId === domain.id;
@@ -413,7 +418,12 @@ function PublicCockpitContent() {
           <div className="flex gap-1 overflow-x-auto py-1">
             {domains.map((domain) => {
               // Calculer le statut le plus critique du domaine
-              const worstStatus = getDomainWorstStatus(domain as any, domains as any);
+              const worstStatus = getDomainWorstStatus(
+                domain as any, 
+                domains as any, 
+                undefined, 
+                { dataHistory: cockpit.dataHistory, selectedDataDate: cockpit.selectedDataDate }
+              );
               const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
               const hasAlert = worstStatus !== 'ok';
               const isActive = currentDomainId === domain.id;

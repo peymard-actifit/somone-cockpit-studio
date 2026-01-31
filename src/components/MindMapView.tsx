@@ -139,7 +139,12 @@ export default function MindMapView({
       const domain = domains.find(d => d.id === focusedNodeId);
       if (!domain) return { nodes: [], links: [] };
 
-      const worstStatus = getDomainWorstStatus(domain, domains);
+      const worstStatus = getDomainWorstStatus(
+        domain, 
+        domains, 
+        undefined, 
+        { dataHistory: cockpit?.dataHistory, selectedDataDate: cockpit?.selectedDataDate }
+      );
       const domainColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
 
       // Domaine au centre
@@ -341,7 +346,12 @@ export default function MindMapView({
       const domainY = centerY + Math.sin(domainAngle) * domainRadius;
 
       // Calculer le statut du domaine
-      const worstStatus = getDomainWorstStatus(domain, domains);
+      const worstStatus = getDomainWorstStatus(
+        domain, 
+        domains, 
+        undefined, 
+        { dataHistory: cockpit?.dataHistory, selectedDataDate: cockpit?.selectedDataDate }
+      );
       const domainColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
 
       nodes.push({

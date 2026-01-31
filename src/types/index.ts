@@ -446,20 +446,32 @@ export type DomainForStatusCalc = {
       status: TileStatus;
       inheritFromDomainId?: string;
       subCategories: Array<{
-        subElements: Array<{ status: TileStatus }>
+        subElements: Array<{ 
+          id: string;
+          status: TileStatus;
+          linkedGroupId?: string;
+        }>
       }>
     }>
   }>;
   mapElements?: Array<{ status: TileStatus }>
 };
 
+// Options pour le calcul du statut avec données historiques
+export interface StatusCalcOptions {
+  dataHistory?: DataHistory;
+  selectedDataDate?: string;
+}
+
 // Fonction pour calculer le statut le plus critique d'un domaine
 // Le paramètre visitedDomainIds permet d'éviter les références circulaires
+// Le paramètre options permet de prendre en compte les données historiques
 // PROTECTION: Toutes les boucles utilisent || [] pour éviter les erreurs sur undefined
 export function getDomainWorstStatus(
   domain: DomainForStatusCalc,
   allDomains?: DomainForStatusCalc[],
-  visitedDomainIds?: Set<string>
+  visitedDomainIds?: Set<string>,
+  options?: StatusCalcOptions
 ): TileStatus {
   // Initialiser ou copier le Set des domaines visités
   const visited = visitedDomainIds ? new Set(visitedDomainIds) : new Set<string>();
@@ -469,6 +481,27 @@ export function getDomainWorstStatus(
 
   let worstStatus: TileStatus = 'ok';
   let worstPriority = STATUS_PRIORITY_MAP['ok'];
+
+  // Déterminer la date active pour les données historiques
+  const dataHistory = options?.dataHistory;
+  const activeDate = options?.selectedDataDate || 
+    (dataHistory?.columns?.length ? dataHistory.columns[dataHistory.columns.length - 1]?.date : undefined);
+  
+  // Trouver la colonne de données correspondant à la date active
+  const activeColumn = activeDate ? dataHistory?.columns?.find(c => c.date === activeDate) : undefined;
+
+  // Fonction helper pour obtenir le statut d'un sous-élément (avec données historiques si disponibles)
+  const getSubElementStatus = (subElement: { id: string; status: TileStatus; linkedGroupId?: string }): TileStatus => {
+    if (activeColumn) {
+      // Chercher par linkedGroupId d'abord, puis par id
+      const key = subElement.linkedGroupId || subElement.id;
+      const historicalData = activeColumn.data[key];
+      if (historicalData) {
+        return historicalData.status;
+      }
+    }
+    return subElement.status;
+  };
 
   // Parcourir tous les éléments dans toutes les catégories - protection pour les tableaux
   for (const category of (domain.categories || [])) {
@@ -483,14 +516,16 @@ export function getDomainWorstStatus(
         worstStatus = effectiveStatus;
       }
 
-      // Parcourir aussi tous les sous-éléments directement (au cas où) - protection pour les tableaux
+      // Parcourir aussi tous les sous-éléments directement - protection pour les tableaux
       for (const subCategory of (element.subCategories || [])) {
         for (const subElement of (subCategory.subElements || [])) {
-          if (subElement.status === 'herite') continue;
-          const subPriority = STATUS_PRIORITY_MAP[subElement.status] || 0;
+          // Obtenir le statut (historique ou actuel)
+          const subStatus = getSubElementStatus(subElement);
+          if (subStatus === 'herite') continue;
+          const subPriority = STATUS_PRIORITY_MAP[subStatus] || 0;
           if (subPriority > worstPriority) {
             worstPriority = subPriority;
-            worstStatus = subElement.status;
+            worstStatus = subStatus;
           }
         }
       }
