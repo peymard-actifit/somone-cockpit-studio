@@ -686,30 +686,47 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
       }
 
       // Trouver ou créer la colonne pour la date cible
-      let targetColumn = columns.find(c => c.date === importTargetDate);
+      const existingColumn = columns.find(c => c.date === importTargetDate);
       let updatedColumns = [...columns];
       
-      if (!targetColumn) {
+      // Créer une copie profonde de la colonne pour éviter les problèmes de mutation
+      let targetColumn: DataHistoryColumn;
+      if (existingColumn) {
+        targetColumn = {
+          ...existingColumn,
+          data: { ...existingColumn.data },
+        };
+      } else {
         targetColumn = {
           date: importTargetDate,
           data: {},
         };
-        updatedColumns.push(targetColumn);
       }
 
       // Compteurs pour le feedback
       let updated = 0;
       let notFound = 0;
 
+      // Fonction utilitaire pour obtenir une valeur de colonne Excel (gère les variations de noms)
+      const getRowValue = (row: any, ...keys: string[]): any => {
+        for (const key of keys) {
+          if (row[key] !== undefined) return row[key];
+          // Chercher aussi sans accents ou avec variations
+          const cleanKey = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (row[cleanKey] !== undefined) return row[cleanKey];
+        }
+        return undefined;
+      };
+
       // Traiter chaque ligne du fichier
       for (const row of jsonData) {
-        const domainName = row['Domaine'] || row['Domain'];
-        const elementName = row['Élément'] || row['Element'];
-        const subElementName = row['Sous-élément'] || row['Sous-element'] || row['SubElement'];
-        const criticite = row['Criticité'] || row['Criticite'] || row['Status'];
-        const valeur = row['Valeur'] || row['Value'];
-        const unite = row['Unité'] || row['Unite'] || row['Unit'];
-        const description = row['Description'];
+        const domainName = getRowValue(row, 'Domaine', 'Domain');
+        const elementName = getRowValue(row, 'Élément', 'Element', 'Élement');
+        const subElementName = getRowValue(row, 'Sous-élément', 'Sous-element', 'SubElement', 'Sous-élement');
+        const criticite = getRowValue(row, 'Criticité', 'Criticite', 'Status');
+        const valeur = getRowValue(row, 'Valeur', 'Value');
+        const unite = getRowValue(row, 'Unité', 'Unite', 'Unit');
+        const description = getRowValue(row, 'Description');
 
         if (!subElementName) {
           notFound++;
@@ -738,23 +755,28 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
           continue;
         }
 
-        // Mettre à jour les données
+        // Mettre à jour les données - préserver les valeurs existantes
+        const existingData = targetColumn.data[matchedSE.id] || { status: 'ok' as TileStatus };
         const newData: SubElementDataSnapshot = {
-          status: targetColumn.data[matchedSE.id]?.status || 'ok',
+          ...existingData, // Préserver toutes les valeurs existantes
         };
 
-        if (criticite) {
+        // Mettre à jour uniquement les champs présents dans l'import
+        if (criticite !== undefined && criticite !== '') {
           const normalizedStatus = criticite.toString().toLowerCase().trim();
           newData.status = STATUS_IMPORT_MAP[normalizedStatus] || newData.status;
         }
-        if (valeur !== undefined && valeur !== '') {
-          newData.value = valeur.toString();
+        if (valeur !== undefined) {
+          // Accepter les valeurs vides (pour effacer) et les valeurs numériques
+          newData.value = valeur === '' ? '' : String(valeur);
         }
-        if (unite !== undefined && unite !== '') {
-          newData.unit = unite.toString();
+        if (unite !== undefined) {
+          // Accepter les valeurs vides (pour effacer)
+          newData.unit = unite === '' ? '' : String(unite);
         }
-        if (description !== undefined && description !== '') {
-          newData.alertDescription = description.toString();
+        if (description !== undefined) {
+          // Accepter les valeurs vides (pour effacer)
+          newData.alertDescription = description === '' ? '' : String(description);
         }
 
         targetColumn.data[matchedSE.id] = newData;
@@ -765,15 +787,18 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         if (importTargetDate === activeDate) {
           for (const originalId of matchedSE.originalIds) {
             const updates: Partial<{ status: TileStatus; value: string; unit: string }> = {};
-            if (criticite) {
+            if (criticite !== undefined && criticite !== '') {
               const normalizedStatus = criticite.toString().toLowerCase().trim();
-              updates.status = STATUS_IMPORT_MAP[normalizedStatus];
+              const mappedStatus = STATUS_IMPORT_MAP[normalizedStatus];
+              if (mappedStatus) {
+                updates.status = mappedStatus;
+              }
             }
-            if (valeur !== undefined && valeur !== '') {
-              updates.value = valeur.toString();
+            if (valeur !== undefined) {
+              updates.value = valeur === '' ? '' : String(valeur);
             }
-            if (unite !== undefined && unite !== '') {
-              updates.unit = unite.toString();
+            if (unite !== undefined) {
+              updates.unit = unite === '' ? '' : String(unite);
             }
             if (Object.keys(updates).length > 0) {
               updateSubElement(originalId, updates);
@@ -783,9 +808,17 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
       }
 
       // Sauvegarder les colonnes mises à jour
-      updatedColumns = updatedColumns.map(col => 
-        col.date === importTargetDate ? targetColumn! : col
-      ).sort((a, b) => a.date.localeCompare(b.date));
+      if (existingColumn) {
+        // Remplacer la colonne existante par la copie modifiée
+        updatedColumns = updatedColumns.map(col => 
+          col.date === importTargetDate ? targetColumn : col
+        );
+      } else {
+        // Ajouter la nouvelle colonne
+        updatedColumns.push(targetColumn);
+      }
+      // Trier par date
+      updatedColumns = updatedColumns.sort((a, b) => a.date.localeCompare(b.date));
       
       setColumns(updatedColumns);
       saveToStore(updatedColumns);
