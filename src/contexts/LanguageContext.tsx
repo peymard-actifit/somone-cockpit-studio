@@ -134,6 +134,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'public.consultationMode': { FR: 'Mode consultation', EN: 'Consultation mode' },
   'public.published': { FR: 'Version publiée', EN: 'Published version' },
   'public.readOnly': { FR: 'Lecture seule', EN: 'Read only' },
+  'public.availableDates': { FR: 'Dates disponibles', EN: 'Available dates' },
   
   // === Types d'éléments (pour les modifications récentes) ===
   'type.domain': { FR: 'Domaine', EN: 'Domain' },
