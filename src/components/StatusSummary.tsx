@@ -1,4 +1,4 @@
-import type { Element, Domain, TileStatus, DataHistory } from '../types';
+import type { Element, Domain, TileStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS, getEffectiveStatus } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 
