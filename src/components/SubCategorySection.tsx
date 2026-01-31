@@ -372,6 +372,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
             setShowLinkModal(false);
             setNewSubElementName('');
           }}
+          defaultFilterValue={element.name}
         />
       )}
     </div>

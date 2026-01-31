@@ -993,6 +993,7 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
               setShowLinkModal(false);
               setNewSubElementName('');
             }}
+            defaultFilterValue={element.name}
           />
         )}
       </div>

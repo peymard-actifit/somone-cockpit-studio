@@ -111,6 +111,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [pendingSubElementName, setPendingSubElementName] = useState('');
   const [pendingSubCategoryId, setPendingSubCategoryId] = useState<string | null>(null);
+  const [pendingElementName, setPendingElementName] = useState(''); // Nom de l'élément pour le filtre par défaut
   const [existingMatches, setExistingMatches] = useState<Array<{
     id: string;
     name: string;
@@ -598,6 +599,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
         // Des sous-éléments avec ce nom existent - afficher le modal
         setPendingSubElementName(name);
         setPendingSubCategoryId(subCat.id);
+        setPendingElementName(firstElement.name); // Stocker le nom de l'élément pour le filtre
         setExistingMatches(matches.map(m => ({
           id: m.subElement.id,
           name: m.subElement.name,
@@ -628,6 +630,18 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
     if (newSubElementName.trim()) {
       const name = newSubElementName.trim();
 
+      // Trouver l'élément parent de cette sous-catégorie pour le filtre
+      let parentElementName = '';
+      for (const cat of domain.categories || []) {
+        for (const el of cat.elements || []) {
+          if ((el.subCategories || []).some(sc => sc.id === subCatId)) {
+            parentElementName = el.name;
+            break;
+          }
+        }
+        if (parentElementName) break;
+      }
+
       // Vérifier s'il existe des sous-éléments avec le même nom
       const matches = findSubElementsByName(name);
 
@@ -635,6 +649,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
         // Des sous-éléments avec ce nom existent - afficher le modal
         setPendingSubElementName(name);
         setPendingSubCategoryId(subCatId);
+        setPendingElementName(parentElementName); // Stocker le nom de l'élément pour le filtre
         setExistingMatches(matches.map(m => ({
           id: m.subElement.id,
           name: m.subElement.name,
@@ -1324,6 +1339,7 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
             setShowLinkModal(false);
             setNewSubElementName('');
           }}
+          defaultFilterValue={pendingElementName}
         />
       )}
     </div>

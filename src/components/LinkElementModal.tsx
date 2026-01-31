@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { MuiIcon } from './IconPicker';
 import { STATUS_COLORS } from '../types';
@@ -19,6 +19,7 @@ interface LinkElementModalProps {
   onLink: (linkedGroupId: string, linkSubElements?: boolean) => void;
   onIndependent: () => void;
   onCancel: () => void;
+  defaultFilterValue?: string; // Valeur par défaut du filtre (ex: nom de l'élément parent)
 }
 
 export default function LinkElementModal({
@@ -28,22 +29,37 @@ export default function LinkElementModal({
   onLink,
   onIndependent,
   onCancel,
+  defaultFilterValue = '',
 }: LinkElementModalProps) {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [linkSubElements, setLinkSubElements] = useState<boolean>(true); // Par défaut, lier les sous-éléments de même nom
+  const [filterText, setFilterText] = useState<string>(defaultFilterValue); // Filtre de recherche
 
   const typeLabel = type === 'element' ? 'élément' : 'sous-élément';
   const typeLabelPlural = type === 'element' ? 'éléments' : 'sous-éléments';
 
+  // Filtrer les matches par le texte de recherche (insensible à la casse)
+  const filteredMatches = useMemo(() => {
+    if (!filterText.trim()) return existingMatches;
+    const searchLower = filterText.toLowerCase();
+    return existingMatches.filter(match => 
+      match.name.toLowerCase().includes(searchLower) ||
+      match.location.toLowerCase().includes(searchLower)
+    );
+  }, [existingMatches, filterText]);
+
   // Regrouper par linkedGroupId (ou par id si pas de groupe)
-  const groupedMatches: Map<string, ExistingMatch[]> = new Map();
-  existingMatches.forEach(match => {
-    const groupKey = match.linkedGroupId || `single-${match.id}`;
-    if (!groupedMatches.has(groupKey)) {
-      groupedMatches.set(groupKey, []);
-    }
-    groupedMatches.get(groupKey)!.push(match);
-  });
+  const groupedMatches: Map<string, ExistingMatch[]> = useMemo(() => {
+    const groups = new Map<string, ExistingMatch[]>();
+    filteredMatches.forEach(match => {
+      const groupKey = match.linkedGroupId || `single-${match.id}`;
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(match);
+    });
+    return groups;
+  }, [filteredMatches]);
 
   const handleConfirmLink = () => {
     if (selectedMatch) {
@@ -92,6 +108,34 @@ export default function LinkElementModal({
             <p className="text-sm font-medium text-[#1E3A5F] mb-2">
               {typeLabelPlural.charAt(0).toUpperCase() + typeLabelPlural.slice(1)} existants avec ce nom :
             </p>
+            
+            {/* Champ de filtre */}
+            <div className="relative mb-3">
+              <MuiIcon name="Search" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#64748B]" />
+              <input
+                type="text"
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                placeholder="Filtrer par élément, domaine..."
+                className="w-full pl-10 pr-10 py-2 border border-[#E2E8F0] rounded-lg text-sm text-[#1E3A5F] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
+              />
+              {filterText && (
+                <button
+                  onClick={() => setFilterText('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B]"
+                >
+                  <MuiIcon name="Close" size={18} />
+                </button>
+              )}
+            </div>
+            
+            {/* Compteur de résultats */}
+            {filterText && (
+              <p className="text-xs text-[#64748B] mb-2">
+                {filteredMatches.length} résultat{filteredMatches.length > 1 ? 's' : ''} sur {existingMatches.length}
+              </p>
+            )}
+            
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {Array.from(groupedMatches.entries()).map(([groupKey, matches]) => (
                 <button
