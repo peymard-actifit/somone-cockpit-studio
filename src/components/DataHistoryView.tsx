@@ -762,21 +762,23 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         };
 
         // Mettre à jour uniquement les champs présents dans l'import
+        // Règle : seul le vide '' ne modifie pas la valeur existante
+        // Les valeurs 0, "0", ou toute autre valeur sont importées
         if (criticite !== undefined && criticite !== '') {
           const normalizedStatus = criticite.toString().toLowerCase().trim();
           newData.status = STATUS_IMPORT_MAP[normalizedStatus] || newData.status;
         }
-        if (valeur !== undefined) {
-          // Accepter les valeurs vides (pour effacer) et les valeurs numériques
-          newData.value = valeur === '' ? '' : String(valeur);
+        // Valeur : importer si non vide (0 est une valeur valide)
+        if (valeur !== undefined && valeur !== '') {
+          newData.value = String(valeur);
         }
-        if (unite !== undefined) {
-          // Accepter les valeurs vides (pour effacer)
-          newData.unit = unite === '' ? '' : String(unite);
+        // Unité : importer si non vide
+        if (unite !== undefined && unite !== '') {
+          newData.unit = String(unite);
         }
-        if (description !== undefined) {
-          // Accepter les valeurs vides (pour effacer)
-          newData.alertDescription = description === '' ? '' : String(description);
+        // Description : importer si non vide
+        if (description !== undefined && description !== '') {
+          newData.alertDescription = String(description);
         }
 
         targetColumn.data[matchedSE.id] = newData;
@@ -794,11 +796,13 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                 updates.status = mappedStatus;
               }
             }
-            if (valeur !== undefined) {
-              updates.value = valeur === '' ? '' : String(valeur);
+            // Valeur : importer si non vide (0 est une valeur valide)
+            if (valeur !== undefined && valeur !== '') {
+              updates.value = String(valeur);
             }
-            if (unite !== undefined) {
-              updates.unit = unite === '' ? '' : String(unite);
+            // Unité : importer si non vide
+            if (unite !== undefined && unite !== '') {
+              updates.unit = String(unite);
             }
             if (Object.keys(updates).length > 0) {
               updateSubElement(originalId, updates);
