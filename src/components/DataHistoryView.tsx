@@ -169,6 +169,10 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                 }
                 existing.linkedCount++;
                 existing.originalIds.push(subElement.id);
+                // CORRECTION: Mettre à jour le linkedGroupId si le sous-élément actuel en a un et pas le groupe
+                if (!existing.linkedGroupId && subElement.linkedGroupId) {
+                  existing.linkedGroupId = subElement.linkedGroupId;
+                }
               } else {
                 // Nouveau sous-élément
                 subElementsMap.set(key, {
@@ -184,6 +188,15 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
             }
           }
         }
+      }
+    }
+
+    // Deuxième passe : marquer comme lié si linkedCount > 1 (même sans linkedGroupId explicite)
+    // Cela gère le cas où des sous-éléments sont regroupés par la même clé mais n'ont pas tous un linkedGroupId
+    for (const se of subElementsMap.values()) {
+      if (se.linkedCount > 1 && !se.linkedGroupId) {
+        // Utiliser l'ID du groupe comme linkedGroupId implicite
+        se.linkedGroupId = se.id;
       }
     }
 
@@ -583,12 +596,15 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         ? se.locationInfos.map(loc => `${loc.domainName} > ${loc.elementName}`).join(' | ')
         : '';
       
+      // Déterminer si le sous-élément est lié (linkedCount > 1 ou linkedGroupId défini)
+      const isLinked = se.linkedCount > 1 || !!se.linkedGroupId;
+      
       exportData.push({
         'Maquette': cockpit.name,
         'Domaine': firstLocation?.domainName || '',
         'Élément': firstLocation?.elementName || '',
         'Sous-élément': se.name,
-        'Lié': se.linkedGroupId ? `Oui (${se.linkedCount})` : 'Non',
+        'Lié': isLinked ? `Oui (${se.linkedCount})` : 'Non',
         'Localisations': allLocations,
         'Criticité': STATUS_EXPORT_MAP[cellData.status] || cellData.status,
         'Valeur': cellData.value || '',
@@ -1134,7 +1150,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                           {/* Nom du sous-élément */}
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-[#1E3A5F]">{se.name}</span>
-                            {se.linkedGroupId && (
+                            {(se.linkedCount > 1 || se.linkedGroupId) && (
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap">
                                 🔗 {se.linkedCount} liés
                               </span>
