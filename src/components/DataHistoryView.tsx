@@ -327,7 +327,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   // VIRTUALISATION - Calcul des lignes visibles
   // ============================================================================
   
-  const { startIndex, endIndex, visibleItems, totalHeight } = useMemo(() => {
+  const { startIndex, visibleItems, totalHeight } = useMemo(() => {
     const totalItems = filteredSubElements.length;
     const totalHeight = totalItems * ROW_HEIGHT;
     
@@ -757,7 +757,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   // RENDU D'UNE LIGNE (VIRTUALISÉE)
   // ============================================================================
   
-  const renderRow = useCallback((se: UniqueSubElement, idx: number, actualIndex: number) => {
+  const renderRow = useCallback((se: UniqueSubElement, _idx: number, actualIndex: number) => {
     const bgColor = actualIndex % 2 === 0 ? 'white' : '#F5F7FA';
     
     return (
