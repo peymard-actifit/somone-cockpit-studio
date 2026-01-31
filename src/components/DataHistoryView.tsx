@@ -758,7 +758,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
           
           {/* Calendrier horizontal scrollable */}
           <div className="flex items-stretch gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#CBD5E1] scrollbar-track-transparent">
-            {columns.map((col, index) => {
+            {columns.map((col) => {
               const isActive = (cockpit.selectedDataDate || columns[columns.length - 1]?.date) === col.date;
               const dateObj = new Date(col.date);
               const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
