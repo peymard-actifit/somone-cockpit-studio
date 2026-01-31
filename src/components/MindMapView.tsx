@@ -119,8 +119,8 @@ export default function MindMapView({
   }, []);
 
   // Limites de zoom
-  const MIN_ZOOM = 0.2;
-  const MAX_ZOOM = 4;
+  const MIN_ZOOM = 0.1;  // Étendu pour grandes mindmaps
+  const MAX_ZOOM = 6;    // Étendu pour plus de détails
   const ZOOM_STEP = 0.15;
 
   // Calculer les nœuds et liens du mind map

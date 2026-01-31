@@ -1578,7 +1578,7 @@ Si tu ne reconnais pas la carte:
           }
         ],
         temperature: 0.1,
-        max_tokens: 1000, // Augmenté pour des analyses de cartes plus détaillées
+        max_tokens: 2000, // Étendu pour des analyses de cartes plus détaillées
       }),
     });
 

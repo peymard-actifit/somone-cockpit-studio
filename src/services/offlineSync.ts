@@ -28,8 +28,8 @@ export interface SyncState {
 // Clé de stockage localStorage
 const STORAGE_KEY = 'cockpit_offline_queue';
 const COCKPIT_BACKUP_KEY = 'cockpit_backup_';
-const MAX_RETRIES = 5;
-const RETRY_DELAY_BASE = 2000; // 2 secondes, multiplié exponentiellement
+const MAX_RETRIES = 10;        // Étendu pour plus de robustesse en cas de réseau instable
+const RETRY_DELAY_BASE = 1500; // 1.5 secondes, multiplié exponentiellement
 
 // Singleton du service
 class OfflineSyncService {

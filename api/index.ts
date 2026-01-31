@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.29.16';
+const APP_VERSION = '16.30.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -1189,7 +1189,7 @@ Définition: ${calculation.definition}
 Sources: ${sourcesDescription || 'Aucune'}`
         }
       ],
-      max_tokens: 1000, // Augmenté pour des analyses plus complètes
+      max_tokens: 2000, // Étendu pour des analyses plus complètes et détaillées
       temperature: 0.2,
     }),
   });
@@ -5991,7 +5991,7 @@ Réponds UNIQUEMENT avec le JSON, sans markdown ni explication.`
 Description de la source souhaitée: ${prompt}`
               }
             ],
-            max_tokens: 1000, // Augmenté pour des suggestions plus détaillées
+            max_tokens: 2000, // Étendu pour des suggestions plus détaillées
             temperature: 0.3,
           }),
         });
@@ -6063,7 +6063,7 @@ ${sourcesInfo || 'Aucune source définie'}
 Calcul souhaité: ${prompt}`
               }
             ],
-            max_tokens: 1500, // Augmenté pour des définitions de calculs plus complètes
+            max_tokens: 2500, // Étendu pour des définitions de calculs plus complètes
             temperature: 0.3,
           }),
         });
@@ -6818,7 +6818,7 @@ Réponds UNIQUEMENT avec un JSON valide de ce format:
                 ]
               }
             ],
-            max_tokens: 1000, // Augmenté pour des analyses de cartes plus détaillées
+            max_tokens: 2000, // Étendu pour des analyses de cartes plus détaillées
           }),
         });
 

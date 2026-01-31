@@ -3,8 +3,8 @@ import { MuiIcon } from './IconPicker';
 import { ZoomProvider, calculateTextCompensation } from '../contexts/ZoomContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const MIN_ZOOM = 0.3;
-const MAX_ZOOM = 3;
+const MIN_ZOOM = 0.1;  // Étendu pour permettre une vue plus large
+const MAX_ZOOM = 5;    // Étendu pour plus de zoom
 const ZOOM_STEP = 0.1;
 
 interface ZoomableContainerProps {
