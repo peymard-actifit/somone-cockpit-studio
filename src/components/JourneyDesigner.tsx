@@ -5,6 +5,8 @@ import type {
   JourneyStep,
   JourneyPresentationStep,
   JourneyInteractionStep,
+  Journey,
+  JourneyStepLink,
   JourneyInteractionField,
   JourneyQuestionField,
   JourneyPromptField,
@@ -279,7 +281,7 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
     if (!editingJourney) return;
     
     // Vérifier si l'étape n'est pas déjà dans le parcours
-    if (editingJourney.steps.some(s => s.stepId === stepId)) return;
+    if (editingJourney.steps.some((s: JourneyStepLink) => s.stepId === stepId)) return;
     
     setEditingJourney({
       ...editingJourney,
@@ -296,8 +298,8 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
     setEditingJourney({
       ...editingJourney,
       steps: editingJourney.steps
-        .filter(s => s.stepId !== stepId)
-        .map((s, i) => ({ ...s, order: i })),
+        .filter((s: JourneyStepLink) => s.stepId !== stepId)
+        .map((s: JourneyStepLink, i: number) => ({ ...s, order: i })),
     });
   };
 
@@ -315,7 +317,7 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
     
     setEditingJourney({
       ...editingJourney,
-      steps: stepsArr.map((s, i) => ({ ...s, order: i })),
+      steps: stepsArr.map((s: JourneyStepLink, i: number) => ({ ...s, order: i })),
     });
   };
 
@@ -918,7 +920,7 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
                           </h3>
 
                           <div className="space-y-2">
-                            {editingJourney.steps.map((stepLink, index) => (
+                            {editingJourney.steps.map((stepLink: JourneyStepLink, index: number) => (
                               <div
                                 key={stepLink.stepId}
                                 className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg"
@@ -996,7 +998,7 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
                       
                       <div className="flex-1 overflow-y-auto p-2 space-y-1">
                         {steps.map((step) => {
-                          const isInJourney = editingJourney.steps.some(s => s.stepId === step.id);
+                          const isInJourney = editingJourney.steps.some((s: JourneyStepLink) => s.stepId === step.id);
                           return (
                             <button
                               key={step.id}
