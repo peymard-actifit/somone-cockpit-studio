@@ -283,10 +283,10 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     return parts.join(' / ');
   }, [cockpit.name, filterDomainId, filterElementId, availableDomains, availableElements]);
 
-  // Calculer la date active et les colonnes à afficher (max 2 : précédente + active)
+  // Calculer la date active et les colonnes à afficher (max 2 : active + précédente)
   const activeDate = cockpit.selectedDataDate || columns[columns.length - 1]?.date;
   
-  // Colonnes à afficher dans le tableau : date précédente + date active uniquement
+  // Colonnes à afficher dans le tableau : date active (gauche) + date précédente (droite)
   const displayedColumns = useMemo(() => {
     if (columns.length === 0) return [];
     if (columns.length === 1) return columns;
@@ -294,18 +294,18 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     // Trouver l'index de la date active
     const activeIndex = columns.findIndex(c => c.date === activeDate);
     if (activeIndex === -1) {
-      // Date active non trouvée, afficher les 2 dernières
-      return columns.slice(-2);
+      // Date active non trouvée, afficher les 2 dernières (inversées : dernière d'abord)
+      const lastTwo = columns.slice(-2);
+      return [lastTwo[1], lastTwo[0]];
     }
     
     // Si c'est la première date, afficher seulement celle-ci (pas de précédente)
     if (activeIndex === 0) {
-      // Afficher la date active + la suivante si elle existe
-      return columns.slice(0, Math.min(2, columns.length));
+      return [columns[0]]; // Seulement la date active, pas de précédente
     }
     
-    // Afficher la date précédente + la date active
-    return [columns[activeIndex - 1], columns[activeIndex]];
+    // Afficher la date active (gauche) + la date précédente (droite)
+    return [columns[activeIndex], columns[activeIndex - 1]];
   }, [columns, activeDate]);
 
   // Reset du filtre élément quand on change de domaine
