@@ -22,8 +22,52 @@ function PublicCockpitContent() {
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
   const [showMindMap, setShowMindMap] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const { trackEvent } = useTracking();
   const { language, setLanguage, t } = useLanguage();
+
+  // Fonction pour changer la date active (local uniquement, pas de sauvegarde serveur)
+  const handleDateChange = (newDate: string) => {
+    if (!cockpit || !cockpit.dataHistory?.columns?.length) return;
+    
+    const targetColumn = cockpit.dataHistory.columns.find(col => col.date === newDate);
+    if (!targetColumn) return;
+    
+    // Appliquer les données historiques à tous les sous-éléments
+    const updatedDomains = cockpit.domains.map(domain => ({
+      ...domain,
+      categories: (domain.categories || []).map(category => ({
+        ...category,
+        elements: (category.elements || []).map(element => ({
+          ...element,
+          subCategories: (element.subCategories || []).map(subCategory => ({
+            ...subCategory,
+            subElements: (subCategory.subElements || []).map(subElement => {
+              const historyKey = subElement.linkedGroupId || subElement.id;
+              const historicalData = targetColumn.data[historyKey];
+              
+              if (historicalData) {
+                return {
+                  ...subElement,
+                  status: historicalData.status,
+                  value: historicalData.value || '',
+                  unit: historicalData.unit || '',
+                };
+              }
+              return subElement;
+            }),
+          })),
+        })),
+      })),
+    }));
+    
+    setCockpit({
+      ...cockpit,
+      domains: updatedDomains,
+      selectedDataDate: newDate,
+    });
+    setShowDatePicker(false);
+  };
 
   useEffect(() => {
     const fetchPublicCockpit = async () => {
@@ -312,24 +356,83 @@ function PublicCockpitContent() {
                 </button>
               </div>
               
-              {/* Badge "A jour" ou date sélectionnée */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2D4A63] rounded-lg border border-[#4A6D8C]">
+              {/* Badge "A jour" ou date sélectionnée (cliquable si date) */}
+              <div className="relative">
                 {cockpit.selectedDataDate && cockpit.dataHistory?.columns?.length ? (
                   <>
-                    <MuiIcon name="CalendarToday" size={14} className="text-amber-400" />
-                    <span className="text-sm text-amber-400">
-                      {new Date(cockpit.selectedDataDate).toLocaleDateString(language === 'EN' ? 'en-GB' : 'fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
-                      })}
-                    </span>
+                    <button
+                      onClick={() => setShowDatePicker(!showDatePicker)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2D4A63] rounded-lg border border-[#4A6D8C] hover:bg-[#3D5A73] hover:border-amber-400/50 transition-all cursor-pointer"
+                      title={t('public.selectDate') || 'Changer de date'}
+                    >
+                      <MuiIcon name="CalendarToday" size={14} className="text-amber-400" />
+                      <span className="text-sm text-amber-400">
+                        {new Date(cockpit.selectedDataDate).toLocaleDateString(language === 'EN' ? 'en-GB' : 'fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </span>
+                      <MuiIcon name="ArrowDropDown" size={16} className="text-amber-400" />
+                    </button>
+                    
+                    {/* Dropdown de sélection de date */}
+                    {showDatePicker && (
+                      <>
+                        {/* Overlay pour fermer le dropdown */}
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setShowDatePicker(false)}
+                        />
+                        <div className="absolute top-full right-0 mt-2 bg-[#1E3A5F] border border-[#4A6D8C] rounded-xl shadow-2xl z-50 min-w-[200px] overflow-hidden">
+                          <div className="p-2 border-b border-[#4A6D8C]">
+                            <p className="text-xs text-slate-400 font-medium px-2">
+                              {t('public.availableDates') || 'Dates disponibles'}
+                            </p>
+                          </div>
+                          <div className="max-h-[300px] overflow-y-auto">
+                            {cockpit.dataHistory.columns.map((col) => {
+                              const isActive = cockpit.selectedDataDate === col.date;
+                              const dateObj = new Date(col.date);
+                              return (
+                                <button
+                                  key={col.date}
+                                  onClick={() => handleDateChange(col.date)}
+                                  className={`w-full px-4 py-2.5 text-left flex items-center justify-between gap-3 transition-all ${
+                                    isActive 
+                                      ? 'bg-amber-500/20 text-amber-400' 
+                                      : 'text-white hover:bg-[#2D4A63]'
+                                  }`}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium">
+                                      {dateObj.toLocaleDateString(language === 'EN' ? 'en-GB' : 'fr-FR', {
+                                        weekday: 'short',
+                                        day: '2-digit',
+                                        month: 'short',
+                                        year: 'numeric'
+                                      })}
+                                    </span>
+                                    {col.label && (
+                                      <span className="text-xs text-slate-400">{col.label}</span>
+                                    )}
+                                  </div>
+                                  {isActive && (
+                                    <MuiIcon name="Check" size={16} className="text-amber-400" />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </>
                 ) : (
-                  <>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2D4A63] rounded-lg border border-[#4A6D8C]">
                     <span className="text-sm text-green-400">{t('public.upToDate')}</span>
                     <MuiIcon name="Check" size={14} className="text-green-400" />
-                  </>
+                  </div>
                 )}
               </div>
               
