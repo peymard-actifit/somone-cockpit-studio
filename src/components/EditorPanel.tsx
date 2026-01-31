@@ -136,6 +136,124 @@ function EditableInput({ value, onChange, className, placeholder, allowEmpty = f
   );
 }
 
+// Composant de sélection de sous-élément avec filtre
+function SubElementLinkSelector({
+  items,
+  onSelect,
+  defaultFilter = '',
+  placeholder = 'Lier à un autre sous-élément...',
+}: {
+  items: Array<{
+    id: string;
+    value: string;
+    label: string;
+    elementName: string;
+  }>;
+  onSelect: (value: string) => void;
+  defaultFilter?: string;
+  placeholder?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [filterText, setFilterText] = useState(defaultFilter);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fermer le dropdown quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Focus sur l'input quand le dropdown s'ouvre
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Filtrer les items
+  const filteredItems = items.filter(item => {
+    if (!filterText.trim()) return true;
+    const searchLower = filterText.toLowerCase();
+    return item.label.toLowerCase().includes(searchLower) ||
+           item.elementName.toLowerCase().includes(searchLower);
+  });
+
+  const handleSelect = (value: string) => {
+    onSelect(value);
+    setIsOpen(false);
+    setFilterText(defaultFilter);
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F] flex items-center justify-between"
+      >
+        <span className="text-[#94A3B8]">{placeholder}</span>
+        <MuiIcon name={isOpen ? 'ExpandLess' : 'ExpandMore'} size={18} className="text-[#64748B]" />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-[#E2E8F0] rounded-lg shadow-lg max-h-80 overflow-hidden">
+          {/* Champ de filtre */}
+          <div className="p-2 border-b border-[#E2E8F0] sticky top-0 bg-white">
+            <div className="relative">
+              <MuiIcon name="Search" size={16} className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[#94A3B8]" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                placeholder="Filtrer par élément..."
+                className="w-full pl-8 pr-8 py-1.5 border border-[#E2E8F0] rounded text-sm text-[#1E3A5F] placeholder-[#94A3B8] focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+              />
+              {filterText && (
+                <button
+                  onClick={() => setFilterText('')}
+                  className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B]"
+                >
+                  <MuiIcon name="Close" size={14} />
+                </button>
+              )}
+            </div>
+            {filterText && (
+              <p className="text-xs text-[#64748B] mt-1.5">
+                {filteredItems.length} résultat{filteredItems.length > 1 ? 's' : ''} sur {items.length}
+              </p>
+            )}
+          </div>
+          
+          {/* Liste des items */}
+          <div className="max-h-60 overflow-y-auto">
+            {filteredItems.length === 0 ? (
+              <div className="px-3 py-4 text-center text-sm text-[#94A3B8]">
+                Aucun résultat trouvé
+              </div>
+            ) : (
+              filteredItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => handleSelect(item.value)}
+                  className="w-full px-3 py-2 text-left text-sm text-[#1E3A5F] hover:bg-[#F5F7FA] border-b border-[#F1F5F9] last:border-b-0"
+                >
+                  {item.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface EditorPanelProps {
   domain: Domain | undefined;
   element: Element | null;
@@ -1039,26 +1157,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                     
                     {/* Ajouter une nouvelle liaison */}
                     <div className="pt-2 border-t border-[#E2E8F0]">
-                      <select
-                        className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-                        value=""
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            const targetId = e.target.value;
-                            linkSubElement(selectedSubElement.id, targetId);
-                            setSelectedSubElement({ ...selectedSubElement, linkedGroupId: targetId });
-                          }
-                        }}
-                      >
-                        <option value="">Lier à un autre sous-élément...</option>
-                        {getAllSubElements()
+                      <SubElementLinkSelector
+                        items={getAllSubElements()
                           .filter(item => item.subElement.id !== selectedSubElement.id && item.subElement.linkedGroupId !== selectedSubElement.linkedGroupId)
-                          .map(item => (
-                            <option key={item.subElement.id} value={item.subElement.linkedGroupId || item.subElement.id}>
-                              {item.domainName} / {item.categoryName} / {item.elementName} / {item.subCategoryName} / {item.subElement.name}
-                            </option>
-                          ))}
-                      </select>
+                          .map(item => ({
+                            id: item.subElement.id,
+                            value: item.subElement.linkedGroupId || item.subElement.id,
+                            label: `${item.domainName} / ${item.categoryName} / ${item.elementName} / ${item.subCategoryName} / ${item.subElement.name}`,
+                            elementName: item.elementName,
+                          }))}
+                        onSelect={(targetId) => {
+                          linkSubElement(selectedSubElement.id, targetId);
+                          setSelectedSubElement({ ...selectedSubElement, linkedGroupId: targetId });
+                        }}
+                        defaultFilter={element?.name || ''}
+                      />
                     </div>
                     
                     <button
@@ -1075,26 +1188,21 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs text-[#94A3B8]">Ce sous-élément n'est pas lié.</p>
-                    <select
-                      className="w-full px-3 py-2 bg-[#F5F7FA] border border-[#E2E8F0] rounded-lg text-[#1E3A5F] text-sm focus:outline-none focus:border-[#1E3A5F]"
-                      value=""
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          const targetId = e.target.value;
-                          linkSubElement(selectedSubElement.id, targetId);
-                          setSelectedSubElement({ ...selectedSubElement, linkedGroupId: targetId });
-                        }
-                      }}
-                    >
-                      <option value="">Lier à un autre sous-élément...</option>
-                      {getAllSubElements()
+                    <SubElementLinkSelector
+                      items={getAllSubElements()
                         .filter(item => item.subElement.id !== selectedSubElement.id)
-                        .map(item => (
-                          <option key={item.subElement.id} value={item.subElement.linkedGroupId || item.subElement.id}>
-                            {item.domainName} / {item.categoryName} / {item.elementName} / {item.subCategoryName} / {item.subElement.name}
-                          </option>
-                        ))}
-                    </select>
+                        .map(item => ({
+                          id: item.subElement.id,
+                          value: item.subElement.linkedGroupId || item.subElement.id,
+                          label: `${item.domainName} / ${item.categoryName} / ${item.elementName} / ${item.subCategoryName} / ${item.subElement.name}`,
+                          elementName: item.elementName,
+                        }))}
+                      onSelect={(targetId) => {
+                        linkSubElement(selectedSubElement.id, targetId);
+                        setSelectedSubElement({ ...selectedSubElement, linkedGroupId: targetId });
+                      }}
+                      defaultFilter={element?.name || ''}
+                    />
                   </div>
                 )}
               </div>
