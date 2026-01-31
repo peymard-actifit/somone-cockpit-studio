@@ -930,7 +930,10 @@ export interface JourneyDataField {
 // Union des types de champs d'interaction
 export type JourneyInteractionField = JourneyQuestionField | JourneyPromptField | JourneyDataField;
 
-// Étape de présentation (contenu HTML)
+// Type de contenu pour les étapes de présentation
+export type PresentationContentType = 'html' | 'image';
+
+// Étape de présentation (contenu HTML ou image)
 export interface JourneyPresentationStep {
   id: string;
   type: 'presentation';
@@ -938,8 +941,13 @@ export interface JourneyPresentationStep {
   nameEN?: string;
   title: string; // Titre affiché à l'utilisateur
   titleEN?: string;
-  content: string; // Contenu HTML
+  contentType: PresentationContentType; // Type de contenu : 'html' ou 'image'
+  content: string; // Contenu HTML (si contentType = 'html')
   contentEN?: string;
+  imageUrl?: string; // URL de l'image (si contentType = 'image')
+  imageUrlEN?: string; // URL de l'image en anglais
+  imageCaption?: string; // Légende de l'image
+  imageCaptionEN?: string;
   icon?: string; // Icône MUI optionnelle
   order?: number; // Ordre dans la liste globale des étapes
   createdAt: string;

@@ -558,15 +558,60 @@ export default function JourneyPlayer({ isOpen, onClose, cockpitId }: JourneyPla
 
                 {/* Étape de présentation */}
                 {currentStep.type === 'presentation' && (
-                  <div
-                    className="prose prose-invert prose-lg max-w-none bg-gray-800 rounded-xl p-6"
-                    dangerouslySetInnerHTML={{
-                      __html: getLocalizedText(
-                        (currentStep as JourneyPresentationStep).content,
-                        (currentStep as JourneyPresentationStep).contentEN
-                      )
-                    }}
-                  />
+                  <>
+                    {/* Contenu HTML */}
+                    {(currentStep as JourneyPresentationStep).contentType !== 'image' && (
+                      <div
+                        className="prose prose-invert prose-lg max-w-none bg-gray-800 rounded-xl p-6"
+                        dangerouslySetInnerHTML={{
+                          __html: getLocalizedText(
+                            (currentStep as JourneyPresentationStep).content,
+                            (currentStep as JourneyPresentationStep).contentEN
+                          )
+                        }}
+                      />
+                    )}
+                    
+                    {/* Contenu Image */}
+                    {(currentStep as JourneyPresentationStep).contentType === 'image' && (
+                      <div className="bg-gray-800 rounded-xl p-6 text-center">
+                        {getLocalizedText(
+                          (currentStep as JourneyPresentationStep).imageUrl,
+                          (currentStep as JourneyPresentationStep).imageUrlEN
+                        ) ? (
+                          <>
+                            <img
+                              src={getLocalizedText(
+                                (currentStep as JourneyPresentationStep).imageUrl,
+                                (currentStep as JourneyPresentationStep).imageUrlEN
+                              )}
+                              alt={getLocalizedText(
+                                (currentStep as JourneyPresentationStep).imageCaption,
+                                (currentStep as JourneyPresentationStep).imageCaptionEN
+                              ) || 'Image de présentation'}
+                              className="max-w-full max-h-[60vh] mx-auto rounded-lg shadow-lg"
+                            />
+                            {getLocalizedText(
+                              (currentStep as JourneyPresentationStep).imageCaption,
+                              (currentStep as JourneyPresentationStep).imageCaptionEN
+                            ) && (
+                              <p className="text-gray-300 text-lg mt-4 italic">
+                                {getLocalizedText(
+                                  (currentStep as JourneyPresentationStep).imageCaption,
+                                  (currentStep as JourneyPresentationStep).imageCaptionEN
+                                )}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <div className="py-12 text-gray-500">
+                            <MuiIcon name="Image" className="text-5xl mb-3 opacity-50" />
+                            <p>Aucune image configurée</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Étape d'interaction */}

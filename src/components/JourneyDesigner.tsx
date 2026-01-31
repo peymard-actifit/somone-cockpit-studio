@@ -103,6 +103,7 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
           type: 'presentation' as const,
           name: 'Nouvelle présentation',
           title: 'Titre de la présentation',
+          contentType: 'html' as const,
           content: '<p>Contenu de la présentation...</p>',
           icon: 'Article',
         }
@@ -564,27 +565,126 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
                             Contenu de la présentation
                           </h3>
                           
-                          <div>
-                            <label className="block text-sm text-gray-400 mb-1">Contenu HTML</label>
-                            <textarea
-                              value={(editingStep as JourneyPresentationStep).content || ''}
-                              onChange={(e) => setEditingStep({
+                          {/* Choix du type de contenu */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEditingStep({
                                 ...editingStep,
-                                content: e.target.value,
+                                contentType: 'html',
                               } as JourneyPresentationStep)}
-                              rows={12}
-                              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono text-sm"
-                              placeholder="<h2>Titre</h2><p>Votre contenu HTML...</p>"
-                            />
+                              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                (editingStep as JourneyPresentationStep).contentType !== 'image'
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                              }`}
+                            >
+                              <MuiIcon name="Code" className="mr-2" />
+                              Texte / HTML
+                            </button>
+                            <button
+                              onClick={() => setEditingStep({
+                                ...editingStep,
+                                contentType: 'image',
+                              } as JourneyPresentationStep)}
+                              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                (editingStep as JourneyPresentationStep).contentType === 'image'
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                              }`}
+                            >
+                              <MuiIcon name="Image" className="mr-2" />
+                              Image
+                            </button>
                           </div>
-                          
-                          <div className="p-4 bg-gray-900 rounded-lg">
-                            <p className="text-xs text-gray-500 mb-2">Aperçu :</p>
-                            <div
-                              className="prose prose-invert prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: (editingStep as JourneyPresentationStep).content || '' }}
-                            />
-                          </div>
+
+                          {/* Contenu HTML */}
+                          {(editingStep as JourneyPresentationStep).contentType !== 'image' && (
+                            <>
+                              <div>
+                                <label className="block text-sm text-gray-400 mb-1">Contenu HTML</label>
+                                <textarea
+                                  value={(editingStep as JourneyPresentationStep).content || ''}
+                                  onChange={(e) => setEditingStep({
+                                    ...editingStep,
+                                    content: e.target.value,
+                                  } as JourneyPresentationStep)}
+                                  rows={10}
+                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono text-sm"
+                                  placeholder="<h2>Titre</h2><p>Votre contenu HTML...</p>"
+                                />
+                              </div>
+                              
+                              <div className="p-4 bg-gray-900 rounded-lg">
+                                <p className="text-xs text-gray-500 mb-2">Aperçu :</p>
+                                <div
+                                  className="prose prose-invert prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: (editingStep as JourneyPresentationStep).content || '' }}
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {/* Contenu Image */}
+                          {(editingStep as JourneyPresentationStep).contentType === 'image' && (
+                            <>
+                              <div>
+                                <label className="block text-sm text-gray-400 mb-1">URL de l'image</label>
+                                <input
+                                  type="text"
+                                  value={(editingStep as JourneyPresentationStep).imageUrl || ''}
+                                  onChange={(e) => setEditingStep({
+                                    ...editingStep,
+                                    imageUrl: e.target.value,
+                                  } as JourneyPresentationStep)}
+                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                                  placeholder="https://example.com/image.png"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Collez l'URL d'une image hébergée en ligne
+                                </p>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm text-gray-400 mb-1">Légende (optionnel)</label>
+                                <input
+                                  type="text"
+                                  value={(editingStep as JourneyPresentationStep).imageCaption || ''}
+                                  onChange={(e) => setEditingStep({
+                                    ...editingStep,
+                                    imageCaption: e.target.value,
+                                  } as JourneyPresentationStep)}
+                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                                  placeholder="Description de l'image..."
+                                />
+                              </div>
+                              
+                              <div className="p-4 bg-gray-900 rounded-lg">
+                                <p className="text-xs text-gray-500 mb-2">Aperçu :</p>
+                                {(editingStep as JourneyPresentationStep).imageUrl ? (
+                                  <div className="text-center">
+                                    <img
+                                      src={(editingStep as JourneyPresentationStep).imageUrl}
+                                      alt={(editingStep as JourneyPresentationStep).imageCaption || 'Image de présentation'}
+                                      className="max-w-full max-h-64 mx-auto rounded-lg"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                    {(editingStep as JourneyPresentationStep).imageCaption && (
+                                      <p className="text-gray-400 text-sm mt-2 italic">
+                                        {(editingStep as JourneyPresentationStep).imageCaption}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-8 text-gray-500">
+                                    <MuiIcon name="Image" className="text-4xl mb-2 opacity-50" />
+                                    <p>Entrez une URL d'image pour voir l'aperçu</p>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       ) : (
                         <div className="bg-gray-800 rounded-lg p-4 space-y-4">
