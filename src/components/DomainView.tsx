@@ -27,7 +27,7 @@ interface DomainViewProps {
 }
 
 export default function DomainView({ domain, onElementClick, readOnly = false, cockpit: cockpitProp }: DomainViewProps) {
-  const { addCategory, deleteCategory, addElement, moveElement, reorderElement, findElementsByName, linkElement } = useCockpitStore();
+  const { addCategory, deleteCategory, addElement, moveElement, reorderElement, findElementsByName, linkElement, currentCockpit } = useCockpitStore();
   const confirm = useConfirm();
   const { t } = useLanguage();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -104,8 +104,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   }, [domain.id]);
 
   // Récupérer le cockpit - DOIT être fait AVANT tout return conditionnel
-  // pour les vues qui en ont besoin (alerts, stats)
-  const cockpit = cockpitProp || useCockpitStore.getState().currentCockpit;
+  // pour les vues qui en ont besoin (alerts, stats, data-history)
+  // Utiliser le hook currentCockpit pour souscrire aux changements (re-render quand selectedDataDate change)
+  const cockpit = cockpitProp || currentCockpit;
   
   // Mode cockpit original (fond transparent pour les catégories en mode publié) - activé par défaut
   const useOriginalView = cockpit?.useOriginalView !== false;
