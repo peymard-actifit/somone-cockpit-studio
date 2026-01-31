@@ -1,10 +1,20 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react';
 import type { Cockpit, TileStatus, DataHistoryColumn, SubElementDataSnapshot } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from './IconPicker';
 import { useLanguage } from '../contexts/LanguageContext';
 import * as XLSX from 'xlsx';
+
+// Hook pour debounce
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 // Mapping des statuts pour l'export/import
 const STATUS_EXPORT_MAP: Record<TileStatus, string> = {
@@ -84,6 +94,207 @@ interface DataHistoryViewProps {
   readOnly?: boolean;
 }
 
+// ============================================================================
+// COMPOSANT MÉMORISÉ POUR UNE LIGNE DU TABLEAU (OPTIMISATION PERFORMANCE)
+// ============================================================================
+interface TableRowProps {
+  se: UniqueSubElement;
+  idx: number;
+  displayedColumns: DataHistoryColumn[];
+  activeDate: string | undefined;
+  editingCell: { subElementId: string; columnDate: string; field: string } | null;
+  readOnly: boolean;
+  filterDomainId: string;
+  filterElementId: string;
+  onSetEditingCell: (cell: { subElementId: string; columnDate: string; field: 'status' | 'value' | 'unit' | 'alertDescription' } | null) => void;
+  onUpdateCell: (subElementId: string, columnDate: string, field: keyof SubElementDataSnapshot, value: string, closeEditor?: boolean) => void;
+  getCellData: (subElementId: string, columnDate: string) => SubElementDataSnapshot;
+}
+
+const TableRow = memo(function TableRow({
+  se,
+  idx,
+  displayedColumns,
+  activeDate,
+  editingCell,
+  readOnly,
+  filterDomainId,
+  filterElementId,
+  onSetEditingCell,
+  onUpdateCell,
+  getCellData,
+}: TableRowProps) {
+  const bgColor = idx % 2 === 0 ? 'white' : '#F5F7FA';
+  
+  return (
+    <tr style={{ backgroundColor: bgColor }}>
+      {/* Colonne Sous-élément avec nom + localisations */}
+      <td 
+        className="sticky left-0 z-10 p-3 border-r border-[#E2E8F0] align-top" 
+        style={{ backgroundColor: bgColor }}
+      >
+        <div className="flex flex-col gap-1">
+          {/* Nom du sous-élément */}
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-[#1E3A5F]">{se.name}</span>
+            {(se.linkedCount > 1 || se.linkedGroupId) && (
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap">
+                🔗 {se.linkedCount} liés
+              </span>
+            )}
+          </div>
+          {/* Localisations filtrées */}
+          <div className="flex flex-col gap-0.5">
+            {se.locationInfos
+              .filter(loc => {
+                if (filterDomainId && loc.domainId !== filterDomainId) return false;
+                if (filterElementId && loc.elementId !== filterElementId) return false;
+                return true;
+              })
+              .slice(0, 3) // Limiter à 3 localisations pour les performances
+              .map((loc, locIdx) => {
+                // Construire le chemin en fonction des filtres actifs
+                let path = '';
+                if (!filterDomainId) {
+                  path = loc.fullPath;
+                } else if (!filterElementId) {
+                  // Domaine filtré : afficher Cat > Elem > SubCat
+                  path = `${loc.categoryName} > ${loc.elementName} > ${loc.subCategoryName}`;
+                } else {
+                  // Élément filtré : afficher SubCat uniquement
+                  path = loc.subCategoryName;
+                }
+                return (
+                  <span key={locIdx} className="text-xs text-[#64748B]">
+                    {path}
+                  </span>
+                );
+              })}
+            {se.locationInfos.length > 3 && (
+              <span className="text-xs text-[#64748B] italic">
+                +{se.locationInfos.length - 3} autres...
+              </span>
+            )}
+          </div>
+        </div>
+      </td>
+      
+      {/* Colonnes de données par date (max 2 : précédente + active) */}
+      {displayedColumns.map((col) => {
+        const cellData = getCellData(se.id, col.date);
+        const statusColors = STATUS_COLORS[cellData.status] || STATUS_COLORS.ok;
+        const isEditingStatus = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'status';
+        const isEditingValue = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'value';
+        const isEditingUnit = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'unit';
+        const isEditingDescription = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'alertDescription';
+        const isActiveColumn = col.date === activeDate;
+        // Fond légèrement violet pour la colonne active
+        const activeBg = isActiveColumn ? 'bg-violet-50' : '';
+        
+        return (
+          <React.Fragment key={col.date}>
+            {/* Criticité */}
+            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
+              {isEditingStatus ? (
+                <select
+                  value={cellData.status}
+                  onChange={(e) => onUpdateCell(se.id, col.date, 'status', e.target.value)}
+                  onBlur={() => onSetEditingCell(null)}
+                  autoFocus
+                  className="w-full px-1 py-1 text-xs border border-[#E2E8F0] rounded"
+                >
+                  {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              ) : (
+                <div 
+                  className={`px-2 py-1 rounded text-xs font-medium text-white cursor-pointer hover:opacity-80 ${!readOnly ? 'hover:ring-2 hover:ring-offset-1 hover:ring-[#1E3A5F]' : ''}`}
+                  style={{ backgroundColor: statusColors.hex }}
+                  onClick={() => !readOnly && onSetEditingCell({ subElementId: se.id, columnDate: col.date, field: 'status' })}
+                >
+                  {STATUS_LABELS[cellData.status]}
+                </div>
+              )}
+            </td>
+            
+            {/* Valeur */}
+            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
+              {isEditingValue ? (
+                <EditableInput
+                  initialValue={cellData.value || ''}
+                  onSave={(val) => {
+                    onUpdateCell(se.id, col.date, 'value', val, true);
+                  }}
+                  onCancel={() => onSetEditingCell(null)}
+                  placeholder="—"
+                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
+                />
+              ) : (
+                <span 
+                  className={`text-sm text-[#1E3A5F] ${!readOnly ? 'cursor-pointer hover:underline' : ''}`}
+                  onClick={() => !readOnly && onSetEditingCell({ subElementId: se.id, columnDate: col.date, field: 'value' })}
+                >
+                  {cellData.value || '—'}
+                </span>
+              )}
+            </td>
+            
+            {/* Unité */}
+            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
+              {isEditingUnit ? (
+                <EditableInput
+                  initialValue={cellData.unit || ''}
+                  onSave={(val) => {
+                    onUpdateCell(se.id, col.date, 'unit', val, true);
+                  }}
+                  onCancel={() => onSetEditingCell(null)}
+                  placeholder="—"
+                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
+                />
+              ) : (
+                <span 
+                  className={`text-xs text-[#64748B] ${!readOnly ? 'cursor-pointer hover:underline' : ''}`}
+                  onClick={() => !readOnly && onSetEditingCell({ subElementId: se.id, columnDate: col.date, field: 'unit' })}
+                >
+                  {cellData.unit || '—'}
+                </span>
+              )}
+            </td>
+            
+            {/* Description */}
+            <td className={`p-2 border-r border-[#E2E8F0] text-left align-middle ${activeBg}`}>
+              {isEditingDescription ? (
+                <EditableInput
+                  initialValue={cellData.alertDescription || ''}
+                  onSave={(val) => {
+                    onUpdateCell(se.id, col.date, 'alertDescription', val, true);
+                  }}
+                  onCancel={() => onSetEditingCell(null)}
+                  placeholder="Description de l'alerte..."
+                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs"
+                />
+              ) : (
+                <span 
+                  className={`text-xs text-[#64748B] ${!readOnly ? 'cursor-pointer hover:underline' : ''} line-clamp-2`}
+                  onClick={() => !readOnly && onSetEditingCell({ subElementId: se.id, columnDate: col.date, field: 'alertDescription' })}
+                  title={cellData.alertDescription || ''}
+                >
+                  {cellData.alertDescription || '—'}
+                </span>
+              )}
+            </td>
+          </React.Fragment>
+        );
+      })}
+    </tr>
+  );
+});
+
+// ============================================================================
+// FIN COMPOSANT MÉMORISÉ
+// ============================================================================
+
 // Informations de localisation détaillée
 interface LocationInfo {
   domainId: string;
@@ -132,8 +343,9 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   // États pour les filtres hiérarchiques
   const [filterDomainId, setFilterDomainId] = useState<string>('');
   const [filterElementId, setFilterElementId] = useState<string>('');
-  // État pour la recherche textuelle
+  // État pour la recherche textuelle (avec debounce pour les performances)
   const [searchText, setSearchText] = useState<string>('');
+  const debouncedSearchText = useDebouncedValue(searchText, 300);
   // État pour la date précédemment active (pas chronologique, mais dernière date sélectionnée)
   const [previousActiveDate, setPreviousActiveDate] = useState<string | null>(null);
 
@@ -230,10 +442,11 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   }, [cockpit.domains, filterDomainId]);
 
   // Sous-éléments filtrés (par domaine, élément et recherche textuelle)
+  // OPTIMISATION: Utilise debouncedSearchText et limite la recherche aux colonnes affichées
   const filteredSubElements = useMemo(() => {
     let filtered = uniqueSubElements;
     
-    // Filtre par domaine et élément
+    // Filtre par domaine et élément (rapide)
     if (filterDomainId || filterElementId) {
       filtered = filtered.filter(se => {
         return se.locationInfos.some(loc => {
@@ -245,18 +458,21 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     }
     
     // Filtre par recherche textuelle (insensible à la casse)
-    // Recherche dans : nom, chemins, criticités, valeurs, unités, descriptions
-    if (searchText.trim()) {
-      const searchLower = searchText.toLowerCase().trim();
+    // OPTIMISATION: N'utilise que les colonnes affichées (max 2) et debounce
+    if (debouncedSearchText.trim()) {
+      const searchLower = debouncedSearchText.toLowerCase().trim();
+      // Pré-calculer les colonnes à utiliser pour la recherche (seulement les 2 dernières max)
+      const searchColumns = columns.slice(-2);
+      
       filtered = filtered.filter(se => {
-        // Recherche dans le nom
+        // Recherche dans le nom (priorité haute)
         if (se.name.toLowerCase().includes(searchLower)) return true;
         
-        // Recherche dans les chemins (localisations)
-        if (se.locations.some(loc => loc.toLowerCase().includes(searchLower))) return true;
+        // Recherche dans les chemins (localisations) - limité à la première
+        if (se.locations[0]?.toLowerCase().includes(searchLower)) return true;
         
-        // Recherche dans les données de toutes les colonnes
-        for (const col of columns) {
+        // Recherche dans les données des colonnes affichées uniquement
+        for (const col of searchColumns) {
           const cellData = col.data[se.id];
           if (cellData) {
             // Recherche dans la criticité (label traduit)
@@ -264,13 +480,13 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
             if (statusLabel.toLowerCase().includes(searchLower)) return true;
             
             // Recherche dans la valeur
-            if (cellData.value && cellData.value.toLowerCase().includes(searchLower)) return true;
+            if (cellData.value?.toLowerCase().includes(searchLower)) return true;
             
             // Recherche dans l'unité
-            if (cellData.unit && cellData.unit.toLowerCase().includes(searchLower)) return true;
+            if (cellData.unit?.toLowerCase().includes(searchLower)) return true;
             
             // Recherche dans la description
-            if (cellData.alertDescription && cellData.alertDescription.toLowerCase().includes(searchLower)) return true;
+            if (cellData.alertDescription?.toLowerCase().includes(searchLower)) return true;
           }
         }
         
@@ -279,7 +495,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     }
     
     return filtered;
-  }, [uniqueSubElements, filterDomainId, filterElementId, searchText, columns]);
+  }, [uniqueSubElements, filterDomainId, filterElementId, debouncedSearchText, columns]);
 
   // Construire le breadcrumb du filtre actuel
   const filterBreadcrumb = useMemo(() => {
@@ -395,8 +611,8 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     saveToStore([initialColumn]);
   };
 
-  // Sauvegarder dans le store
-  const saveToStore = (newColumns: DataHistoryColumn[]) => {
+  // Sauvegarder dans le store - mémorisé pour éviter les re-renders
+  const saveToStore = useCallback((newColumns: DataHistoryColumn[]) => {
     const dataHistory = {
       columns: newColumns,
       subElements: uniqueSubElements.map(se => ({
@@ -410,7 +626,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     };
     
     updateCockpit({ dataHistory });
-  };
+  }, [uniqueSubElements, updateCockpit]);
 
   // Ajouter une nouvelle colonne
   const handleAddColumn = () => {
@@ -534,17 +750,16 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     }
   };
 
-  // Obtenir les données d'une cellule
-  const getCellData = (subElementId: string, columnDate: string): SubElementDataSnapshot => {
+  // Obtenir les données d'une cellule - mémorisé avec useCallback
+  const getCellData = useCallback((subElementId: string, columnDate: string): SubElementDataSnapshot => {
     const column = columns.find(c => c.date === columnDate);
     return column?.data[subElementId] || { status: 'ok' };
-  };
+  }, [columns]);
 
-  // Démarrer l'édition d'une cellule
-  const startEditing = (subElementId: string, columnDate: string, field: 'status' | 'value' | 'unit' | 'alertDescription') => {
-    if (readOnly) return;
-    setEditingCell({ subElementId, columnDate, field });
-  };
+  // Handler pour setEditingCell - mémorisé
+  const handleSetEditingCell = useCallback((cell: { subElementId: string; columnDate: string; field: 'status' | 'value' | 'unit' | 'alertDescription' } | null) => {
+    setEditingCell(cell);
+  }, []);
 
   // Formater une date pour l'affichage
   const formatDate = (dateStr: string) => {
@@ -1201,167 +1416,22 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                 </tr>
               </thead>
               <tbody>
-                {filteredSubElements.map((se, idx) => {
-                  const bgColor = idx % 2 === 0 ? 'white' : '#F5F7FA';
-                  
-                  return (
-                    <tr key={se.id} style={{ backgroundColor: bgColor }}>
-                      {/* Colonne Sous-élément avec nom + localisations */}
-                      <td 
-                        className="sticky left-0 z-10 p-3 border-r border-[#E2E8F0] align-top" 
-                        style={{ backgroundColor: bgColor }}
-                      >
-                        <div className="flex flex-col gap-1">
-                          {/* Nom du sous-élément */}
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-[#1E3A5F]">{se.name}</span>
-                            {(se.linkedCount > 1 || se.linkedGroupId) && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap">
-                                🔗 {se.linkedCount} liés
-                              </span>
-                            )}
-                          </div>
-                          {/* Localisations filtrées */}
-                          <div className="flex flex-col gap-0.5">
-                            {se.locationInfos
-                              .filter(loc => {
-                                if (filterDomainId && loc.domainId !== filterDomainId) return false;
-                                if (filterElementId && loc.elementId !== filterElementId) return false;
-                                return true;
-                              })
-                              .map((loc, locIdx) => {
-                                // Construire le chemin en fonction des filtres actifs
-                                let path = '';
-                                if (!filterDomainId) {
-                                  path = loc.fullPath;
-                                } else if (!filterElementId) {
-                                  // Domaine filtré : afficher Cat > Elem > SubCat
-                                  path = `${loc.categoryName} > ${loc.elementName} > ${loc.subCategoryName}`;
-                                } else {
-                                  // Élément filtré : afficher SubCat uniquement
-                                  path = loc.subCategoryName;
-                                }
-                                return (
-                                  <span key={locIdx} className="text-xs text-[#64748B]">
-                                    {path}
-                                  </span>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      </td>
-                      
-                      {/* Colonnes de données par date (max 2 : précédente + active) */}
-                      {displayedColumns.map((col) => {
-                        const cellData = getCellData(se.id, col.date);
-                        const statusColors = STATUS_COLORS[cellData.status] || STATUS_COLORS.ok;
-                        const isEditingStatus = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'status';
-                        const isEditingValue = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'value';
-                        const isEditingUnit = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'unit';
-                        const isEditingDescription = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'alertDescription';
-                        const isActiveColumn = col.date === activeDate;
-                        // Fond légèrement violet pour la colonne active
-                        const activeBg = isActiveColumn ? 'bg-violet-50' : '';
-                        
-                        return (
-                          <React.Fragment key={col.date}>
-                            {/* Criticité */}
-                            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
-                              {isEditingStatus ? (
-                                <select
-                                  value={cellData.status}
-                                  onChange={(e) => handleUpdateCell(se.id, col.date, 'status', e.target.value)}
-                                  onBlur={() => setEditingCell(null)}
-                                  autoFocus
-                                  className="w-full px-1 py-1 text-xs border border-[#E2E8F0] rounded"
-                                >
-                                  {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                                    <option key={key} value={key}>{label}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <div 
-                                  className={`px-2 py-1 rounded text-xs font-medium text-white cursor-pointer hover:opacity-80 ${!readOnly ? 'hover:ring-2 hover:ring-offset-1 hover:ring-[#1E3A5F]' : ''}`}
-                                  style={{ backgroundColor: statusColors.hex }}
-                                  onClick={() => !readOnly && setEditingCell({ subElementId: se.id, columnDate: col.date, field: 'status' })}
-                                >
-                                  {STATUS_LABELS[cellData.status]}
-                                </div>
-                              )}
-                            </td>
-                            
-                            {/* Valeur */}
-                            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
-                              {isEditingValue ? (
-                                <EditableInput
-                                  initialValue={cellData.value || ''}
-                                  onSave={(val) => {
-                                    handleUpdateCell(se.id, col.date, 'value', val, true);
-                                  }}
-                                  onCancel={() => setEditingCell(null)}
-                                  placeholder="—"
-                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
-                                />
-                              ) : (
-                                <span 
-                                  className={`text-sm text-[#1E3A5F] ${!readOnly ? 'cursor-pointer hover:underline' : ''}`}
-                                  onClick={() => startEditing(se.id, col.date, 'value')}
-                                >
-                                  {cellData.value || '—'}
-                                </span>
-                              )}
-                            </td>
-                            
-                            {/* Unité */}
-                            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
-                              {isEditingUnit ? (
-                                <EditableInput
-                                  initialValue={cellData.unit || ''}
-                                  onSave={(val) => {
-                                    handleUpdateCell(se.id, col.date, 'unit', val, true);
-                                  }}
-                                  onCancel={() => setEditingCell(null)}
-                                  placeholder="—"
-                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs text-center"
-                                />
-                              ) : (
-                                <span 
-                                  className={`text-xs text-[#64748B] ${!readOnly ? 'cursor-pointer hover:underline' : ''}`}
-                                  onClick={() => startEditing(se.id, col.date, 'unit')}
-                                >
-                                  {cellData.unit || '—'}
-                                </span>
-                              )}
-                            </td>
-                            
-                            {/* Description */}
-                            <td className={`p-2 border-r border-[#E2E8F0] text-left align-middle ${activeBg}`}>
-                              {isEditingDescription ? (
-                                <EditableInput
-                                  initialValue={cellData.alertDescription || ''}
-                                  onSave={(val) => {
-                                    handleUpdateCell(se.id, col.date, 'alertDescription', val, true);
-                                  }}
-                                  onCancel={() => setEditingCell(null)}
-                                  placeholder="Description de l'alerte..."
-                                  className="w-full px-2 py-1 border border-[#E2E8F0] rounded text-xs"
-                                />
-                              ) : (
-                                <span 
-                                  className={`text-xs text-[#64748B] ${!readOnly ? 'cursor-pointer hover:underline' : ''} line-clamp-2`}
-                                  onClick={() => startEditing(se.id, col.date, 'alertDescription')}
-                                  title={cellData.alertDescription || ''}
-                                >
-                                  {cellData.alertDescription || '—'}
-                                </span>
-                              )}
-                            </td>
-                          </React.Fragment>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
+                {filteredSubElements.map((se, idx) => (
+                  <TableRow
+                    key={se.id}
+                    se={se}
+                    idx={idx}
+                    displayedColumns={displayedColumns}
+                    activeDate={activeDate}
+                    editingCell={editingCell}
+                    readOnly={readOnly}
+                    filterDomainId={filterDomainId}
+                    filterElementId={filterElementId}
+                    onSetEditingCell={handleSetEditingCell}
+                    onUpdateCell={handleUpdateCell}
+                    getCellData={getCellData}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
