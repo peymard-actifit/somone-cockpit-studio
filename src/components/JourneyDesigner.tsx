@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { MuiIcon } from './IconPicker';
 import { useJourneyStore } from '../store/journeyStore';
-import { useLanguage } from '../contexts/LanguageContext';
 import type {
   JourneyStep,
   JourneyPresentationStep,
   JourneyInteractionStep,
-  Journey,
   JourneyInteractionField,
   JourneyQuestionField,
   JourneyPromptField,
@@ -25,7 +23,6 @@ const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9
 type MainTab = 'steps' | 'journeys';
 
 export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProps) {
-  const { t } = useLanguage();
   const {
     steps,
     journeys,
@@ -39,7 +36,6 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
     deleteJourney,
     isLoading,
     error,
-    clearError,
   } = useJourneyStore();
 
   const [mainTab, setMainTab] = useState<MainTab>('steps');
@@ -100,15 +96,24 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
   // === GESTION DES ÉTAPES ===
 
   const handleCreateStep = async (type: 'presentation' | 'interaction') => {
-    const newStep = await createStep({
-      type,
-      name: type === 'presentation' ? 'Nouvelle présentation' : 'Nouvelle interaction',
-      title: type === 'presentation' ? 'Titre de la présentation' : 'Titre de l\'interaction',
-      content: type === 'presentation' ? '<p>Contenu de la présentation...</p>' : undefined,
-      description: type === 'interaction' ? 'Description de l\'interaction' : undefined,
-      fields: type === 'interaction' ? [] : undefined,
-      icon: type === 'presentation' ? 'Article' : 'QuestionAnswer',
-    });
+    const stepData = type === 'presentation' 
+      ? {
+          type: 'presentation' as const,
+          name: 'Nouvelle présentation',
+          title: 'Titre de la présentation',
+          content: '<p>Contenu de la présentation...</p>',
+          icon: 'Article',
+        }
+      : {
+          type: 'interaction' as const,
+          name: 'Nouvelle interaction',
+          title: 'Titre de l\'interaction',
+          description: 'Description de l\'interaction',
+          fields: [] as JourneyInteractionField[],
+          icon: 'QuestionAnswer',
+        };
+    
+    const newStep = await createStep(stepData);
     
     if (newStep) {
       setSelectedStepId(newStep.id);
@@ -183,7 +188,7 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
     setEditingStep({
       ...step,
       fields: [...fields, newField],
-    });
+    } as JourneyInteractionStep);
     setEditingFieldId(newField.id);
   };
 
@@ -193,8 +198,8 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
     const step = editingStep as JourneyInteractionStep;
     setEditingStep({
       ...step,
-      fields: step.fields.map(f => f.id === fieldId ? { ...f, ...updates } : f),
-    });
+      fields: step.fields.map(f => f.id === fieldId ? { ...f, ...updates } as JourneyInteractionField : f),
+    } as JourneyInteractionStep);
   };
 
   const deleteField = (fieldId: string) => {
@@ -204,7 +209,7 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
     setEditingStep({
       ...step,
       fields: step.fields.filter(f => f.id !== fieldId),
-    });
+    } as JourneyInteractionStep);
     if (editingFieldId === fieldId) {
       setEditingFieldId(null);
     }
@@ -223,7 +228,7 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
       [fields[index], fields[index + 1]] = [fields[index + 1], fields[index]];
     }
     
-    setEditingStep({ ...step, fields });
+    setEditingStep({ ...step, fields } as JourneyInteractionStep);
   };
 
   // === GESTION DES PARCOURS ===

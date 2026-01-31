@@ -1,13 +1,10 @@
 import { create } from 'zustand';
 import type {
   JourneyStep,
-  JourneyPresentationStep,
-  JourneyInteractionStep,
   Journey,
   JourneySession,
   JourneyStepResponse,
   JourneyFieldResponse,
-  JourneyInteractionField,
 } from '../types';
 import { useAuthStore } from './authStore';
 
@@ -377,7 +374,7 @@ export const useJourneyStore = create<JourneyState>()((set, get) => ({
   },
 
   submitStepResponse: async (responses) => {
-    const { currentSession, journeys, steps } = get();
+    const { currentSession, journeys } = get();
     if (!currentSession) return false;
     
     const journey = journeys.find(j => j.id === currentSession.journeyId);

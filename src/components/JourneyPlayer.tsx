@@ -4,10 +4,8 @@ import { useJourneyStore } from '../store/journeyStore';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useLanguage } from '../contexts/LanguageContext';
 import type {
-  JourneyStep,
   JourneyPresentationStep,
   JourneyInteractionStep,
-  Journey,
   JourneyFieldResponse,
   JourneyInteractionField,
   JourneyQuestionField,
@@ -22,9 +20,8 @@ interface JourneyPlayerProps {
 }
 
 export default function JourneyPlayer({ isOpen, onClose, cockpitId }: JourneyPlayerProps) {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const {
-    steps,
     journeys,
     currentSession,
     fetchSteps,
@@ -205,7 +202,7 @@ export default function JourneyPlayer({ isOpen, onClose, cockpitId }: JourneyPla
 
   // Obtenir le texte localisé
   const getLocalizedText = (fr?: string, en?: string) => {
-    if (language === 'en' && en) return en;
+    if (language === 'EN' && en) return en;
     return fr || '';
   };
 
