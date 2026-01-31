@@ -868,11 +868,17 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   },
 
   updateCockpit: (updates: Partial<Cockpit>) => {
+    // Détecter si la date active change pour synchroniser les sous-éléments
+    const previousCockpit = get().currentCockpit;
+    const previousDate = previousCockpit?.selectedDataDate;
+    const newDate = updates.selectedDataDate;
+    const dateIsChanging = newDate !== undefined && newDate !== previousDate;
+    
     set((state) => {
       if (!state.currentCockpit) return state;
       // Effectuer une fusion profonde pour s'assurer que les tableaux comme 'domains' sont complètement remplacés
       // et non fusionnés superficiellement.
-      const updatedCockpit = {
+      let updatedCockpit = {
         ...state.currentCockpit,
         ...updates,
         domains: updates.domains !== undefined ? updates.domains : state.currentCockpit.domains,
@@ -880,6 +886,54 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         scrollingBanner: updates.scrollingBanner !== undefined ? updates.scrollingBanner : state.currentCockpit.scrollingBanner,
         updatedAt: new Date().toISOString(),
       };
+
+      // ==========================================================================
+      // SYNCHRONISATION : Quand la date active change, appliquer les données 
+      // historiques de cette date à TOUS les sous-éléments du cockpit
+      // ==========================================================================
+      if (dateIsChanging && newDate && updatedCockpit.dataHistory?.columns?.length) {
+        const targetColumn = updatedCockpit.dataHistory.columns.find(col => col.date === newDate);
+        
+        if (targetColumn) {
+          console.log(`[updateCockpit] 📅 Changement de date active: ${previousDate || 'aucune'} → ${newDate}`);
+          console.log(`[updateCockpit] 🔄 Application des données historiques à tous les sous-éléments...`);
+          
+          // Parcourir tous les sous-éléments et appliquer les données de la date active
+          updatedCockpit = {
+            ...updatedCockpit,
+            domains: (updatedCockpit.domains || []).map(domain => ({
+              ...domain,
+              categories: (domain.categories || []).map(category => ({
+                ...category,
+                elements: (category.elements || []).map(element => ({
+                  ...element,
+                  subCategories: (element.subCategories || []).map(subCategory => ({
+                    ...subCategory,
+                    subElements: (subCategory.subElements || []).map(subElement => {
+                      // La clé dans l'historique est linkedGroupId ou subElement.id
+                      const historyKey = subElement.linkedGroupId || subElement.id;
+                      const historicalData = targetColumn.data[historyKey];
+                      
+                      if (historicalData) {
+                        // Appliquer les données historiques au sous-élément
+                        return {
+                          ...subElement,
+                          status: historicalData.status,
+                          value: historicalData.value || '',
+                          unit: historicalData.unit || '',
+                        };
+                      }
+                      return subElement;
+                    }),
+                  })),
+                })),
+              })),
+            })),
+          };
+          
+          console.log(`[updateCockpit] ✅ Données historiques appliquées pour la date ${newDate}`);
+        }
+      }
 
       // Log pour vérifier que les domaines sont bien remplacés
       if (updates.domains && updates.domains.length > 0) {
