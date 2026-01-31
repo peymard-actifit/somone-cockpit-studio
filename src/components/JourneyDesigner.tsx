@@ -277,6 +277,33 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
     }
   };
 
+  // Activer/Désactiver avec sauvegarde immédiate
+  const handleToggleActive = async () => {
+    if (!editingJourney || !selectedJourneyId) return;
+    
+    // Vérifier qu'il y a au moins une étape pour activer
+    if (!editingJourney.isActive && editingJourney.steps.length === 0) {
+      showMessage('Ajoutez au moins une étape avant d\'activer le parcours');
+      return;
+    }
+    
+    const newActiveState = !editingJourney.isActive;
+    setIsSaving(true);
+    
+    // Sauvegarder d'abord toutes les modifications en cours + le nouveau statut
+    const success = await updateJourney(selectedJourneyId, {
+      ...editingJourney,
+      isActive: newActiveState,
+    });
+    
+    setIsSaving(false);
+    
+    if (success) {
+      setEditingJourney({ ...editingJourney, isActive: newActiveState });
+      showMessage(newActiveState ? 'Parcours activé et sauvegardé' : 'Parcours désactivé');
+    }
+  };
+
   const addStepToJourney = (stepId: string) => {
     if (!editingJourney) return;
     
@@ -832,10 +859,15 @@ export default function JourneyDesigner({ isOpen, onClose }: JourneyDesignerProp
                             {editingJourney.isActive ? 'ACTIF' : 'INACTIF'}
                           </span>
                           <button
-                            onClick={() => setEditingJourney({ ...editingJourney, isActive: !editingJourney.isActive })}
-                            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded text-sm"
+                            onClick={handleToggleActive}
+                            disabled={isSaving}
+                            className={`px-3 py-1 rounded text-sm transition-colors ${
+                              editingJourney.isActive 
+                                ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                                : 'bg-green-600 hover:bg-green-700 text-white'
+                            } disabled:opacity-50`}
                           >
-                            {editingJourney.isActive ? 'Désactiver' : 'Activer'}
+                            {isSaving ? '...' : editingJourney.isActive ? 'Désactiver' : 'Activer'}
                           </button>
                         </div>
                         
