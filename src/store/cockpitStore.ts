@@ -1935,6 +1935,79 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
       }
     }
+
+    // ============================================================================
+    // SYNCHRONISER LES DONNÉES HISTORIQUES DE LA DATE ACTIVE
+    // Quand on modifie un sous-élément dans le Studio, mettre à jour l'historique
+    // ============================================================================
+    if (!_propagating && (updates.status !== undefined || updates.value !== undefined || updates.unit !== undefined)) {
+      const cockpitAfterUpdate = get().currentCockpit;
+      if (cockpitAfterUpdate?.dataHistory?.columns?.length) {
+        // Déterminer la date active
+        const activeDate = cockpitAfterUpdate.selectedDataDate || 
+          cockpitAfterUpdate.dataHistory.columns[cockpitAfterUpdate.dataHistory.columns.length - 1]?.date;
+        
+        if (activeDate) {
+          // Trouver le sous-élément pour obtenir son linkedGroupId
+          let targetSubElement: SubElement | null = null;
+          for (const d of (cockpitAfterUpdate.domains || [])) {
+            for (const c of (d.categories || [])) {
+              for (const e of (c.elements || [])) {
+                for (const sc of (e.subCategories || [])) {
+                  const se = (sc.subElements || []).find(s => s.id === subElementId);
+                  if (se) {
+                    targetSubElement = se;
+                    break;
+                  }
+                }
+                if (targetSubElement) break;
+              }
+              if (targetSubElement) break;
+            }
+            if (targetSubElement) break;
+          }
+
+          if (targetSubElement) {
+            // La clé dans l'historique est linkedGroupId ou subElementId
+            const historyKey = targetSubElement.linkedGroupId || subElementId;
+            
+            // Mettre à jour les données historiques
+            set((state) => {
+              if (!state.currentCockpit?.dataHistory?.columns) return state;
+              
+              const updatedColumns = state.currentCockpit.dataHistory.columns.map(col => {
+                if (col.date !== activeDate) return col;
+                
+                const currentData = col.data[historyKey] || { status: 'ok' as const };
+                const updatedData = { ...currentData };
+                
+                if (updates.status !== undefined) updatedData.status = updates.status;
+                if (updates.value !== undefined) updatedData.value = updates.value || undefined;
+                if (updates.unit !== undefined) updatedData.unit = updates.unit || undefined;
+                
+                return {
+                  ...col,
+                  data: {
+                    ...col.data,
+                    [historyKey]: updatedData,
+                  },
+                };
+              });
+              
+              return {
+                currentCockpit: {
+                  ...state.currentCockpit,
+                  dataHistory: {
+                    ...state.currentCockpit.dataHistory,
+                    columns: updatedColumns,
+                  },
+                },
+              };
+            });
+          }
+        }
+      }
+    }
   },
 
   deleteSubElement: (subElementId: string) => {
