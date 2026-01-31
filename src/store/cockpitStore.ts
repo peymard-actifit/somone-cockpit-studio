@@ -2809,9 +2809,15 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
         // Sauvegarder IMMÉDIATEMENT TOUTES les données actuelles (sans filtre)
         // Les données non publiables doivent rester dans le studio
+        // OPTIMISATION: Utiliser le marqueur [IMAGE_PRESERVED] pour les images de fond
+        const domainsWithoutImages = (currentCockpit.domains || []).map((d: any) => ({
+          ...d,
+          backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
+        }));
+        
         const payload: any = {
           name: currentCockpit.name,
-          domains: currentCockpit.domains || [], // TOUS les domaines, y compris non publiables
+          domains: domainsWithoutImages, // TOUS les domaines, images préservées côté serveur
           logo: currentCockpit.logo,
           scrollingBanner: currentCockpit.scrollingBanner,
           sharedWith: currentCockpit.sharedWith || [],
@@ -2826,10 +2832,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           payload.zones = (currentCockpit as any).zones;
         }
 
-        console.log('[Publish] 💾 Sauvegarde complète avant publication (TOUTES les données, y compris non publiables):', {
+        console.log('[Publish] 💾 Sauvegarde ALLÉGÉE avant publication (images préservées côté serveur):', {
           name: payload.name,
           domainsCount: payload.domains.length,
-          domainsWithImages: (payload.domains || []).filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
+          domainsWithImages: (currentCockpit.domains || []).filter((d: any) => d.backgroundImage && d.backgroundImage.length > 0).length,
           nonPublishableDomains: (payload.domains || []).filter((d: any) => d.publiable === false).length,
           sharedWithCount: payload.sharedWith.length,
           useOriginalView: payload.useOriginalView, // Log explicite

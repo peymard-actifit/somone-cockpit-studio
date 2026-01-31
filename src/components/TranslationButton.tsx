@@ -911,6 +911,12 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
       const finalData = applyEditedTranslations(translatedData, editedChanges);
 
       // Sauvegarder les données traduites dans la base de données
+      // OPTIMISATION: Utiliser le marqueur [IMAGE_PRESERVED] pour les images de fond
+      const domainsWithoutImages = (finalData.domains || []).map((d: any) => ({
+        ...d,
+        backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
+      }));
+      
       const saveResponse = await fetch(`/api/cockpits/${cockpitId}`, {
         method: 'PUT',
         headers: {
@@ -919,7 +925,7 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
         },
         body: JSON.stringify({
           name: currentCockpit.name,
-          domains: finalData.domains || [],
+          domains: domainsWithoutImages,
           zones: finalData.zones || [],
           scrollingBanner: finalData.scrollingBanner,
           logo: currentCockpit.logo,

@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.29.15';
+const APP_VERSION = '16.29.16';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3890,6 +3890,12 @@ INSTRUCTIONS:
             return merged;
           } else {
             // Nouveau domaine - utiliser tel quel
+            // MAIS: Ne pas sauvegarder le marqueur [IMAGE_PRESERVED] pour les nouveaux domaines
+            // car il n'y a pas d'image existante à préserver
+            if (newDomain.backgroundImage === '[IMAGE_PRESERVED]') {
+              log.debug(`[PUT] Nouveau domaine "${newDomain.name}" avec marqueur [IMAGE_PRESERVED] ignoré - pas d'image existante`);
+              return { ...newDomain, backgroundImage: undefined };
+            }
             return newDomain;
           }
         });
