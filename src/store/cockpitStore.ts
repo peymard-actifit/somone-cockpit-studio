@@ -603,9 +603,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         return;
       }
       
+      // OPTIMISATION: Toujours utiliser le marqueur [IMAGE_PRESERVED] pour les images de fond
+      // Cela réduit drastiquement la taille du payload (les images sont préservées côté serveur)
+      const domainsWithoutImages = (currentCockpit.domains || []).map((d: any) => ({
+        ...d,
+        backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
+      }));
+      
       const payload: any = {
         name: currentCockpit.name,
-        domains: currentCockpit.domains || [],
+        domains: domainsWithoutImages,
         logo: currentCockpit.logo,
         scrollingBanner: currentCockpit.scrollingBanner,
         sharedWith: currentCockpit.sharedWith || [],
@@ -622,7 +629,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const payloadStr = JSON.stringify(payload);
       const payloadSizeMB = payloadStr.length / 1024 / 1024;
       
-      console.log(`[Auto-save] 📦 Sauvegarde en cours... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines)`);
+      console.log(`[Auto-save] 📦 Sauvegarde ALLÉGÉE en cours... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines, images préservées)`);
       
       // Toujours sauvegarder une copie locale (backup)
       offlineSync.backupCockpit(currentCockpit);
@@ -696,9 +703,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return;
     }
     
+    // OPTIMISATION: Toujours utiliser le marqueur [IMAGE_PRESERVED] pour les images de fond
+    // Cela réduit drastiquement la taille du payload (les images sont préservées côté serveur)
+    const domainsWithoutImages = (currentCockpit.domains || []).map((d: any) => ({
+      ...d,
+      backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
+    }));
+    
     const payload: any = {
       name: currentCockpit.name,
-      domains: currentCockpit.domains || [],
+      domains: domainsWithoutImages,
       logo: currentCockpit.logo,
       scrollingBanner: currentCockpit.scrollingBanner,
       sharedWith: currentCockpit.sharedWith || [],
@@ -718,9 +732,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     const domainsInfo = (currentCockpit.domains || []).map(d => ({
       name: d.name,
       categoriesCount: d.categories?.length || 0,
-      elementsCount: (d.categories || []).reduce((sum, c) => sum + (c.elements?.length || 0), 0)
+      elementsCount: (d.categories || []).reduce((sum, c) => sum + (c.elements?.length || 0), 0),
+      hasBackgroundImage: !!d.backgroundImage
     }));
-    console.log(`[Immediate-save] 📦 Sauvegarde immédiate... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines)`);
+    console.log(`[Immediate-save] 📦 Sauvegarde immédiate ALLÉGÉE... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines, images préservées côté serveur)`);
     console.log(`[Immediate-save] Domaines:`, domainsInfo);
     
     // Toujours sauvegarder une copie locale
@@ -739,46 +754,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       if (response.status === 409) {
         console.warn('[Immediate-save] ⚠️ Conflit détecté');
       } else if (response.status === 413) {
-        // Payload trop gros - essayer sans les images de fond
-        console.warn(`[Immediate-save] ⚠️ Payload trop gros (${payloadSizeMB.toFixed(2)} MB), tentative sans images de fond...`);
-        
-        // Créer un payload allégé sans les images de fond
-        const lightPayload = {
-          ...payload,
-          domains: (payload.domains || []).map((d: any) => ({
-            ...d,
-            backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined, // Marqueur pour conserver l'image existante
-          })),
-        };
-        
-        const lightPayloadStr = JSON.stringify(lightPayload);
-        const lightPayloadSizeMB = lightPayloadStr.length / 1024 / 1024;
-        console.log(`[Immediate-save] Taille allégée: ${lightPayloadSizeMB.toFixed(2)} MB`);
-        
-        // Tenter la sauvegarde allégée
-        try {
-          const lightResponse = await fetch(`${API_URL}/cockpits/${currentCockpit.id}?preserveBackgroundImages=true`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: lightPayloadStr,
-          });
-          
-          if (lightResponse.ok) {
-            console.log(`[Immediate-save] ✅ Sauvegarde allégée réussie (images de fond préservées)`);
-            offlineSync.clearBackup(currentCockpit.id);
-          } else {
-            const lightErrorText = await lightResponse.text().catch(() => 'Unknown error');
-            console.error(`[Immediate-save] ❌ Échec sauvegarde allégée: ${lightResponse.status} - ${lightErrorText}`);
-            // Afficher une alerte à l'utilisateur
-            alert(`⚠️ Le cockpit est trop volumineux pour être sauvegardé (${payloadSizeMB.toFixed(2)} MB).\n\nLes données sont sauvegardées localement. Essayez de réduire la taille des images de fond ou de supprimer des éléments.`);
-          }
-        } catch (lightError: any) {
-          console.error(`[Immediate-save] ❌ Erreur sauvegarde allégée:`, lightError.message);
-          alert(`⚠️ Le cockpit est trop volumineux pour être sauvegardé.\n\nLes données sont sauvegardées localement en attendant.`);
-        }
+        // Payload ALLÉGÉ trop gros - le cockpit a trop de données (éléments, sous-éléments, etc.)
+        console.error(`[Immediate-save] ❌ Payload allégé encore trop gros (${payloadSizeMB.toFixed(2)} MB)`);
+        alert(`⚠️ Le cockpit contient trop de données (${payloadSizeMB.toFixed(2)} MB).\n\nLes images de fond ne sont pas incluses. Essayez de réduire le nombre d'éléments ou de sous-éléments.\n\nLes données sont sauvegardées localement.`);
       } else if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
         console.error(`[Immediate-save] ❌ Erreur: ${response.status} - ${errorText}`);
@@ -809,9 +787,16 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     const token = useAuthStore.getState().token;
     
+    // OPTIMISATION: Toujours utiliser le marqueur [IMAGE_PRESERVED] pour les images de fond
+    // Cela réduit drastiquement la taille du payload (les images sont préservées côté serveur)
+    const domainsWithoutImages = (currentCockpit.domains || []).map((d: any) => ({
+      ...d,
+      backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
+    }));
+    
     const payload: any = {
       name: currentCockpit.name,
-      domains: currentCockpit.domains || [],
+      domains: domainsWithoutImages,
       logo: currentCockpit.logo,
       scrollingBanner: currentCockpit.scrollingBanner,
       sharedWith: currentCockpit.sharedWith || [],
@@ -828,7 +813,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     const payloadStr = JSON.stringify(payload);
     const payloadSizeMB = payloadStr.length / 1024 / 1024;
-    console.log(`[forceSave] 📦 Taille du payload: ${payloadSizeMB.toFixed(2)} MB`);
+    console.log(`[forceSave] 📦 Taille du payload ALLÉGÉ: ${payloadSizeMB.toFixed(2)} MB (images préservées côté serveur)`);
     
     // Toujours sauvegarder une copie locale
     offlineSync.backupCockpit(currentCockpit);
