@@ -283,6 +283,31 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     return parts.join(' / ');
   }, [cockpit.name, filterDomainId, filterElementId, availableDomains, availableElements]);
 
+  // Calculer la date active et les colonnes à afficher (max 2 : précédente + active)
+  const activeDate = cockpit.selectedDataDate || columns[columns.length - 1]?.date;
+  
+  // Colonnes à afficher dans le tableau : date précédente + date active uniquement
+  const displayedColumns = useMemo(() => {
+    if (columns.length === 0) return [];
+    if (columns.length === 1) return columns;
+    
+    // Trouver l'index de la date active
+    const activeIndex = columns.findIndex(c => c.date === activeDate);
+    if (activeIndex === -1) {
+      // Date active non trouvée, afficher les 2 dernières
+      return columns.slice(-2);
+    }
+    
+    // Si c'est la première date, afficher seulement celle-ci (pas de précédente)
+    if (activeIndex === 0) {
+      // Afficher la date active + la suivante si elle existe
+      return columns.slice(0, Math.min(2, columns.length));
+    }
+    
+    // Afficher la date précédente + la date active
+    return [columns[activeIndex - 1], columns[activeIndex]];
+  }, [columns, activeDate]);
+
   // Reset du filtre élément quand on change de domaine
   useEffect(() => {
     if (filterDomainId) {
@@ -973,71 +998,90 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                       </div>
                     </div>
                   </th>
-                  {columns.map((col) => (
-                    <th 
-                      key={col.date} 
-                      colSpan={4} 
-                      className="p-2 text-center text-sm font-medium border-r border-[#2C4A6E]"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center justify-center gap-2">
-                          <div>
-                            <div className="font-semibold">{col.label || formatDate(col.date)}</div>
-                            {col.label && <div className="text-xs opacity-70">{formatDate(col.date)}</div>}
+                  {displayedColumns.map((col) => {
+                    const isActiveColumn = col.date === activeDate;
+                    return (
+                      <th 
+                        key={col.date} 
+                        colSpan={4} 
+                        className={`p-2 text-center text-sm font-medium border-r border-[#2C4A6E] ${isActiveColumn ? 'bg-violet-700' : ''}`}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-center gap-2">
+                            {/* Badge ACTIVE */}
+                            {isActiveColumn && (
+                              <span className="px-2 py-0.5 bg-amber-400 text-amber-900 text-[9px] font-bold rounded-full uppercase tracking-wider">
+                                Active
+                              </span>
+                            )}
+                            {!isActiveColumn && (
+                              <span className="px-2 py-0.5 bg-white/20 text-white/70 text-[9px] font-medium rounded-full">
+                                Précédente
+                              </span>
+                            )}
                           </div>
-                          {!readOnly && (
+                          <div className="flex items-center justify-center gap-2">
+                            <div>
+                              <div className="font-semibold">{col.label || formatDate(col.date)}</div>
+                              {col.label && <div className="text-xs opacity-70">{formatDate(col.date)}</div>}
+                            </div>
+                            {!readOnly && (
+                              <button
+                                onClick={() => handleDeleteColumn(col.date)}
+                                className="p-1 hover:bg-white/20 rounded"
+                                title="Supprimer cette colonne"
+                              >
+                                <MuiIcon name="Delete" size={14} />
+                              </button>
+                            )}
+                          </div>
+                          {/* Boutons Export/Import */}
+                          <div className="flex items-center justify-center gap-1">
                             <button
-                              onClick={() => handleDeleteColumn(col.date)}
-                              className="p-1 hover:bg-white/20 rounded"
-                              title="Supprimer cette colonne"
+                              onClick={() => handleExportDate(col.date)}
+                              className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-green-600 hover:bg-green-700 rounded transition-colors"
+                              title="Exporter vers Excel"
                             >
-                              <MuiIcon name="Delete" size={14} />
+                              <MuiIcon name="Download" size={12} />
+                              Export
                             </button>
-                          )}
+                            {!readOnly && (
+                              <button
+                                onClick={() => handleImportDate(col.date)}
+                                className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-orange-600 hover:bg-orange-700 rounded transition-colors"
+                                title="Importer depuis Excel"
+                              >
+                                <MuiIcon name="Upload" size={12} />
+                                Import
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {/* Boutons Export/Import */}
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => handleExportDate(col.date)}
-                            className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-green-600 hover:bg-green-700 rounded transition-colors"
-                            title="Exporter vers Excel"
-                          >
-                            <MuiIcon name="Download" size={12} />
-                            Export
-                          </button>
-                          {!readOnly && (
-                            <button
-                              onClick={() => handleImportDate(col.date)}
-                              className="flex items-center gap-1 px-2 py-0.5 text-[10px] bg-orange-600 hover:bg-orange-700 rounded transition-colors"
-                              title="Importer depuis Excel"
-                            >
-                              <MuiIcon name="Upload" size={12} />
-                              Import
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </th>
-                  ))}
+                      </th>
+                    );
+                  })}
                 </tr>
                 {/* Ligne 2 : Sous-en-têtes Criticité / Valeur / Unité / Description */}
                 <tr className="bg-[#2C4A6E] text-white">
-                  {columns.map((col) => (
-                    <React.Fragment key={col.date}>
-                      <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[80px]">
-                        Criticité
-                      </th>
-                      <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[80px]">
-                        Valeur
-                      </th>
-                      <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[60px]">
-                        Unité
-                      </th>
-                      <th className="p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[150px]">
-                        Description
-                      </th>
-                    </React.Fragment>
-                  ))}
+                  {displayedColumns.map((col) => {
+                    const isActiveColumn = col.date === activeDate;
+                    return (
+                      <React.Fragment key={col.date}>
+                        <th className={`p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[80px] ${isActiveColumn ? 'bg-violet-600' : ''}`}>
+                          Criticité
+                        </th>
+                        <th className={`p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[80px] ${isActiveColumn ? 'bg-violet-600' : ''}`}>
+                          Valeur
+                        </th>
+                        <th className={`p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[60px] ${isActiveColumn ? 'bg-violet-600' : ''}`}>
+                          Unité
+                        </th>
+                        <th className={`p-2 text-center text-xs font-medium border-r border-[#3D5A7E] min-w-[150px] ${isActiveColumn ? 'bg-violet-600' : ''}`}>
+                          Description
+                        </th>
+                      </React.Fragment>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -1091,19 +1135,22 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                         </div>
                       </td>
                       
-                      {/* Colonnes de données par date */}
-                      {columns.map((col) => {
+                      {/* Colonnes de données par date (max 2 : précédente + active) */}
+                      {displayedColumns.map((col) => {
                         const cellData = getCellData(se.id, col.date);
                         const statusColors = STATUS_COLORS[cellData.status] || STATUS_COLORS.ok;
                         const isEditingStatus = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'status';
                         const isEditingValue = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'value';
                         const isEditingUnit = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'unit';
                         const isEditingDescription = editingCell?.subElementId === se.id && editingCell?.columnDate === col.date && editingCell?.field === 'alertDescription';
+                        const isActiveColumn = col.date === activeDate;
+                        // Fond légèrement violet pour la colonne active
+                        const activeBg = isActiveColumn ? 'bg-violet-50' : '';
                         
                         return (
                           <React.Fragment key={col.date}>
                             {/* Criticité */}
-                            <td className="p-2 border-r border-[#E2E8F0] text-center align-middle">
+                            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
                               {isEditingStatus ? (
                                 <select
                                   value={cellData.status}
@@ -1128,7 +1175,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                             </td>
                             
                             {/* Valeur */}
-                            <td className="p-2 border-r border-[#E2E8F0] text-center align-middle">
+                            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
                               {isEditingValue ? (
                                 <EditableInput
                                   initialValue={cellData.value || ''}
@@ -1150,7 +1197,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                             </td>
                             
                             {/* Unité */}
-                            <td className="p-2 border-r border-[#E2E8F0] text-center align-middle">
+                            <td className={`p-2 border-r border-[#E2E8F0] text-center align-middle ${activeBg}`}>
                               {isEditingUnit ? (
                                 <EditableInput
                                   initialValue={cellData.unit || ''}
@@ -1172,7 +1219,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                             </td>
                             
                             {/* Description */}
-                            <td className="p-2 border-r border-[#E2E8F0] text-left align-middle">
+                            <td className={`p-2 border-r border-[#E2E8F0] text-left align-middle ${activeBg}`}>
                               {isEditingDescription ? (
                                 <EditableInput
                                   initialValue={cellData.alertDescription || ''}
