@@ -446,11 +446,60 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         }
       }
       
+      // ==========================================================================
+      // SYNCHRONISATION AU CHARGEMENT : Si une date active est définie,
+      // appliquer les données historiques à tous les sous-éléments
+      // ==========================================================================
+      let finalCockpit = {
+        ...cockpitToUse,
+        sharedWith: cockpitToUse.sharedWith || [], // S'assurer que sharedWith existe
+      };
+      
+      if (finalCockpit.selectedDataDate && finalCockpit.dataHistory?.columns?.length) {
+        const targetColumn = finalCockpit.dataHistory.columns.find(
+          (col: DataHistoryColumn) => col.date === finalCockpit.selectedDataDate
+        );
+        
+        if (targetColumn) {
+          console.log(`[fetchCockpit] 📅 Date active détectée: ${finalCockpit.selectedDataDate}`);
+          console.log(`[fetchCockpit] 🔄 Application des données historiques aux sous-éléments...`);
+          
+          finalCockpit = {
+            ...finalCockpit,
+            domains: (finalCockpit.domains || []).map((domain: Domain) => ({
+              ...domain,
+              categories: (domain.categories || []).map(category => ({
+                ...category,
+                elements: (category.elements || []).map(element => ({
+                  ...element,
+                  subCategories: (element.subCategories || []).map(subCategory => ({
+                    ...subCategory,
+                    subElements: (subCategory.subElements || []).map(subElement => {
+                      const historyKey = subElement.linkedGroupId || subElement.id;
+                      const historicalData = targetColumn.data[historyKey];
+                      
+                      if (historicalData) {
+                        return {
+                          ...subElement,
+                          status: historicalData.status,
+                          value: historicalData.value || '',
+                          unit: historicalData.unit || '',
+                        };
+                      }
+                      return subElement;
+                    }),
+                  })),
+                })),
+              })),
+            })),
+          };
+          
+          console.log(`[fetchCockpit] ✅ Données historiques appliquées`);
+        }
+      }
+      
       set({
-        currentCockpit: {
-          ...cockpitToUse,
-          sharedWith: cockpitToUse.sharedWith || [], // S'assurer que sharedWith existe
-        },
+        currentCockpit: finalCockpit,
         currentDomainId: validDomainId,
         currentElementId: validElementId,
         zones: cockpitToUse.zones || [],
