@@ -867,3 +867,155 @@ export interface TutorialProgress {
   skipped: boolean; // Si l'utilisateur a sauté le tutoriel
 }
 
+// ============================================================================
+// PARCOURS DE CRÉATION DÉCISIONNELLE
+// ============================================================================
+
+// Types d'étapes possibles
+export type JourneyStepType = 'presentation' | 'interaction';
+
+// Sous-types pour les étapes d'interaction
+export type InteractionFieldType = 'question' | 'prompt' | 'data';
+
+// Champ de question (texte + réponse simple)
+export interface JourneyQuestionField {
+  id: string;
+  type: 'question';
+  label: string; // La question posée
+  labelEN?: string; // Traduction anglaise
+  placeholder?: string; // Placeholder du champ de réponse
+  placeholderEN?: string;
+  required?: boolean; // Champ obligatoire ?
+  defaultValue?: string; // Valeur par défaut
+}
+
+// Champ de prompt (pour analyse IA)
+export interface JourneyPromptField {
+  id: string;
+  type: 'prompt';
+  label: string; // La question/instruction
+  labelEN?: string;
+  placeholder?: string;
+  placeholderEN?: string;
+  required?: boolean;
+  hint?: string; // Indice pour aider l'utilisateur
+  hintEN?: string;
+  aiInstruction?: string; // Instructions pour l'IA sur comment interpréter cette réponse
+}
+
+// Option pour un champ de données
+export interface JourneyDataOption {
+  id: string;
+  label: string;
+  labelEN?: string;
+  value: string;
+}
+
+// Champ de données (réponses multiples, champs dynamiques)
+export interface JourneyDataField {
+  id: string;
+  type: 'data';
+  label: string; // Titre du groupe de données
+  labelEN?: string;
+  description?: string; // Description explicative
+  descriptionEN?: string;
+  inputType: 'select' | 'multiselect' | 'text-list' | 'key-value'; // Type d'entrée
+  options?: JourneyDataOption[]; // Pour select/multiselect
+  allowCustom?: boolean; // Permettre d'ajouter des valeurs personnalisées
+  minItems?: number; // Nombre minimum d'éléments (pour text-list/key-value)
+  maxItems?: number; // Nombre maximum d'éléments
+  required?: boolean;
+}
+
+// Union des types de champs d'interaction
+export type JourneyInteractionField = JourneyQuestionField | JourneyPromptField | JourneyDataField;
+
+// Étape de présentation (contenu HTML)
+export interface JourneyPresentationStep {
+  id: string;
+  type: 'presentation';
+  name: string; // Nom de l'étape (pour l'admin)
+  nameEN?: string;
+  title: string; // Titre affiché à l'utilisateur
+  titleEN?: string;
+  content: string; // Contenu HTML
+  contentEN?: string;
+  icon?: string; // Icône MUI optionnelle
+  order?: number; // Ordre dans la liste globale des étapes
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Étape d'interaction (formulaire avec champs)
+export interface JourneyInteractionStep {
+  id: string;
+  type: 'interaction';
+  name: string; // Nom de l'étape (pour l'admin)
+  nameEN?: string;
+  title: string; // Titre affiché
+  titleEN?: string;
+  description?: string; // Description/instruction
+  descriptionEN?: string;
+  icon?: string; // Icône MUI optionnelle
+  fields: JourneyInteractionField[]; // Liste des champs
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Union des types d'étapes
+export type JourneyStep = JourneyPresentationStep | JourneyInteractionStep;
+
+// Lien vers une étape dans un parcours (avec ordre)
+export interface JourneyStepLink {
+  stepId: string; // ID de l'étape référencée
+  order: number; // Position dans le parcours
+  condition?: string; // Condition optionnelle pour afficher cette étape (expression)
+}
+
+// Parcours complet (liste ordonnée d'étapes liées)
+export interface Journey {
+  id: string;
+  name: string; // Nom du parcours
+  nameEN?: string;
+  description?: string; // Description du parcours
+  descriptionEN?: string;
+  icon?: string; // Icône MUI
+  steps: JourneyStepLink[]; // Étapes liées dans l'ordre
+  targetGeneration: 'domain' | 'domains' | 'category' | 'element'; // Ce que le parcours va générer
+  aiPromptTemplate?: string; // Template de prompt pour la génération IA finale
+  isActive: boolean; // Parcours disponible dans le studio ?
+  order?: number; // Ordre d'affichage dans la liste
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string; // ID de l'admin créateur
+}
+
+// Réponse collectée pour un champ lors de l'exécution d'un parcours
+export interface JourneyFieldResponse {
+  fieldId: string;
+  fieldType: InteractionFieldType;
+  value: string | string[] | Record<string, string>; // Valeur selon le type
+}
+
+// Réponses d'une étape lors de l'exécution
+export interface JourneyStepResponse {
+  stepId: string;
+  responses: JourneyFieldResponse[];
+  completedAt: string;
+}
+
+// Session d'exécution d'un parcours
+export interface JourneySession {
+  id: string;
+  journeyId: string;
+  userId: string;
+  cockpitId?: string; // Cockpit cible si déjà sélectionné
+  currentStepIndex: number;
+  stepResponses: JourneyStepResponse[];
+  status: 'in_progress' | 'completed' | 'abandoned';
+  startedAt: string;
+  completedAt?: string;
+  generatedDomainIds?: string[]; // IDs des domaines générés à la fin
+}
+

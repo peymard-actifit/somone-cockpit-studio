@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.31.22';
+const APP_VERSION = '16.32.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -200,6 +200,47 @@ interface ContextualHelp {
   updatedByUsername?: string; // Username de l'admin qui a fait la dernière modification
 }
 
+// ============================================
+// PARCOURS DE CRÉATION DÉCISIONNELLE
+// ============================================
+
+// Étape du parcours (présentation ou interaction)
+interface JourneyStep {
+  id: string;
+  type: 'presentation' | 'interaction';
+  name: string;
+  nameEN?: string;
+  title: string;
+  titleEN?: string;
+  content?: string; // Pour presentation
+  contentEN?: string;
+  description?: string; // Pour interaction
+  descriptionEN?: string;
+  icon?: string;
+  fields?: any[]; // Pour interaction
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Parcours (liste ordonnée d'étapes)
+interface Journey {
+  id: string;
+  name: string;
+  nameEN?: string;
+  description?: string;
+  descriptionEN?: string;
+  icon?: string;
+  steps: { stepId: string; order: number; condition?: string }[];
+  targetGeneration: 'domain' | 'domains' | 'category' | 'element';
+  aiPromptTemplate?: string;
+  isActive: boolean;
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}
+
 interface Database {
   users: User[];
   cockpits: CockpitData[];
@@ -208,6 +249,8 @@ interface Database {
   passwordResetTokens?: PasswordResetToken[]; // Tokens de réinitialisation de mot de passe
   contextualHelps?: ContextualHelp[]; // Aides contextuelles
   adminCode?: string; // Code pour passer en mode administrateur (éditable)
+  journeySteps?: JourneyStep[]; // Étapes des parcours
+  journeys?: Journey[]; // Parcours de création
 }
 
 // Helpers
@@ -8303,6 +8346,495 @@ Tu dois retourner un JSON structuré avec:
       } catch (error: any) {
         console.error('[Tutorial] Erreur traduction:', error);
         return res.status(500).json({ error: 'Erreur serveur' });
+      }
+    }
+
+    // =============================================
+    // PARCOURS - ÉTAPES (Journey Steps)
+    // =============================================
+
+    // Obtenir toutes les étapes
+    if (path === '/journey/steps' && method === 'GET') {
+      const db = await getDb();
+      const steps = db.journeySteps || [];
+      return res.json({ steps: steps.sort((a, b) => (a.order || 0) - (b.order || 0)) });
+    }
+
+    // Créer une étape
+    if (path === '/journey/steps' && method === 'POST') {
+      const db = await getDb();
+      
+      // Vérifier que l'utilisateur est admin
+      if (!currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      const now = new Date().toISOString();
+      const newStep: JourneyStep = {
+        id: generateId(),
+        type: req.body.type || 'presentation',
+        name: req.body.name || 'Nouvelle étape',
+        nameEN: req.body.nameEN,
+        title: req.body.title || '',
+        titleEN: req.body.titleEN,
+        content: req.body.content,
+        contentEN: req.body.contentEN,
+        description: req.body.description,
+        descriptionEN: req.body.descriptionEN,
+        icon: req.body.icon,
+        fields: req.body.fields || [],
+        order: (db.journeySteps?.length || 0),
+        createdAt: now,
+        updatedAt: now,
+      };
+      
+      if (!db.journeySteps) db.journeySteps = [];
+      db.journeySteps.push(newStep);
+      await saveDb(db);
+      
+      console.log(`[Journey] Étape créée: "${newStep.name}" (${newStep.id})`);
+      return res.json({ step: newStep });
+    }
+
+    // Mettre à jour une étape
+    const stepPutMatch = path.match(/^\/journey\/steps\/([^/]+)$/);
+    if (stepPutMatch && method === 'PUT') {
+      const stepId = stepPutMatch[1];
+      const db = await getDb();
+      
+      if (!currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      if (!db.journeySteps) db.journeySteps = [];
+      const stepIndex = db.journeySteps.findIndex(s => s.id === stepId);
+      
+      if (stepIndex === -1) {
+        return res.status(404).json({ error: 'Étape non trouvée' });
+      }
+      
+      const existingStep = db.journeySteps[stepIndex];
+      const updatedStep: JourneyStep = {
+        ...existingStep,
+        ...req.body,
+        id: stepId, // Préserver l'ID
+        createdAt: existingStep.createdAt, // Préserver la date de création
+        updatedAt: new Date().toISOString(),
+      };
+      
+      db.journeySteps[stepIndex] = updatedStep;
+      await saveDb(db);
+      
+      console.log(`[Journey] Étape mise à jour: "${updatedStep.name}" (${stepId})`);
+      return res.json({ step: updatedStep });
+    }
+
+    // Supprimer une étape
+    const stepDeleteMatch = path.match(/^\/journey\/steps\/([^/]+)$/);
+    if (stepDeleteMatch && method === 'DELETE') {
+      const stepId = stepDeleteMatch[1];
+      const db = await getDb();
+      
+      if (!currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      if (!db.journeySteps) db.journeySteps = [];
+      const stepIndex = db.journeySteps.findIndex(s => s.id === stepId);
+      
+      if (stepIndex === -1) {
+        return res.status(404).json({ error: 'Étape non trouvée' });
+      }
+      
+      // Vérifier si l'étape est utilisée dans un parcours
+      if (db.journeys) {
+        const usedIn = db.journeys.filter(j => j.steps.some(s => s.stepId === stepId));
+        if (usedIn.length > 0) {
+          return res.status(400).json({ 
+            error: `Cette étape est utilisée dans ${usedIn.length} parcours. Supprimez-la des parcours d'abord.`,
+            journeys: usedIn.map(j => j.name)
+          });
+        }
+      }
+      
+      db.journeySteps.splice(stepIndex, 1);
+      await saveDb(db);
+      
+      console.log(`[Journey] Étape supprimée: ${stepId}`);
+      return res.json({ success: true });
+    }
+
+    // Réorganiser les étapes
+    if (path === '/journey/steps/reorder' && method === 'POST') {
+      const { stepIds } = req.body;
+      if (!Array.isArray(stepIds)) {
+        return res.status(400).json({ error: 'stepIds requis' });
+      }
+      
+      const db = await getDb();
+      
+      if (!currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      if (!db.journeySteps) db.journeySteps = [];
+      
+      // Mettre à jour l'ordre
+      stepIds.forEach((id, index) => {
+        const step = db.journeySteps!.find(s => s.id === id);
+        if (step) step.order = index;
+      });
+      
+      await saveDb(db);
+      return res.json({ success: true });
+    }
+
+    // =============================================
+    // PARCOURS - JOURNEYS
+    // =============================================
+
+    // Obtenir tous les parcours
+    if (path === '/journey/journeys' && method === 'GET') {
+      const db = await getDb();
+      const journeys = db.journeys || [];
+      return res.json({ journeys: journeys.sort((a, b) => (a.order || 0) - (b.order || 0)) });
+    }
+
+    // Créer un parcours
+    if (path === '/journey/journeys' && method === 'POST') {
+      const db = await getDb();
+      
+      if (!currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      const now = new Date().toISOString();
+      const newJourney: Journey = {
+        id: generateId(),
+        name: req.body.name || 'Nouveau parcours',
+        nameEN: req.body.nameEN,
+        description: req.body.description,
+        descriptionEN: req.body.descriptionEN,
+        icon: req.body.icon,
+        steps: req.body.steps || [],
+        targetGeneration: req.body.targetGeneration || 'domain',
+        aiPromptTemplate: req.body.aiPromptTemplate,
+        isActive: req.body.isActive ?? false,
+        order: (db.journeys?.length || 0),
+        createdAt: now,
+        updatedAt: now,
+        createdBy: currentUser.id,
+      };
+      
+      if (!db.journeys) db.journeys = [];
+      db.journeys.push(newJourney);
+      await saveDb(db);
+      
+      console.log(`[Journey] Parcours créé: "${newJourney.name}" (${newJourney.id})`);
+      return res.json({ journey: newJourney });
+    }
+
+    // Mettre à jour un parcours
+    const journeyPutMatch = path.match(/^\/journey\/journeys\/([^/]+)$/);
+    if (journeyPutMatch && method === 'PUT') {
+      const journeyId = journeyPutMatch[1];
+      const db = await getDb();
+      
+      if (!currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      if (!db.journeys) db.journeys = [];
+      const journeyIndex = db.journeys.findIndex(j => j.id === journeyId);
+      
+      if (journeyIndex === -1) {
+        return res.status(404).json({ error: 'Parcours non trouvé' });
+      }
+      
+      const existingJourney = db.journeys[journeyIndex];
+      const updatedJourney: Journey = {
+        ...existingJourney,
+        ...req.body,
+        id: journeyId,
+        createdAt: existingJourney.createdAt,
+        createdBy: existingJourney.createdBy,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      db.journeys[journeyIndex] = updatedJourney;
+      await saveDb(db);
+      
+      console.log(`[Journey] Parcours mis à jour: "${updatedJourney.name}" (${journeyId})`);
+      return res.json({ journey: updatedJourney });
+    }
+
+    // Supprimer un parcours
+    const journeyDeleteMatch = path.match(/^\/journey\/journeys\/([^/]+)$/);
+    if (journeyDeleteMatch && method === 'DELETE') {
+      const journeyId = journeyDeleteMatch[1];
+      const db = await getDb();
+      
+      if (!currentUser.isAdmin) {
+        return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+      }
+      
+      if (!db.journeys) db.journeys = [];
+      const journeyIndex = db.journeys.findIndex(j => j.id === journeyId);
+      
+      if (journeyIndex === -1) {
+        return res.status(404).json({ error: 'Parcours non trouvé' });
+      }
+      
+      db.journeys.splice(journeyIndex, 1);
+      await saveDb(db);
+      
+      console.log(`[Journey] Parcours supprimé: ${journeyId}`);
+      return res.json({ success: true });
+    }
+
+    // =============================================
+    // PARCOURS - GÉNÉRATION IA
+    // =============================================
+
+    if (path === '/journey/generate' && method === 'POST') {
+      const { journeyId, cockpitId, responses } = req.body;
+      
+      if (!journeyId || !cockpitId || !responses) {
+        return res.status(400).json({ error: 'journeyId, cockpitId et responses requis' });
+      }
+      
+      const db = await getDb();
+      
+      // Trouver le parcours
+      const journey = db.journeys?.find(j => j.id === journeyId);
+      if (!journey) {
+        return res.status(404).json({ error: 'Parcours non trouvé' });
+      }
+      
+      // Trouver le cockpit
+      const cockpit = db.cockpits.find(c => c.id === cockpitId);
+      if (!cockpit) {
+        return res.status(404).json({ error: 'Maquette non trouvée' });
+      }
+      
+      // Vérifier accès au cockpit
+      if (cockpit.userId !== currentUser.id && !currentUser.isAdmin && !cockpit.data?.sharedWith?.includes(currentUser.id)) {
+        return res.status(403).json({ error: 'Accès non autorisé à cette maquette' });
+      }
+      
+      // Construire le contexte pour l'IA
+      const steps = db.journeySteps || [];
+      let contextData: Record<string, any> = {};
+      
+      for (const stepResponse of responses) {
+        const step = steps.find(s => s.id === stepResponse.stepId);
+        if (step && step.fields) {
+          for (const fieldResponse of stepResponse.responses) {
+            const field = step.fields.find((f: any) => f.id === fieldResponse.fieldId);
+            if (field) {
+              contextData[field.label || fieldResponse.fieldId] = {
+                type: fieldResponse.fieldType,
+                value: fieldResponse.value,
+                aiInstruction: field.aiInstruction,
+              };
+            }
+          }
+        }
+      }
+      
+      // Construire le prompt pour l'IA
+      let prompt = journey.aiPromptTemplate || '';
+      
+      // Si pas de template, créer un prompt par défaut
+      if (!prompt) {
+        prompt = `Tu es un expert en création de cockpits de pilotage.
+        
+Basé sur les informations suivantes collectées auprès de l'utilisateur, génère la structure d'un domaine de cockpit.
+
+Informations collectées :
+${JSON.stringify(contextData, null, 2)}
+
+Génère un JSON avec la structure suivante :
+{
+  "domain": {
+    "name": "Nom du domaine",
+    "icon": "icône MUI",
+    "templateType": "standard",
+    "categories": [
+      {
+        "name": "Nom catégorie",
+        "elements": [
+          {
+            "name": "Nom élément",
+            "subElements": [
+              {
+                "name": "Nom sous-élément",
+                "status": "ok"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+Réponds UNIQUEMENT avec le JSON, sans markdown ni explication.`;
+      } else {
+        // Remplacer les placeholders dans le template
+        for (const [key, value] of Object.entries(contextData)) {
+          prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), JSON.stringify(value));
+        }
+        prompt = prompt.replace(/\{\{context\}\}/g, JSON.stringify(contextData));
+      }
+      
+      try {
+        // Appeler l'IA (OpenAI ou autre selon config)
+        const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+        
+        if (!OPENAI_API_KEY) {
+          // Mode fallback : générer une structure simple sans IA
+          console.log('[Journey] Pas de clé OpenAI, génération manuelle');
+          
+          const domainId = generateId();
+          const now = new Date().toISOString();
+          
+          // Créer un domaine basique à partir des réponses
+          const newDomain = {
+            id: domainId,
+            cockpitId: cockpitId,
+            name: contextData['Nom du domaine']?.value || contextData['Nom']?.value || 'Nouveau domaine',
+            icon: 'Dashboard',
+            order: cockpit.data.domains?.length || 0,
+            templateType: 'standard',
+            categories: [],
+            createdAt: now,
+            updatedAt: now,
+          };
+          
+          // Ajouter au cockpit
+          if (!cockpit.data.domains) cockpit.data.domains = [];
+          cockpit.data.domains.push(newDomain);
+          cockpit.updatedAt = now;
+          await saveDb(db);
+          
+          console.log(`[Journey] Domaine généré (sans IA): "${newDomain.name}"`);
+          return res.json({ domainIds: [domainId], domains: [newDomain] });
+        }
+        
+        // Appel OpenAI
+        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'Tu es un assistant spécialisé dans la création de structures de cockpits de pilotage. Tu génères uniquement du JSON valide.' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 4000,
+          }),
+        });
+        
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error('[Journey] Erreur OpenAI:', errorText);
+          return res.status(500).json({ error: 'Erreur lors de la génération IA' });
+        }
+        
+        const aiData = await aiResponse.json();
+        const generatedContent = aiData.choices?.[0]?.message?.content || '';
+        
+        // Parser le JSON généré
+        let generatedStructure;
+        try {
+          // Nettoyer le contenu (enlever markdown si présent)
+          let cleanContent = generatedContent.trim();
+          if (cleanContent.startsWith('```json')) {
+            cleanContent = cleanContent.slice(7);
+          }
+          if (cleanContent.startsWith('```')) {
+            cleanContent = cleanContent.slice(3);
+          }
+          if (cleanContent.endsWith('```')) {
+            cleanContent = cleanContent.slice(0, -3);
+          }
+          generatedStructure = JSON.parse(cleanContent.trim());
+        } catch (parseError) {
+          console.error('[Journey] Erreur parsing JSON:', parseError, generatedContent);
+          return res.status(500).json({ error: 'Erreur lors du parsing de la réponse IA', raw: generatedContent });
+        }
+        
+        // Créer le(s) domaine(s) dans le cockpit
+        const domainIds: string[] = [];
+        const domains: any[] = [];
+        const now = new Date().toISOString();
+        
+        const domainsToCreate = generatedStructure.domains || [generatedStructure.domain];
+        
+        for (const domainData of domainsToCreate) {
+          if (!domainData) continue;
+          
+          const domainId = generateId();
+          const newDomain = {
+            id: domainId,
+            cockpitId: cockpitId,
+            name: domainData.name || 'Domaine généré',
+            icon: domainData.icon || 'Dashboard',
+            order: (cockpit.data.domains?.length || 0) + domainIds.length,
+            templateType: domainData.templateType || 'standard',
+            categories: (domainData.categories || []).map((cat: any, catIndex: number) => ({
+              id: generateId(),
+              domainId: domainId,
+              name: cat.name || `Catégorie ${catIndex + 1}`,
+              icon: cat.icon,
+              order: catIndex,
+              orientation: cat.orientation || 'horizontal',
+              elements: (cat.elements || []).map((el: any, elIndex: number) => ({
+                id: generateId(),
+                categoryId: generateId(), // sera mis à jour
+                name: el.name || `Élément ${elIndex + 1}`,
+                icon: el.icon,
+                order: elIndex,
+                subCategories: (el.subCategories || el.subElements ? [{
+                  id: generateId(),
+                  name: 'Principal',
+                  order: 0,
+                  subElements: (el.subElements || []).map((sub: any, subIndex: number) => ({
+                    id: generateId(),
+                    name: sub.name || `Sous-élément ${subIndex + 1}`,
+                    status: sub.status || 'ok',
+                    value: sub.value,
+                    unit: sub.unit,
+                    order: subIndex,
+                  })),
+                }] : []),
+              })),
+            })),
+            createdAt: now,
+            updatedAt: now,
+          };
+          
+          domainIds.push(domainId);
+          domains.push(newDomain);
+          
+          if (!cockpit.data.domains) cockpit.data.domains = [];
+          cockpit.data.domains.push(newDomain);
+        }
+        
+        cockpit.updatedAt = now;
+        await saveDb(db);
+        
+        console.log(`[Journey] ${domainIds.length} domaine(s) généré(s) par IA`);
+        return res.json({ domainIds, domains });
+        
+      } catch (error: any) {
+        console.error('[Journey] Erreur génération:', error);
+        return res.status(500).json({ error: `Erreur lors de la génération: ${error.message}` });
       }
     }
 

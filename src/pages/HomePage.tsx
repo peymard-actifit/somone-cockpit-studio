@@ -14,6 +14,7 @@ import type { Cockpit, Folder } from '../types';
 import UserManagement from '../components/UserManagement';
 import TutorialEditorModal from '../components/TutorialEditorModal';
 import LanguageEditorModal from '../components/LanguageEditorModal';
+import JourneyDesigner from '../components/JourneyDesigner';
 
 // Composant pour une carte de répertoire
 function FolderCard({
@@ -538,6 +539,9 @@ export default function HomePage() {
   
   // État pour l'éditeur de langues (admin uniquement)
   const [showLanguageEditor, setShowLanguageEditor] = useState(false);
+  
+  // État pour le concepteur de parcours (admin uniquement)
+  const [showJourneyDesigner, setShowJourneyDesigner] = useState(false);
   
   // Hook tutoriel pour les clients
   const { startTutorial, progress, isPlaying: isTutorialPlaying } = useTutorial();
@@ -1373,6 +1377,15 @@ export default function HomePage() {
                   >
                     <MuiIcon name="Translate" size={14} />
                     {t('home.language')}
+                  </button>
+                  <button
+                    onClick={() => setShowJourneyDesigner(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white font-medium rounded-lg transition-all shadow-md text-xs"
+                    title="Concevoir les parcours de création décisionnelle"
+                    data-help-key="home-btn-journey"
+                  >
+                    <MuiIcon name="Route" size={14} />
+                    {t('home.journeyDesigner') || 'Conception Parcours'}
                   </button>
                 </>
               )}
@@ -2623,6 +2636,12 @@ export default function HomePage() {
       <LanguageEditorModal 
         isOpen={showLanguageEditor} 
         onClose={() => setShowLanguageEditor(false)} 
+      />
+
+      {/* Modal: Concepteur de parcours (admin uniquement) */}
+      <JourneyDesigner 
+        isOpen={showJourneyDesigner} 
+        onClose={() => setShowJourneyDesigner(false)} 
       />
 
       {/* Footer */}

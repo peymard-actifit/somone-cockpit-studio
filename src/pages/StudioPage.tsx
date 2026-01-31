@@ -13,6 +13,7 @@ import AIPromptInput from '../components/AIPromptInput';
 import TranslationButton from '../components/TranslationButton';
 import MindMapView from '../components/MindMapView';
 import PresentationConfigModal from '../components/PresentationConfigModal';
+import JourneyPlayer from '../components/JourneyPlayer';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY } from '../config/version';
 
@@ -121,6 +122,7 @@ export default function StudioPage() {
   const [selectedSubElementId, setSelectedSubElementId] = useState<string | null>(null);
   const [showMindMap, setShowMindMap] = useState(false); // Vue éclatée
   const [showPresentation, setShowPresentation] = useState(false); // Modal de génération de présentations
+  const [showJourneyPlayer, setShowJourneyPlayer] = useState(false); // Parcours de création
   
   // État pour la navigation depuis la vue éclatée
   const [cameFromMindMap, setCameFromMindMap] = useState(false);
@@ -352,6 +354,17 @@ export default function StudioPage() {
           {/* Assistant IA */}
           <AIPromptInput />
 
+          {/* Bouton Parcours de création */}
+          <button
+            onClick={() => setShowJourneyPlayer(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white rounded-lg transition-all shadow-md"
+            title={t('studio.journey') || 'Parcours de création'}
+            data-help-key="studio-btn-journey"
+          >
+            <MuiIcon name="Route" size={16} />
+            <span className="hidden sm:inline">{t('studio.journey') || 'Parcours'}</span>
+          </button>
+
           <button
             onClick={handleExport}
             disabled={isExporting}
@@ -453,6 +466,13 @@ export default function StudioPage() {
         onClose={() => setShowPresentation(false)}
         cockpitId={currentCockpit.id}
         cockpitName={currentCockpit.name}
+      />
+
+      {/* Modal Parcours de création */}
+      <JourneyPlayer
+        isOpen={showJourneyPlayer}
+        onClose={() => setShowJourneyPlayer(false)}
+        cockpitId={currentCockpit.id}
       />
     </div>
   );
