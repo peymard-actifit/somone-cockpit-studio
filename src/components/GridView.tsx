@@ -911,7 +911,8 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
                               <div className="w-px h-6 bg-[#E2E8F0] shrink-0" />
                               <div className="flex gap-1 flex-wrap items-center" style={{ gap: `${cellSpacing}px` }}>
                                 {(category.elements || []).map((element) => {
-                                  const colors = getEffectiveColors(element, domains);
+                                  const historyOptions = { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate };
+                                  const colors = getEffectiveColors(element, domains, undefined, historyOptions);
                                   const hexToRgba = (hex: string, alpha: number) => {
                                     const r = parseInt(hex.slice(1, 3), 16);
                                     const g = parseInt(hex.slice(3, 5), 16);
@@ -1018,7 +1019,8 @@ export default function GridView({ domain, onElementClick, readOnly = false, vie
 
                           {/* Lignes des éléments de cette catégorie */}
                           {(category.elements || []).map((element, elIndex) => {
-                            const colors = getEffectiveColors(element, domains);
+                            const historyOptions = { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate };
+                            const colors = getEffectiveColors(element, domains, undefined, historyOptions);
                             const hexToRgba = (hex: string, alpha: number) => {
                               const r = parseInt(hex.slice(1, 3), 16);
                               const g = parseInt(hex.slice(3, 5), 16);

@@ -1153,9 +1153,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         // Trouver le statut le plus critique
         let worstStatus: TileStatus = 'ok';
         let worstPriority = STATUS_PRIORITY['ok'];
+        const historyOptions = { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate };
         clusterElements.forEach(e => {
           if (!e || typeof e !== 'object') return; // Ignorer les éléments invalides
-          const effectiveStatus: TileStatus = getEffectiveStatus(e, domains) || e.status || 'ok';
+          const effectiveStatus: TileStatus = getEffectiveStatus(e, domains, undefined, historyOptions) || e.status || 'ok';
           const priority = STATUS_PRIORITY[effectiveStatus] || 0;
           if (priority > worstPriority) {
             worstPriority = priority;
@@ -1847,7 +1848,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
 
             if (!imageBounds) return null;
 
-            const colors = getEffectiveColors(element, domains);
+            // Options pour les données historiques
+            const historyOptions = { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate };
+            
+            const colors = getEffectiveColors(element, domains, undefined, historyOptions);
             if (!colors || !colors.hex) {
               console.warn('[BackgroundView] Couleurs invalides pour élément:', element.name, element);
               return null;
@@ -1860,7 +1864,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             let height = (element.height || 0) * imageBounds.height / 100;
 
             // Augmenter de 15% dans les DEUX dimensions (largeur ET hauteur) si le statut est mineur, critique ou fatal (fonctionne en studio ET en mode publié)
-            const effectiveStatus = getEffectiveStatus(element, domains);
+            const effectiveStatus = getEffectiveStatus(element, domains, undefined, historyOptions);
             const isCritical = effectiveStatus === 'mineur' || effectiveStatus === 'critique' || effectiveStatus === 'fatal';
             const sizeMultiplier = isCritical ? 1.15 : 1.0;
             const originalWidth = width;

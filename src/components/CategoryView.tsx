@@ -4,6 +4,7 @@ import { STATUS_COLORS, getEffectiveStatus } from '../types';
 import { MuiIcon } from './IconPicker';
 import SubElementTile from './SubElementTile';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useCockpitStore } from '../store/cockpitStore';
 
 interface CategoryViewProps {
   category: Category;
@@ -29,6 +30,7 @@ export default function CategoryView({
   domains 
 }: CategoryViewProps) {
   const { t } = useLanguage();
+  const { currentCockpit } = useCockpitStore();
   
   // Préférence d'espacement horizontal (stockée par domaine)
   const storageKey = domain.id ? `domain_${domain.id}` : 'global';
@@ -75,9 +77,10 @@ export default function CategoryView({
     return subElements;
   };
 
-  // Obtenir la couleur effective d'un élément (gère l'héritage)
+  // Obtenir la couleur effective d'un élément (gère l'héritage et les données historiques)
   const getElementColors = (element: Element) => {
-    const effectiveStatus = getEffectiveStatus(element, domains);
+    const historyOptions = { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate };
+    const effectiveStatus = getEffectiveStatus(element, domains, undefined, historyOptions);
     return STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
   };
 

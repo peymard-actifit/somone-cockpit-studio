@@ -374,20 +374,48 @@ export const STATUS_LABELS: Record<TileStatus, string> = {
 };
 
 // Fonction pour calculer la couleur héritée selon les sous-éléments
-export function getInheritedStatus(element: { subCategories: Array<{ subElements: Array<{ status: TileStatus }> }> }): TileStatus {
+// Le paramètre options permet de prendre en compte les données historiques
+export function getInheritedStatus(
+  element: { subCategories: Array<{ subElements: Array<{ id: string; status: TileStatus; linkedGroupId?: string }> }> },
+  options?: { dataHistory?: DataHistory; selectedDataDate?: string }
+): TileStatus {
   let worstStatus: TileStatus = 'ok';
   let worstPriority = STATUS_PRIORITY_MAP['ok'];
+
+  // Déterminer la date active pour les données historiques
+  const dataHistory = options?.dataHistory;
+  const activeDate = options?.selectedDataDate || 
+    (dataHistory?.columns?.length ? dataHistory.columns[dataHistory.columns.length - 1]?.date : undefined);
+  
+  // Trouver la colonne de données correspondant à la date active
+  const activeColumn = activeDate ? dataHistory?.columns?.find(c => c.date === activeDate) : undefined;
+
+  // Fonction helper pour obtenir le statut d'un sous-élément (avec données historiques si disponibles)
+  const getSubElementStatus = (subElement: { id: string; status: TileStatus; linkedGroupId?: string }): TileStatus => {
+    if (activeColumn) {
+      // Chercher par linkedGroupId d'abord, puis par id
+      const key = subElement.linkedGroupId || subElement.id;
+      const historicalData = activeColumn.data[key];
+      if (historicalData) {
+        return historicalData.status;
+      }
+    }
+    return subElement.status;
+  };
 
   // Parcourir tous les sous-éléments pour trouver le statut le plus critique - protection pour les tableaux
   for (const subCategory of (element.subCategories || [])) {
     for (const subElement of (subCategory.subElements || [])) {
+      // Obtenir le statut (historique ou actuel)
+      const subStatus = getSubElementStatus(subElement);
+      
       // Ignorer les statuts 'herite' dans le calcul
-      if (subElement.status === 'herite') continue;
+      if (subStatus === 'herite') continue;
 
-      const priority = STATUS_PRIORITY_MAP[subElement.status] || 0;
+      const priority = STATUS_PRIORITY_MAP[subStatus] || 0;
       if (priority > worstPriority) {
         worstPriority = priority;
-        worstStatus = subElement.status;
+        worstStatus = subStatus;
       }
     }
   }
@@ -398,19 +426,21 @@ export function getInheritedStatus(element: { subCategories: Array<{ subElements
 // Type pour un élément avec les champs nécessaires au calcul du statut effectif
 export interface ElementForStatusCalc {
   status: TileStatus;
-  subCategories: Array<{ subElements: Array<{ status: TileStatus }> }>;
+  subCategories: Array<{ subElements: Array<{ id: string; status: TileStatus; linkedGroupId?: string }> }>;
   inheritFromDomainId?: string;
 }
 
 // Fonction pour obtenir la couleur effective d'un élément (gère le cas hérité et héritage domaine)
 // Le paramètre visitedDomainIds permet d'éviter les références circulaires
+// Le paramètre options permet de prendre en compte les données historiques
 export function getEffectiveStatus(
   element: ElementForStatusCalc,
   domains?: DomainForStatusCalc[],
-  visitedDomainIds?: Set<string>
+  visitedDomainIds?: Set<string>,
+  options?: StatusCalcOptions
 ): TileStatus {
   if (element.status === 'herite') {
-    return getInheritedStatus(element);
+    return getInheritedStatus(element, options);
   }
   if (element.status === 'herite_domaine' && element.inheritFromDomainId && domains) {
     // Protection contre les références circulaires
@@ -420,8 +450,8 @@ export function getEffectiveStatus(
     }
     const targetDomain = domains.find(d => d.id === element.inheritFromDomainId);
     if (targetDomain) {
-      // Passer tous les domaines avec le tracking des domaines visités
-      return getDomainWorstStatus(targetDomain, domains, visitedDomainIds);
+      // Passer tous les domaines avec le tracking des domaines visités et les options
+      return getDomainWorstStatus(targetDomain, domains, visitedDomainIds, options);
     }
     return 'ok'; // Par défaut si le domaine n'est pas trouvé
   }
@@ -432,9 +462,10 @@ export function getEffectiveStatus(
 export function getEffectiveColors(
   element: ElementForStatusCalc,
   domains?: DomainForStatusCalc[],
-  visitedDomainIds?: Set<string>
+  visitedDomainIds?: Set<string>,
+  options?: StatusCalcOptions
 ) {
-  const effectiveStatus = getEffectiveStatus(element, domains, visitedDomainIds) || element.status || 'ok';
+  const effectiveStatus = getEffectiveStatus(element, domains, visitedDomainIds, options) || element.status || 'ok';
   return STATUS_COLORS[effectiveStatus] || STATUS_COLORS.ok;
 }
 
@@ -507,8 +538,8 @@ export function getDomainWorstStatus(
   for (const category of (domain.categories || [])) {
     for (const element of (category.elements || [])) {
       // Calculer le statut effectif de l'élément (gère l'héritage et l'héritage domaine)
-      // Passer le Set des domaines visités pour détecter les cycles
-      const effectiveStatus = getEffectiveStatus(element, allDomains, visited);
+      // Passer le Set des domaines visités pour détecter les cycles et les options pour les données historiques
+      const effectiveStatus = getEffectiveStatus(element, allDomains, visited, options);
       const priority = STATUS_PRIORITY_MAP[effectiveStatus] || 0;
 
       if (priority > worstPriority) {

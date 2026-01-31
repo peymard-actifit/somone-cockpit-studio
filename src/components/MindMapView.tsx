@@ -133,6 +133,9 @@ export default function MindMapView({
 
     // Protection: vérifier que cockpit.domains existe
     const domains = cockpit?.domains || [];
+    
+    // Options pour les données historiques
+    const historyOptions = { dataHistory: cockpit?.dataHistory, selectedDataDate: cockpit?.selectedDataDate };
 
     // Mode focus sur un domaine - affiche le domaine avec tous ses éléments ET sous-éléments
     if (focusedNodeId && focusedNodeType === 'domain') {
@@ -177,7 +180,7 @@ export default function MindMapView({
           const elementX = centerX + Math.cos(angle) * elementRadius;
           const elementY = centerY + Math.sin(angle) * elementRadius;
 
-          const effectiveStatus = getEffectiveStatus(element, domains);
+          const effectiveStatus = getEffectiveStatus(element, domains, undefined, historyOptions);
           const elementColor = STATUS_COLORS[effectiveStatus]?.hex || STATUS_COLORS.ok.hex;
 
           nodes.push({
@@ -268,7 +271,7 @@ export default function MindMapView({
 
       if (!foundElement || !foundDomain || !foundCategory) return { nodes: [], links: [] };
 
-      const effectiveStatus = getEffectiveStatus(foundElement, domains);
+      const effectiveStatus = getEffectiveStatus(foundElement, domains, undefined, historyOptions);
       const elementColor = STATUS_COLORS[effectiveStatus]?.hex || STATUS_COLORS.ok.hex;
 
       // Élément au centre
@@ -390,7 +393,7 @@ export default function MindMapView({
           const elementX = domainX + Math.cos(elementAngle) * elementRadius;
           const elementY = domainY + Math.sin(elementAngle) * elementRadius;
 
-          const effectiveStatus = getEffectiveStatus(element, domains);
+          const effectiveStatus = getEffectiveStatus(element, domains, undefined, historyOptions);
           const elementColor = STATUS_COLORS[effectiveStatus]?.hex || STATUS_COLORS.ok.hex;
 
           nodes.push({

@@ -1,5 +1,6 @@
-import type { Element, Domain, TileStatus } from '../types';
+import type { Element, Domain, TileStatus, DataHistory } from '../types';
 import { STATUS_COLORS, STATUS_LABELS, getEffectiveStatus } from '../types';
+import { useCockpitStore } from '../store/cockpitStore';
 
 // Ordre de priorité des statuts (du plus critique au moins critique)
 const STATUS_PRIORITY_ORDER: TileStatus[] = ['fatal', 'critique', 'mineur', 'ok', 'information', 'deconnecte'];
@@ -15,6 +16,8 @@ interface StatusSummaryProps {
  * Triés par criticité décroissante, ne montrant que les couleurs présentes
  */
 export default function StatusSummary({ elements, domains, compact = false }: StatusSummaryProps) {
+  const { currentCockpit } = useCockpitStore();
+  
   // Compter les éléments par statut effectif
   const statusCounts: Record<TileStatus, number> = {
     fatal: 0,
@@ -27,8 +30,11 @@ export default function StatusSummary({ elements, domains, compact = false }: St
     herite_domaine: 0,
   };
 
+  // Options pour les données historiques
+  const historyOptions = { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate };
+
   elements.forEach(element => {
-    const effectiveStatus = domains ? getEffectiveStatus(element, domains) : element.status;
+    const effectiveStatus = domains ? getEffectiveStatus(element, domains, undefined, historyOptions) : element.status;
     if (statusCounts[effectiveStatus] !== undefined) {
       statusCounts[effectiveStatus]++;
     }

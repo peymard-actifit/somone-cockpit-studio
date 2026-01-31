@@ -25,7 +25,13 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
   // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
   const domains = domainsProp || currentCockpit?.domains;
   // Utiliser la couleur effective (gère le cas hérité et héritage domaine)
-  const colors = getEffectiveColors(element, domains);
+  // Passer les données historiques pour utiliser les statuts de la date active
+  const colors = getEffectiveColors(
+    element, 
+    domains, 
+    undefined, 
+    { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate }
+  );
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const isOkStatus = colors.hex === STATUS_COLORS.ok.hex;
