@@ -404,6 +404,10 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'dataHistory.currentData': { FR: 'Données actuelles', EN: 'Current data' },
   'dataHistory.selectDate': { FR: 'Sélectionner la date d\'affichage', EN: 'Select display date' },
   'dataHistory.noData': { FR: 'Aucune donnée pour cette date', EN: 'No data for this date' },
+  'dataHistory.export': { FR: 'Exporter', EN: 'Export' },
+  'dataHistory.import': { FR: 'Importer', EN: 'Import' },
+  'dataHistory.active': { FR: 'Active', EN: 'Active' },
+  'dataHistory.inactive': { FR: 'Inactive', EN: 'Inactive' },
   
   // === Modales ===
   'modal.confirm': { FR: 'Confirmer', EN: 'Confirm' },

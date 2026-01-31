@@ -932,7 +932,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                     }
                   `}
                 >
-                  {isActive && <span className="absolute -top-1.5 px-1 bg-amber-400 text-amber-900 text-[8px] font-bold rounded">Active</span>}
+                  {isActive && <span className="absolute -top-1.5 px-1 bg-amber-400 text-amber-900 text-[8px] font-bold rounded">{t('dataHistory.active')}</span>}
                   <span className="font-bold">{dateObj.getDate()}</span>
                   <span className={isActive ? 'text-violet-200' : 'text-[#64748B]'}>
                     {dateObj.toLocaleDateString('fr-FR', { month: 'short' })}
@@ -1034,12 +1034,12 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
                       <th key={col.date} colSpan={4} className={`p-1 text-center text-[10px] font-medium border-r border-[#2C4A6E] ${isActiveColumn ? 'bg-violet-700' : ''}`}>
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center justify-center gap-1">
-                            {isActiveColumn && <span className="px-1 bg-amber-400 text-amber-900 text-[8px] font-bold rounded">Active</span>}
+                            {isActiveColumn && <span className="px-1 bg-amber-400 text-amber-900 text-[8px] font-bold rounded">{t('dataHistory.active')}</span>}
                             <span>{col.label || formatDate(col.date)}</span>
                           </div>
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => handleExportDate(col.date)} className="px-1 py-0.5 text-[8px] bg-green-600 hover:bg-green-700 rounded">Export</button>
-                            {!readOnly && <button onClick={() => handleImportDate(col.date)} className="px-1 py-0.5 text-[8px] bg-orange-600 hover:bg-orange-700 rounded">Import</button>}
+                            <button onClick={() => handleExportDate(col.date)} className="px-1 py-0.5 text-[8px] bg-green-600 hover:bg-green-700 rounded">{t('dataHistory.export')}</button>
+                            {!readOnly && <button onClick={() => handleImportDate(col.date)} className="px-1 py-0.5 text-[8px] bg-orange-600 hover:bg-orange-700 rounded">{t('dataHistory.import')}</button>}
                             {!readOnly && columns.length > 1 && <button onClick={() => handleDeleteColumn(col.date)} className="px-1 py-0.5 text-[8px] bg-red-600 hover:bg-red-700 rounded">✕</button>}
                           </div>
                         </div>
