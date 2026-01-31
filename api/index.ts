@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '16.29.13';
+const APP_VERSION = '16.29.14';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3800,9 +3800,10 @@ INSTRUCTIONS:
       }
 
       // Validation des images dans les domaines
+      // Note: le marqueur [IMAGE_PRESERVED] est accepté et sera remplacé par l'image existante lors du merge
       if (domains && Array.isArray(domains)) {
         for (const domain of domains) {
-          if (domain.backgroundImage) {
+          if (domain.backgroundImage && domain.backgroundImage !== '[IMAGE_PRESERVED]') {
             const validation = validateImage(domain.backgroundImage);
             if (!validation.valid) {
               return res.status(400).json({ 
@@ -3810,6 +3811,8 @@ INSTRUCTIONS:
               });
             }
             log.debug(`[PUT] Image validée pour "${domain.name}": ${validation.format}, ${((validation.sizeBytes || 0) / 1024).toFixed(0)} KB`);
+          } else if (domain.backgroundImage === '[IMAGE_PRESERVED]') {
+            log.debug(`[PUT] Marqueur [IMAGE_PRESERVED] détecté pour "${domain.name}" - l'image existante sera conservée`);
           }
         }
       }
@@ -3846,16 +3849,18 @@ INSTRUCTIONS:
 
             // TOUJOURS PRÉSERVER backgroundImage si elle existe dans l'existant
             // Sauf si newDomain en fournit explicitement une nouvelle (non vide)
+            // Support du marqueur [IMAGE_PRESERVED] pour les sauvegardes légères
             if (existingDomain.backgroundImage &&
               typeof existingDomain.backgroundImage === 'string' &&
               existingDomain.backgroundImage.trim().length > 0) {
-              // Si newDomain n'a pas de backgroundImage valide, garder l'existant
+              // Si newDomain n'a pas de backgroundImage valide OU utilise le marqueur [IMAGE_PRESERVED], garder l'existant
               if (!newDomain.backgroundImage ||
                 typeof newDomain.backgroundImage !== 'string' ||
                 newDomain.backgroundImage.trim().length === 0 ||
-                newDomain.backgroundImage === '') {
+                newDomain.backgroundImage === '' ||
+                newDomain.backgroundImage === '[IMAGE_PRESERVED]') {
                 merged.backgroundImage = existingDomain.backgroundImage;
-                log.debug(`[PUT] Préservé backgroundImage pour "${newDomain.name}"`);
+                log.debug(`[PUT] Préservé backgroundImage pour "${newDomain.name}"${newDomain.backgroundImage === '[IMAGE_PRESERVED]' ? ' (marqueur détecté)' : ''}`);
               } else {
                 // newDomain a une nouvelle image, l'utiliser
                 log.debug(`[PUT] Nouveau backgroundImage pour "${newDomain.name}"`);

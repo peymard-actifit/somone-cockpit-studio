@@ -738,6 +738,47 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
       if (response.status === 409) {
         console.warn('[Immediate-save] ⚠️ Conflit détecté');
+      } else if (response.status === 413) {
+        // Payload trop gros - essayer sans les images de fond
+        console.warn(`[Immediate-save] ⚠️ Payload trop gros (${payloadSizeMB.toFixed(2)} MB), tentative sans images de fond...`);
+        
+        // Créer un payload allégé sans les images de fond
+        const lightPayload = {
+          ...payload,
+          domains: (payload.domains || []).map((d: any) => ({
+            ...d,
+            backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined, // Marqueur pour conserver l'image existante
+          })),
+        };
+        
+        const lightPayloadStr = JSON.stringify(lightPayload);
+        const lightPayloadSizeMB = lightPayloadStr.length / 1024 / 1024;
+        console.log(`[Immediate-save] Taille allégée: ${lightPayloadSizeMB.toFixed(2)} MB`);
+        
+        // Tenter la sauvegarde allégée
+        try {
+          const lightResponse = await fetch(`${API_URL}/cockpits/${currentCockpit.id}?preserveBackgroundImages=true`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: lightPayloadStr,
+          });
+          
+          if (lightResponse.ok) {
+            console.log(`[Immediate-save] ✅ Sauvegarde allégée réussie (images de fond préservées)`);
+            offlineSync.clearBackup(currentCockpit.id);
+          } else {
+            const lightErrorText = await lightResponse.text().catch(() => 'Unknown error');
+            console.error(`[Immediate-save] ❌ Échec sauvegarde allégée: ${lightResponse.status} - ${lightErrorText}`);
+            // Afficher une alerte à l'utilisateur
+            alert(`⚠️ Le cockpit est trop volumineux pour être sauvegardé (${payloadSizeMB.toFixed(2)} MB).\n\nLes données sont sauvegardées localement. Essayez de réduire la taille des images de fond ou de supprimer des éléments.`);
+          }
+        } catch (lightError: any) {
+          console.error(`[Immediate-save] ❌ Erreur sauvegarde allégée:`, lightError.message);
+          alert(`⚠️ Le cockpit est trop volumineux pour être sauvegardé.\n\nLes données sont sauvegardées localement en attendant.`);
+        }
       } else if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
         console.error(`[Immediate-save] ❌ Erreur: ${response.status} - ${errorText}`);
