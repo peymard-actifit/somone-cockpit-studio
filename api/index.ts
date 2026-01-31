@@ -8625,11 +8625,20 @@ Tu dois retourner un JSON structuré avec:
       // Construire le contexte pour l'IA
       const steps = db.journeySteps || [];
       let contextData: Record<string, any> = {};
+      let userAiNotes: string[] = []; // Notes IA de l'utilisateur du studio
       
       for (const stepResponse of responses) {
         const step = steps.find(s => s.id === stepResponse.stepId);
         if (step && step.fields) {
           for (const fieldResponse of stepResponse.responses) {
+            // Capturer les notes IA de l'utilisateur (champs spéciaux _aiNotes_xxx)
+            if (fieldResponse.fieldId.startsWith('_aiNotes_')) {
+              if (fieldResponse.value && typeof fieldResponse.value === 'string' && fieldResponse.value.trim()) {
+                userAiNotes.push(`[${step.name}] ${fieldResponse.value.trim()}`);
+              }
+              continue;
+            }
+            
             const field = step.fields.find((f: any) => f.id === fieldResponse.fieldId);
             if (field) {
               contextData[field.label || fieldResponse.fieldId] = {
@@ -8653,6 +8662,10 @@ Basé sur les informations suivantes collectées auprès de l'utilisateur, gén�
 
 Informations collectées :
 ${JSON.stringify(contextData, null, 2)}
+${userAiNotes.length > 0 ? `
+Notes et précisions de l'utilisateur :
+${userAiNotes.join('\n')}
+` : ''}
 
 Génère un JSON avec la structure suivante :
 {
@@ -8686,6 +8699,12 @@ Réponds UNIQUEMENT avec le JSON, sans markdown ni explication.`;
           prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), JSON.stringify(value));
         }
         prompt = prompt.replace(/\{\{context\}\}/g, JSON.stringify(contextData));
+        prompt = prompt.replace(/\{\{userNotes\}\}/g, userAiNotes.length > 0 ? userAiNotes.join('\n') : 'Aucune note supplémentaire');
+        
+        // Ajouter automatiquement les notes de l'utilisateur à la fin si présentes
+        if (userAiNotes.length > 0 && !prompt.includes('{{userNotes}}')) {
+          prompt += `\n\nNotes et précisions de l'utilisateur :\n${userAiNotes.join('\n')}`;
+        }
       }
       
       try {

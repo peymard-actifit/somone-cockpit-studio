@@ -47,6 +47,8 @@ export default function JourneyPlayer({ isOpen, onClose, cockpitId }: JourneyPla
   const [currentResponses, setCurrentResponses] = useState<Record<string, any>>({});
   const [generationResult, setGenerationResult] = useState<{ domainIds: string[] } | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  // Notes IA par étape (stepId -> note)
+  const [aiNotes, setAiNotes] = useState<Record<string, string>>({});
 
   // Charger les données à l'ouverture
   useEffect(() => {
@@ -57,6 +59,7 @@ export default function JourneyPlayer({ isOpen, onClose, cockpitId }: JourneyPla
       setSelectedJourneyId(null);
       setCurrentResponses({});
       setGenerationResult(null);
+      setAiNotes({});
     }
   }, [isOpen, fetchSteps, fetchJourneys]);
 
@@ -114,6 +117,16 @@ export default function JourneyPlayer({ isOpen, onClose, cockpitId }: JourneyPla
         fieldType: field.type,
         value: currentResponses[field.id] || '',
       }));
+      
+      // Ajouter les notes IA si présentes
+      const stepAiNote = aiNotes[currentStep.id];
+      if (stepAiNote && stepAiNote.trim()) {
+        responses.push({
+          fieldId: `_aiNotes_${currentStep.id}`,
+          fieldType: 'prompt',
+          value: stepAiNote.trim(),
+        });
+      }
       
       await submitStepResponse(responses);
     }
@@ -570,6 +583,32 @@ export default function JourneyPlayer({ isOpen, onClose, cockpitId }: JourneyPla
                     
                     <div className="space-y-6">
                       {((currentStep as JourneyInteractionStep).fields || []).map(field => renderField(field))}
+                    </div>
+
+                    {/* Zone de notes pour l'IA - disponible à chaque étape interactive */}
+                    <div className="mt-6 pt-6 border-t border-gray-700">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="p-1.5 bg-amber-500/20 rounded-lg">
+                          <MuiIcon name="AutoAwesome" className="text-amber-400" />
+                        </div>
+                        <label className="text-white font-medium">
+                          {language === 'EN' ? 'Notes for AI (optional)' : 'Notes pour l\'IA (optionnel)'}
+                        </label>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-3">
+                        {language === 'EN' 
+                          ? 'Add any additional context or clarifications to help AI understand your needs better.'
+                          : 'Ajoutez des précisions ou un contexte supplémentaire pour aider l\'IA à mieux comprendre vos besoins.'}
+                      </p>
+                      <textarea
+                        value={aiNotes[currentStep.id] || ''}
+                        onChange={(e) => setAiNotes(prev => ({ ...prev, [currentStep.id]: e.target.value }))}
+                        placeholder={language === 'EN' 
+                          ? 'Example: I want the indicators to focus on financial aspects...'
+                          : 'Exemple : Je souhaite que les indicateurs soient orientés sur les aspects financiers...'}
+                        rows={3}
+                        className="w-full px-4 py-3 bg-gray-800 border border-amber-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                      />
                     </div>
                   </div>
                 )}
