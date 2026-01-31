@@ -327,9 +327,8 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   // VIRTUALISATION - Calcul des lignes visibles
   // ============================================================================
   
-  const { startIndex, visibleItems, totalHeight } = useMemo(() => {
+  const { startIndex, visibleItems } = useMemo(() => {
     const totalItems = filteredSubElements.length;
-    const totalHeight = totalItems * ROW_HEIGHT;
     
     const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS);
     const visibleCount = Math.ceil(containerHeight / ROW_HEIGHT) + BUFFER_ROWS * 2;
@@ -337,7 +336,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     
     const visibleItems = filteredSubElements.slice(startIndex, endIndex);
     
-    return { startIndex, endIndex, visibleItems, totalHeight };
+    return { startIndex, visibleItems };
   }, [filteredSubElements, scrollTop, containerHeight]);
 
   // ============================================================================
@@ -982,96 +981,106 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
             <p>Aucun sous-élément dans cette maquette</p>
           </div>
         ) : (
-          <div className="h-full bg-white rounded-lg shadow-sm border border-[#E2E8F0] overflow-hidden flex flex-col">
-            {/* En-tête fixe */}
-            <div className="shrink-0 overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-[#1E3A5F] text-white">
-                    <th className="sticky left-0 z-10 bg-[#1E3A5F] p-2 text-left text-[10px] font-medium border-r border-[#2C4A6E] min-w-[200px]">
-                      {/* Filtres compacts */}
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1 text-cyan-300 text-[9px]">
-                          <MuiIcon name="FilterList" size={10} />
-                          <span className="truncate">{filterBreadcrumb}</span>
-                          {(filterDomainId || filterElementId || searchText) && (
-                            <button onClick={() => { setFilterDomainId(''); setFilterElementId(''); setSearchText(''); }} className="px-1 bg-white/20 rounded text-[8px]">✕</button>
-                          )}
-                        </div>
-                        <select value={filterDomainId} onChange={(e) => setFilterDomainId(e.target.value)} className="w-full px-1 py-0.5 text-[9px] bg-[#2C4A6E] border border-[#3D5A7E] rounded text-white">
-                          <option value="">Tous domaines</option>
-                          {availableDomains.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                        </select>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            placeholder="Rechercher..."
-                            className="w-full pl-5 pr-1 py-0.5 text-[9px] bg-[#2C4A6E] border border-[#3D5A7E] rounded text-white placeholder-white/40"
-                          />
-                          <MuiIcon name="Search" size={10} className="absolute left-1 top-1/2 -translate-y-1/2 text-white/50" />
-                        </div>
+          <div 
+            ref={tableContainerRef}
+            className="h-full bg-white rounded-lg shadow-sm border border-[#E2E8F0] overflow-auto"
+            onScroll={handleScroll}
+          >
+            <table className="w-full border-collapse table-fixed" style={{ minWidth: 200 + displayedColumns.length * 280 }}>
+              {/* Définition des largeurs de colonnes */}
+              <colgroup>
+                <col style={{ width: 200 }} />
+                {displayedColumns.map((col) => (
+                  <React.Fragment key={col.date}>
+                    <col style={{ width: 80 }} />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 50 }} />
+                    <col style={{ width: 80 }} />
+                  </React.Fragment>
+                ))}
+              </colgroup>
+              
+              <thead className="sticky top-0 z-20">
+                <tr className="bg-[#1E3A5F] text-white">
+                  <th rowSpan={2} className="sticky left-0 z-30 bg-[#1E3A5F] p-2 text-left text-[10px] font-medium border-r border-[#2C4A6E]">
+                    {/* Filtres compacts */}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1 text-cyan-300 text-[9px]">
+                        <MuiIcon name="FilterList" size={10} />
+                        <span className="truncate">{filterBreadcrumb}</span>
+                        {(filterDomainId || filterElementId || searchText) && (
+                          <button onClick={() => { setFilterDomainId(''); setFilterElementId(''); setSearchText(''); }} className="px-1 bg-white/20 rounded text-[8px]">✕</button>
+                        )}
                       </div>
-                    </th>
-                    {displayedColumns.map((col) => {
-                      const isActiveColumn = col.date === activeDate;
-                      return (
-                        <th key={col.date} colSpan={4} className={`p-1 text-center text-[10px] font-medium border-r border-[#2C4A6E] ${isActiveColumn ? 'bg-violet-700' : ''}`}>
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center justify-center gap-1">
-                              {isActiveColumn && <span className="px-1 bg-amber-400 text-amber-900 text-[8px] font-bold rounded">Active</span>}
-                              <span>{col.label || formatDate(col.date)}</span>
-                            </div>
-                            <div className="flex items-center justify-center gap-1">
-                              <button onClick={() => handleExportDate(col.date)} className="px-1 py-0.5 text-[8px] bg-green-600 hover:bg-green-700 rounded">Export</button>
-                              {!readOnly && <button onClick={() => handleImportDate(col.date)} className="px-1 py-0.5 text-[8px] bg-orange-600 hover:bg-orange-700 rounded">Import</button>}
-                              {!readOnly && columns.length > 1 && <button onClick={() => handleDeleteColumn(col.date)} className="px-1 py-0.5 text-[8px] bg-red-600 hover:bg-red-700 rounded">✕</button>}
-                            </div>
+                      <select value={filterDomainId} onChange={(e) => setFilterDomainId(e.target.value)} className="w-full px-1 py-0.5 text-[9px] bg-[#2C4A6E] border border-[#3D5A7E] rounded text-white">
+                        <option value="">Tous domaines</option>
+                        {availableDomains.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchText}
+                          onChange={(e) => setSearchText(e.target.value)}
+                          placeholder="Rechercher..."
+                          className="w-full pl-5 pr-1 py-0.5 text-[9px] bg-[#2C4A6E] border border-[#3D5A7E] rounded text-white placeholder-white/40"
+                        />
+                        <MuiIcon name="Search" size={10} className="absolute left-1 top-1/2 -translate-y-1/2 text-white/50" />
+                      </div>
+                    </div>
+                  </th>
+                  {displayedColumns.map((col) => {
+                    const isActiveColumn = col.date === activeDate;
+                    return (
+                      <th key={col.date} colSpan={4} className={`p-1 text-center text-[10px] font-medium border-r border-[#2C4A6E] ${isActiveColumn ? 'bg-violet-700' : ''}`}>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center justify-center gap-1">
+                            {isActiveColumn && <span className="px-1 bg-amber-400 text-amber-900 text-[8px] font-bold rounded">Active</span>}
+                            <span>{col.label || formatDate(col.date)}</span>
                           </div>
-                        </th>
-                      );
-                    })}
+                          <div className="flex items-center justify-center gap-1">
+                            <button onClick={() => handleExportDate(col.date)} className="px-1 py-0.5 text-[8px] bg-green-600 hover:bg-green-700 rounded">Export</button>
+                            {!readOnly && <button onClick={() => handleImportDate(col.date)} className="px-1 py-0.5 text-[8px] bg-orange-600 hover:bg-orange-700 rounded">Import</button>}
+                            {!readOnly && columns.length > 1 && <button onClick={() => handleDeleteColumn(col.date)} className="px-1 py-0.5 text-[8px] bg-red-600 hover:bg-red-700 rounded">✕</button>}
+                          </div>
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+                <tr className="bg-[#2C4A6E] text-white">
+                  {displayedColumns.map((col) => {
+                    const isActiveColumn = col.date === activeDate;
+                    return (
+                      <React.Fragment key={col.date}>
+                        <th className={`p-1 text-center text-[9px] font-medium border-r border-[#3D5A7E] ${isActiveColumn ? 'bg-violet-600' : ''}`}>Criticité</th>
+                        <th className={`p-1 text-center text-[9px] font-medium border-r border-[#3D5A7E] ${isActiveColumn ? 'bg-violet-600' : ''}`}>Valeur</th>
+                        <th className={`p-1 text-center text-[9px] font-medium border-r border-[#3D5A7E] ${isActiveColumn ? 'bg-violet-600' : ''}`}>Unité</th>
+                        <th className={`p-1 text-center text-[9px] font-medium border-r border-[#3D5A7E] ${isActiveColumn ? 'bg-violet-600' : ''}`}>Description</th>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+              </thead>
+              
+              <tbody>
+                {/* Espaceur virtuel au-dessus */}
+                {startIndex > 0 && (
+                  <tr style={{ height: startIndex * ROW_HEIGHT }}>
+                    <td colSpan={1 + displayedColumns.length * 4}></td>
                   </tr>
-                  <tr className="bg-[#2C4A6E] text-white">
-                    {displayedColumns.map((col) => {
-                      const isActiveColumn = col.date === activeDate;
-                      return (
-                        <React.Fragment key={col.date}>
-                          <th className={`p-1 text-center text-[9px] font-medium border-r border-[#3D5A7E] min-w-[70px] ${isActiveColumn ? 'bg-violet-600' : ''}`}>Criticité</th>
-                          <th className={`p-1 text-center text-[9px] font-medium border-r border-[#3D5A7E] min-w-[60px] ${isActiveColumn ? 'bg-violet-600' : ''}`}>Valeur</th>
-                          <th className={`p-1 text-center text-[9px] font-medium border-r border-[#3D5A7E] min-w-[50px] ${isActiveColumn ? 'bg-violet-600' : ''}`}>Unité</th>
-                          <th className={`p-1 text-center text-[9px] font-medium border-r border-[#3D5A7E] min-w-[100px] ${isActiveColumn ? 'bg-violet-600' : ''}`}>Description</th>
-                        </React.Fragment>
-                      );
-                    })}
+                )}
+                
+                {/* Lignes visibles */}
+                {visibleItems.map((se, idx) => renderRow(se, idx, startIndex + idx))}
+                
+                {/* Espaceur virtuel en-dessous */}
+                {(startIndex + visibleItems.length) < filteredSubElements.length && (
+                  <tr style={{ height: (filteredSubElements.length - startIndex - visibleItems.length) * ROW_HEIGHT }}>
+                    <td colSpan={1 + displayedColumns.length * 4}></td>
                   </tr>
-                </thead>
-              </table>
-            </div>
-            
-            {/* Corps virtualisé */}
-            <div 
-              ref={tableContainerRef}
-              className="flex-1 overflow-auto"
-              onScroll={handleScroll}
-            >
-              <div style={{ height: totalHeight, position: 'relative' }}>
-                <table 
-                  className="w-full border-collapse"
-                  style={{
-                    position: 'absolute',
-                    top: startIndex * ROW_HEIGHT,
-                    left: 0,
-                    right: 0,
-                  }}
-                >
-                  <tbody>
-                    {visibleItems.map((se, idx) => renderRow(se, idx, startIndex + idx))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
