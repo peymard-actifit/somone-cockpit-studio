@@ -670,10 +670,17 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         if (matchingSheet) {
           sheetName = matchingSheet;
         } else {
-          // Pas d'onglet correspondant à la date, proposer un choix
-          const availableSheets = workbook.SheetNames.join(', ');
-          alert(`Aucun onglet "${dateFormatted}" trouvé.\nOnglets disponibles : ${availableSheets}\nUtilisation du premier onglet.`);
-          sheetName = workbook.SheetNames[0];
+          // Pas d'onglet AAAAMMJJ : chercher l'onglet "Date du jour"
+          const dateOfDaySheet = workbook.SheetNames.find(name => name === 'Date du jour');
+          
+          if (dateOfDaySheet) {
+            sheetName = dateOfDaySheet;
+          } else {
+            // Pas d'onglet correspondant, proposer un choix
+            const availableSheets = workbook.SheetNames.join(', ');
+            alert(`Aucun onglet "${dateFormatted}" ni "Date du jour" trouvé.\nOnglets disponibles : ${availableSheets}\nUtilisation du premier onglet.`);
+            sheetName = workbook.SheetNames[0];
+          }
         }
       }
       
