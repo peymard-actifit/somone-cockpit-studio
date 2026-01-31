@@ -557,18 +557,31 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   };
 
   // Exporter les données d'une date vers Excel
+  // Utilise filteredSubElements pour exporter uniquement ce qui est affiché dans la table
   const handleExportDate = (date: string) => {
     const column = columns.find(c => c.date === date);
     if (!column) return;
 
-    // Préparer les données pour l'export
+    // Préparer les données pour l'export - utiliser les sous-éléments filtrés (affichés)
     const exportData: any[] = [];
     
-    for (const se of uniqueSubElements) {
+    // Utiliser un Set pour éviter les doublons par ID
+    const exportedIds = new Set<string>();
+    
+    for (const se of filteredSubElements) {
+      // Éviter les doublons (ne devrait pas arriver car filteredSubElements est basé sur uniqueSubElements)
+      if (exportedIds.has(se.id)) continue;
+      exportedIds.add(se.id);
+      
       const cellData = column.data[se.id] || { status: 'ok' };
       
-      // Pour chaque localisation du sous-élément
+      // Pour chaque localisation du sous-élément (première localisation)
       const firstLocation = se.locationInfos[0];
+      
+      // Construire la colonne "Localisations" avec toutes les localisations si lié
+      const allLocations = se.linkedCount > 1 
+        ? se.locationInfos.map(loc => `${loc.domainName} > ${loc.elementName}`).join(' | ')
+        : '';
       
       exportData.push({
         'Maquette': cockpit.name,
@@ -576,6 +589,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
         'Élément': firstLocation?.elementName || '',
         'Sous-élément': se.name,
         'Lié': se.linkedGroupId ? `Oui (${se.linkedCount})` : 'Non',
+        'Localisations': allLocations,
         'Criticité': STATUS_EXPORT_MAP[cellData.status] || cellData.status,
         'Valeur': cellData.value || '',
         'Unité': cellData.unit || '',
@@ -593,6 +607,7 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
       { wch: 20 }, // Élément
       { wch: 25 }, // Sous-élément
       { wch: 15 }, // Lié
+      { wch: 50 }, // Localisations
       { wch: 12 }, // Criticité
       { wch: 15 }, // Valeur
       { wch: 10 }, // Unité

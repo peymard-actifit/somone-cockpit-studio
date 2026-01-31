@@ -312,10 +312,25 @@ function PublicCockpitContent() {
                 </button>
               </div>
               
-              {/* Badge "A jour" */}
+              {/* Badge "A jour" ou date sélectionnée */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2D4A63] rounded-lg border border-[#4A6D8C]">
-                <span className="text-sm text-green-400">{t('public.upToDate')}</span>
-                <MuiIcon name="Check" size={14} className="text-green-400" />
+                {cockpit.selectedDataDate && cockpit.dataHistory?.columns?.length ? (
+                  <>
+                    <MuiIcon name="CalendarToday" size={14} className="text-amber-400" />
+                    <span className="text-sm text-amber-400">
+                      {new Date(cockpit.selectedDataDate).toLocaleDateString(language === 'EN' ? 'en-GB' : 'fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm text-green-400">{t('public.upToDate')}</span>
+                    <MuiIcon name="Check" size={14} className="text-green-400" />
+                  </>
+                )}
               </div>
               
               {/* Avatar utilisateur (placeholder) */}
