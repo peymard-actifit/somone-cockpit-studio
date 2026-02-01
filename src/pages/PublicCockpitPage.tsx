@@ -24,6 +24,7 @@ function PublicCockpitContent() {
   const [showMindMap, setShowMindMap] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isRightControlsHovered, setIsRightControlsHovered] = useState(false);
   const { trackEvent } = useTracking();
   const { language, setLanguage, t } = useLanguage();
 
@@ -696,9 +697,24 @@ function PublicCockpitContent() {
 
       {/* DateTimeline global pour les vues normales (pas Map/Background qui ont leur propre panneau) */}
       {!isMapOrBackgroundView && (cockpit.dataHistory?.columns?.length ?? 0) > 0 && (
-        <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-40">
-          <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} />
-        </div>
+        <>
+          {/* Zone de déclenchement pour faire apparaître le timeline */}
+          {!isRightControlsHovered && (
+            <div 
+              className="fixed top-0 right-0 w-16 h-full z-40"
+              onMouseEnter={() => setIsRightControlsHovered(true)}
+            />
+          )}
+          <div 
+            className={`fixed right-4 top-1/2 transform -translate-y-1/2 z-40 transition-all duration-300 ${
+              !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
+            }`}
+            onMouseEnter={() => setIsRightControlsHovered(true)}
+            onMouseLeave={() => setIsRightControlsHovered(false)}
+          >
+            <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} />
+          </div>
+        </>
       )}
 
       {/* Footer - masqué sur les vues Map/Background */}
