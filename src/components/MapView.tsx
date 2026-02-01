@@ -24,10 +24,15 @@ const POPULAR_MAP_ICONS = [
 const SIMPLE_SHAPES = [
   { id: 'shape:square', name: 'Carré', label: 'Carré' },
   { id: 'shape:circle', name: 'Cercle', label: 'Cercle' },
+  { id: 'shape:circle-outline', name: 'Rond creux', label: 'Rond creux' },
   { id: 'shape:triangle', name: 'Triangle', label: 'Triangle' },
   { id: 'shape:diamond', name: 'Losange', label: 'Losange' },
   { id: 'shape:hexagon', name: 'Hexagone', label: 'Hexagone' },
   { id: 'shape:star', name: 'Étoile', label: 'Étoile' },
+  { id: 'shape:plus', name: 'Plus', label: 'Plus (+)' },
+  { id: 'shape:minus', name: 'Moins', label: 'Moins (-)' },
+  { id: 'shape:check', name: 'Check', label: 'Check (✓)' },
+  { id: 'shape:cross', name: 'Croix', label: 'Croix (✗)' },
 ];
 
 // Helper pour détecter si une icône est une forme simple
@@ -58,6 +63,12 @@ const ShapeSVG = ({ shape, color, size }: { shape: string; color: string; size: 
           <circle cx="50" cy="50" r="40" fill={color} />
         </svg>
       );
+    case 'circle-outline':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <circle cx="50" cy="50" r="38" fill="none" stroke={color} strokeWidth="8" />
+        </svg>
+      );
     case 'triangle':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
@@ -80,6 +91,31 @@ const ShapeSVG = ({ shape, color, size }: { shape: string; color: string; size: 
       return (
         <svg width={size} height={size} viewBox={viewBox}>
           <polygon points="50,5 61,35 95,35 68,57 79,90 50,70 21,90 32,57 5,35 39,35" fill={color} />
+        </svg>
+      );
+    case 'plus':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <rect x="40" y="10" width="20" height="80" fill={color} rx="4" />
+          <rect x="10" y="40" width="80" height="20" fill={color} rx="4" />
+        </svg>
+      );
+    case 'minus':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <rect x="10" y="40" width="80" height="20" fill={color} rx="4" />
+        </svg>
+      );
+    case 'check':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <path d="M20,55 L40,75 L80,25" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'cross':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <path d="M20,20 L80,80 M80,20 L20,80" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" />
         </svg>
       );
     default:
