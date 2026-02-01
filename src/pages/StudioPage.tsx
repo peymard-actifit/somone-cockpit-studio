@@ -134,6 +134,7 @@ export default function StudioPage() {
   const [showPresentation, setShowPresentation] = useState(false); // Modal de génération de présentations
   const [showJourneyPlayer, setShowJourneyPlayer] = useState(false); // Parcours de création
   const [showActionsMenu, setShowActionsMenu] = useState(false); // Menu Actions déroulant
+  const [showAIPrompt, setShowAIPrompt] = useState(false); // Fenêtre Assistant IA
   
   // État pour la navigation depuis la vue éclatée
   const [cameFromMindMap, setCameFromMindMap] = useState(false);
@@ -442,9 +443,16 @@ export default function StudioPage() {
                   </div>
 
                   {/* Assistant IA */}
-                  <div>
-                    <AIPromptInput inMenu={true} onClose={() => setShowActionsMenu(false)} />
-                  </div>
+                  <button
+                    onClick={() => {
+                      setShowAIPrompt(true);
+                      setShowActionsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-600/30 text-white transition-colors"
+                  >
+                    <MuiIcon name="AutoAwesome" size={18} className="text-violet-400" />
+                    <span className="text-sm">Assistant IA</span>
+                  </button>
                 </div>
               </>
             )}
@@ -464,6 +472,12 @@ export default function StudioPage() {
           </button>
         </div>
       </header>
+
+      {/* Assistant IA - rendu en dehors du menu pour persister */}
+      <AIPromptInput 
+        forceExpanded={showAIPrompt} 
+        onExpandedChange={(expanded) => setShowAIPrompt(expanded)} 
+      />
 
       {/* Navigation des domaines */}
       <Navbar />
