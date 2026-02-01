@@ -446,7 +446,7 @@ function PublicCockpitContent() {
                     >
                       <MuiIcon name="CalendarToday" size={14} className="text-amber-400" />
                       <span className="text-sm text-amber-400">
-                        {new Date(cockpit.selectedDataDate).toLocaleDateString(language === 'EN' ? 'en-GB' : 'fr-FR', {
+                        {new Date(cockpit.selectedDataDate).toLocaleDateString(language === 'EN' ? 'en-US' : 'fr-FR', {
                           day: '2-digit',
                           month: '2-digit',
                           year: 'numeric'
@@ -485,7 +485,7 @@ function PublicCockpitContent() {
                                 >
                                   <div className="flex flex-col">
                                     <span className="text-sm font-medium">
-                                      {dateObj.toLocaleDateString(language === 'EN' ? 'en-GB' : 'fr-FR', {
+                                      {dateObj.toLocaleDateString(language === 'EN' ? 'en-US' : 'fr-FR', {
                                         weekday: 'short',
                                         day: '2-digit',
                                         month: 'short',
