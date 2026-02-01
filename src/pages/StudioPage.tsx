@@ -490,11 +490,10 @@ export default function StudioPage() {
         />
       )}
 
-      {/* Vue Exemples (bibliothèque globale) */}
+      {/* Vue Exemples - Sélecteur de vues exemples */}
       {showExamples && (
         <ExamplesView
           onClose={toggleShowExamples}
-          domains={currentCockpit.domains}
         />
       )}
 
