@@ -705,7 +705,7 @@ function PublicCockpitContent() {
               onMouseEnter={() => setIsRightControlsHovered(true)}
             />
           )}
-          {/* Panneau de contrôles - même structure que Map/Background */}
+          {/* Panneau de contrôles - EXACTEMENT comme Map/Background */}
           <div 
             className={`fixed right-6 top-4 z-40 flex flex-col items-end gap-3 transition-all duration-300 ${
               !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
@@ -713,6 +713,31 @@ function PublicCockpitContent() {
             onMouseEnter={() => setIsRightControlsHovered(true)}
             onMouseLeave={() => setIsRightControlsHovered(false)}
           >
+            {/* Boutons de zoom - identique à Map/Background */}
+            <div className="flex flex-col bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
+              <button className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Zoomer">
+                <MuiIcon name="Add" size={20} />
+              </button>
+              <button className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Dézoomer">
+                <MuiIcon name="Remove" size={20} />
+              </button>
+              <button className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Ajuster à la fenêtre">
+                <MuiIcon name="FitScreen" size={20} />
+              </button>
+              <button className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F] border-b border-[#E2E8F0]" title="Plein écran">
+                <MuiIcon name="Fullscreen" size={20} />
+              </button>
+              <button className="p-3 hover:bg-[#F5F7FA] text-[#1E3A5F]" title="Centrer">
+                <MuiIcon name="CenterFocusStrong" size={20} />
+              </button>
+            </div>
+
+            {/* Indicateur de zoom - identique à Map/Background */}
+            <div className="bg-white rounded-lg px-2 py-1 border border-[#E2E8F0] shadow-md text-center flex items-center gap-0.5">
+              <span className="w-10 text-sm font-medium text-[#1E3A5F] text-center">100</span>
+              <span className="text-sm font-medium text-[#1E3A5F]">%</span>
+            </div>
+
             {/* Panneau de toggles - identique à Map/Background */}
             <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md space-y-1.5">
               {/* Toggle timeline des dates */}
