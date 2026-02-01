@@ -1665,6 +1665,10 @@ export default function AIPromptInput({ inMenu = false, onClose, forceExpanded =
   };
 
   if (!isExpanded) {
+    // Si contrôlé de l'extérieur (forceExpanded), ne rien rendre quand pas actif
+    if (onExpandedChange) {
+      return null;
+    }
     if (inMenu) {
       return (
         <button

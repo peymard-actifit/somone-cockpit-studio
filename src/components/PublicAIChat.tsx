@@ -213,6 +213,11 @@ export default function PublicAIChat({ publicId, cockpitName, forceExpanded = fa
   // Toujours afficher le bouton, même si l'IA n'est pas configurée
   // Si aiStatus est null, on affiche quand même le bouton (en vérifiant en arrière-plan)
   const isConfigured = aiStatus?.configured ?? false;
+  
+  // Si contrôlé de l'extérieur (onExpandedChange) et pas expanded, ne rien rendre
+  if (!isExpanded && onExpandedChange) {
+    return null;
+  }
 
   return (
     <div className="relative">
