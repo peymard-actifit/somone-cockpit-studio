@@ -11,7 +11,6 @@ import AlertsView from './AlertsView';
 import StatsView from './StatsView';
 import LibraryView from './LibraryView';
 import DataHistoryView from './DataHistoryView';
-import ExamplesDomainView from './ExamplesDomainView';
 import ZoomableContainer from './ZoomableContainer';
 import { MuiIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
@@ -243,14 +242,8 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     );
   }
 
-  // Vue exemples
-  if (domain.templateType === 'examples') {
-    return (
-      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ExamplesDomainView domain={domain} readOnly={readOnly} onElementClick={onElementClick} />
-      </div>
-    );
-  }
+  // Vue exemples - utilise le même rendu que standard (c'est une bibliothèque d'exemples réutilisables)
+  // Pas de cas spécifique, tombe dans le rendu standard ci-dessous
 
   // chainNext: true = enchaîner sur un suivant (Entrée), false = terminer (clic bouton)
   const handleAddCategory = (chainNext: boolean = false) => {
