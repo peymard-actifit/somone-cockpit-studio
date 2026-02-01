@@ -14,6 +14,7 @@ import TranslationButton from '../components/TranslationButton';
 import MindMapView from '../components/MindMapView';
 import PresentationConfigModal from '../components/PresentationConfigModal';
 import JourneyPlayer from '../components/JourneyPlayer';
+import ExamplesView from '../components/ExamplesView';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY } from '../config/version';
 
@@ -120,6 +121,10 @@ export default function StudioPage() {
   const exportToExcel = useCockpitStore(state => state.exportToExcel);
   const setCurrentElement = useCockpitStore(state => state.setCurrentElement);
   const setCurrentDomain = useCockpitStore(state => state.setCurrentDomain);
+  
+  // Exemples
+  const showExamples = useCockpitStore(state => state.showExamples);
+  const toggleShowExamples = useCockpitStore(state => state.toggleShowExamples);
 
   const [showEditor, setShowEditor] = useState(false); // Masqué par défaut
   const [isSaving, setIsSaving] = useState(false);
@@ -359,6 +364,20 @@ export default function StudioPage() {
             <span className="text-sm font-medium">{t('studio.explodedView')}</span>
           </button>
 
+          {/* Bouton Exemples */}
+          <button
+            onClick={toggleShowExamples}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              showExamples 
+                ? 'bg-amber-500 hover:bg-amber-400 text-white' 
+                : 'bg-amber-600/80 hover:bg-amber-500 text-white'
+            }`}
+            title={t('examples.title') || 'Bibliothèque d\'exemples'}
+          >
+            <MuiIcon name="LibraryBooks" size={16} />
+            <span className="text-sm font-medium">{t('examples.button') || 'Exemples'}</span>
+          </button>
+
           {/* Bouton de traduction */}
           <TranslationButton cockpitId={currentCockpit.id} />
 
@@ -468,6 +487,14 @@ export default function StudioPage() {
           onNavigateToSubElement={handleNavigateToSubElement}
           savedState={mindMapState}
           onSaveState={setMindMapState}
+        />
+      )}
+
+      {/* Vue Exemples (bibliothèque globale) */}
+      {showExamples && (
+        <ExamplesView
+          onClose={toggleShowExamples}
+          domains={currentCockpit.domains}
         />
       )}
 

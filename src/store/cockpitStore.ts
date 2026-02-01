@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType, Incident, Folder, DataHistoryColumn } from '../types';
+import type { Cockpit, Domain, Category, Element, SubCategory, SubElement, Template, Zone, TileStatus, MapElement, MapBounds, GpsCoords, TemplateType, Incident, Folder, DataHistoryColumn, ExamplesLibrary, ExampleCategory, ExampleElement, ExampleSubCategory, ExampleSubElement } from '../types';
 import { useAuthStore } from './authStore';
 import { APP_VERSION } from '../config/version';
 import { offlineSync } from '../services/offlineSync';
@@ -159,6 +159,28 @@ interface CockpitState {
   addIncident: (domainId: string, incident: Omit<Incident, 'id' | 'domainId' | 'createdAt' | 'updatedAt'>) => void;
   updateIncident: (domainId: string, incidentId: string, updates: Partial<Incident>) => void;
   deleteIncident: (domainId: string, incidentId: string) => void;
+
+  // Bibliothèque d'exemples (globale, partagée entre tous les cockpits)
+  examplesLibrary: ExamplesLibrary | null;
+  showExamples: boolean;
+  fetchExamplesLibrary: () => Promise<void>;
+  updateExamplesLibrary: (library: ExamplesLibrary) => Promise<boolean>;
+  toggleShowExamples: () => void;
+  // CRUD pour les exemples (admin/standard uniquement)
+  addExampleCategory: (name: string) => void;
+  updateExampleCategory: (categoryId: string, updates: Partial<ExampleCategory>) => void;
+  deleteExampleCategory: (categoryId: string) => void;
+  addExampleElement: (categoryId: string, name: string) => void;
+  updateExampleElement: (elementId: string, updates: Partial<ExampleElement>) => void;
+  deleteExampleElement: (elementId: string) => void;
+  addExampleSubCategory: (elementId: string, name: string) => void;
+  updateExampleSubCategory: (subCategoryId: string, updates: Partial<ExampleSubCategory>) => void;
+  deleteExampleSubCategory: (subCategoryId: string) => void;
+  addExampleSubElement: (subCategoryId: string, name: string) => void;
+  updateExampleSubElement: (subElementId: string, updates: Partial<ExampleSubElement>) => void;
+  deleteExampleSubElement: (subElementId: string) => void;
+  // Copier un élément exemple vers un domaine
+  copyExampleElementToDomain: (exampleElementId: string, targetDomainId: string, targetCategoryId: string) => Promise<{ success: boolean; elementId?: string }>;
 }
 
 const API_URL = '/api';
@@ -199,6 +221,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   recentChanges: [],
   lastClonedElementId: null,
   lastClonedMapElementId: null,
+  examplesLibrary: null,
+  showExamples: false,
 
   // =====================================================
   // GESTION DES RÉPERTOIRES
@@ -4695,6 +4719,412 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       message: `Taille (${targetWidth}% × ${targetHeight}%) appliquée à ${updateCount} élément(s) dans "${sourceDomainName}"`, 
       updatedCount: updateCount 
     };
+  },
+
+  // =====================================================
+  // BIBLIOTHÈQUE D'EXEMPLES (globale)
+  // =====================================================
+
+  fetchExamplesLibrary: async () => {
+    const token = useAuthStore.getState().token;
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/examples`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const library = await response.json();
+        set({ examplesLibrary: library });
+      }
+    } catch (error) {
+      console.error('[Examples] Erreur fetch:', error);
+    }
+  },
+
+  updateExamplesLibrary: async (library: ExamplesLibrary) => {
+    const token = useAuthStore.getState().token;
+    if (!token) return false;
+    
+    try {
+      const response = await fetch(`${API_URL}/examples`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(library),
+      });
+      
+      if (response.ok) {
+        const updatedLibrary = await response.json();
+        set({ examplesLibrary: updatedLibrary });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('[Examples] Erreur update:', error);
+      return false;
+    }
+  },
+
+  toggleShowExamples: () => {
+    const current = get().showExamples;
+    set({ showExamples: !current });
+    
+    // Charger la bibliothèque si elle n'est pas encore chargée
+    if (!current && !get().examplesLibrary) {
+      get().fetchExamplesLibrary();
+    }
+  },
+
+  addExampleCategory: (name: string) => {
+    const library = get().examplesLibrary || { id: 'global-examples', categories: [], updatedAt: new Date().toISOString() };
+    const newCategory: ExampleCategory = {
+      id: crypto.randomUUID(),
+      name,
+      orientation: 'horizontal',
+      order: library.categories.length,
+      elements: [],
+    };
+    
+    const updatedLibrary = {
+      ...library,
+      categories: [...library.categories, newCategory],
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  updateExampleCategory: (categoryId: string, updates: Partial<ExampleCategory>) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => 
+        cat.id === categoryId ? { ...cat, ...updates } : cat
+      ),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  deleteExampleCategory: (categoryId: string) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.filter(cat => cat.id !== categoryId),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  addExampleElement: (categoryId: string, name: string) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const newElement: ExampleElement = {
+      id: crypto.randomUUID(),
+      categoryId,
+      name,
+      status: 'ok',
+      order: 0,
+      subCategories: [],
+    };
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => {
+        if (cat.id !== categoryId) return cat;
+        newElement.order = cat.elements.length;
+        return { ...cat, elements: [...cat.elements, newElement] };
+      }),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  updateExampleElement: (elementId: string, updates: Partial<ExampleElement>) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.map(el => 
+          el.id === elementId ? { ...el, ...updates } : el
+        ),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  deleteExampleElement: (elementId: string) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.filter(el => el.id !== elementId),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  addExampleSubCategory: (elementId: string, name: string) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const newSubCategory: ExampleSubCategory = {
+      id: crypto.randomUUID(),
+      elementId,
+      name,
+      orientation: 'horizontal',
+      order: 0,
+      subElements: [],
+    };
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.map(el => {
+          if (el.id !== elementId) return el;
+          newSubCategory.order = el.subCategories.length;
+          return { ...el, subCategories: [...el.subCategories, newSubCategory] };
+        }),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  updateExampleSubCategory: (subCategoryId: string, updates: Partial<ExampleSubCategory>) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.map(el => ({
+          ...el,
+          subCategories: el.subCategories.map(sc => 
+            sc.id === subCategoryId ? { ...sc, ...updates } : sc
+          ),
+        })),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  deleteExampleSubCategory: (subCategoryId: string) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.map(el => ({
+          ...el,
+          subCategories: el.subCategories.filter(sc => sc.id !== subCategoryId),
+        })),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  addExampleSubElement: (subCategoryId: string, name: string) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const newSubElement: ExampleSubElement = {
+      id: crypto.randomUUID(),
+      subCategoryId,
+      name,
+      status: 'ok',
+      order: 0,
+    };
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.map(el => ({
+          ...el,
+          subCategories: el.subCategories.map(sc => {
+            if (sc.id !== subCategoryId) return sc;
+            newSubElement.order = sc.subElements.length;
+            return { ...sc, subElements: [...sc.subElements, newSubElement] };
+          }),
+        })),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  updateExampleSubElement: (subElementId: string, updates: Partial<ExampleSubElement>) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.map(el => ({
+          ...el,
+          subCategories: el.subCategories.map(sc => ({
+            ...sc,
+            subElements: sc.subElements.map(se => 
+              se.id === subElementId ? { ...se, ...updates } : se
+            ),
+          })),
+        })),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  deleteExampleSubElement: (subElementId: string) => {
+    const library = get().examplesLibrary;
+    if (!library) return;
+    
+    const updatedLibrary = {
+      ...library,
+      categories: library.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.map(el => ({
+          ...el,
+          subCategories: el.subCategories.map(sc => ({
+            ...sc,
+            subElements: sc.subElements.filter(se => se.id !== subElementId),
+          })),
+        })),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    set({ examplesLibrary: updatedLibrary });
+    get().updateExamplesLibrary(updatedLibrary);
+  },
+
+  copyExampleElementToDomain: async (exampleElementId: string, targetDomainId: string, targetCategoryId: string) => {
+    const library = get().examplesLibrary;
+    const cockpit = get().currentCockpit;
+    if (!library || !cockpit) return { success: false };
+    
+    // Trouver l'élément exemple
+    let exampleElement: ExampleElement | null = null;
+    for (const cat of library.categories) {
+      const found = cat.elements.find(el => el.id === exampleElementId);
+      if (found) {
+        exampleElement = found;
+        break;
+      }
+    }
+    
+    if (!exampleElement) return { success: false };
+    
+    // Créer le nouvel élément avec de nouveaux IDs
+    const newElementId = crypto.randomUUID();
+    const newElement: Element = {
+      id: newElementId,
+      categoryId: targetCategoryId,
+      name: exampleElement.name,
+      value: exampleElement.value,
+      unit: exampleElement.unit,
+      icon: exampleElement.icon,
+      status: exampleElement.status,
+      order: 0,
+      subCategories: exampleElement.subCategories.map(sc => {
+        const newSubCatId = crypto.randomUUID();
+        return {
+          id: newSubCatId,
+          elementId: newElementId,
+          name: sc.name,
+          icon: sc.icon,
+          orientation: sc.orientation,
+          order: sc.order,
+          subElements: sc.subElements.map(se => ({
+            id: crypto.randomUUID(),
+            subCategoryId: newSubCatId,
+            name: se.name,
+            value: se.value,
+            unit: se.unit,
+            icon: se.icon,
+            status: se.status,
+            order: se.order,
+          })),
+        };
+      }),
+    };
+    
+    // Ajouter l'élément au cockpit
+    const updatedDomains = (cockpit.domains || []).map(domain => {
+      if (domain.id !== targetDomainId) return domain;
+      
+      return {
+        ...domain,
+        categories: (domain.categories || []).map(cat => {
+          if (cat.id !== targetCategoryId) return cat;
+          newElement.order = cat.elements.length;
+          return { ...cat, elements: [...cat.elements, newElement] };
+        }),
+      };
+    });
+    
+    set({
+      currentCockpit: {
+        ...cockpit,
+        domains: updatedDomains,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    
+    get().addRecentChange({ 
+      type: 'element', 
+      action: 'add', 
+      name: `${exampleElement.name} (depuis Exemples)` 
+    });
+    get().triggerAutoSave();
+    
+    return { success: true, elementId: newElementId };
   },
 }));
 

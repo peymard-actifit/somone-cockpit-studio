@@ -8857,6 +8857,89 @@ Réponds UNIQUEMENT avec le JSON, sans markdown ni explication.`;
       }
     }
 
+    // =====================
+    // EXAMPLES LIBRARY ROUTES (Bibliothèque d'exemples globale)
+    // =====================
+
+    // GET /examples - Récupérer la bibliothèque d'exemples
+    if (path === '/examples' && method === 'GET') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      try {
+        // Récupérer la bibliothèque d'exemples depuis Redis
+        const examples = await redis.get('somone:examples:library') as any;
+        
+        if (!examples) {
+          // Retourner une bibliothèque vide si elle n'existe pas encore
+          return res.json({
+            id: 'global-examples',
+            categories: [],
+            updatedAt: new Date().toISOString()
+          });
+        }
+        
+        return res.json(examples);
+      } catch (error: any) {
+        console.error('[Examples] Erreur GET:', error?.message);
+        return res.status(500).json({ error: 'Erreur lors de la récupération des exemples' });
+      }
+    }
+
+    // PUT /examples - Mettre à jour la bibliothèque d'exemples (Admin/Standard uniquement)
+    if (path === '/examples' && method === 'PUT') {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.status(401).json({ error: 'Token invalide' });
+      }
+
+      // Vérifier que l'utilisateur n'est pas un client
+      const db = await getDb();
+      const user = db.users.find(u => u.id === decoded.id);
+      if (!user) {
+        return res.status(401).json({ error: 'Utilisateur non trouvé' });
+      }
+      
+      const userType = user.userType || (user.isAdmin ? 'admin' : 'standard');
+      if (userType === 'client') {
+        return res.status(403).json({ error: 'Les utilisateurs clients ne peuvent pas modifier les exemples' });
+      }
+
+      try {
+        const examples = req.body;
+        
+        if (!examples || !Array.isArray(examples.categories)) {
+          return res.status(400).json({ error: 'Format de données invalide' });
+        }
+        
+        // Mettre à jour les métadonnées
+        examples.id = 'global-examples';
+        examples.updatedAt = new Date().toISOString();
+        examples.updatedBy = decoded.id;
+        
+        // Sauvegarder dans Redis
+        await redis.set('somone:examples:library', examples);
+        
+        console.log(`[Examples] Bibliothèque mise à jour par ${user.username} (${examples.categories.length} catégories)`);
+        return res.json(examples);
+      } catch (error: any) {
+        console.error('[Examples] Erreur PUT:', error?.message);
+        return res.status(500).json({ error: 'Erreur lors de la sauvegarde des exemples' });
+      }
+    }
+
     // Route not found
     return res.status(404).json({ error: 'Route non trouvée' });
 

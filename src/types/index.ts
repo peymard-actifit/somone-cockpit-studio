@@ -1027,3 +1027,61 @@ export interface JourneySession {
   generatedDomainIds?: string[]; // IDs des domaines générés à la fin
 }
 
+// ============================================================================
+// BIBLIOTHÈQUE D'EXEMPLES (globale, partagée entre tous les cockpits)
+// ============================================================================
+
+// Catégorie exemple (sans référence cockpit/domaine)
+export interface ExampleCategory {
+  id: string;
+  name: string;
+  icon?: string;
+  orientation: Orientation;
+  order: number;
+  elements: ExampleElement[];
+}
+
+// Élément exemple (avec sous-catégories et sous-éléments)
+export interface ExampleElement {
+  id: string;
+  categoryId: string;
+  name: string;
+  value?: string;
+  unit?: string;
+  icon?: string;
+  status: TileStatus;
+  order: number;
+  subCategories: ExampleSubCategory[];
+}
+
+// Sous-catégorie exemple
+export interface ExampleSubCategory {
+  id: string;
+  elementId: string;
+  name: string;
+  icon?: string;
+  orientation: Orientation;
+  order: number;
+  subElements: ExampleSubElement[];
+}
+
+// Sous-élément exemple
+export interface ExampleSubElement {
+  id: string;
+  subCategoryId: string;
+  name: string;
+  value?: string;
+  unit?: string;
+  icon?: string;
+  status: TileStatus;
+  order: number;
+}
+
+// Bibliothèque d'exemples globale
+export interface ExamplesLibrary {
+  id: string; // ID unique (toujours 'global-examples')
+  categories: ExampleCategory[];
+  updatedAt: string;
+  updatedBy?: string; // ID de l'utilisateur qui a fait la dernière modification
+}
+
