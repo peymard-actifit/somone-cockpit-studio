@@ -127,157 +127,194 @@ const ShapeSVG = ({ shape, color, size }: { shape: string; color: string; size: 
           <path d="M20,20 L80,80 M80,20 L20,80" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" />
         </svg>
       );
-    // Animaux
+    // Animaux - de profil, debout
     case 'rabbit':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
           {/* Oreilles */}
-          <ellipse cx="35" cy="20" rx="8" ry="18" fill={color} />
-          <ellipse cx="65" cy="20" rx="8" ry="18" fill={color} />
+          <ellipse cx="70" cy="12" rx="5" ry="14" fill={color} />
+          <ellipse cx="80" cy="15" rx="4" ry="12" fill={color} />
           {/* Tête */}
-          <circle cx="50" cy="55" r="30" fill={color} />
-          {/* Yeux */}
-          <circle cx="40" cy="50" r="4" fill="white" />
-          <circle cx="60" cy="50" r="4" fill="white" />
-          {/* Nez */}
-          <ellipse cx="50" cy="62" rx="5" ry="3" fill="white" />
+          <circle cx="75" cy="32" r="15" fill={color} />
+          {/* Corps */}
+          <ellipse cx="45" cy="55" rx="30" ry="22" fill={color} />
+          {/* Queue */}
+          <circle cx="12" cy="50" r="8" fill={color} />
+          {/* Pattes arrière */}
+          <ellipse cx="25" cy="80" rx="10" ry="15" fill={color} />
+          {/* Pattes avant */}
+          <rect x="60" y="70" width="6" height="20" rx="3" fill={color} />
+          <rect x="70" y="70" width="6" height="20" rx="3" fill={color} />
+          {/* Oeil */}
+          <circle cx="80" cy="30" r="3" fill="white" />
         </svg>
       );
     case 'cow':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
           {/* Cornes */}
-          <ellipse cx="25" cy="18" rx="6" ry="12" fill={color} />
-          <ellipse cx="75" cy="18" rx="6" ry="12" fill={color} />
+          <ellipse cx="78" cy="12" rx="4" ry="10" fill="white" />
           {/* Tête */}
-          <ellipse cx="50" cy="50" rx="35" ry="30" fill={color} />
+          <ellipse cx="80" cy="32" rx="12" ry="15" fill={color} />
+          {/* Corps */}
+          <ellipse cx="45" cy="45" rx="35" ry="25" fill={color} />
+          {/* Pis */}
+          <ellipse cx="35" cy="68" rx="8" ry="6" fill="white" />
+          {/* Pattes */}
+          <rect x="15" y="65" width="7" height="25" rx="3" fill={color} />
+          <rect x="28" y="65" width="7" height="25" rx="3" fill={color} />
+          <rect x="55" y="65" width="7" height="25" rx="3" fill={color} />
+          <rect x="68" y="65" width="7" height="25" rx="3" fill={color} />
+          {/* Queue */}
+          <path d="M8,40 Q2,55 8,70" stroke={color} strokeWidth="3" fill="none" />
+          {/* Oeil */}
+          <circle cx="85" cy="28" r="3" fill="white" />
           {/* Museau */}
-          <ellipse cx="50" cy="70" rx="18" ry="12" fill="white" />
-          {/* Yeux */}
-          <circle cx="35" cy="45" r="5" fill="white" />
-          <circle cx="65" cy="45" r="5" fill="white" />
-          {/* Narines */}
-          <circle cx="44" cy="72" r="3" fill={color} />
-          <circle cx="56" cy="72" r="3" fill={color} />
+          <ellipse cx="90" cy="38" rx="6" ry="5" fill="white" />
         </svg>
       );
     case 'bird':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
-          {/* Corps */}
-          <ellipse cx="50" cy="55" rx="30" ry="25" fill={color} />
-          {/* Tête */}
-          <circle cx="75" cy="40" r="15" fill={color} />
-          {/* Bec */}
-          <polygon points="90,40 100,45 90,50" fill="white" />
-          {/* Oeil */}
-          <circle cx="80" cy="38" r="3" fill="white" />
           {/* Queue */}
-          <polygon points="15,45 5,35 5,65 15,55" fill={color} />
+          <polygon points="5,45 15,35 15,55" fill={color} />
+          {/* Corps */}
+          <ellipse cx="40" cy="45" rx="28" ry="18" fill={color} />
           {/* Aile */}
-          <ellipse cx="45" cy="50" rx="15" ry="10" fill="white" fillOpacity="0.3" />
+          <ellipse cx="35" cy="42" rx="15" ry="10" fill="white" fillOpacity="0.3" />
+          {/* Tête */}
+          <circle cx="72" cy="40" r="14" fill={color} />
+          {/* Bec */}
+          <polygon points="86,40 98,44 86,48" fill="white" />
+          {/* Oeil */}
+          <circle cx="78" cy="38" r="3" fill="white" />
+          {/* Pattes */}
+          <line x1="35" y1="62" x2="35" y2="85" stroke={color} strokeWidth="3" />
+          <line x1="45" y1="62" x2="45" y2="85" stroke={color} strokeWidth="3" />
+          <line x1="30" y1="85" x2="40" y2="85" stroke={color} strokeWidth="3" />
+          <line x1="40" y1="85" x2="50" y2="85" stroke={color} strokeWidth="3" />
         </svg>
       );
     case 'cat':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
-          {/* Oreilles */}
-          <polygon points="20,35 30,5 40,35" fill={color} />
-          <polygon points="60,35 70,5 80,35" fill={color} />
+          {/* Queue relevée */}
+          <path d="M8,30 Q2,50 12,65" stroke={color} strokeWidth="5" fill="none" strokeLinecap="round" />
+          {/* Corps */}
+          <ellipse cx="45" cy="55" rx="28" ry="18" fill={color} />
           {/* Tête */}
-          <circle cx="50" cy="55" r="35" fill={color} />
-          {/* Yeux */}
-          <ellipse cx="35" cy="50" rx="6" ry="8" fill="white" />
-          <ellipse cx="65" cy="50" rx="6" ry="8" fill="white" />
-          {/* Pupilles */}
-          <ellipse cx="35" cy="50" rx="2" ry="6" fill="black" />
-          <ellipse cx="65" cy="50" rx="2" ry="6" fill="black" />
-          {/* Nez */}
-          <polygon points="50,62 45,68 55,68" fill="white" />
-          {/* Moustaches */}
-          <line x1="20" y1="65" x2="40" y2="68" stroke="white" strokeWidth="1.5" />
-          <line x1="20" y1="72" x2="40" y2="72" stroke="white" strokeWidth="1.5" />
-          <line x1="60" y1="68" x2="80" y2="65" stroke="white" strokeWidth="1.5" />
-          <line x1="60" y1="72" x2="80" y2="72" stroke="white" strokeWidth="1.5" />
+          <circle cx="78" cy="45" r="16" fill={color} />
+          {/* Oreilles */}
+          <polygon points="68,30 72,18 78,28" fill={color} />
+          <polygon points="82,28 88,18 92,30" fill={color} />
+          {/* Pattes */}
+          <rect x="25" y="68" width="6" height="22" rx="3" fill={color} />
+          <rect x="38" y="68" width="6" height="22" rx="3" fill={color} />
+          <rect x="58" y="68" width="6" height="22" rx="3" fill={color} />
+          <rect x="68" y="68" width="6" height="22" rx="3" fill={color} />
+          {/* Oeil */}
+          <ellipse cx="83" cy="43" rx="3" ry="4" fill="white" />
+          {/* Museau */}
+          <circle cx="90" cy="48" r="4" fill="white" />
         </svg>
       );
     case 'dog':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
-          {/* Oreilles tombantes */}
-          <ellipse cx="20" cy="45" rx="12" ry="25" fill={color} />
-          <ellipse cx="80" cy="45" rx="12" ry="25" fill={color} />
+          {/* Queue relevée */}
+          <path d="M8,35 Q5,20 15,15" stroke={color} strokeWidth="5" fill="none" strokeLinecap="round" />
+          {/* Corps */}
+          <ellipse cx="42" cy="50" rx="30" ry="20" fill={color} />
           {/* Tête */}
-          <ellipse cx="50" cy="50" rx="30" ry="35" fill={color} />
+          <ellipse cx="78" cy="40" rx="14" ry="16" fill={color} />
+          {/* Oreille tombante */}
+          <ellipse cx="72" cy="30" rx="6" ry="12" fill={color} />
           {/* Museau */}
-          <ellipse cx="50" cy="68" rx="15" ry="12" fill="white" />
-          {/* Yeux */}
-          <circle cx="38" cy="45" r="6" fill="white" />
-          <circle cx="62" cy="45" r="6" fill="white" />
-          <circle cx="38" cy="45" r="3" fill="black" />
-          <circle cx="62" cy="45" r="3" fill="black" />
+          <ellipse cx="92" cy="45" rx="8" ry="6" fill="white" />
+          {/* Pattes */}
+          <rect x="20" y="65" width="7" height="25" rx="3" fill={color} />
+          <rect x="32" y="65" width="7" height="25" rx="3" fill={color} />
+          <rect x="55" y="65" width="7" height="25" rx="3" fill={color} />
+          <rect x="67" y="65" width="7" height="25" rx="3" fill={color} />
+          {/* Oeil */}
+          <circle cx="82" cy="38" r="3" fill="white" />
           {/* Nez */}
-          <ellipse cx="50" cy="62" rx="6" ry="5" fill="black" />
+          <circle cx="96" cy="43" r="3" fill="black" />
         </svg>
       );
     case 'horse':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
-          {/* Oreilles */}
-          <polygon points="30,20 35,5 42,18" fill={color} />
-          <polygon points="55,18 62,5 67,20" fill={color} />
-          {/* Tête allongée */}
-          <ellipse cx="48" cy="45" rx="25" ry="30" fill={color} />
-          {/* Museau */}
-          <ellipse cx="48" cy="75" rx="18" ry="15" fill={color} />
+          {/* Queue */}
+          <path d="M5,45 Q2,60 8,75" stroke={color} strokeWidth="4" fill="none" />
+          {/* Corps */}
+          <ellipse cx="40" cy="45" rx="32" ry="22" fill={color} />
+          {/* Cou */}
+          <polygon points="65,30 75,15 85,25 75,45" fill={color} />
+          {/* Tête */}
+          <ellipse cx="88" cy="28" rx="10" ry="14" fill={color} />
+          {/* Oreille */}
+          <polygon points="85,12 88,5 93,14" fill={color} />
           {/* Crinière */}
-          <ellipse cx="60" cy="25" rx="8" ry="15" fill="white" fillOpacity="0.3" />
-          {/* Yeux */}
-          <circle cx="38" cy="40" r="5" fill="white" />
-          <circle cx="58" cy="40" r="5" fill="white" />
-          {/* Narines */}
-          <ellipse cx="42" cy="82" rx="4" ry="3" fill="white" />
-          <ellipse cx="54" cy="82" rx="4" ry="3" fill="white" />
+          <path d="M70,18 Q75,25 70,35" stroke="white" strokeWidth="3" fill="none" opacity="0.5" />
+          {/* Pattes */}
+          <rect x="18" y="62" width="6" height="28" rx="2" fill={color} />
+          <rect x="30" y="62" width="6" height="28" rx="2" fill={color} />
+          <rect x="52" y="62" width="6" height="28" rx="2" fill={color} />
+          <rect x="64" y="62" width="6" height="28" rx="2" fill={color} />
+          {/* Oeil */}
+          <circle cx="92" cy="25" r="2" fill="white" />
         </svg>
       );
     case 'sheep':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
-          {/* Laine (nuage) */}
-          <circle cx="30" cy="40" r="18" fill={color} />
-          <circle cx="50" cy="35" r="20" fill={color} />
-          <circle cx="70" cy="40" r="18" fill={color} />
-          <circle cx="35" cy="55" r="16" fill={color} />
-          <circle cx="65" cy="55" r="16" fill={color} />
-          <circle cx="50" cy="60" r="18" fill={color} />
+          {/* Laine corps */}
+          <circle cx="30" cy="45" r="15" fill={color} />
+          <circle cx="45" cy="40" r="16" fill={color} />
+          <circle cx="55" cy="45" r="15" fill={color} />
+          <circle cx="40" cy="55" r="14" fill={color} />
+          <circle cx="50" cy="52" r="13" fill={color} />
           {/* Tête */}
-          <ellipse cx="50" cy="78" rx="14" ry="12" fill="white" />
+          <ellipse cx="75" cy="50" rx="12" ry="14" fill="white" />
           {/* Oreilles */}
-          <ellipse cx="32" cy="75" rx="8" ry="5" fill="white" />
-          <ellipse cx="68" cy="75" rx="8" ry="5" fill="white" />
-          {/* Yeux */}
-          <circle cx="45" cy="76" r="3" fill="black" />
-          <circle cx="55" cy="76" r="3" fill="black" />
+          <ellipse cx="68" cy="42" rx="6" ry="4" fill="white" />
+          {/* Pattes */}
+          <rect x="25" y="65" width="5" height="25" rx="2" fill="black" />
+          <rect x="35" y="65" width="5" height="25" rx="2" fill="black" />
+          <rect x="50" y="65" width="5" height="25" rx="2" fill="black" />
+          <rect x="60" y="65" width="5" height="25" rx="2" fill="black" />
+          {/* Oeil */}
+          <circle cx="80" cy="48" r="2" fill="black" />
         </svg>
       );
     case 'chicken':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
-          {/* Crête */}
-          <ellipse cx="50" cy="15" rx="6" ry="10" fill="white" />
-          <ellipse cx="40" cy="18" rx="5" ry="8" fill="white" />
-          <ellipse cx="60" cy="18" rx="5" ry="8" fill="white" />
-          {/* Tête */}
-          <circle cx="50" cy="35" r="20" fill={color} />
+          {/* Queue */}
+          <polygon points="5,35 15,25 18,40 15,50 5,45" fill={color} />
           {/* Corps */}
-          <ellipse cx="50" cy="70" rx="30" ry="25" fill={color} />
+          <ellipse cx="40" cy="50" rx="28" ry="22" fill={color} />
+          {/* Aile */}
+          <ellipse cx="35" cy="48" rx="12" ry="10" fill="white" fillOpacity="0.3" />
+          {/* Cou */}
+          <ellipse cx="68" cy="40" rx="8" ry="15" fill={color} />
+          {/* Tête */}
+          <circle cx="75" cy="28" r="12" fill={color} />
+          {/* Crête */}
+          <ellipse cx="75" cy="15" rx="4" ry="6" fill="white" />
+          <ellipse cx="70" cy="18" rx="3" ry="5" fill="white" />
           {/* Bec */}
-          <polygon points="50,42 42,50 58,50" fill="white" />
-          {/* Yeux */}
-          <circle cx="42" cy="32" r="4" fill="white" />
-          <circle cx="58" cy="32" r="4" fill="white" />
+          <polygon points="87,28 95,32 87,35" fill="white" />
           {/* Barbillon */}
-          <ellipse cx="50" cy="52" rx="5" ry="8" fill="white" />
+          <ellipse cx="82" cy="38" rx="3" ry="5" fill="white" />
+          {/* Oeil */}
+          <circle cx="80" cy="26" r="2" fill="white" />
+          {/* Pattes */}
+          <line x1="35" y1="70" x2="35" y2="88" stroke="white" strokeWidth="3" />
+          <line x1="48" y1="70" x2="48" y2="88" stroke="white" strokeWidth="3" />
+          <line x1="30" y1="88" x2="40" y2="88" stroke="white" strokeWidth="2" />
+          <line x1="43" y1="88" x2="53" y2="88" stroke="white" strokeWidth="2" />
         </svg>
       );
     default:
