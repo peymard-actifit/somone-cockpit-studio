@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ExampleElement, ExampleSubElement, Domain, TileStatus } from '../types';
+import type { ExampleElement, ExampleSubElement, Domain, Category, TileStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { MuiIcon } from './IconPicker';
 import IconPicker from './IconPicker';
@@ -154,9 +154,8 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
     const confirmed = await confirmDialog({
       title: t('examples.deleteCategory'),
       message: (t('examples.deleteCategoryConfirm') || '').replace('{name}', categoryName),
-      confirmText: t('common.delete') || 'Supprimer',
-      cancelText: t('examples.cancel'),
-      variant: 'danger',
+      confirmLabel: t('common.delete') || 'Supprimer',
+      danger: true,
     });
     if (confirmed) {
       deleteExampleCategory(categoryId);
@@ -168,9 +167,8 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
     const confirmed = await confirmDialog({
       title: t('examples.deleteElement'),
       message: (t('examples.deleteElementConfirm') || '').replace('{name}', elementName),
-      confirmText: t('common.delete') || 'Supprimer',
-      cancelText: t('examples.cancel'),
-      variant: 'danger',
+      confirmLabel: t('common.delete') || 'Supprimer',
+      danger: true,
     });
     if (confirmed) {
       deleteExampleElement(elementId);
@@ -182,9 +180,8 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
     const confirmed = await confirmDialog({
       title: t('examples.deleteSubCategory'),
       message: (t('examples.deleteSubCategoryConfirm') || '').replace('{name}', subCategoryName),
-      confirmText: t('common.delete') || 'Supprimer',
-      cancelText: t('examples.cancel'),
-      variant: 'danger',
+      confirmLabel: t('common.delete') || 'Supprimer',
+      danger: true,
     });
     if (confirmed) {
       deleteExampleSubCategory(subCategoryId);
@@ -196,9 +193,8 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
     const confirmed = await confirmDialog({
       title: t('examples.deleteSubElement'),
       message: (t('examples.deleteSubElementConfirm') || '').replace('{name}', subElementName),
-      confirmText: t('common.delete') || 'Supprimer',
-      cancelText: t('examples.cancel'),
-      variant: 'danger',
+      confirmLabel: t('common.delete') || 'Supprimer',
+      danger: true,
     });
     if (confirmed) {
       deleteExampleSubElement(subElementId);
