@@ -397,36 +397,32 @@ export default function StudioPage() {
                     <span className="text-sm">{t('studio.explodedView')}</span>
                   </button>
 
-                  {/* Exemples - masqué pour les clients */}
-                  {!isClientUser && (
-                    <button
-                      onClick={() => {
-                        toggleShowExamples();
-                        setShowActionsMenu(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-[#4A6D8C]/50 ${
-                        showExamples ? 'bg-amber-600/30' : 'hover:bg-amber-600/30'
-                      } text-white`}
-                    >
-                      <MuiIcon name="LibraryBooks" size={18} className="text-amber-400" />
-                      <span className="text-sm">{t('examples.button') || 'Exemples'}</span>
-                      {showExamples && <MuiIcon name="Check" size={16} className="ml-auto text-amber-400" />}
-                    </button>
-                  )}
+                  {/* Exemples */}
+                  <button
+                    onClick={() => {
+                      toggleShowExamples();
+                      setShowActionsMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-[#4A6D8C]/50 ${
+                      showExamples ? 'bg-amber-600/30' : 'hover:bg-amber-600/30'
+                    } text-white`}
+                  >
+                    <MuiIcon name="LibraryBooks" size={18} className="text-amber-400" />
+                    <span className="text-sm">{t('examples.button') || 'Exemples'}</span>
+                    {showExamples && <MuiIcon name="Check" size={16} className="ml-auto text-amber-400" />}
+                  </button>
 
-                  {/* Parcours de création - masqué pour les clients */}
-                  {!isClientUser && (
-                    <button
-                      onClick={() => {
-                        setShowJourneyPlayer(true);
-                        setShowActionsMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-rose-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
-                    >
-                      <MuiIcon name="Route" size={18} className="text-rose-400" />
-                      <span className="text-sm">{t('studio.journey')}</span>
-                    </button>
-                  )}
+                  {/* Parcours de création */}
+                  <button
+                    onClick={() => {
+                      setShowJourneyPlayer(true);
+                      setShowActionsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-rose-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                  >
+                    <MuiIcon name="Route" size={18} className="text-rose-400" />
+                    <span className="text-sm">{t('studio.journey')}</span>
+                  </button>
 
                   {/* Export Excel */}
                   <button
