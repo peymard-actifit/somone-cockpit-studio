@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import type { ExampleElement, ExampleSubCategory, ExampleSubElement, Domain, Category, TileStatus } from '../types';
+import type { ExampleElement, ExampleSubElement, Domain, TileStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
-import { MuiIcon, IconPicker } from './IconPicker';
+import { MuiIcon } from './IconPicker';
+import IconPicker from './IconPicker';
 import { useCockpitStore } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -21,7 +22,7 @@ interface ExamplesViewProps {
 export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
   const { t } = useLanguage();
   const { user } = useAuthStore();
-  const { confirm } = useConfirm();
+  const confirmDialog = useConfirm();
   const {
     examplesLibrary,
     addExampleCategory,
@@ -55,7 +56,6 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
   
   // États pour l'édition d'icône
   const [editingIconElement, setEditingIconElement] = useState<string | null>(null);
-  const [editingIconSubElement, setEditingIconSubElement] = useState<string | null>(null);
   
   // État pour l'édition de statut
   const [editingStatusElement, setEditingStatusElement] = useState<string | null>(null);
@@ -151,7 +151,7 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
   
   // Supprimer une catégorie avec confirmation
   const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    const confirmed = await confirm({
+    const confirmed = await confirmDialog({
       title: t('examples.deleteCategory'),
       message: (t('examples.deleteCategoryConfirm') || '').replace('{name}', categoryName),
       confirmText: t('common.delete') || 'Supprimer',
@@ -165,7 +165,7 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
   
   // Supprimer un élément avec confirmation
   const handleDeleteElement = async (elementId: string, elementName: string) => {
-    const confirmed = await confirm({
+    const confirmed = await confirmDialog({
       title: t('examples.deleteElement'),
       message: (t('examples.deleteElementConfirm') || '').replace('{name}', elementName),
       confirmText: t('common.delete') || 'Supprimer',
@@ -179,7 +179,7 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
   
   // Supprimer une sous-catégorie avec confirmation
   const handleDeleteSubCategory = async (subCategoryId: string, subCategoryName: string) => {
-    const confirmed = await confirm({
+    const confirmed = await confirmDialog({
       title: t('examples.deleteSubCategory'),
       message: (t('examples.deleteSubCategoryConfirm') || '').replace('{name}', subCategoryName),
       confirmText: t('common.delete') || 'Supprimer',
@@ -193,7 +193,7 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
   
   // Supprimer un sous-élément avec confirmation
   const handleDeleteSubElement = async (subElementId: string, subElementName: string) => {
-    const confirmed = await confirm({
+    const confirmed = await confirmDialog({
       title: t('examples.deleteSubElement'),
       message: (t('examples.deleteSubElementConfirm') || '').replace('{name}', subElementName),
       confirmText: t('common.delete') || 'Supprimer',
@@ -396,8 +396,6 @@ export default function ExamplesView({ onClose, domains }: ExamplesViewProps) {
                           setEditingStatusElement={setEditingStatusElement}
                           onUpdateElement={updateExampleElement}
                           onUpdateSubElement={updateExampleSubElement}
-                          editingIconSubElement={editingIconSubElement}
-                          setEditingIconSubElement={setEditingIconSubElement}
                           editingStatusSubElement={editingStatusSubElement}
                           setEditingStatusSubElement={setEditingStatusSubElement}
                         />
@@ -511,9 +509,6 @@ interface ExampleElementCardProps {
   onUpdateElement: (elementId: string, updates: Partial<ExampleElement>) => void;
   // Mise à jour du sous-élément
   onUpdateSubElement: (subElementId: string, updates: Partial<ExampleSubElement>) => void;
-  // Édition d'icône pour le sous-élément
-  editingIconSubElement: string | null;
-  setEditingIconSubElement: (id: string | null) => void;
   // Édition de statut pour le sous-élément
   editingStatusSubElement: string | null;
   setEditingStatusSubElement: (id: string | null) => void;
@@ -549,8 +544,6 @@ function ExampleElementCard({
   setEditingStatusElement,
   onUpdateElement,
   onUpdateSubElement,
-  editingIconSubElement,
-  setEditingIconSubElement,
   editingStatusSubElement,
   setEditingStatusSubElement,
 }: ExampleElementCardProps) {
@@ -589,8 +582,8 @@ function ExampleElementCard({
             {editingIconElement === element.id && (
               <div className="absolute top-full left-0 z-50 mt-1" onClick={(e) => e.stopPropagation()}>
                 <IconPicker
-                  selectedIcon={element.icon}
-                  onSelect={(icon) => {
+                  value={element.icon}
+                  onChange={(icon: string | undefined) => {
                     onUpdateElement(element.id, { icon });
                     setEditingIconElement(null);
                   }}
