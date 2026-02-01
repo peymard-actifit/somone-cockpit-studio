@@ -292,11 +292,11 @@ function PublicCockpitContent() {
           {/* Layout 3 colonnes : Gauche (titre) | Centre (onglets) | Droite (IA) */}
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
             {/* GAUCHE : Logo et nom stylisé */}
-            <div className="flex items-center gap-4 flex-shrink-0">
+            <div className="flex items-center gap-4 flex-shrink-0" title={`Version ${VERSION_DISPLAY}`}>
               {cockpit.logo ? (
-                <img src={cockpit.logo} alt="Logo" className="h-10 w-auto" />
+                <img src={cockpit.logo} alt="Logo" className="h-10 w-auto cursor-default" title={`Version ${VERSION_DISPLAY}`} />
               ) : (
-                <div className="flex flex-col leading-tight">
+                <div className="flex flex-col leading-tight cursor-default">
                   <span className="text-lg font-bold text-[#F5A623] tracking-wider">{firstPart}</span>
                   {lastPart && <span className="text-lg font-bold text-white tracking-wider">{lastPart}</span>}
                 </div>
@@ -500,11 +500,11 @@ function PublicCockpitContent() {
     <header className="bg-cockpit-bg-card border-b border-slate-700/50 shadow-lg z-50">
       <div className="px-6 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4" title={`Version ${VERSION_DISPLAY}`}>
             {cockpit.logo && (
-              <img src={cockpit.logo} alt="Logo" className="h-10 w-auto" />
+              <img src={cockpit.logo} alt="Logo" className="h-10 w-auto cursor-default" title={`Version ${VERSION_DISPLAY}`} />
             )}
-            <div>
+            <div className="cursor-default">
               <h1 className="text-xl font-bold text-white">{cockpit.name}</h1>
               <p className="text-xs text-slate-500">
                 {t('public.consultationMode')} {VERSION_DISPLAY}
