@@ -695,7 +695,7 @@ function PublicCockpitContent() {
         )}
       </main>
 
-      {/* DateTimeline global pour les vues normales (pas Map/Background qui ont leur propre panneau) */}
+      {/* Panneau de contrôles pour les vues normales - IDENTIQUE à Map/Background */}
       {!isMapOrBackgroundView && (cockpit.dataHistory?.columns?.length ?? 0) > 0 && (
         <>
           {/* Zone de déclenchement pour faire apparaître le panneau */}
@@ -705,15 +705,22 @@ function PublicCockpitContent() {
               onMouseEnter={() => setIsRightControlsHovered(true)}
             />
           )}
-          {/* DateTimeline en mode complet (toggle + timeline unis) */}
+          {/* Panneau de contrôles - même structure que Map/Background */}
           <div 
-            className={`fixed right-6 top-20 z-40 transition-all duration-300 ${
+            className={`fixed right-6 top-4 z-40 flex flex-col items-end gap-3 transition-all duration-300 ${
               !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
             }`}
             onMouseEnter={() => setIsRightControlsHovered(true)}
             onMouseLeave={() => setIsRightControlsHovered(false)}
           >
-            <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} />
+            {/* Panneau de toggles - identique à Map/Background */}
+            <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md space-y-1.5">
+              {/* Toggle timeline des dates */}
+              <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} showToggleOnly />
+            </div>
+
+            {/* Timeline des dates en dessous - identique à Map/Background */}
+            <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} showTimelineOnly />
           </div>
         </>
       )}
