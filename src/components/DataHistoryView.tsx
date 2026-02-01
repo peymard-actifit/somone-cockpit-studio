@@ -645,7 +645,9 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     ];
     
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Données');
+    // Nom de l'onglet au format AAAAMMJJ (ex: 20260127)
+    const sheetName = date.replace(/-/g, '');
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
     XLSX.writeFile(wb, generateExportFileName(date));
   };
 
