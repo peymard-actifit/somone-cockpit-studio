@@ -1,10 +1,10 @@
 import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from './IconPicker';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { getDomainWorstStatus, STATUS_COLORS } from '../types';
+import { getDomainWorstStatus, STATUS_COLORS, TileStatus } from '../types';
 import { useSyncState, offlineSync } from '../services/offlineSync';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -13,28 +13,16 @@ const DOMAIN_TAB_COLOR_MODE_KEY = 'domainTabColorMode';
 const DOMAIN_TAB_ICON_KEY = 'domainTabStatusIcon';
 
 // Composant pour un onglet de domaine sortable
-function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon }: {
+function SortableDomainTab({ domain, isActive, onSelect, colorMode, statusIcon, worstStatus }: {
   domain: { id: string; name: string };
   isActive: boolean;
   onSelect: () => void;
   colorMode: 'dot' | 'square' | 'full' | 'border' | 'icon' | 'corner'; // 'dot' = pastille ronde, 'square' = pastille carrée, 'full' = onglet coloré, 'border' = bordure 3 côtés, 'icon' = icône colorée, 'corner' = pastille haut-droite discrète
   statusIcon: string; // Icône à afficher pour le mode 'icon'
+  worstStatus: TileStatus; // Statut pré-calculé passé en props pour éviter les re-renders
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: domain.id });
   const { t } = useLanguage();
-
-  // Calculer le statut le plus critique pour ce domaine - protection pour les tableaux
-  const { currentCockpit } = useCockpitStore();
-  const cockpitDomains = currentCockpit?.domains || [];
-  const domainData = cockpitDomains.find(d => d.id === domain.id);
-  // Passer tous les domaines pour le calcul récursif (éléments avec status herite_domaine)
-  // Passer aussi les données historiques pour utiliser les statuts de la date active
-  const worstStatus = domainData ? getDomainWorstStatus(
-    domainData, 
-    cockpitDomains, 
-    undefined, 
-    { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate }
-  ) : 'ok';
   // Protection: vérifier que STATUS_COLORS[worstStatus] existe avant d'accéder à .hex
   const statusColor = STATUS_COLORS[worstStatus]?.hex || STATUS_COLORS.ok.hex;
   const hasAlert = worstStatus !== 'ok' && worstStatus !== undefined;
@@ -248,6 +236,22 @@ export default function Navbar() {
   // Trier les domaines par order pour garantir l'ordre correct
   const sortedDomains = [...domains].sort((a, b) => a.order - b.order);
 
+  // Pré-calculer les worstStatus pour tous les domaines (optimisation performance)
+  const domainWorstStatuses = useMemo(() => {
+    const statuses: Record<string, TileStatus> = {};
+    const cockpitDomains = currentCockpit?.domains || [];
+    for (const domain of sortedDomains) {
+      const domainData = cockpitDomains.find(d => d.id === domain.id);
+      statuses[domain.id] = domainData ? getDomainWorstStatus(
+        domainData,
+        cockpitDomains,
+        undefined,
+        { dataHistory: currentCockpit?.dataHistory, selectedDataDate: currentCockpit?.selectedDataDate }
+      ) : 'ok';
+    }
+    return statuses;
+  }, [currentCockpit?.domains, currentCockpit?.dataHistory, currentCockpit?.selectedDataDate, sortedDomains]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -291,6 +295,7 @@ export default function Navbar() {
                   onSelect={() => setCurrentDomain(domain.id)}
                   colorMode={domainTabColorMode}
                   statusIcon={domainTabStatusIcon}
+                  worstStatus={domainWorstStatuses[domain.id] || 'ok' as TileStatus}
                 />
               ))}
             </div>
