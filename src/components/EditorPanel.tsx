@@ -370,54 +370,53 @@ function SortableSubCategoryItem({ subCategory, onIconClick, onNameChange, onDel
 }
 
 export default function EditorPanel({ domain, element, selectedSubElementId }: EditorPanelProps) {
-  const {
-    updateDomain,
-    deleteDomain,
-    duplicateDomain,
-    updateCategory,
-    deleteCategory,
-    reorderCategory,
-    updateSubCategory,
-    deleteSubCategory,
-    reorderSubCategory,
-    updateElement,
-    deleteElement,
-    updateSubElement,
-    deleteSubElement,
-    updateCockpit,
-    currentCockpit,
-    zones,
-    addZone,
-    updateZone,
-    updateTemplateIcon,
-    setCurrentElement,
-    setCurrentDomain,
-    updateMapElement,
-    deleteMapElement,
-    cloneMapElement,
-    updateMapBounds,
-    forceSave,
-    findElementsByName,
-    findSubElementsByName,
-    copyElementContent,
-    copySubElementContent,
-    addIncident,
-    unlinkElement,
-    unlinkSubElement,
-    getAllElements,
-    getAllSubElements,
-    linkElement,
-    linkSubElement,
-    moveElementToCategory,
-    moveSubElementToSubCategory,
-    addCategory,
-    getLinkedElements,
-    getLinkedSubElements,
-    copyDomainElements,
-    clearDomainElements,
-    applySizeToAllElements,
-    copyElementSubContent
-  } = useCockpitStore();
+  // Sélecteurs individuels optimisés - évite les re-renders quand d'autres parties du store changent
+  const currentCockpit = useCockpitStore(state => state.currentCockpit);
+  const zones = useCockpitStore(state => state.zones);
+  const updateDomain = useCockpitStore(state => state.updateDomain);
+  const deleteDomain = useCockpitStore(state => state.deleteDomain);
+  const duplicateDomain = useCockpitStore(state => state.duplicateDomain);
+  const updateCategory = useCockpitStore(state => state.updateCategory);
+  const deleteCategory = useCockpitStore(state => state.deleteCategory);
+  const reorderCategory = useCockpitStore(state => state.reorderCategory);
+  const updateSubCategory = useCockpitStore(state => state.updateSubCategory);
+  const deleteSubCategory = useCockpitStore(state => state.deleteSubCategory);
+  const reorderSubCategory = useCockpitStore(state => state.reorderSubCategory);
+  const updateElement = useCockpitStore(state => state.updateElement);
+  const deleteElement = useCockpitStore(state => state.deleteElement);
+  const updateSubElement = useCockpitStore(state => state.updateSubElement);
+  const deleteSubElement = useCockpitStore(state => state.deleteSubElement);
+  const updateCockpit = useCockpitStore(state => state.updateCockpit);
+  const addZone = useCockpitStore(state => state.addZone);
+  const updateZone = useCockpitStore(state => state.updateZone);
+  const updateTemplateIcon = useCockpitStore(state => state.updateTemplateIcon);
+  const setCurrentElement = useCockpitStore(state => state.setCurrentElement);
+  const setCurrentDomain = useCockpitStore(state => state.setCurrentDomain);
+  const updateMapElement = useCockpitStore(state => state.updateMapElement);
+  const deleteMapElement = useCockpitStore(state => state.deleteMapElement);
+  const cloneMapElement = useCockpitStore(state => state.cloneMapElement);
+  const updateMapBounds = useCockpitStore(state => state.updateMapBounds);
+  const forceSave = useCockpitStore(state => state.forceSave);
+  const findElementsByName = useCockpitStore(state => state.findElementsByName);
+  const findSubElementsByName = useCockpitStore(state => state.findSubElementsByName);
+  const copyElementContent = useCockpitStore(state => state.copyElementContent);
+  const copySubElementContent = useCockpitStore(state => state.copySubElementContent);
+  const addIncident = useCockpitStore(state => state.addIncident);
+  const unlinkElement = useCockpitStore(state => state.unlinkElement);
+  const unlinkSubElement = useCockpitStore(state => state.unlinkSubElement);
+  const getAllElements = useCockpitStore(state => state.getAllElements);
+  const getAllSubElements = useCockpitStore(state => state.getAllSubElements);
+  const linkElement = useCockpitStore(state => state.linkElement);
+  const linkSubElement = useCockpitStore(state => state.linkSubElement);
+  const moveElementToCategory = useCockpitStore(state => state.moveElementToCategory);
+  const moveSubElementToSubCategory = useCockpitStore(state => state.moveSubElementToSubCategory);
+  const addCategory = useCockpitStore(state => state.addCategory);
+  const getLinkedElements = useCockpitStore(state => state.getLinkedElements);
+  const getLinkedSubElements = useCockpitStore(state => state.getLinkedSubElements);
+  const copyDomainElements = useCockpitStore(state => state.copyDomainElements);
+  const clearDomainElements = useCockpitStore(state => state.clearDomainElements);
+  const applySizeToAllElements = useCockpitStore(state => state.applySizeToAllElements);
+  const copyElementSubContent = useCockpitStore(state => state.copyElementSubContent);
   const { token, user } = useAuthStore();
   const confirm = useConfirm();
   const { t } = useLanguage();

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCockpitStore, RecentChange } from '../store/cockpitStore';
 import { useAuthStore } from '../store/authStore';
@@ -17,8 +17,8 @@ import JourneyPlayer from '../components/JourneyPlayer';
 import { MuiIcon } from '../components/IconPicker';
 import { VERSION_DISPLAY } from '../config/version';
 
-// Composant pour afficher le fil des modifications
-function RecentChangesMarquee({ changes }: { changes: RecentChange[] }) {
+// Composant mémoïsé pour afficher le fil des modifications
+const RecentChangesMarquee = memo(function RecentChangesMarquee({ changes }: { changes: RecentChange[] }) {
   const [displayedChanges, setDisplayedChanges] = useState<RecentChange[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
@@ -30,15 +30,19 @@ function RecentChangesMarquee({ changes }: { changes: RecentChange[] }) {
     }
   }, [changes]);
 
-  // Nettoyer les modifications après 10 secondes
+  // Nettoyer les modifications après 10 secondes - optimisé pour ne tourner que si nécessaire
   useEffect(() => {
+    if (displayedChanges.length === 0) return;
+    
     const interval = setInterval(() => {
-      setDisplayedChanges(prev =>
-        prev.filter(c => Date.now() - c.timestamp < 10000)
-      );
+      setDisplayedChanges(prev => {
+        const filtered = prev.filter(c => Date.now() - c.timestamp < 10000);
+        // Ne mettre à jour que si quelque chose a changé
+        return filtered.length !== prev.length ? filtered : prev;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [displayedChanges.length > 0]);
 
   const getTypeIcon = (type: RecentChange['type']) => {
     switch (type) {
@@ -94,7 +98,7 @@ function RecentChangesMarquee({ changes }: { changes: RecentChange[] }) {
       )}
     </div>
   );
-}
+});
 
 export default function StudioPage() {
   const { cockpitId } = useParams<{ cockpitId: string }>();
@@ -103,18 +107,19 @@ export default function StudioPage() {
   const { t } = useLanguage();
   const { enableGlobalContextMenu, disableGlobalContextMenu, enableHoverHelp, disableHoverHelp } = useContextualHelp();
   const { startTutorial, isPlaying: isTutorialPlaying, progress: tutorialProgress } = useTutorial();
-  const {
-    currentCockpit,
-    currentDomainId,
-    currentElementId,
-    fetchCockpit,
-    exportToExcel,
-    isLoading,
-    error,
-    setCurrentElement,
-    setCurrentDomain,
-    recentChanges
-  } = useCockpitStore();
+  // Sélecteurs individuels optimisés pour éviter les re-renders inutiles
+  const currentCockpit = useCockpitStore(state => state.currentCockpit);
+  const currentDomainId = useCockpitStore(state => state.currentDomainId);
+  const currentElementId = useCockpitStore(state => state.currentElementId);
+  const isLoading = useCockpitStore(state => state.isLoading);
+  const error = useCockpitStore(state => state.error);
+  const recentChanges = useCockpitStore(state => state.recentChanges);
+  
+  // Actions du store (stables)
+  const fetchCockpit = useCockpitStore(state => state.fetchCockpit);
+  const exportToExcel = useCockpitStore(state => state.exportToExcel);
+  const setCurrentElement = useCockpitStore(state => state.setCurrentElement);
+  const setCurrentDomain = useCockpitStore(state => state.setCurrentDomain);
 
   const [showEditor, setShowEditor] = useState(false); // Masqué par défaut
   const [isSaving, setIsSaving] = useState(false);
@@ -207,63 +212,60 @@ export default function StudioPage() {
     );
   }
 
-  // Protection pour les tableaux
-  const currentDomain = (currentCockpit?.domains || []).find(d => d.id === currentDomainId);
+  // Calculs mémoïsés pour éviter les recalculs inutiles
+  const currentDomain = useMemo(() => 
+    (currentCockpit?.domains || []).find((d: { id: string }) => d.id === currentDomainId),
+    [currentCockpit?.domains, currentDomainId]
+  );
 
-  // Trouver l'élément actuel à travers les catégories - protection pour les tableaux
-  let currentElement = null;
-  if (currentElementId && currentDomain) {
+  // Trouver l'élément actuel à travers les catégories - mémoïsé
+  const currentElement = useMemo(() => {
+    if (!currentElementId || !currentDomain) return null;
     for (const category of (currentDomain.categories || [])) {
-      const found = (category.elements || []).find(e => e.id === currentElementId);
-      if (found) {
-        currentElement = found;
-        break;
-      }
+      const found = (category.elements || []).find((e: { id: string }) => e.id === currentElementId);
+      if (found) return found;
     }
-  }
+    return null;
+  }, [currentElementId, currentDomain]);
 
-  // Handler pour cliquer sur un élément dans MapView ou BackgroundView
-  const handleElementClick = (elementId: string) => {
+  // Handlers mémoïsés pour éviter les re-créations
+  const handleElementClick = useCallback((elementId: string) => {
     setCurrentElement(elementId);
-    setShowEditor(true); // Ouvrir le menu d'édition
-    setSelectedSubElementId(null); // Réinitialiser la sélection de sous-élément
-  };
+    setShowEditor(true);
+    setSelectedSubElementId(null);
+  }, [setCurrentElement]);
 
-  // Navigation depuis la vue éclatée vers un domaine
-  const handleNavigateToDomain = (domainId: string) => {
+  const handleNavigateToDomain = useCallback((domainId: string) => {
     setCurrentDomain(domainId);
-    setCurrentElement(null); // Pas d'élément sélectionné, on voit la vue du domaine
+    setCurrentElement(null);
     setShowMindMap(false);
     setCameFromMindMap(true);
-    setShowEditor(false); // Fermer le panneau d'édition pour voir la vue domaine
+    setShowEditor(false);
     setSelectedSubElementId(null);
-  };
+  }, [setCurrentDomain, setCurrentElement]);
 
-  // Navigation depuis la vue éclatée vers un élément
-  const handleNavigateToElement = (domainId: string, elementId: string) => {
+  const handleNavigateToElement = useCallback((domainId: string, elementId: string) => {
     setCurrentDomain(domainId);
     setCurrentElement(elementId);
     setShowMindMap(false);
     setCameFromMindMap(true);
     setShowEditor(true);
     setSelectedSubElementId(null);
-  };
+  }, [setCurrentDomain, setCurrentElement]);
 
-  // Navigation depuis la vue éclatée vers un sous-élément
-  const handleNavigateToSubElement = (domainId: string, elementId: string, subElementId: string) => {
+  const handleNavigateToSubElement = useCallback((domainId: string, elementId: string, subElementId: string) => {
     setCurrentDomain(domainId);
     setCurrentElement(elementId);
     setShowMindMap(false);
     setCameFromMindMap(true);
     setShowEditor(true);
     setSelectedSubElementId(subElementId);
-  };
+  }, [setCurrentDomain, setCurrentElement]);
 
-  // Retour à la vue éclatée
-  const handleReturnToMindMap = () => {
+  const handleReturnToMindMap = useCallback(() => {
     setCameFromMindMap(false);
     setShowMindMap(true);
-  };
+  }, []);
 
   return (
     <div 

@@ -53,6 +53,31 @@ const STATUS_IMPORT_MAP: Record<string, TileStatus> = {
 };
 
 // ============================================================================
+// FONCTIONS UTILITAIRES (hors composant pour éviter les re-créations)
+// ============================================================================
+
+const formatDateUtil = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+const generateExportFileNameUtil = (cockpitName: string, date: string): string => {
+  const now = new Date();
+  const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+  const year = parisTime.getFullYear();
+  const month = String(parisTime.getMonth() + 1).padStart(2, '0');
+  const day = String(parisTime.getDate()).padStart(2, '0');
+  const hours = String(parisTime.getHours()).padStart(2, '0');
+  const minutes = String(parisTime.getMinutes()).padStart(2, '0');
+  const seconds = String(parisTime.getSeconds()).padStart(2, '0');
+  const dateStamp = `${year}${month}${day}`;
+  const timeStamp = `${hours}${minutes}${seconds}`;
+  const cleanName = cockpitName.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ');
+  const cleanDate = date.replace(/-/g, '');
+  return `${dateStamp} SOMONE Cockpit Data ${cleanName} ${cleanDate} ${timeStamp}.xlsx`;
+};
+
+// ============================================================================
 // COMPOSANTS ISOLÉS POUR ÉVITER LES RE-RENDERS
 // ============================================================================
 
@@ -131,7 +156,10 @@ interface UniqueSubElement {
 
 export default function DataHistoryView({ cockpit, readOnly = false }: DataHistoryViewProps) {
   const { t } = useLanguage();
-  const { updateCockpit, updateSubElement } = useCockpitStore();
+  
+  // Sélecteurs optimisés - évite les re-renders inutiles
+  const updateCockpit = useCockpitStore(state => state.updateCockpit);
+  const updateSubElement = useCockpitStore(state => state.updateSubElement);
   
   // États principaux
   const [columns, setColumns] = useState<DataHistoryColumn[]>(cockpit.dataHistory?.columns || []);
@@ -400,17 +428,21 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     
     if (closeEditor) setEditingCell(null);
     
-    // Synchroniser avec les sous-éléments si c'est la date active
+    // Synchroniser avec les sous-éléments si c'est la date active - différé pour éviter les re-renders multiples
     if (columnDate === activeDate) {
       const uniqueSE = uniqueSubElements.find(se => se.id === subElementId);
-      if (uniqueSE) {
-        for (const originalId of uniqueSE.originalIds) {
-          const updates: Partial<{ status: TileStatus; value: string; unit: string }> = {};
-          if (field === 'status') updates.status = value as TileStatus;
-          else if (field === 'value') updates.value = value || undefined;
-          else if (field === 'unit') updates.unit = value || undefined;
-          updateSubElement(originalId, updates);
-        }
+      if (uniqueSE && uniqueSE.originalIds.length > 0) {
+        const updates: Partial<{ status: TileStatus; value: string; unit: string }> = {};
+        if (field === 'status') updates.status = value as TileStatus;
+        else if (field === 'value') updates.value = value || undefined;
+        else if (field === 'unit') updates.unit = value || undefined;
+        
+        // Batch les updates dans un setTimeout pour permettre au React de regrouper les renders
+        setTimeout(() => {
+          for (const originalId of uniqueSE.originalIds) {
+            updateSubElement(originalId, updates);
+          }
+        }, 0);
       }
     }
   }, [activeDate, uniqueSubElements, saveToStore, updateSubElement]);
@@ -428,19 +460,26 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
   // EFFETS
   // ============================================================================
 
-  // Détecter la hauteur du conteneur
+  // Détecter la hauteur du conteneur - optimisé pour éviter les updates inutiles
   useEffect(() => {
     const container = tableContainerRef.current;
     if (!container) return;
     
+    let lastHeight = container.clientHeight;
+    
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setContainerHeight(entry.contentRect.height);
+        const newHeight = entry.contentRect.height;
+        // Ne mettre à jour que si la hauteur change significativement (>5px)
+        if (Math.abs(newHeight - lastHeight) > 5) {
+          lastHeight = newHeight;
+          setContainerHeight(newHeight);
+        }
       }
     });
     
     resizeObserver.observe(container);
-    setContainerHeight(container.clientHeight);
+    setContainerHeight(lastHeight);
     
     return () => resizeObserver.disconnect();
   }, []);
@@ -503,74 +542,69 @@ export default function DataHistoryView({ cockpit, readOnly = false }: DataHisto
     saveToStore([initialColumn]);
   };
 
-  const handleAddColumn = () => {
+  // Mémoïsé avec useCallback pour éviter les re-créations
+  const handleAddColumn = useCallback(() => {
     if (!newColumnDate) return;
-    if (columns.some(c => c.date === newColumnDate)) {
-      alert('Cette date existe déjà');
-      return;
-    }
-
-    const newData: Record<string, SubElementDataSnapshot> = {};
     
-    if (columns.length > 0) {
-      const newDateMs = new Date(newColumnDate).getTime();
-      let closestColumn = columns[0];
-      let minDistance = Math.abs(new Date(columns[0].date).getTime() - newDateMs);
+    setColumns(prev => {
+      if (prev.some(c => c.date === newColumnDate)) {
+        alert('Cette date existe déjà');
+        return prev;
+      }
+
+      const newData: Record<string, SubElementDataSnapshot> = {};
       
-      for (const col of columns) {
-        const distance = Math.abs(new Date(col.date).getTime() - newDateMs);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestColumn = col;
+      if (prev.length > 0) {
+        const newDateMs = new Date(newColumnDate).getTime();
+        let closestColumn = prev[0];
+        let minDistance = Math.abs(new Date(prev[0].date).getTime() - newDateMs);
+        
+        for (const col of prev) {
+          const distance = Math.abs(new Date(col.date).getTime() - newDateMs);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestColumn = col;
+          }
+        }
+        
+        for (const [key, value] of Object.entries(closestColumn.data)) {
+          newData[key] = { ...value };
+        }
+      } else {
+        for (const se of uniqueSubElements) {
+          newData[se.id] = { status: 'ok' };
         }
       }
-      
-      for (const [key, value] of Object.entries(closestColumn.data)) {
-        newData[key] = { ...value };
-      }
-    } else {
-      for (const se of uniqueSubElements) {
-        newData[se.id] = { status: 'ok' };
-      }
-    }
 
-    const newColumn: DataHistoryColumn = { date: newColumnDate, label: newColumnLabel || undefined, data: newData };
-    const updatedColumns = [...columns, newColumn].sort((a, b) => a.date.localeCompare(b.date));
-    setColumns(updatedColumns);
-    saveToStore(updatedColumns);
+      const newColumn: DataHistoryColumn = { date: newColumnDate, label: newColumnLabel || undefined, data: newData };
+      const updatedColumns = [...prev, newColumn].sort((a, b) => a.date.localeCompare(b.date));
+      
+      // Sauvegarder de manière asynchrone pour ne pas bloquer le render
+      setTimeout(() => saveToStore(updatedColumns), 0);
+      
+      return updatedColumns;
+    });
     
     setIsAddingColumn(false);
     setNewColumnDate('');
     setNewColumnLabel('');
-  };
+  }, [newColumnDate, newColumnLabel, uniqueSubElements, saveToStore]);
 
-  const handleDeleteColumn = (date: string) => {
+  // Mémoïsé avec useCallback pour éviter les re-créations
+  const handleDeleteColumn = useCallback((date: string) => {
     if (!confirm(`Supprimer la colonne du ${date} ?`)) return;
-    const updatedColumns = columns.filter(c => c.date !== date);
-    setColumns(updatedColumns);
-    saveToStore(updatedColumns);
-  };
+    setColumns(prev => {
+      const updatedColumns = prev.filter(c => c.date !== date);
+      // Sauvegarder de manière asynchrone
+      setTimeout(() => saveToStore(updatedColumns), 0);
+      return updatedColumns;
+    });
+  }, [saveToStore]);
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  };
-
-  const generateExportFileName = (date: string) => {
-    const now = new Date();
-    const parisTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
-    const year = parisTime.getFullYear();
-    const month = String(parisTime.getMonth() + 1).padStart(2, '0');
-    const day = String(parisTime.getDate()).padStart(2, '0');
-    const hours = String(parisTime.getHours()).padStart(2, '0');
-    const minutes = String(parisTime.getMinutes()).padStart(2, '0');
-    const seconds = String(parisTime.getSeconds()).padStart(2, '0');
-    const dateStamp = `${year}${month}${day}`;
-    const timeStamp = `${hours}${minutes}${seconds}`;
-    const cleanName = cockpit.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ');
-    const cleanDate = date.replace(/-/g, '');
-    return `${dateStamp} SOMONE Cockpit Data ${cleanName} ${cleanDate} ${timeStamp}.xlsx`;
-  };
+  // Utiliser les fonctions utilitaires définies hors du composant
+  const formatDate = formatDateUtil;
+  const generateExportFileName = useCallback((date: string) => 
+    generateExportFileNameUtil(cockpit.name, date), [cockpit.name]);
 
   const handleExportDate = (date: string) => {
     const column = columns.find(c => c.date === date);
