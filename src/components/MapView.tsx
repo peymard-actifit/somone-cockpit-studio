@@ -10,6 +10,7 @@ import BulkEditMapModal from './BulkEditMapModal';
 import MapCategoryElementsView from './MapCategoryElementsView';
 import StatusSummary, { formatLastUpdate } from './StatusSummary';
 import { useLanguage } from '../contexts/LanguageContext';
+import DateTimeline from './DateTimeline';
 
 // Liste des icônes populaires pour les points de carte
 const POPULAR_MAP_ICONS = [
@@ -46,9 +47,10 @@ interface MapViewProps {
   onElementClick?: (elementId: string) => void;
   readOnly?: boolean;
   domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
+  onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée
 }
 
-export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: _domainsProp }: MapViewProps) {
+export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: _domainsProp, onDateChange }: MapViewProps) {
   const fullscreenContainerRef = useRef<HTMLDivElement>(null); // Pour le mode plein écran
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -1505,6 +1507,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             </button>
           </div>
         </div>
+
+        {/* Timeline des dates (mode publié uniquement, si des données historiques existent) */}
+        {_readOnly && onDateChange && (
+          <DateTimeline onDateChange={onDateChange} domainId={domain.id} />
+        )}
       </div>
 
       {/* Conteneur de la carte */}

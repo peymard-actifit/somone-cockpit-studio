@@ -375,6 +375,10 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'zoom.center': { FR: 'Recaler la vue', EN: 'Reset view position' },
   'zoom.fitToWindow': { FR: 'Ajuster à la fenêtre (double-clic: 100%)', EN: 'Fit to window (double-click: 100%)' },
   
+  // === Timeline des dates ===
+  'dateTimeline.show': { FR: 'Afficher les dates', EN: 'Show dates' },
+  'dateTimeline.hide': { FR: 'Masquer les dates', EN: 'Hide dates' },
+  
   // === Statuts ===
   'status.ok': { FR: 'OK', EN: 'OK' },
   'status.minor': { FR: 'Mineur', EN: 'Minor' },

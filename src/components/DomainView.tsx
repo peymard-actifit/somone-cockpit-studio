@@ -24,9 +24,10 @@ interface DomainViewProps {
   onElementClick?: (elementId: string) => void;
   readOnly?: boolean;
   cockpit?: Cockpit; // Pour la vue publiée
+  onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée
 }
 
-export default function DomainView({ domain, onElementClick, readOnly = false, cockpit: cockpitProp }: DomainViewProps) {
+export default function DomainView({ domain, onElementClick, readOnly = false, cockpit: cockpitProp, onDateChange }: DomainViewProps) {
   const { addCategory, deleteCategory, addElement, moveElement, reorderElement, findElementsByName, linkElement, currentCockpit } = useCockpitStore();
   const confirm = useConfirm();
   const { t } = useLanguage();
@@ -159,7 +160,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'map') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} />
+        <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} />
       </div>
     );
   }
@@ -168,7 +169,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'background') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} />
+        <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} />
       </div>
     );
   }

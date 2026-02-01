@@ -6,6 +6,7 @@ import LinkElementModal from './LinkElementModal';
 import BulkEditModal from './BulkEditModal';
 import MapCategoryElementsView from './MapCategoryElementsView';
 import StatusSummary, { formatLastUpdate } from './StatusSummary';
+import DateTimeline from './DateTimeline';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -36,9 +37,10 @@ interface BackgroundViewProps {
   onElementClick?: (elementId: string) => void;
   readOnly?: boolean;
   domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
+  onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée
 }
 
-export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: domainsProp }: BackgroundViewProps) {
+export default function BackgroundView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: domainsProp, onDateChange }: BackgroundViewProps) {
   // ============================================================================
   // TOUS LES HOOKS DOIVENT ÊTRE DÉCLARÉS ICI, AVANT TOUT RETURN CONDITIONNEL
   // (Règle #300 de React : les hooks doivent être appelés dans le même ordre à chaque rendu)
@@ -1523,6 +1525,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             </button>
           </div>
         </div>
+
+        {/* Timeline des dates (mode publié uniquement, si des données historiques existent) */}
+        {_readOnly && onDateChange && (
+          <DateTimeline onDateChange={onDateChange} domainId={domain.id} />
+        )}
       </div>
 
       {/* Mode dessin actif */}

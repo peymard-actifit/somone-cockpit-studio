@@ -6,6 +6,7 @@ import DomainView from '../components/DomainView';
 import ElementView from '../components/ElementView';
 import MindMapView from '../components/MindMapView';
 import PublicAIChat from '../components/PublicAIChat';
+import DateTimeline from '../components/DateTimeline';
 import { VERSION_DISPLAY } from '../config/version';
 import { getDomainWorstStatus, STATUS_COLORS } from '../types';
 import { TrackingProvider, useTracking } from '../contexts/TrackingContext';
@@ -683,6 +684,7 @@ function PublicCockpitContent() {
               onElementClick={handleElementClick}
               readOnly={true}
               cockpit={cockpit}
+              onDateChange={handleDateChange}
             />
           </div>
         ) : (
@@ -691,6 +693,13 @@ function PublicCockpitContent() {
           </div>
         )}
       </main>
+
+      {/* DateTimeline global pour les vues normales (pas Map/Background qui ont leur propre panneau) */}
+      {!isMapOrBackgroundView && (cockpit.dataHistory?.columns?.length ?? 0) > 0 && (
+        <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-40">
+          <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} />
+        </div>
+      )}
 
       {/* Footer - masqué sur les vues Map/Background */}
       {!isMapOrBackgroundView && (
