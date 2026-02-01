@@ -3102,6 +3102,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               { type: 'stats' as TemplateType, label: 'Stats', desc: 'Graphiques de disponibilité' },
               { type: 'library' as TemplateType, label: 'Bibliothèque', desc: 'Zones et templates supervisables', clientRestricted: true },
               { type: 'data-history' as TemplateType, label: 'Historique données', desc: 'Tableau des données par date' },
+              { type: 'examples' as TemplateType, label: 'Exemples', desc: 'Bibliothèque d\'exemples réutilisables', clientRestricted: true },
             ].filter(item => !isClientUser || !item.clientRestricted).map(({ type, label, desc }) => (
               <button
                 key={type}

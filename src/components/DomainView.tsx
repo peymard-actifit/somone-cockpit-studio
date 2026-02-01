@@ -11,6 +11,7 @@ import AlertsView from './AlertsView';
 import StatsView from './StatsView';
 import LibraryView from './LibraryView';
 import DataHistoryView from './DataHistoryView';
+import ExamplesDomainView from './ExamplesDomainView';
 import ZoomableContainer from './ZoomableContainer';
 import { MuiIcon } from './IconPicker';
 import LinkElementModal from './LinkElementModal';
@@ -238,6 +239,16 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
         <DataHistoryView cockpit={cockpit} readOnly={readOnly} />
+      </div>
+    );
+  }
+
+  // Vue exemples
+  if (domain.templateType === 'examples') {
+    if (!cockpit) return null;
+    return (
+      <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
+        <ExamplesDomainView domain={domain} cockpit={cockpit} readOnly={readOnly} onElementClick={onElementClick} />
       </div>
     );
   }

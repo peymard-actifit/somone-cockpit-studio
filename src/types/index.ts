@@ -14,7 +14,8 @@ export type TemplateType =
   | 'alerts'        // Vue alertes/incidents
   | 'stats'         // Vue statistiques
   | 'library'       // Vue bibliothèque (zones + templates)
-  | 'data-history'; // Vue historique des données (tableau par date)
+  | 'data-history'  // Vue historique des données (tableau par date)
+  | 'examples';     // Vue exemples (bibliothèque d'exemples réutilisable)
 
 // Orientation des catégories
 export type Orientation = 'horizontal' | 'vertical';
@@ -155,6 +156,8 @@ export interface Domain {
   alertsData?: AlertsData;
   // Données pour la vue "Stats"
   statsData?: StatsData;
+  // Données pour la vue "Exemples"
+  examplesSourceId?: string;  // ID du domaine exemples source (cockpitId:domainId) - pour afficher une vue exemples d'un autre cockpit
   publiable?: boolean;  // Si le domaine doit être publié (défaut: true)
   updatedAt?: string;  // Date de dernière mise à jour
 }
