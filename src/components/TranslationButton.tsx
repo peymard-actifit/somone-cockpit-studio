@@ -206,8 +206,8 @@ interface Language {
   name: string;
 }
 
-export default function TranslationButton({ cockpitId, inMenu = false, onClose }: { cockpitId: string; inMenu?: boolean; onClose?: () => void }) {
-  const [showModal, setShowModal] = useState(false);
+export default function TranslationButton({ cockpitId, inMenu = false, onClose, forceOpen = false, onOpenChange }: { cockpitId: string; inMenu?: boolean; onClose?: () => void; forceOpen?: boolean; onOpenChange?: (open: boolean) => void }) {
+  const [showModal, setShowModal] = useState(forceOpen);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [selectedLang, setSelectedLang] = useState<string>('FR');
@@ -218,6 +218,18 @@ export default function TranslationButton({ cockpitId, inMenu = false, onClose }
   const [previewChanges, setPreviewChanges] = useState<TranslationChange[]>([]);
   const { currentCockpit, updateCockpit, fetchCockpit } = useCockpitStore();
   const { token, user } = useAuthStore();
+
+  // Synchroniser forceOpen avec showModal
+  useEffect(() => {
+    if (forceOpen && !showModal) {
+      setShowModal(true);
+    }
+  }, [forceOpen]);
+
+  // Notifier le parent quand showModal change
+  useEffect(() => {
+    onOpenChange?.(showModal);
+  }, [showModal, onOpenChange]);
 
   // Fonction pour charger les langues (sans l'option Restaurer, maintenant gérée par le bouton)
   const loadLanguages = async () => {

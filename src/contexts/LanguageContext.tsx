@@ -195,6 +195,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'common.loading': { FR: 'Chargement...', EN: 'Loading...' },
   'common.importing': { FR: 'Import...', EN: 'Importing...' },
   'public.upToDate': { FR: 'A jour', EN: 'Up to date' },
+  'public.aiAssistant': { FR: 'Assistant IA', EN: 'AI Assistant' },
   'public.visitor': { FR: 'Visiteur', EN: 'Visitor' },
   'public.consultationMode': { FR: 'Mode consultation', EN: 'Consultation mode' },
   'public.published': { FR: 'Version publiée', EN: 'Published version' },

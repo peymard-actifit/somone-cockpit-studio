@@ -9,10 +9,12 @@ interface Message {
 interface PublicAIChatProps {
   publicId: string;
   cockpitName: string;
+  forceExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
-export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function PublicAIChat({ publicId, cockpitName, forceExpanded = false, onExpandedChange }: PublicAIChatProps) {
+  const [isExpanded, setIsExpanded] = useState(forceExpanded);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -27,6 +29,18 @@ export default function PublicAIChat({ publicId, cockpitName }: PublicAIChatProp
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const windowRef = useRef<HTMLDivElement>(null);
+  
+  // Synchroniser forceExpanded avec isExpanded
+  useEffect(() => {
+    if (forceExpanded && !isExpanded) {
+      setIsExpanded(true);
+    }
+  }, [forceExpanded]);
+
+  // Notifier le parent quand isExpanded change
+  useEffect(() => {
+    onExpandedChange?.(isExpanded);
+  }, [isExpanded, onExpandedChange]);
   
   // Charger la position et taille sauvegardées au montage
   useEffect(() => {

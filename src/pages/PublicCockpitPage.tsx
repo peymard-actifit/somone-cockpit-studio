@@ -23,6 +23,8 @@ function PublicCockpitContent() {
   const [showMindMap, setShowMindMap] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const { trackEvent } = useTracking();
   const { language, setLanguage, t } = useLanguage();
 
@@ -344,22 +346,58 @@ function PublicCockpitContent() {
               })}
             </div>
             
-            {/* DROITE : Assistant IA et infos */}
+            {/* DROITE : Menu Actions et infos */}
             <div className="flex items-center gap-4 flex-shrink-0">
-              {/* Bouton Vue éclatée */}
-              <button
-                onClick={() => setShowMindMap(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-                title={t('studio.explodedViewTitle')}
-              >
-                <MuiIcon name="AccountTree" size={16} />
-                <span className="text-sm font-medium">{t('studio.explodedView')}</span>
-              </button>
-              
-              {/* Assistant IA stylisé */}
-              {publicId && cockpit && (
-                <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
-              )}
+              {/* Menu Actions déroulant */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowActionsMenu(!showActionsMenu)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#2D4A63] hover:bg-[#3D5A73] text-white rounded-lg transition-colors border border-[#4A6D8C]"
+                >
+                  <MuiIcon name="MoreVert" size={16} />
+                  <span className="text-sm font-medium">{t('studio.actions') || 'Actions'}</span>
+                  <MuiIcon name={showActionsMenu ? 'ExpandLess' : 'ExpandMore'} size={14} />
+                </button>
+                
+                {showActionsMenu && (
+                  <>
+                    {/* Overlay pour fermer le menu */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowActionsMenu(false)}
+                    />
+                    
+                    {/* Menu déroulant */}
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-[#1E3A5F] border border-[#4A6D8C] rounded-xl shadow-2xl z-50 overflow-hidden">
+                      {/* Vue éclatée */}
+                      <button
+                        onClick={() => {
+                          setShowMindMap(true);
+                          setShowActionsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-cyan-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                      >
+                        <MuiIcon name="AccountTree" size={18} className="text-cyan-400" />
+                        <span className="text-sm">{t('studio.explodedView')}</span>
+                      </button>
+
+                      {/* Assistant IA */}
+                      {publicId && cockpit && (
+                        <button
+                          onClick={() => {
+                            setShowAIChat(true);
+                            setShowActionsMenu(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-600/30 text-white transition-colors"
+                        >
+                          <MuiIcon name="AutoAwesome" size={18} className="text-violet-400" />
+                          <span className="text-sm">{t('public.aiAssistant') || 'Assistant IA'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
               
               {/* Sélecteur de langue */}
               <div className="flex items-center gap-1 bg-[#2D4A63] rounded-lg border border-[#4A6D8C] p-1">
@@ -512,20 +550,56 @@ function PublicCockpitContent() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {/* Bouton Vue éclatée */}
-            <button
-              onClick={() => setShowMindMap(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-              title={t('studio.explodedViewTitle')}
-            >
-              <MuiIcon name="AccountTree" size={16} />
-              <span className="text-sm font-medium">{t('studio.explodedView')}</span>
-            </button>
-            
-            {/* Assistant IA */}
-            {publicId && cockpit && (
-              <PublicAIChat publicId={publicId} cockpitName={cockpit.name} />
-            )}
+            {/* Menu Actions déroulant */}
+            <div className="relative">
+              <button
+                onClick={() => setShowActionsMenu(!showActionsMenu)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg transition-colors border border-slate-600/50"
+              >
+                <MuiIcon name="MoreVert" size={16} />
+                <span className="text-sm font-medium">{t('studio.actions') || 'Actions'}</span>
+                <MuiIcon name={showActionsMenu ? 'ExpandLess' : 'ExpandMore'} size={14} />
+              </button>
+              
+              {showActionsMenu && (
+                <>
+                  {/* Overlay pour fermer le menu */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowActionsMenu(false)}
+                  />
+                  
+                  {/* Menu déroulant */}
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    {/* Vue éclatée */}
+                    <button
+                      onClick={() => {
+                        setShowMindMap(true);
+                        setShowActionsMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-cyan-600/30 text-white transition-colors border-b border-slate-600/50"
+                    >
+                      <MuiIcon name="AccountTree" size={18} className="text-cyan-400" />
+                      <span className="text-sm">{t('studio.explodedView')}</span>
+                    </button>
+
+                    {/* Assistant IA */}
+                    {publicId && cockpit && (
+                      <button
+                        onClick={() => {
+                          setShowAIChat(true);
+                          setShowActionsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-600/30 text-white transition-colors"
+                      >
+                        <MuiIcon name="AutoAwesome" size={18} className="text-violet-400" />
+                        <span className="text-sm">{t('public.aiAssistant') || 'Assistant IA'}</span>
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Sélecteur de langue */}
             <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg border border-slate-600/50 p-1">
@@ -708,6 +782,16 @@ function PublicCockpitContent() {
             </div>
           )}
         </footer>
+      )}
+
+      {/* Assistant IA Public - rendu en dehors du menu pour persister */}
+      {publicId && cockpit && (
+        <PublicAIChat 
+          publicId={publicId} 
+          cockpitName={cockpit.name}
+          forceExpanded={showAIChat}
+          onExpandedChange={(expanded) => setShowAIChat(expanded)}
+        />
       )}
 
       {/* Vue éclatée (Mind Map) */}

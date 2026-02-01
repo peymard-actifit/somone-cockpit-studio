@@ -135,6 +135,7 @@ export default function StudioPage() {
   const [showJourneyPlayer, setShowJourneyPlayer] = useState(false); // Parcours de création
   const [showActionsMenu, setShowActionsMenu] = useState(false); // Menu Actions déroulant
   const [showAIPrompt, setShowAIPrompt] = useState(false); // Fenêtre Assistant IA
+  const [showTranslation, setShowTranslation] = useState(false); // Modal Traduction
   
   // État pour la navigation depuis la vue éclatée
   const [cameFromMindMap, setCameFromMindMap] = useState(false);
@@ -438,9 +439,16 @@ export default function StudioPage() {
                   </button>
 
                   {/* Traduction */}
-                  <div className="border-b border-[#4A6D8C]/50">
-                    <TranslationButton cockpitId={currentCockpit.id} inMenu={true} onClose={() => setShowActionsMenu(false)} />
-                  </div>
+                  <button
+                    onClick={() => {
+                      setShowTranslation(true);
+                      setShowActionsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-blue-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                  >
+                    <MuiIcon name="Language" size={18} className="text-blue-400" />
+                    <span className="text-sm">{t('studio.translation') || 'Traduction'}</span>
+                  </button>
 
                   {/* Assistant IA */}
                   <button
@@ -477,6 +485,13 @@ export default function StudioPage() {
       <AIPromptInput 
         forceExpanded={showAIPrompt} 
         onExpandedChange={(expanded) => setShowAIPrompt(expanded)} 
+      />
+
+      {/* Traduction - rendu en dehors du menu pour persister */}
+      <TranslationButton 
+        cockpitId={currentCockpit.id}
+        forceOpen={showTranslation}
+        onOpenChange={(open) => setShowTranslation(open)}
       />
 
       {/* Navigation des domaines */}
