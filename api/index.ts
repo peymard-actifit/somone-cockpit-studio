@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.6.2';
+const APP_VERSION = '17.7.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -8858,7 +8858,97 @@ Réponds UNIQUEMENT avec le JSON, sans markdown ni explication.`;
     }
 
     // =====================
-    // EXAMPLES LIBRARY ROUTES (Bibliothèque d'exemples globale)
+    // EXAMPLES VIEWS - Liste des vues de type "examples" de tous les cockpits
+    // =====================
+
+    // GET /examples-views - Lister tous les domaines de type "examples" de tous les cockpits accessibles
+    if (path === '/examples-views' && method === 'GET') {
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      try {
+        const db = await getDb();
+        
+        // Récupérer tous les cockpits accessibles à l'utilisateur
+        const accessibleCockpits = currentUser.isAdmin
+          ? db.cockpits
+          : db.cockpits.filter(c => {
+              const isOwner = c.userId === currentUser.id;
+              const isShared = c.data?.sharedWith && Array.isArray(c.data.sharedWith) && c.data.sharedWith.includes(currentUser.id);
+              return isOwner || isShared;
+            });
+
+        // Extraire tous les domaines de type "examples" avec leurs métadonnées
+        const examplesViews: any[] = [];
+        
+        for (const cockpit of accessibleCockpits) {
+          const domains = cockpit.data?.domains || [];
+          for (const domain of domains) {
+            if (domain.templateType === 'examples') {
+              examplesViews.push({
+                id: `${cockpit.id}:${domain.id}`,
+                domainId: domain.id,
+                domainName: domain.name,
+                domainIcon: domain.icon,
+                cockpitId: cockpit.id,
+                cockpitName: cockpit.name,
+                categoriesCount: (domain.categories || []).length,
+                elementsCount: (domain.categories || []).reduce((sum: number, cat: any) => sum + (cat.elements || []).length, 0),
+                updatedAt: domain.updatedAt || cockpit.updatedAt,
+              });
+            }
+          }
+        }
+
+        console.log(`[GET /examples-views] Found ${examplesViews.length} examples views`);
+        return res.json(examplesViews);
+      } catch (error: any) {
+        console.error('[GET /examples-views] Error:', error?.message);
+        return res.status(500).json({ error: 'Erreur lors de la récupération des vues exemples' });
+      }
+    }
+
+    // GET /examples-views/:cockpitId/:domainId - Récupérer le contenu complet d'une vue exemples
+    const examplesViewMatch = path.match(/^\/examples-views\/([^/]+)\/([^/]+)$/);
+    if (examplesViewMatch && method === 'GET') {
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
+      const [, cockpitId, domainId] = examplesViewMatch;
+
+      try {
+        const db = await getDb();
+        const cockpit = db.cockpits.find(c => c.id === cockpitId);
+        
+        if (!cockpit) {
+          return res.status(404).json({ error: 'Cockpit non trouvé' });
+        }
+
+        if (!canAccessCockpit(cockpit, currentUser)) {
+          return res.status(403).json({ error: 'Accès non autorisé' });
+        }
+
+        const domain = (cockpit.data?.domains || []).find((d: any) => d.id === domainId);
+        
+        if (!domain || domain.templateType !== 'examples') {
+          return res.status(404).json({ error: 'Vue exemples non trouvée' });
+        }
+
+        return res.json({
+          ...domain,
+          cockpitId: cockpit.id,
+          cockpitName: cockpit.name,
+        });
+      } catch (error: any) {
+        console.error('[GET /examples-views/:id] Error:', error?.message);
+        return res.status(500).json({ error: 'Erreur lors de la récupération de la vue exemples' });
+      }
+    }
+
+    // =====================
+    // EXAMPLES LIBRARY ROUTES (Bibliothèque d'exemples globale - LEGACY)
     // =====================
 
     // GET /examples - Récupérer la bibliothèque d'exemples

@@ -181,6 +181,24 @@ interface CockpitState {
   deleteExampleSubElement: (subElementId: string) => void;
   // Copier un élément exemple vers un domaine
   copyExampleElementToDomain: (exampleElementId: string, targetDomainId: string, targetCategoryId: string) => Promise<{ success: boolean; elementId?: string }>;
+  
+  // Vues exemples disponibles (depuis tous les cockpits)
+  availableExamplesViews: ExampleViewInfo[];
+  fetchAvailableExamplesViews: () => Promise<void>;
+  importExampleView: (cockpitId: string, domainId: string) => Promise<{ success: boolean; newDomainId?: string }>;
+}
+
+// Interface pour les informations sur une vue exemples disponible
+export interface ExampleViewInfo {
+  id: string;
+  domainId: string;
+  domainName: string;
+  domainIcon?: string;
+  cockpitId: string;
+  cockpitName: string;
+  categoriesCount: number;
+  elementsCount: number;
+  updatedAt: string;
 }
 
 const API_URL = '/api';
@@ -223,6 +241,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   lastClonedMapElementId: null,
   examplesLibrary: null,
   showExamples: false,
+  availableExamplesViews: [],
 
   // =====================================================
   // GESTION DES RÉPERTOIRES
@@ -5125,6 +5144,117 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     get().triggerAutoSave();
     
     return { success: true, elementId: newElementId };
+  },
+
+  // Charger la liste des vues exemples disponibles depuis tous les cockpits
+  fetchAvailableExamplesViews: async () => {
+    const token = useAuthStore.getState().token;
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/examples-views`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const views = await response.json();
+        set({ availableExamplesViews: views });
+      }
+    } catch (error) {
+      console.error('[ExamplesViews] Erreur fetch:', error);
+    }
+  },
+
+  // Importer une vue exemples d'un autre cockpit
+  importExampleView: async (sourceCockpitId: string, sourceDomainId: string) => {
+    const token = useAuthStore.getState().token;
+    const cockpit = get().currentCockpit;
+    if (!token || !cockpit) return { success: false };
+    
+    try {
+      // Récupérer le contenu complet de la vue exemples source
+      const response = await fetch(`${API_URL}/examples-views/${sourceCockpitId}/${sourceDomainId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      if (!response.ok) {
+        console.error('[ImportExampleView] Erreur:', await response.text());
+        return { success: false };
+      }
+      
+      const sourceDomain = await response.json();
+      
+      // Créer un nouveau domaine avec les données copiées
+      const newDomainId = crypto.randomUUID();
+      const newDomain: Domain = {
+        id: newDomainId,
+        cockpitId: cockpit.id,
+        name: sourceDomain.name,
+        icon: sourceDomain.icon,
+        order: (cockpit.domains || []).length,
+        templateType: 'examples',
+        categories: (sourceDomain.categories || []).map((cat: any) => ({
+          ...cat,
+          id: crypto.randomUUID(),
+          domainId: newDomainId,
+          elements: (cat.elements || []).map((el: any) => {
+            const newElementId = crypto.randomUUID();
+            return {
+              ...el,
+              id: newElementId,
+              categoryId: cat.id, // Sera mis à jour ci-dessous
+              subCategories: (el.subCategories || []).map((sc: any) => {
+                const newSubCatId = crypto.randomUUID();
+                return {
+                  ...sc,
+                  id: newSubCatId,
+                  elementId: newElementId,
+                  subElements: (sc.subElements || []).map((se: any) => ({
+                    ...se,
+                    id: crypto.randomUUID(),
+                    subCategoryId: newSubCatId,
+                  })),
+                };
+              }),
+            };
+          }),
+        })),
+        // Référencer la source pour information
+        examplesSourceId: `${sourceCockpitId}:${sourceDomainId}`,
+      };
+      
+      // Corriger les categoryId des éléments après la création des catégories
+      newDomain.categories = newDomain.categories.map(cat => ({
+        ...cat,
+        elements: cat.elements.map(el => ({
+          ...el,
+          categoryId: cat.id,
+        })),
+      }));
+      
+      // Ajouter le domaine au cockpit
+      const updatedDomains = [...(cockpit.domains || []), newDomain];
+      
+      set({
+        currentCockpit: {
+          ...cockpit,
+          domains: updatedDomains,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+      
+      get().addRecentChange({ 
+        type: 'domain', 
+        action: 'add', 
+        name: `${newDomain.name} (importé)` 
+      });
+      get().triggerAutoSave();
+      
+      return { success: true, newDomainId };
+    } catch (error) {
+      console.error('[ImportExampleView] Exception:', error);
+      return { success: false };
+    }
   },
 }));
 
