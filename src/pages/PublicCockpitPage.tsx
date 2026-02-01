@@ -705,21 +705,15 @@ function PublicCockpitContent() {
               onMouseEnter={() => setIsRightControlsHovered(true)}
             />
           )}
-          {/* Panneau de contrôles similaire à Map/Background */}
+          {/* DateTimeline en mode complet (toggle + timeline unis) */}
           <div 
-            className={`fixed right-6 top-4 z-40 flex flex-col items-end gap-3 transition-all duration-300 ${
+            className={`fixed right-6 top-20 z-40 transition-all duration-300 ${
               !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
             }`}
             onMouseEnter={() => setIsRightControlsHovered(true)}
             onMouseLeave={() => setIsRightControlsHovered(false)}
           >
-            {/* Panneau de toggle */}
-            <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
-              <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} showToggleOnly />
-            </div>
-
-            {/* Timeline des dates en dessous */}
-            <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} showTimelineOnly />
+            <DateTimeline onDateChange={handleDateChange} domainId={currentDomainId || undefined} />
           </div>
         </>
       )}
