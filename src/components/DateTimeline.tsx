@@ -211,13 +211,13 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
   }
 
   // Mode complet (toggle + timeline dans UN SEUL bloc) - pour les vues normales
-  // Largeur fixe w-[52px] pour correspondre aux autres éléments du panneau (boutons zoom ~44px + marge)
+  // Aligné à droite avec cases w-7 (28px) identiques à Map/Background
   return (
-    <div className="w-[52px] bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden">
-      {/* Toggle en haut du bloc - centré dans la largeur fixe */}
-      <div className={`py-1.5 flex justify-center ${showTimeline ? 'border-b border-[#E2E8F0]' : ''}`}>
-        <div className="flex items-center gap-1">
-          <MuiIcon name="Timeline" size={10} className="text-[#1E3A5F]" />
+    <div className="flex flex-col items-end gap-3">
+      {/* Toggle dans son propre bloc - aligné à droite */}
+      <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
+        <div className="flex items-center gap-1.5">
+          <MuiIcon name="Timeline" size={12} className="text-[#1E3A5F]" />
           <button
             onClick={() => setShowTimeline(!showTimeline)}
             className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
@@ -236,33 +236,35 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
         </div>
       </div>
 
-      {/* Timeline des dates directement en dessous dans le même bloc */}
+      {/* Timeline des dates - bloc séparé aligné à droite, identique à Map/Background */}
       {showTimeline && (
         <div 
           ref={containerRef}
-          className="flex flex-col items-center"
+          className="bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden"
           style={{ maxHeight: maxHeight }}
         >
-          {datesCriticalities.map((item, index) => {
-            const isSelected = item.date === selectedDate;
-            const formattedDate = formatDateForLocale(item.date, language);
-            return (
-              <button
-                key={item.date}
-                onClick={() => handleDateClick(item.date)}
-                className={`w-full transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
-                  isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
-                }`}
-                style={{
-                  height: cellHeight,
-                  backgroundColor: item.color,
-                  // Légère bordure pour séparer visuellement les dates
-                  borderBottom: index < datesCriticalities.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
-                }}
-                title={formattedDate}
-              />
-            );
-          })}
+          <div className="flex flex-col">
+            {datesCriticalities.map((item, index) => {
+              const isSelected = item.date === selectedDate;
+              const formattedDate = formatDateForLocale(item.date, language);
+              return (
+                <button
+                  key={item.date}
+                  onClick={() => handleDateClick(item.date)}
+                  className={`w-7 transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
+                    isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
+                  }`}
+                  style={{
+                    height: cellHeight,
+                    backgroundColor: item.color,
+                    // Légère bordure pour séparer visuellement les dates
+                    borderBottom: index < datesCriticalities.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
+                  }}
+                  title={formattedDate}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
