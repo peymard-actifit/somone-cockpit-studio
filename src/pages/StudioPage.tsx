@@ -185,34 +185,12 @@ export default function StudioPage() {
     return () => clearTimeout(timeout);
   }, [currentCockpit?.updatedAt]);
 
-  if (isLoading || !currentCockpit) {
-    return (
-      <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin mx-auto mb-4"><MuiIcon name="Refresh" size={40} className="text-[#1E3A5F]" /></div>
-          <p className="text-[#64748B]">Chargement de la maquette...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors"
-          >
-            Retour à l'accueil
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Calculs mémoïsés pour éviter les recalculs inutiles
+  // ============================================================================
+  // IMPORTANT: Tous les hooks DOIVENT être déclarés AVANT les returns conditionnels
+  // pour respecter les règles de React (Hooks Rules)
+  // ============================================================================
+  
+  // Calculs mémoïsés - AVANT les returns conditionnels
   const currentDomain = useMemo(() => 
     (currentCockpit?.domains || []).find((d: { id: string }) => d.id === currentDomainId),
     [currentCockpit?.domains, currentDomainId]
@@ -228,7 +206,7 @@ export default function StudioPage() {
     return null;
   }, [currentElementId, currentDomain]);
 
-  // Handlers mémoïsés pour éviter les re-créations
+  // Handlers mémoïsés - AVANT les returns conditionnels
   const handleElementClick = useCallback((elementId: string) => {
     setCurrentElement(elementId);
     setShowEditor(true);
@@ -266,6 +244,37 @@ export default function StudioPage() {
     setCameFromMindMap(false);
     setShowMindMap(true);
   }, []);
+
+  // ============================================================================
+  // Returns conditionnels - APRÈS tous les hooks
+  // ============================================================================
+
+  if (isLoading || !currentCockpit) {
+    return (
+      <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin mx-auto mb-4"><MuiIcon name="Refresh" size={40} className="text-[#1E3A5F]" /></div>
+          <p className="text-[#64748B]">Chargement de la maquette...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 bg-[#1E3A5F] text-white rounded-lg hover:bg-[#2C4A6E] transition-colors"
+          >
+            Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
