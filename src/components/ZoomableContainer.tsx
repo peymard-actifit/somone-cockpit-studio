@@ -347,7 +347,7 @@ export default function ZoomableContainer({
       {showControls && (
         <div 
           ref={controlPanelRef}
-          className={`absolute z-30 flex flex-col gap-3 transition-all duration-300 ${
+          className={`absolute z-30 flex flex-col items-end gap-3 transition-all duration-300 ${
             readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
           } ${isDraggingControlPanel ? 'cursor-grabbing' : ''}`}
           style={controlPanelPosition && !readOnly ? {
