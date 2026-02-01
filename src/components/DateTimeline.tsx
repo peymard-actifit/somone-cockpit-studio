@@ -7,15 +7,39 @@ import { useLanguage } from '../contexts/LanguageContext';
 interface DateTimelineProps {
   onDateChange?: (date: string) => void;
   domainId?: string;
+  showToggleOnly?: boolean; // Afficher uniquement le toggle (pour intégration dans panneau toggles)
+  showTimelineOnly?: boolean; // Afficher uniquement les cases (pour positionnement séparé)
 }
 
 // Hauteur par défaut des cases (même hauteur que les boutons du menu)
 const DEFAULT_CELL_HEIGHT = 28;
 const MIN_CELL_HEIGHT = 4;
 
-export default function DateTimeline({ onDateChange, domainId }: DateTimelineProps) {
+// Fonction pour formater une date selon la langue
+function formatDateForLocale(dateStr: string, language: 'FR' | 'EN'): string {
+  // Essayer de parser la date (format attendu: YYYY-MM-DD ou YYYYMMDD)
+  let year: string, month: string, day: string;
+  
+  if (dateStr.includes('-')) {
+    [year, month, day] = dateStr.split('-');
+  } else if (dateStr.length === 8) {
+    year = dateStr.slice(0, 4);
+    month = dateStr.slice(4, 6);
+    day = dateStr.slice(6, 8);
+  } else {
+    return dateStr; // Format non reconnu, retourner tel quel
+  }
+
+  if (language === 'FR') {
+    return `${day}/${month}/${year}`;
+  } else {
+    return `${month}/${day}/${year}`;
+  }
+}
+
+export default function DateTimeline({ onDateChange, domainId, showToggleOnly = false, showTimelineOnly = false }: DateTimelineProps) {
   const { currentCockpit } = useCockpitStore();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [maxHeight, setMaxHeight] = useState<number>(0);
   
@@ -35,7 +59,7 @@ export default function DateTimeline({ onDateChange, domainId }: DateTimelinePro
   useEffect(() => {
     const updateHeight = () => {
       // Hauteur de la fenêtre moins un peu de marge
-      const availableHeight = window.innerHeight - 180;
+      const availableHeight = window.innerHeight - 250;
       setMaxHeight(availableHeight);
     };
     
@@ -113,40 +137,70 @@ export default function DateTimeline({ onDateChange, domainId }: DateTimelinePro
     }
   };
 
-  return (
-    <div className="flex flex-row items-start gap-2">
-      {/* Timeline des dates à gauche */}
-      {showTimeline && (
-        <div 
-          ref={containerRef}
-          className="bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden"
-          style={{ maxHeight: maxHeight }}
+  // Mode toggle uniquement (pour intégration dans le panneau de toggles)
+  if (showToggleOnly) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <MuiIcon name="Timeline" size={12} className="text-[#1E3A5F]" />
+        <button
+          onClick={() => setShowTimeline(!showTimeline)}
+          className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+            showTimeline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+          }`}
+          role="switch"
+          aria-checked={showTimeline}
+          title={showTimeline ? (t('dateTimeline.hide') || 'Masquer les dates') : (t('dateTimeline.show') || 'Afficher les dates')}
         >
-          <div className="flex flex-col">
-            {datesCriticalities.map((item, index) => {
-              const isSelected = item.date === selectedDate;
-              return (
-                <button
-                  key={item.date}
-                  onClick={() => handleDateClick(item.date)}
-                  className={`w-7 transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
-                    isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
-                  }`}
-                  style={{
-                    height: cellHeight,
-                    backgroundColor: item.color,
-                    // Légère bordure pour séparer visuellement les dates
-                    borderBottom: index < datesCriticalities.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
-                  }}
-                  title={item.date}
-                />
-              );
-            })}
-          </div>
-        </div>
-      )}
+          <span
+            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
+              showTimeline ? 'translate-x-3.5' : 'translate-x-0.5'
+            }`}
+          />
+        </button>
+      </div>
+    );
+  }
 
-      {/* Bouton toggle à droite pour montrer/cacher le timeline */}
+  // Mode timeline uniquement (pour positionnement séparé sous le panneau)
+  if (showTimelineOnly) {
+    if (!showTimeline) return null;
+    
+    return (
+      <div 
+        ref={containerRef}
+        className="bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden"
+        style={{ maxHeight: maxHeight }}
+      >
+        <div className="flex flex-col">
+          {datesCriticalities.map((item, index) => {
+            const isSelected = item.date === selectedDate;
+            const formattedDate = formatDateForLocale(item.date, language);
+            return (
+              <button
+                key={item.date}
+                onClick={() => handleDateClick(item.date)}
+                className={`w-7 transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
+                  isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
+                }`}
+                style={{
+                  height: cellHeight,
+                  backgroundColor: item.color,
+                  // Légère bordure pour séparer visuellement les dates
+                  borderBottom: index < datesCriticalities.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
+                }}
+                title={formattedDate}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Mode complet (toggle + timeline) - pour les vues normales
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      {/* Bouton toggle */}
       <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
         <div className="flex items-center gap-1.5">
           <MuiIcon name="Timeline" size={12} className="text-[#1E3A5F]" />
@@ -167,6 +221,38 @@ export default function DateTimeline({ onDateChange, domainId }: DateTimelinePro
           </button>
         </div>
       </div>
+
+      {/* Timeline des dates en dessous */}
+      {showTimeline && (
+        <div 
+          ref={containerRef}
+          className="bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden"
+          style={{ maxHeight: maxHeight }}
+        >
+          <div className="flex flex-col">
+            {datesCriticalities.map((item, index) => {
+              const isSelected = item.date === selectedDate;
+              const formattedDate = formatDateForLocale(item.date, language);
+              return (
+                <button
+                  key={item.date}
+                  onClick={() => handleDateClick(item.date)}
+                  className={`w-7 transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
+                    isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
+                  }`}
+                  style={{
+                    height: cellHeight,
+                    backgroundColor: item.color,
+                    // Légère bordure pour séparer visuellement les dates
+                    borderBottom: index < datesCriticalities.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
+                  }}
+                  title={formattedDate}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

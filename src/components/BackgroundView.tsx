@@ -1370,7 +1370,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       {/* Conteneur des contrôles de droite - repositionnable en mode studio, auto-hide en mode publié */}
       <div 
         ref={controlPanelRef}
-        className={`absolute z-30 flex flex-row items-start gap-2 transition-all duration-300 ${
+        className={`absolute z-30 flex flex-col items-end gap-3 transition-all duration-300 ${
           _readOnly && !isRightControlsHovered ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
         } ${isDraggingControlPanel ? 'cursor-grabbing' : ''}`}
         style={controlPanelPosition && !_readOnly ? {
@@ -1383,13 +1383,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         onMouseEnter={() => _readOnly && setIsRightControlsHovered(true)}
         onMouseLeave={() => _readOnly && setIsRightControlsHovered(false)}
       >
-        {/* Timeline des dates à gauche (mode publié uniquement, si des données historiques existent) */}
-        {_readOnly && onDateChange && (
-          <DateTimeline onDateChange={onDateChange} domainId={domain.id} />
-        )}
-
-        {/* Contrôles à droite */}
-        <div className="flex flex-col gap-3">
         {/* Contrôles de zoom avec handle de drag intégré */}
         <div className="flex flex-col bg-white rounded-xl border border-[#E2E8F0] shadow-md overflow-hidden">
           {/* Handle de drag - seulement en mode studio */}
@@ -1531,8 +1524,17 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
               />
             </button>
           </div>
+
+          {/* Toggle timeline des dates (mode publié uniquement) */}
+          {_readOnly && onDateChange && (
+            <DateTimeline onDateChange={onDateChange} domainId={domain.id} showToggleOnly />
+          )}
         </div>
-        </div>
+
+        {/* Timeline des dates en dessous (mode publié uniquement) */}
+        {_readOnly && onDateChange && (
+          <DateTimeline onDateChange={onDateChange} domainId={domain.id} showTimelineOnly />
+        )}
       </div>
 
       {/* Mode dessin actif */}
