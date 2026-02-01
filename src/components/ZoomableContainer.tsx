@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, ReactNode, useMemo } from 're
 import { MuiIcon } from './IconPicker';
 import { ZoomProvider, calculateTextCompensation } from '../contexts/ZoomContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import DateTimeline from './DateTimeline';
 
 const MIN_ZOOM = 0.1;  // Étendu pour permettre une vue plus large
 const MAX_ZOOM = 5;    // Étendu pour plus de zoom
@@ -14,6 +15,7 @@ interface ZoomableContainerProps {
   showControls?: boolean;
   readOnly?: boolean; // Mode lecture seule (cockpits publiés) - active l'auto-hide
   minFontZoom?: number; // Valeur minimale de zoom pour la police (0-100, défaut: 50)
+  onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée (mode publié)
 }
 
 // Helper pour charger la position du panneau de contrôle depuis localStorage
@@ -42,7 +44,8 @@ export default function ZoomableContainer({
   className = '',
   showControls = true,
   readOnly = false,
-  minFontZoom = 50
+  minFontZoom = 50,
+  onDateChange
 }: ZoomableContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -444,6 +447,18 @@ export default function ZoomableContainer({
             />
             <span className="text-sm font-medium text-[#1E3A5F]">%</span>
           </div>
+
+          {/* Panneau de toggles - identique à Map/Background (mode publié uniquement) */}
+          {readOnly && onDateChange && (
+            <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md space-y-1.5">
+              <DateTimeline onDateChange={onDateChange} domainId={domainId} showToggleOnly />
+            </div>
+          )}
+
+          {/* Timeline des dates en dessous (mode publié uniquement) */}
+          {readOnly && onDateChange && (
+            <DateTimeline onDateChange={onDateChange} domainId={domainId} showTimelineOnly />
+          )}
         </div>
       )}
 
