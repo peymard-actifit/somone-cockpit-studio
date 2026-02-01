@@ -211,12 +211,13 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
   }
 
   // Mode complet (toggle + timeline dans UN SEUL bloc) - pour les vues normales
+  // Largeur fixe w-[52px] pour correspondre aux autres éléments du panneau (boutons zoom ~44px + marge)
   return (
-    <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden">
-      {/* Toggle en haut du bloc */}
-      <div className={`px-2 py-1.5 ${showTimeline ? 'border-b border-[#E2E8F0]' : ''}`}>
-        <div className="flex items-center gap-1.5">
-          <MuiIcon name="Timeline" size={12} className="text-[#1E3A5F]" />
+    <div className="w-[52px] bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden">
+      {/* Toggle en haut du bloc - centré dans la largeur fixe */}
+      <div className={`py-1.5 flex justify-center ${showTimeline ? 'border-b border-[#E2E8F0]' : ''}`}>
+        <div className="flex items-center gap-1">
+          <MuiIcon name="Timeline" size={10} className="text-[#1E3A5F]" />
           <button
             onClick={() => setShowTimeline(!showTimeline)}
             className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
@@ -239,7 +240,7 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
       {showTimeline && (
         <div 
           ref={containerRef}
-          className="flex flex-col"
+          className="flex flex-col items-center"
           style={{ maxHeight: maxHeight }}
         >
           {datesCriticalities.map((item, index) => {
@@ -249,7 +250,7 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
               <button
                 key={item.date}
                 onClick={() => handleDateClick(item.date)}
-                className={`w-7 transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
+                className={`w-full transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
                   isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
                 }`}
                 style={{
