@@ -1031,6 +1031,42 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Sélecteur de langue avec drapeaux */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setLanguage('FR')}
+                className={`p-1.5 rounded-lg transition-all ${
+                  language === 'FR'
+                    ? 'bg-blue-500/30 ring-2 ring-blue-400'
+                    : 'hover:bg-slate-700/50 opacity-60 hover:opacity-100'
+                }`}
+                title="Français"
+              >
+                <svg width="24" height="16" viewBox="0 0 30 20" className="rounded-sm overflow-hidden">
+                  <rect x="0" y="0" width="10" height="20" fill="#002395"/>
+                  <rect x="10" y="0" width="10" height="20" fill="#FFFFFF"/>
+                  <rect x="20" y="0" width="10" height="20" fill="#ED2939"/>
+                </svg>
+              </button>
+              <button
+                onClick={() => setLanguage('EN')}
+                className={`p-1.5 rounded-lg transition-all ${
+                  language === 'EN'
+                    ? 'bg-blue-500/30 ring-2 ring-blue-400'
+                    : 'hover:bg-slate-700/50 opacity-60 hover:opacity-100'
+                }`}
+                title="English"
+              >
+                <svg width="24" height="16" viewBox="0 0 60 40" className="rounded-sm overflow-hidden">
+                  <rect width="60" height="40" fill="#012169"/>
+                  <path d="M0,0 L60,40 M60,0 L0,40" stroke="#FFFFFF" strokeWidth="8"/>
+                  <path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" strokeWidth="4"/>
+                  <path d="M30,0 V40 M0,20 H60" stroke="#FFFFFF" strokeWidth="12"/>
+                  <path d="M30,0 V40 M0,20 H60" stroke="#C8102E" strokeWidth="6"/>
+                </svg>
+              </button>
+            </div>
+
             {/* Infos utilisateur - 3 lignes superposées */}
             <div className="text-right mr-2 leading-none">
               <p className="text-[11px] font-semibold text-white truncate max-w-[160px]">
@@ -1115,47 +1151,6 @@ export default function HomePage() {
                           </button>
                         </>
                       )}
-                      {/* Sous-menu Langue */}
-                      <div className="mb-2">
-                        <div className="w-full flex items-center gap-3 px-4 py-2 text-white/70 text-sm">
-                          <MuiIcon name="Language" size={16} className="text-cyan-400" />
-                          <span>{t('user.language')}</span>
-                        </div>
-                        <div className="flex gap-2 px-4 pb-2">
-                          <button
-                            onClick={() => setLanguage('FR')}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                              language === 'FR'
-                                ? 'bg-cyan-500 text-white'
-                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            }`}
-                          >
-                            <svg width="20" height="14" viewBox="0 0 30 20" className="rounded-sm overflow-hidden">
-                              <rect x="0" y="0" width="10" height="20" fill="#002395"/>
-                              <rect x="10" y="0" width="10" height="20" fill="#FFFFFF"/>
-                              <rect x="20" y="0" width="10" height="20" fill="#ED2939"/>
-                            </svg>
-                            <span>FR</span>
-                          </button>
-                          <button
-                            onClick={() => setLanguage('EN')}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                              language === 'EN'
-                                ? 'bg-cyan-500 text-white'
-                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            }`}
-                          >
-                            <svg width="20" height="14" viewBox="0 0 60 40" className="rounded-sm overflow-hidden">
-                              <rect width="60" height="40" fill="#012169"/>
-                              <path d="M0,0 L60,40 M60,0 L0,40" stroke="#FFFFFF" strokeWidth="8"/>
-                              <path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" strokeWidth="4"/>
-                              <path d="M30,0 V40 M0,20 H60" stroke="#FFFFFF" strokeWidth="12"/>
-                              <path d="M30,0 V40 M0,20 H60" stroke="#C8102E" strokeWidth="6"/>
-                            </svg>
-                            <span>EN</span>
-                          </button>
-                        </div>
-                      </div>
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
