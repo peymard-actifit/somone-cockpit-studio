@@ -36,6 +36,15 @@ const SIMPLE_SHAPES = [
   { id: 'shape:minus', name: 'Moins', label: 'Moins (-)' },
   { id: 'shape:check', name: 'Check', label: 'Check (✓)' },
   { id: 'shape:cross', name: 'Croix', label: 'Croix (✗)' },
+  // Animaux
+  { id: 'shape:rabbit', name: 'Lapin', label: 'Lapin' },
+  { id: 'shape:cow', name: 'Vache', label: 'Vache' },
+  { id: 'shape:bird', name: 'Oiseau', label: 'Oiseau' },
+  { id: 'shape:cat', name: 'Chat', label: 'Chat' },
+  { id: 'shape:dog', name: 'Chien', label: 'Chien' },
+  { id: 'shape:horse', name: 'Cheval', label: 'Cheval' },
+  { id: 'shape:sheep', name: 'Mouton', label: 'Mouton' },
+  { id: 'shape:chicken', name: 'Poule', label: 'Poule' },
 ];
 
 // Helper pour détecter si une icône est une forme simple
@@ -119,6 +128,159 @@ const ShapeSVG = ({ shape, color, size }: { shape: string; color: string; size: 
       return (
         <svg width={size} height={size} viewBox={viewBox}>
           <path d="M20,20 L80,80 M80,20 L20,80" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" />
+        </svg>
+      );
+    // Animaux
+    case 'rabbit':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Oreilles */}
+          <ellipse cx="35" cy="20" rx="8" ry="18" fill={color} />
+          <ellipse cx="65" cy="20" rx="8" ry="18" fill={color} />
+          {/* Tête */}
+          <circle cx="50" cy="55" r="30" fill={color} />
+          {/* Yeux */}
+          <circle cx="40" cy="50" r="4" fill="white" />
+          <circle cx="60" cy="50" r="4" fill="white" />
+          {/* Nez */}
+          <ellipse cx="50" cy="62" rx="5" ry="3" fill="white" />
+        </svg>
+      );
+    case 'cow':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Cornes */}
+          <ellipse cx="25" cy="18" rx="6" ry="12" fill={color} />
+          <ellipse cx="75" cy="18" rx="6" ry="12" fill={color} />
+          {/* Tête */}
+          <ellipse cx="50" cy="50" rx="35" ry="30" fill={color} />
+          {/* Museau */}
+          <ellipse cx="50" cy="70" rx="18" ry="12" fill="white" />
+          {/* Yeux */}
+          <circle cx="35" cy="45" r="5" fill="white" />
+          <circle cx="65" cy="45" r="5" fill="white" />
+          {/* Narines */}
+          <circle cx="44" cy="72" r="3" fill={color} />
+          <circle cx="56" cy="72" r="3" fill={color} />
+        </svg>
+      );
+    case 'bird':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Corps */}
+          <ellipse cx="50" cy="55" rx="30" ry="25" fill={color} />
+          {/* Tête */}
+          <circle cx="75" cy="40" r="15" fill={color} />
+          {/* Bec */}
+          <polygon points="90,40 100,45 90,50" fill="white" />
+          {/* Oeil */}
+          <circle cx="80" cy="38" r="3" fill="white" />
+          {/* Queue */}
+          <polygon points="15,45 5,35 5,65 15,55" fill={color} />
+          {/* Aile */}
+          <ellipse cx="45" cy="50" rx="15" ry="10" fill="white" fillOpacity="0.3" />
+        </svg>
+      );
+    case 'cat':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Oreilles */}
+          <polygon points="20,35 30,5 40,35" fill={color} />
+          <polygon points="60,35 70,5 80,35" fill={color} />
+          {/* Tête */}
+          <circle cx="50" cy="55" r="35" fill={color} />
+          {/* Yeux */}
+          <ellipse cx="35" cy="50" rx="6" ry="8" fill="white" />
+          <ellipse cx="65" cy="50" rx="6" ry="8" fill="white" />
+          {/* Pupilles */}
+          <ellipse cx="35" cy="50" rx="2" ry="6" fill="black" />
+          <ellipse cx="65" cy="50" rx="2" ry="6" fill="black" />
+          {/* Nez */}
+          <polygon points="50,62 45,68 55,68" fill="white" />
+          {/* Moustaches */}
+          <line x1="20" y1="65" x2="40" y2="68" stroke="white" strokeWidth="1.5" />
+          <line x1="20" y1="72" x2="40" y2="72" stroke="white" strokeWidth="1.5" />
+          <line x1="60" y1="68" x2="80" y2="65" stroke="white" strokeWidth="1.5" />
+          <line x1="60" y1="72" x2="80" y2="72" stroke="white" strokeWidth="1.5" />
+        </svg>
+      );
+    case 'dog':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Oreilles tombantes */}
+          <ellipse cx="20" cy="45" rx="12" ry="25" fill={color} />
+          <ellipse cx="80" cy="45" rx="12" ry="25" fill={color} />
+          {/* Tête */}
+          <ellipse cx="50" cy="50" rx="30" ry="35" fill={color} />
+          {/* Museau */}
+          <ellipse cx="50" cy="68" rx="15" ry="12" fill="white" />
+          {/* Yeux */}
+          <circle cx="38" cy="45" r="6" fill="white" />
+          <circle cx="62" cy="45" r="6" fill="white" />
+          <circle cx="38" cy="45" r="3" fill="black" />
+          <circle cx="62" cy="45" r="3" fill="black" />
+          {/* Nez */}
+          <ellipse cx="50" cy="62" rx="6" ry="5" fill="black" />
+        </svg>
+      );
+    case 'horse':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Oreilles */}
+          <polygon points="30,20 35,5 42,18" fill={color} />
+          <polygon points="55,18 62,5 67,20" fill={color} />
+          {/* Tête allongée */}
+          <ellipse cx="48" cy="45" rx="25" ry="30" fill={color} />
+          {/* Museau */}
+          <ellipse cx="48" cy="75" rx="18" ry="15" fill={color} />
+          {/* Crinière */}
+          <ellipse cx="60" cy="25" rx="8" ry="15" fill="white" fillOpacity="0.3" />
+          {/* Yeux */}
+          <circle cx="38" cy="40" r="5" fill="white" />
+          <circle cx="58" cy="40" r="5" fill="white" />
+          {/* Narines */}
+          <ellipse cx="42" cy="82" rx="4" ry="3" fill="white" />
+          <ellipse cx="54" cy="82" rx="4" ry="3" fill="white" />
+        </svg>
+      );
+    case 'sheep':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Laine (nuage) */}
+          <circle cx="30" cy="40" r="18" fill={color} />
+          <circle cx="50" cy="35" r="20" fill={color} />
+          <circle cx="70" cy="40" r="18" fill={color} />
+          <circle cx="35" cy="55" r="16" fill={color} />
+          <circle cx="65" cy="55" r="16" fill={color} />
+          <circle cx="50" cy="60" r="18" fill={color} />
+          {/* Tête */}
+          <ellipse cx="50" cy="78" rx="14" ry="12" fill="white" />
+          {/* Oreilles */}
+          <ellipse cx="32" cy="75" rx="8" ry="5" fill="white" />
+          <ellipse cx="68" cy="75" rx="8" ry="5" fill="white" />
+          {/* Yeux */}
+          <circle cx="45" cy="76" r="3" fill="black" />
+          <circle cx="55" cy="76" r="3" fill="black" />
+        </svg>
+      );
+    case 'chicken':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Crête */}
+          <ellipse cx="50" cy="15" rx="6" ry="10" fill="white" />
+          <ellipse cx="40" cy="18" rx="5" ry="8" fill="white" />
+          <ellipse cx="60" cy="18" rx="5" ry="8" fill="white" />
+          {/* Tête */}
+          <circle cx="50" cy="35" r="20" fill={color} />
+          {/* Corps */}
+          <ellipse cx="50" cy="70" rx="30" ry="25" fill={color} />
+          {/* Bec */}
+          <polygon points="50,42 42,50 58,50" fill="white" />
+          {/* Yeux */}
+          <circle cx="42" cy="32" r="4" fill="white" />
+          <circle cx="58" cy="32" r="4" fill="white" />
+          {/* Barbillon */}
+          <ellipse cx="50" cy="52" rx="5" ry="8" fill="white" />
         </svg>
       );
     default:
