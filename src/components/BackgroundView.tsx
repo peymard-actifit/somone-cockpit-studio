@@ -23,6 +23,77 @@ const POPULAR_ICONS = [
   'Bolt', 'Timeline', 'Thermostat', 'WaterDrop', 'Air', 'WbSunny',
 ];
 
+// Formes simples (sans icône, juste des formes géométriques colorées)
+const SIMPLE_SHAPES = [
+  { id: 'shape:square', name: 'Carré', label: 'Carré' },
+  { id: 'shape:circle', name: 'Cercle', label: 'Cercle' },
+  { id: 'shape:triangle', name: 'Triangle', label: 'Triangle' },
+  { id: 'shape:diamond', name: 'Losange', label: 'Losange' },
+  { id: 'shape:hexagon', name: 'Hexagone', label: 'Hexagone' },
+  { id: 'shape:star', name: 'Étoile', label: 'Étoile' },
+];
+
+// Helper pour détecter si une icône est une forme simple
+const isShape = (icon: string | undefined): boolean => {
+  return !!icon && icon.startsWith('shape:');
+};
+
+// Helper pour obtenir le type de forme
+const getShapeType = (icon: string | undefined): string | null => {
+  if (!icon || !icon.startsWith('shape:')) return null;
+  return icon.replace('shape:', '');
+};
+
+// Composant pour rendre une forme SVG
+const ShapeSVG = ({ shape, color, size }: { shape: string; color: string; size: number }) => {
+  const viewBox = "0 0 100 100";
+  
+  switch (shape) {
+    case 'square':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <rect x="10" y="10" width="80" height="80" fill={color} rx="4" />
+        </svg>
+      );
+    case 'circle':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <circle cx="50" cy="50" r="40" fill={color} />
+        </svg>
+      );
+    case 'triangle':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <polygon points="50,10 90,90 10,90" fill={color} />
+        </svg>
+      );
+    case 'diamond':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <polygon points="50,5 95,50 50,95 5,50" fill={color} />
+        </svg>
+      );
+    case 'hexagon':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <polygon points="50,5 93,27 93,73 50,95 7,73 7,27" fill={color} />
+        </svg>
+      );
+    case 'star':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <polygon points="50,5 61,35 95,35 68,57 79,90 50,70 21,90 32,57 5,35 39,35" fill={color} />
+        </svg>
+      );
+    default:
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          <rect x="10" y="10" width="80" height="80" fill={color} rx="4" />
+        </svg>
+      );
+  }
+};
+
 // Interface pour un cluster d'éléments
 interface ElementCluster {
   id: string;
@@ -1982,8 +2053,20 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   }
                 }}
               >
-                {/* Icône colorée OU rectangle coloré simple */}
-                {hasIcon ? (
+                {/* Icône colorée, forme simple OU rectangle coloré simple */}
+                {isShape(element.icon) ? (
+                  // Forme simple (cercle, triangle, losange, hexagone, étoile, carré)
+                  <div
+                    className="absolute inset-0 flex items-center justify-center hover:scale-110 transition-all pointer-events-none"
+                  >
+                    <ShapeSVG
+                      shape={getShapeType(element.icon) || 'square'}
+                      color={colors.hex}
+                      size={Math.max(16, Math.min(width, height))}
+                    />
+                  </div>
+                ) : hasIcon ? (
+                  // Icône MuiIcon
                   <div
                     className="absolute inset-0 flex items-center justify-center hover:scale-110 transition-all pointer-events-none"
                     style={{ color: colors.hex }}
@@ -1995,6 +2078,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                     />
                   </div>
                 ) : (
+                  // Rectangle coloré par défaut (si aucune icône ni forme)
                   <div
                     className="w-full h-full rounded-sm hover:brightness-110 transition-all pointer-events-none"
                     style={{
@@ -2262,16 +2346,23 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 <span className="text-xs text-[#94A3B8] ml-2">Remplace le rectangle par une icône colorée</span>
               </label>
               <div className="flex flex-wrap gap-2 p-3 bg-[#F5F7FA] rounded-lg border border-[#E2E8F0] max-h-32 overflow-y-auto">
-                <button
-                  onClick={() => setNewElementForm({ ...newElementForm, icon: '' })}
-                  className={`p-2 rounded-lg border transition-all ${!newElementForm.icon
-                    ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
-                    : 'border-transparent hover:bg-white'
-                    }`}
-                  title="Aucune icône (rectangle)"
-                >
-                  <div className="w-6 h-6 rounded" style={{ backgroundColor: STATUS_COLORS[newElementForm.status]?.hex || '#9E9E9E' }} />
-                </button>
+                {/* Formes simples */}
+                {SIMPLE_SHAPES.map((shape) => (
+                  <button
+                    key={shape.id}
+                    onClick={() => setNewElementForm({ ...newElementForm, icon: shape.id })}
+                    className={`p-2 rounded-lg border transition-all ${newElementForm.icon === shape.id
+                      ? 'border-[#1E3A5F] bg-[#1E3A5F]/10'
+                      : 'border-transparent hover:bg-white'
+                      }`}
+                    title={shape.label}
+                  >
+                    <ShapeSVG shape={getShapeType(shape.id) || 'square'} color={STATUS_COLORS[newElementForm.status]?.hex || '#9E9E9E'} size={24} />
+                  </button>
+                ))}
+                {/* Séparateur visuel */}
+                <div className="w-px h-8 bg-[#E2E8F0] mx-1 self-center" />
+                {/* Icônes populaires */}
                 {POPULAR_ICONS.map((iconName) => (
                   <button
                     key={iconName}
