@@ -50,10 +50,23 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
     return saved === 'true';
   });
 
-  // Mettre à jour localStorage quand l'état change
+  // Mettre à jour localStorage ET émettre un événement quand l'état change
   useEffect(() => {
     localStorage.setItem(storageKey, String(showTimeline));
+    // Émettre un événement pour synchroniser les autres instances
+    window.dispatchEvent(new CustomEvent('dateTimelineToggle', { detail: { key: storageKey, value: showTimeline } }));
   }, [showTimeline, storageKey]);
+
+  // Écouter les changements d'autres instances pour synchroniser l'état
+  useEffect(() => {
+    const handleToggleChange = (e: CustomEvent<{ key: string; value: boolean }>) => {
+      if (e.detail.key === storageKey) {
+        setShowTimeline(e.detail.value);
+      }
+    };
+    window.addEventListener('dateTimelineToggle', handleToggleChange as EventListener);
+    return () => window.removeEventListener('dateTimelineToggle', handleToggleChange as EventListener);
+  }, [storageKey]);
 
   // Calculer la hauteur disponible
   useEffect(() => {

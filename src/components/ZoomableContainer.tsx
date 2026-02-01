@@ -448,16 +448,9 @@ export default function ZoomableContainer({
             <span className="text-sm font-medium text-[#1E3A5F]">%</span>
           </div>
 
-          {/* Panneau de toggles - identique à Map/Background (mode publié uniquement) */}
+          {/* DateTimeline unifié - toggle + cases dans un seul bloc compact (mode publié uniquement) */}
           {readOnly && onDateChange && (
-            <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md space-y-1.5">
-              <DateTimeline onDateChange={onDateChange} domainId={domainId} showToggleOnly />
-            </div>
-          )}
-
-          {/* Timeline des dates en dessous (mode publié uniquement) */}
-          {readOnly && onDateChange && (
-            <DateTimeline onDateChange={onDateChange} domainId={domainId} showTimelineOnly />
+            <DateTimeline onDateChange={onDateChange} domainId={domainId} />
           )}
         </div>
       )}
