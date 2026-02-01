@@ -106,6 +106,9 @@ export default function StudioPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { t } = useLanguage();
+  
+  // Vérifier si l'utilisateur est de type client (fonctionnalités restreintes)
+  const isClientUser = user?.userType === 'client';
   const { enableGlobalContextMenu, disableGlobalContextMenu, enableHoverHelp, disableHoverHelp } = useContextualHelp();
   const { startTutorial, isPlaying: isTutorialPlaying, progress: tutorialProgress } = useTutorial();
   // Sélecteurs individuels optimisés pour éviter les re-renders inutiles
@@ -394,32 +397,36 @@ export default function StudioPage() {
                     <span className="text-sm">{t('studio.explodedView')}</span>
                   </button>
 
-                  {/* Exemples */}
-                  <button
-                    onClick={() => {
-                      toggleShowExamples();
-                      setShowActionsMenu(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-[#4A6D8C]/50 ${
-                      showExamples ? 'bg-amber-600/30' : 'hover:bg-amber-600/30'
-                    } text-white`}
-                  >
-                    <MuiIcon name="LibraryBooks" size={18} className="text-amber-400" />
-                    <span className="text-sm">{t('examples.button') || 'Exemples'}</span>
-                    {showExamples && <MuiIcon name="Check" size={16} className="ml-auto text-amber-400" />}
-                  </button>
+                  {/* Exemples - masqué pour les clients */}
+                  {!isClientUser && (
+                    <button
+                      onClick={() => {
+                        toggleShowExamples();
+                        setShowActionsMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-[#4A6D8C]/50 ${
+                        showExamples ? 'bg-amber-600/30' : 'hover:bg-amber-600/30'
+                      } text-white`}
+                    >
+                      <MuiIcon name="LibraryBooks" size={18} className="text-amber-400" />
+                      <span className="text-sm">{t('examples.button') || 'Exemples'}</span>
+                      {showExamples && <MuiIcon name="Check" size={16} className="ml-auto text-amber-400" />}
+                    </button>
+                  )}
 
-                  {/* Parcours de création */}
-                  <button
-                    onClick={() => {
-                      setShowJourneyPlayer(true);
-                      setShowActionsMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-rose-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
-                  >
-                    <MuiIcon name="Route" size={18} className="text-rose-400" />
-                    <span className="text-sm">{t('studio.journey')}</span>
-                  </button>
+                  {/* Parcours de création - masqué pour les clients */}
+                  {!isClientUser && (
+                    <button
+                      onClick={() => {
+                        setShowJourneyPlayer(true);
+                        setShowActionsMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-rose-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                    >
+                      <MuiIcon name="Route" size={18} className="text-rose-400" />
+                      <span className="text-sm">{t('studio.journey')}</span>
+                    </button>
+                  )}
 
                   {/* Export Excel */}
                   <button
@@ -438,17 +445,19 @@ export default function StudioPage() {
                     <span className="text-sm">{t('studio.exportExcel')}</span>
                   </button>
 
-                  {/* Traduction */}
-                  <button
-                    onClick={() => {
-                      setShowTranslation(true);
-                      setShowActionsMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-blue-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
-                  >
-                    <MuiIcon name="Language" size={18} className="text-blue-400" />
-                    <span className="text-sm">{t('studio.translation') || 'Traduction'}</span>
-                  </button>
+                  {/* Traduction - masqué pour les clients */}
+                  {!isClientUser && (
+                    <button
+                      onClick={() => {
+                        setShowTranslation(true);
+                        setShowActionsMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-blue-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                    >
+                      <MuiIcon name="Language" size={18} className="text-blue-400" />
+                      <span className="text-sm">{t('studio.translation') || 'Traduction'}</span>
+                    </button>
+                  )}
 
                   {/* Assistant IA */}
                   <button
