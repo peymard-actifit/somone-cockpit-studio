@@ -245,10 +245,9 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
 
   // Vue exemples
   if (domain.templateType === 'examples') {
-    if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ExamplesDomainView domain={domain} cockpit={cockpit} readOnly={readOnly} onElementClick={onElementClick} />
+        <ExamplesDomainView domain={domain} readOnly={readOnly} onElementClick={onElementClick} />
       </div>
     );
   }

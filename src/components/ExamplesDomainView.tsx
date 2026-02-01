@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import type { Domain, Category, Element, Cockpit, TileStatus } from '../types';
+import { useState } from 'react';
+import type { Domain, Element, TileStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { MuiIcon } from './IconPicker';
 import IconPicker from './IconPicker';
@@ -10,7 +10,6 @@ import { useConfirm } from '../contexts/ConfirmContext';
 
 interface ExamplesDomainViewProps {
   domain: Domain;
-  cockpit: Cockpit;
   readOnly?: boolean;
   onElementClick?: (elementId: string) => void;
 }
@@ -22,7 +21,7 @@ const AVAILABLE_STATUSES: TileStatus[] = ['ok', 'mineur', 'critique', 'fatal', '
  * Vue Exemples - Affiche un domaine de type "examples"
  * Permet de créer et gérer des exemples d'éléments réutilisables
  */
-export default function ExamplesDomainView({ domain, cockpit, readOnly = false, onElementClick }: ExamplesDomainViewProps) {
+export default function ExamplesDomainView({ domain, readOnly = false, onElementClick }: ExamplesDomainViewProps) {
   const { t } = useLanguage();
   const { user } = useAuthStore();
   const confirmDialog = useConfirm();
@@ -54,21 +53,12 @@ export default function ExamplesDomainView({ domain, cockpit, readOnly = false, 
   const [editingIconElement, setEditingIconElement] = useState<string | null>(null);
   const [editingStatusElement, setEditingStatusElement] = useState<string | null>(null);
   const [editingStatusSubElement, setEditingStatusSubElement] = useState<string | null>(null);
-  
-  // État pour les notifications
-  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Vérifier si l'utilisateur peut éditer (admin ou standard, pas client)
   const userType = user?.userType || (user?.isAdmin ? 'admin' : 'standard');
   const canEdit = !readOnly && userType !== 'client';
 
   const categories = domain.categories || [];
-
-  // Afficher une notification
-  const showNotification = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   // Toggle expansion d'une catégorie
   const toggleCategory = (categoryId: string) => {
@@ -114,7 +104,7 @@ export default function ExamplesDomainView({ domain, cockpit, readOnly = false, 
   // Ajouter une sous-catégorie
   const handleAddSubCategory = (elementId: string) => {
     if (!newSubCatName.trim()) return;
-    addSubCategory(elementId, newSubCatName.trim());
+    addSubCategory(elementId, newSubCatName.trim(), 'horizontal');
     setNewSubCatName('');
     setAddingSubCatToElement(null);
   };
@@ -181,16 +171,6 @@ export default function ExamplesDomainView({ domain, cockpit, readOnly = false, 
 
   return (
     <div className="h-full flex flex-col bg-[#F5F7FA] overflow-hidden">
-      {/* Notification */}
-      {notification && (
-        <div className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2 ${
-          notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-        }`}>
-          <MuiIcon name={notification.type === 'success' ? 'CheckCircle' : 'Error'} size={20} />
-          <span className="font-medium">{notification.message}</span>
-        </div>
-      )}
-      
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-white border-b border-[#E2E8F0]">
         <div className="flex items-center gap-3">
