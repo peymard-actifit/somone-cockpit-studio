@@ -114,30 +114,8 @@ export default function DateTimeline({ onDateChange, domainId }: DateTimelinePro
   };
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      {/* Bouton toggle pour montrer/cacher le timeline */}
-      <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
-        <div className="flex items-center gap-1.5">
-          <MuiIcon name="Timeline" size={12} className="text-[#1E3A5F]" />
-          <button
-            onClick={() => setShowTimeline(!showTimeline)}
-            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-              showTimeline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
-            }`}
-            role="switch"
-            aria-checked={showTimeline}
-            title={showTimeline ? (t('dateTimeline.hide') || 'Masquer les dates') : (t('dateTimeline.show') || 'Afficher les dates')}
-          >
-            <span
-              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
-                showTimeline ? 'translate-x-3.5' : 'translate-x-0.5'
-              }`}
-            />
-          </button>
-        </div>
-      </div>
-
-      {/* Timeline des dates */}
+    <div className="flex flex-row items-start gap-2">
+      {/* Timeline des dates à gauche */}
       {showTimeline && (
         <div 
           ref={containerRef}
@@ -167,6 +145,28 @@ export default function DateTimeline({ onDateChange, domainId }: DateTimelinePro
           </div>
         </div>
       )}
+
+      {/* Bouton toggle à droite pour montrer/cacher le timeline */}
+      <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
+        <div className="flex items-center gap-1.5">
+          <MuiIcon name="Timeline" size={12} className="text-[#1E3A5F]" />
+          <button
+            onClick={() => setShowTimeline(!showTimeline)}
+            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+              showTimeline ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+            }`}
+            role="switch"
+            aria-checked={showTimeline}
+            title={showTimeline ? (t('dateTimeline.hide') || 'Masquer les dates') : (t('dateTimeline.show') || 'Afficher les dates')}
+          >
+            <span
+              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
+                showTimeline ? 'translate-x-3.5' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
