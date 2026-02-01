@@ -133,6 +133,7 @@ export default function StudioPage() {
   const [showMindMap, setShowMindMap] = useState(false); // Vue éclatée
   const [showPresentation, setShowPresentation] = useState(false); // Modal de génération de présentations
   const [showJourneyPlayer, setShowJourneyPlayer] = useState(false); // Parcours de création
+  const [showActionsMenu, setShowActionsMenu] = useState(false); // Menu Actions déroulant
   
   // État pour la navigation depuis la vue éclatée
   const [cameFromMindMap, setCameFromMindMap] = useState(false);
@@ -330,84 +331,126 @@ export default function StudioPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Bouton Tutoriel (visible pour admin en test ou client) */}
-          {!isTutorialPlaying && (user?.isAdmin || user?.userType === 'client') && (
+          {/* Menu Actions déroulant */}
+          <div className="relative">
             <button
-              onClick={startTutorial}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600/80 hover:bg-emerald-500 text-white rounded-lg transition-colors"
-              title={user?.isAdmin ? t('studio.testTutorial') : t('studio.startTutorial')}
+              onClick={() => setShowActionsMenu(!showActionsMenu)}
+              className="flex items-center gap-2 px-4 py-2 bg-[#2D4A63] hover:bg-[#3D5A73] text-white rounded-lg transition-colors border border-[#4A6D8C]"
             >
-              <MuiIcon name="School" size={16} />
-              <span className="text-sm font-medium">
-                {tutorialProgress?.completed ? t('studio.reviewTutorial') : t('studio.tutorial')}
-              </span>
+              <MuiIcon name="MoreVert" size={18} />
+              <span className="text-sm font-medium">{t('studio.actions') || 'Actions'}</span>
+              <MuiIcon name={showActionsMenu ? 'ExpandLess' : 'ExpandMore'} size={16} />
             </button>
-          )}
+            
+            {showActionsMenu && (
+              <>
+                {/* Overlay pour fermer le menu */}
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowActionsMenu(false)}
+                />
+                
+                {/* Menu déroulant */}
+                <div className="absolute right-0 top-full mt-2 w-64 bg-[#1E3A5F] border border-[#4A6D8C] rounded-xl shadow-2xl z-50 overflow-hidden">
+                  {/* Tutoriel */}
+                  {!isTutorialPlaying && (user?.isAdmin || user?.userType === 'client') && (
+                    <button
+                      onClick={() => {
+                        startTutorial();
+                        setShowActionsMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-emerald-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                    >
+                      <MuiIcon name="School" size={18} className="text-emerald-400" />
+                      <span className="text-sm">
+                        {tutorialProgress?.completed ? t('studio.reviewTutorial') : t('studio.tutorial')}
+                      </span>
+                    </button>
+                  )}
 
-          {/* Bouton Présentation (générateur de présentations IA) */}
-          <button
-            onClick={() => setShowPresentation(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600/80 hover:bg-purple-500 text-white rounded-lg transition-colors"
-            title={t('studio.presentationGenerator')}
-          >
-            <MuiIcon name="Slideshow" size={16} />
-            <span className="text-sm font-medium">{t('studio.presentation')}</span>
-          </button>
+                  {/* Présentation */}
+                  <button
+                    onClick={() => {
+                      setShowPresentation(true);
+                      setShowActionsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-purple-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                  >
+                    <MuiIcon name="Slideshow" size={18} className="text-purple-400" />
+                    <span className="text-sm">{t('studio.presentation')}</span>
+                  </button>
 
-          {/* Bouton Vue éclatée (Mind Map) */}
-          <button
-            onClick={() => setShowMindMap(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-            title={t('studio.explodedViewTitle')}
-          >
-            <MuiIcon name="AccountTree" size={16} />
-            <span className="text-sm font-medium">{t('studio.explodedView')}</span>
-          </button>
+                  {/* Vue éclatée */}
+                  <button
+                    onClick={() => {
+                      setShowMindMap(true);
+                      setShowActionsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-cyan-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                  >
+                    <MuiIcon name="AccountTree" size={18} className="text-cyan-400" />
+                    <span className="text-sm">{t('studio.explodedView')}</span>
+                  </button>
 
-          {/* Bouton Exemples */}
-          <button
-            onClick={toggleShowExamples}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              showExamples 
-                ? 'bg-amber-500 hover:bg-amber-400 text-white' 
-                : 'bg-amber-600/80 hover:bg-amber-500 text-white'
-            }`}
-            title={t('examples.title') || 'Bibliothèque d\'exemples'}
-          >
-            <MuiIcon name="LibraryBooks" size={16} />
-            <span className="text-sm font-medium">{t('examples.button') || 'Exemples'}</span>
-          </button>
+                  {/* Exemples */}
+                  <button
+                    onClick={() => {
+                      toggleShowExamples();
+                      setShowActionsMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-[#4A6D8C]/50 ${
+                      showExamples ? 'bg-amber-600/30' : 'hover:bg-amber-600/30'
+                    } text-white`}
+                  >
+                    <MuiIcon name="LibraryBooks" size={18} className="text-amber-400" />
+                    <span className="text-sm">{t('examples.button') || 'Exemples'}</span>
+                    {showExamples && <MuiIcon name="Check" size={16} className="ml-auto text-amber-400" />}
+                  </button>
 
-          {/* Bouton de traduction */}
-          <TranslationButton cockpitId={currentCockpit.id} />
+                  {/* Parcours de création */}
+                  <button
+                    onClick={() => {
+                      setShowJourneyPlayer(true);
+                      setShowActionsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-rose-600/30 text-white transition-colors border-b border-[#4A6D8C]/50"
+                  >
+                    <MuiIcon name="Route" size={18} className="text-rose-400" />
+                    <span className="text-sm">{t('studio.journey')}</span>
+                  </button>
 
-          {/* Assistant IA */}
-          <AIPromptInput />
+                  {/* Export Excel */}
+                  <button
+                    onClick={() => {
+                      handleExport();
+                      setShowActionsMenu(false);
+                    }}
+                    disabled={isExporting}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-green-600/30 text-white transition-colors border-b border-[#4A6D8C]/50 disabled:opacity-50"
+                  >
+                    {isExporting ? (
+                      <div className="animate-spin"><MuiIcon name="Refresh" size={18} className="text-green-400" /></div>
+                    ) : (
+                      <MuiIcon name="Download" size={18} className="text-green-400" />
+                    )}
+                    <span className="text-sm">{t('studio.exportExcel')}</span>
+                  </button>
 
-          {/* Bouton Parcours de création */}
-          <button
-            onClick={() => setShowJourneyPlayer(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 text-white rounded-lg transition-all shadow-md"
-            title={t('studio.journey')}
-            data-help-key="studio-btn-journey"
-          >
-            <MuiIcon name="Route" size={16} />
-            <span className="hidden sm:inline">{t('studio.journey')}</span>
-          </button>
+                  {/* Traduction */}
+                  <div className="border-b border-[#4A6D8C]/50">
+                    <TranslationButton cockpitId={currentCockpit.id} inMenu={true} onClose={() => setShowActionsMenu(false)} />
+                  </div>
 
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
-          >
-            {isExporting ? (
-              <div className="animate-spin"><MuiIcon name="Refresh" size={16} /></div>
-            ) : (
-              <MuiIcon name="Download" size={16} />
+                  {/* Assistant IA */}
+                  <div>
+                    <AIPromptInput inMenu={true} onClose={() => setShowActionsMenu(false)} />
+                  </div>
+                </div>
+              </>
             )}
-            {t('studio.exportExcel')}
-          </button>
+          </div>
 
+          {/* Bouton Menu panneau d'édition */}
           <button
             onClick={() => setShowEditor(!showEditor)}
             className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"

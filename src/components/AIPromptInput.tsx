@@ -22,7 +22,7 @@ interface AIResponse {
   actions?: AIAction[];
 }
 
-export default function AIPromptInput() {
+export default function AIPromptInput({ inMenu = false, onClose }: { inMenu?: boolean; onClose?: () => void } = {}) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -1653,6 +1653,21 @@ export default function AIPromptInput() {
   };
 
   if (!isExpanded) {
+    if (inMenu) {
+      return (
+        <button
+          onClick={() => {
+            setIsExpanded(true);
+            onClose?.();
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-600/30 text-white transition-colors"
+        >
+          <MuiIcon name="AutoAwesome" size={18} className="text-violet-400" />
+          <span className="text-sm">Assistant IA</span>
+          {aiStatus?.configured && <span className="text-xs text-violet-300 opacity-75 ml-auto">GPT</span>}
+        </button>
+      );
+    }
     return (
       <button
         onClick={() => setIsExpanded(true)}

@@ -206,7 +206,7 @@ interface Language {
   name: string;
 }
 
-export default function TranslationButton({ cockpitId }: { cockpitId: string }) {
+export default function TranslationButton({ cockpitId, inMenu = false, onClose }: { cockpitId: string; inMenu?: boolean; onClose?: () => void }) {
   const [showModal, setShowModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -986,14 +986,27 @@ export default function TranslationButton({ cockpitId }: { cockpitId: string }) 
 
   return (
     <>
-      <button
-        onClick={() => setShowModal(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
-        title="Traduire le cockpit"
-      >
-        <MuiIcon name="Language" size={16} />
-        Traduction
-      </button>
+      {inMenu ? (
+        <button
+          onClick={() => {
+            setShowModal(true);
+            onClose?.();
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-blue-600/30 text-white transition-colors"
+        >
+          <MuiIcon name="Language" size={18} className="text-blue-400" />
+          <span className="text-sm">Traduction</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+          title="Traduire le cockpit"
+        >
+          <MuiIcon name="Language" size={16} />
+          Traduction
+        </button>
+      )}
       
       {showModal && (
         <Modal

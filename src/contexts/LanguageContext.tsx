@@ -109,6 +109,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'folder.dragToReorder': { FR: 'Glisser pour réorganiser', EN: 'Drag to reorder' },
   
   // === Studio / Éditeur ===
+  'studio.actions': { FR: 'Actions', EN: 'Actions' },
   'studio.presentation': { FR: 'Présentation', EN: 'Presentation' },
   'studio.explodedView': { FR: 'Vue éclatée', EN: 'Exploded View' },
   'studio.translate': { FR: 'Traduire', EN: 'Translate' },
