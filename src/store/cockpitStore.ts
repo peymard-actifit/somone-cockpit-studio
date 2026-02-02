@@ -4,6 +4,27 @@ import { useAuthStore } from './authStore';
 import { APP_VERSION } from '../config/version';
 import { offlineSync } from '../services/offlineSync';
 
+// Import des utilitaires extraits (utilisés dans le store)
+import { getMostCriticalStatus } from './utils/statusUtils';
+import { API_URL } from './utils/apiHelper';
+import { generateId } from './utils/cockpitUtils';
+
+// Re-export des utilitaires pour usage externe par d'autres composants
+export { STATUS_PRIORITY, getMostCriticalStatus, isCriticalStatus, getStatusColor, getStatusLabel } from './utils/statusUtils';
+export { apiCall, apiGet, apiPost, apiPut, apiDelete, API_URL } from './utils/apiHelper';
+export { 
+  findDomainById, 
+  findCategoryById, 
+  findElementById, 
+  findSubCategoryById, 
+  findSubElementById, 
+  findMapElementById, 
+  countElements, 
+  countSubElements,
+  deepClone,
+  nowISO,
+} from './utils/cockpitUtils';
+
 // Interface pour tracker les modifications récentes
 export interface RecentChange {
   id: string;
@@ -201,28 +222,7 @@ export interface ExampleViewInfo {
   updatedAt: string;
 }
 
-const API_URL = '/api';
-
-const generateId = () => crypto.randomUUID();
-
-// Ordre de criticité des statuts (du moins critique au plus critique)
-const STATUS_PRIORITY: Record<TileStatus, number> = {
-  'ok': 0,
-  'information': 1,
-  'herite': 2,
-  'herite_domaine': 2,
-  'deconnecte': 3,
-  'mineur': 4,
-  'critique': 5,
-  'fatal': 6,
-};
-
-// Fonction pour obtenir le statut le plus critique entre deux statuts
-const getMostCriticalStatus = (status1: TileStatus, status2: TileStatus): TileStatus => {
-  const priority1 = STATUS_PRIORITY[status1] ?? 0;
-  const priority2 = STATUS_PRIORITY[status2] ?? 0;
-  return priority1 >= priority2 ? status1 : status2;
-};
+// Note: API_URL, generateId, STATUS_PRIORITY, getMostCriticalStatus sont maintenant dans ./utils/
 
 export const useCockpitStore = create<CockpitState>((set, get) => ({
   cockpits: [],
