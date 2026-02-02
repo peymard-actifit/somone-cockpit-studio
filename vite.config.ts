@@ -29,37 +29,17 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Optimisation: Séparer les vendors lourds en chunks distincts
+        // Optimisation: Séparer uniquement les libs lazy-loadées
         manualChunks: (id) => {
-          // Fichier d'icônes volumineux (~10k icônes) dans un chunk séparé
-          if (id.includes('src/components/icons.ts')) {
-            return 'icons';
-          }
-          // Librairies de génération de documents (chargées à la demande)
+          // Librairies de génération de documents (chargées à la demande via import dynamique)
           if (id.includes('jspdf') || id.includes('pdfjs-dist')) {
             return 'pdf-libs';
           }
           if (id.includes('pptxgenjs')) {
             return 'pptx-libs';
           }
-          if (id.includes('html2canvas') || id.includes('file-saver') || id.includes('xlsx') || id.includes('jszip')) {
+          if (id.includes('html2canvas') || id.includes('xlsx') || id.includes('jszip')) {
             return 'export-libs';
-          }
-          // Librairie de cartes
-          if (id.includes('leaflet') || id.includes('react-leaflet')) {
-            return 'map-libs';
-          }
-          // React core (toujours chargé)
-          if (id.includes('react-dom') || id.includes('react-router-dom')) {
-            return 'react-vendor';
-          }
-          // State management
-          if (id.includes('zustand')) {
-            return 'zustand';
-          }
-          // Drag and drop
-          if (id.includes('@dnd-kit')) {
-            return 'dnd-kit';
           }
         },
       },
