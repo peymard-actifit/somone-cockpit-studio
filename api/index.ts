@@ -1,65 +1,924 @@
 // SOMONE Cockpit Studio - API Backend
-// Session init: 2026-02-02 - Refactoring: Modularisation du code
-// Modules extraits dans api/lib/ : types, config, database, auth, datasources
+// Session init: 2026-01-28 - Initialisation session Cursor - Verification complete et audit
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { Redis } from '@upstash/redis';
+import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
-// Import des modules refactorisés
-import {
-  // Types
-  type User,
-  type UserType,
-  type CockpitData,
-  type Folder,
-  type ContextualHelp,
-  type JourneyStep,
-  type Journey,
-  type Database,
-  type ExecutionStep,
-  // Config
-  APP_VERSION,
-  JWT_SECRET,
-  DEEPL_API_KEY,
-  IMAGE_CONFIG,
-  MAX_PAYLOAD_SIZE_MB,
-  log,
-  generateId,
-  validateImage,
-  hasConflict,
-  // Database
-  redis,
-  sql,
-  initPostgres,
-  saveSnapshot,
-  loadSnapshot,
-  deleteSnapshot,
-  getDb,
-  saveDb,
-  // Auth
-  createToken,
-  verifyToken,
-  hashPassword,
-  comparePassword,
-  canAccessCockpit,
-  setCorsHeaders,
-  // Datasources
-  extractFields,
-  fetchFromAPI,
-  fetchFromJSON,
-  fetchFromCSV,
-  fetchFromDatabase,
-  fetchFromMonitoring,
-  fetchFromEmail,
-  fetchSourceData,
-} from './lib';
+// Version de l'application (mise à jour automatiquement par le script de déploiement)
+const APP_VERSION = '17.10.6';
 
-// Note: Les types User, CockpitData, Folder, ContextualHelp sont maintenant dans ./lib/types.ts
-// Note: Redis, PostgreSQL, initPostgres, saveSnapshot, loadSnapshot, deleteSnapshot sont dans ./lib/database.ts
+const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
+const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
 
-// Note: JourneyStep, Journey, Database, generateId, IMAGE_CONFIG, log, validateImage sont dans ./lib/
+// Upstash Redis client (pour les donnees de travail)
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
 
-// Note: hasConflict, ExecutionStep, fetchSourceData, fetchFromAPI, fetchFromJSON, fetchFromCSV,
-// fetchFromDatabase, fetchFromMonitoring, fetchFromEmail, extractFields sont dans ./lib/datasources.ts
+// Logs de configuration uniquement en dev
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Redis URL configured:', redisUrl ? 'YES' : 'NO');
+  console.log('Redis Token configured:', redisToken ? 'YES' : 'NO');
+}
+
+const redis = new Redis({
+  url: redisUrl,
+  token: redisToken,
+});
+
+// Neon PostgreSQL client (pour les snapshots publies)
+const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+if (process.env.NODE_ENV !== 'production') {
+  console.log('PostgreSQL URL configured:', databaseUrl ? 'YES' : 'NO');
+}
+
+const sql = databaseUrl ? neon(databaseUrl) : null;
+
+// Initialiser la table des snapshots si elle n'existe pas
+let pgInitialized = false;
+async function initPostgres(): Promise<boolean> {
+  if (!sql || pgInitialized) return !!sql;
+  
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS published_cockpits (
+        id SERIAL PRIMARY KEY,
+        cockpit_id VARCHAR(50) NOT NULL,
+        public_id VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        snapshot_data JSONB NOT NULL,
+        snapshot_version INTEGER DEFAULT 1,
+        published_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_published_cockpits_public_id ON published_cockpits(public_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_published_cockpits_cockpit_id ON published_cockpits(cockpit_id)`;
+    pgInitialized = true;
+    console.log('[PostgreSQL] Table published_cockpits initialisee');
+    return true;
+  } catch (error: any) {
+    console.error('[PostgreSQL] Erreur initialisation:', error?.message);
+    return false;
+  }
+}
+
+// Sauvegarder un snapshot dans PostgreSQL
+async function saveSnapshot(cockpitId: string, publicId: string, name: string, snapshotData: any, version: number): Promise<boolean> {
+  if (!sql) {
+    console.error('[PostgreSQL] Non configure');
+    return false;
+  }
+  
+  await initPostgres();
+  
+  try {
+    // Upsert: update si existe, sinon insert
+    await sql`
+      INSERT INTO published_cockpits (cockpit_id, public_id, name, snapshot_data, snapshot_version, published_at, updated_at)
+      VALUES (${cockpitId}, ${publicId}, ${name}, ${JSON.stringify(snapshotData)}, ${version}, NOW(), NOW())
+      ON CONFLICT (public_id) 
+      DO UPDATE SET 
+        name = ${name},
+        snapshot_data = ${JSON.stringify(snapshotData)},
+        snapshot_version = ${version},
+        published_at = NOW(),
+        updated_at = NOW()
+    `;
+    console.log(`[PostgreSQL] Snapshot sauvegarde: ${name} (v${version})`);
+    return true;
+  } catch (error: any) {
+    console.error('[PostgreSQL] Erreur sauvegarde snapshot:', error?.message);
+    return false;
+  }
+}
+
+// Charger un snapshot depuis PostgreSQL
+async function loadSnapshot(publicId: string): Promise<any | null> {
+  if (!sql) return null;
+  
+  await initPostgres();
+  
+  try {
+    const result = await sql`
+      SELECT cockpit_id, public_id, name, snapshot_data, snapshot_version, published_at
+      FROM published_cockpits 
+      WHERE public_id = ${publicId}
+    `;
+    
+    if (result.length > 0) {
+      const row = result[0];
+      console.log(`[PostgreSQL] Snapshot charge: ${row.name} (v${row.snapshot_version})`);
+      return {
+        cockpitId: row.cockpit_id,
+        publicId: row.public_id,
+        name: row.name,
+        ...row.snapshot_data,
+        snapshotVersion: row.snapshot_version,
+        snapshotCreatedAt: row.published_at
+      };
+    }
+    return null;
+  } catch (error: any) {
+    console.error('[PostgreSQL] Erreur chargement snapshot:', error?.message);
+    return null;
+  }
+}
+
+// Supprimer un snapshot de PostgreSQL
+async function deleteSnapshot(publicId: string): Promise<boolean> {
+  if (!sql) return false;
+  
+  await initPostgres();
+  
+  try {
+    await sql`DELETE FROM published_cockpits WHERE public_id = ${publicId}`;
+    console.log(`[PostgreSQL] Snapshot supprime: ${publicId}`);
+    return true;
+  } catch (error: any) {
+    console.error('[PostgreSQL] Erreur suppression snapshot:', error?.message);
+    return false;
+  }
+}
+
+// Types d'utilisateurs
+type UserType = 'admin' | 'standard' | 'client';
+
+// Types
+interface User {
+  id: string;
+  username: string;
+  name?: string; // Nom d'affichage
+  email?: string; // Email de l'utilisateur
+  password: string;
+  isAdmin: boolean; // Conservé pour compatibilité - true si userType === 'admin'
+  userType: UserType; // Type d'utilisateur: admin, standard, client
+  canBecomeAdmin?: boolean; // Pour les utilisateurs standard: possibilité de passer admin (défaut: true)
+  createdAt: string;
+}
+
+// Token de réinitialisation de mot de passe (QR Code)
+interface PasswordResetToken {
+  id: string;
+  userId: string;
+  token: string;
+  used: boolean;
+  createdAt: string;
+  expiresAt: string;
+}
+
+interface CockpitData {
+  id: string;
+  name: string;
+  userId: string;
+  data: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Répertoire pour organiser les maquettes
+interface Folder {
+  id: string;
+  name: string;
+  userId: string;
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Aide contextuelle
+interface ContextualHelp {
+  id: string;
+  elementKey: string; // Clé unique pour identifier l'élément (ex: 'domain.menu.grid', 'element.properties.zone')
+  content: string; // Contenu HTML de l'aide (FR)
+  contentEN?: string; // Traduction anglaise de l'aide (pour les aides globales)
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string; // ID de l'admin qui a créé l'aide
+  updatedBy?: string; // ID de l'admin qui a fait la dernière modification
+  updatedByUsername?: string; // Username de l'admin qui a fait la dernière modification
+}
+
+// ============================================
+// PARCOURS DE CRÉATION DÉCISIONNELLE
+// ============================================
+
+// Étape du parcours (présentation ou interaction)
+interface JourneyStep {
+  id: string;
+  type: 'presentation' | 'interaction';
+  name: string;
+  nameEN?: string;
+  title: string;
+  titleEN?: string;
+  content?: string; // Pour presentation
+  contentEN?: string;
+  description?: string; // Pour interaction
+  descriptionEN?: string;
+  icon?: string;
+  fields?: any[]; // Pour interaction
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Parcours (liste ordonnée d'étapes)
+interface Journey {
+  id: string;
+  name: string;
+  nameEN?: string;
+  description?: string;
+  descriptionEN?: string;
+  icon?: string;
+  steps: { stepId: string; order: number; condition?: string }[];
+  targetGeneration: 'domain' | 'domains' | 'category' | 'element';
+  aiPromptTemplate?: string;
+  isActive: boolean;
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}
+
+interface Database {
+  users: User[];
+  cockpits: CockpitData[];
+  folders?: Folder[]; // Répertoires de maquettes
+  systemPrompt?: string; // Prompt système personnalisé pour l'IA
+  passwordResetTokens?: PasswordResetToken[]; // Tokens de réinitialisation de mot de passe
+  contextualHelps?: ContextualHelp[]; // Aides contextuelles
+  adminCode?: string; // Code pour passer en mode administrateur (éditable)
+  journeySteps?: JourneyStep[]; // Étapes des parcours
+  journeys?: Journey[]; // Parcours de création
+}
+
+// Helpers
+const generateId = () => {
+  return 'xxxx-xxxx-xxxx'.replace(/x/g, () =>
+    Math.floor(Math.random() * 16).toString(16)
+  );
+};
+
+// ============================================
+// Configuration et validation
+// ============================================
+
+// Configuration pour les images - PAS DE LIMITE DE TAILLE
+// Note: Vercel Pro supporte jusqu'à 100MB de payload
+const IMAGE_CONFIG = {
+  MAX_SIZE_MB: 100,          // Pas de limite pratique
+  MAX_SIZE_BYTES: 100 * 1024 * 1024,
+  ALLOWED_FORMATS: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+  MIN_SIZE_BYTES: 100,       // Taille min pour éviter les données corrompues
+};
+
+// Pas de limite globale du payload
+const MAX_PAYLOAD_SIZE_MB = 100; // Pratiquement illimité
+
+// Mode production (désactive les logs verbeux)
+const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+
+// Logger conditionnel
+const log = {
+  info: (...args: unknown[]) => {
+    if (!IS_PRODUCTION) console.log(...args);
+  },
+  warn: (...args: unknown[]) => console.warn(...args),
+  error: (...args: unknown[]) => console.error(...args),
+  debug: (...args: unknown[]) => {
+    if (!IS_PRODUCTION) console.log('[DEBUG]', ...args);
+  },
+};
+
+/**
+ * Valide une image base64
+ * @returns { valid: boolean, error?: string, format?: string, sizeBytes?: number }
+ */
+function validateImage(base64Data: string | undefined | null): { 
+  valid: boolean; 
+  error?: string; 
+  format?: string; 
+  sizeBytes?: number;
+} {
+  if (!base64Data || typeof base64Data !== 'string') {
+    return { valid: true }; // Pas d'image = valide (optionnel)
+  }
+  
+  // Vérifier le format base64 data URI
+  if (!base64Data.startsWith('data:image/')) {
+    return { valid: false, error: 'Format invalide: doit être une image base64 (data:image/...)' };
+  }
+  
+  // Extraire le type MIME
+  const mimeMatch = base64Data.match(/^data:(image\/[a-z+]+);base64,/i);
+  if (!mimeMatch) {
+    return { valid: false, error: 'Format base64 invalide' };
+  }
+  
+  const mimeType = mimeMatch[1].toLowerCase();
+  if (!IMAGE_CONFIG.ALLOWED_FORMATS.includes(mimeType)) {
+    return { 
+      valid: false, 
+      error: `Format d'image non supporté: ${mimeType}. Formats acceptés: JPEG, PNG, GIF, WebP, SVG` 
+    };
+  }
+  
+  // Calculer la taille approximative
+  const base64Part = base64Data.split(',')[1] || '';
+  const sizeBytes = Math.ceil(base64Part.length * 0.75); // Base64 = ~75% de la taille réelle
+  
+  if (sizeBytes < IMAGE_CONFIG.MIN_SIZE_BYTES) {
+    return { valid: false, error: 'Image trop petite ou corrompue' };
+  }
+  
+  if (sizeBytes > IMAGE_CONFIG.MAX_SIZE_BYTES) {
+    const sizeMB = (sizeBytes / 1024 / 1024).toFixed(2);
+    return { 
+      valid: false, 
+      error: `Image trop volumineuse (${sizeMB} MB). Maximum: ${IMAGE_CONFIG.MAX_SIZE_MB} MB` 
+    };
+  }
+  
+  return { valid: true, format: mimeType, sizeBytes };
+}
+
+/**
+ * Vérifie si une mise à jour est en conflit (optimistic locking)
+ * @returns true si le cockpit a été modifié depuis clientUpdatedAt
+ */
+function hasConflict(serverUpdatedAt: string, clientUpdatedAt?: string): boolean {
+  if (!clientUpdatedAt) return false; // Pas de vérification demandée
+  
+  const serverTime = new Date(serverUpdatedAt).getTime();
+  const clientTime = new Date(clientUpdatedAt).getTime();
+  
+  // Tolérance de 2 secondes pour les décalages
+  return serverTime > clientTime + 2000;
+}
+
+// ============================================
+// Fonctions d'accès aux sources de données
+// ============================================
+
+interface ExecutionStep {
+  step: number;
+  action: string;
+  status: 'pending' | 'running' | 'success' | 'error' | 'skipped';
+  message: string;
+  details?: any;
+  timestamp: string;
+}
+
+/**
+ * Récupère les données depuis une source avec logging des étapes
+ */
+async function fetchSourceData(source: any, steps: ExecutionStep[]): Promise<any> {
+  const { type, location, connection, fields } = source;
+  const stepNum = steps.length + 1;
+  
+  // Vérifier que la source est valide
+  if (!source || !type) {
+    steps.push({
+      step: stepNum,
+      action: 'validate_source',
+      status: 'error',
+      message: 'Source invalide ou type non défini',
+      timestamp: new Date().toISOString(),
+    });
+    return null;
+  }
+
+  steps.push({
+    step: stepNum,
+    action: 'fetch_source',
+    status: 'running',
+    message: `Récupération de la source "${source.name || 'Sans nom'}" (${type})`,
+    details: { type, location: location?.substring(0, 50) || 'Non défini' },
+    timestamp: new Date().toISOString(),
+  });
+
+  try {
+    let data = null;
+    
+    switch (type) {
+      case 'api':
+        if (!location) throw new Error('URL de l\'API non définie');
+        data = await fetchFromAPI(location, connection, fields);
+        break;
+      
+      case 'json':
+        if (!location) throw new Error('URL du JSON non définie');
+        data = await fetchFromJSON(location);
+        break;
+      
+      case 'csv':
+        if (!location) throw new Error('URL du CSV non définie');
+        data = await fetchFromCSV(location, fields);
+        break;
+      
+      case 'excel':
+        // Excel désactivé côté serveur (lib trop lourde), utiliser CSV ou API
+        steps[steps.length - 1].status = 'skipped';
+        steps[steps.length - 1].message = `Excel: Utilisez un export CSV ou une API`;
+        return null;
+      
+      case 'database':
+        if (!connection) throw new Error('Connexion BDD non définie');
+        data = await fetchFromDatabase(connection, fields);
+        break;
+      
+      case 'supervision':
+      case 'hypervision':
+      case 'observability':
+        if (!location) throw new Error('URL du service de monitoring non définie');
+        data = await fetchFromMonitoring(type, location, connection);
+        break;
+      
+      case 'email':
+        // Lecture réelle des emails via API (Microsoft Graph, Gmail, ou IMAP proxy)
+        data = await fetchFromEmail(location, connection, fields, steps);
+        break;
+      
+      case 'manual':
+      case 'static':
+        // Données statiques définies dans la config
+        if (source.config?.data) {
+          data = source.config.data;
+        } else if (fields) {
+          // Essayer de parser les champs comme des données JSON
+          try {
+            data = JSON.parse(fields);
+          } catch {
+            data = null;
+          }
+        }
+        break;
+      
+      case 'other':
+      default:
+        // Pour les autres types, essayer plusieurs stratégies
+        if (location && (location.startsWith('http://') || location.startsWith('https://'))) {
+          // Si une URL est fournie, l'utiliser comme API
+          data = await fetchFromAPI(location, connection, fields);
+        } else if (fields) {
+          // Sinon, essayer de parser les champs comme des données
+          try {
+            data = JSON.parse(fields);
+          } catch {
+            // Extraire une valeur numérique si présente
+            const valueMatch = fields.match(/(?:valeur|value|total|count|nombre)[\s:=]+(\d+(?:[.,]\d+)?)/i);
+            if (valueMatch) {
+              data = { value: parseFloat(valueMatch[1].replace(',', '.')) };
+            } else {
+              const numberMatch = fields.match(/(\d+(?:[.,]\d+)?)/);
+              if (numberMatch) {
+                data = { value: parseFloat(numberMatch[1].replace(',', '.')) };
+              } else {
+                data = { rawText: fields, value: fields };
+              }
+            }
+          }
+        } else if (source.config?.data) {
+          data = source.config.data;
+        } else {
+          steps[steps.length - 1].status = 'skipped';
+          steps[steps.length - 1].message = `Type "${type}": Configurez une URL ou des données dans "Champs/règles"`;
+          return null;
+        }
+    }
+    
+    // Mise à jour du statut de l'étape
+    const lastStep = steps[steps.length - 1];
+    lastStep.status = 'success';
+    lastStep.message = `Source "${source.name || 'Sans nom'}" récupérée`;
+    lastStep.details = { 
+      ...lastStep.details, 
+      recordCount: Array.isArray(data) ? data.length : (data ? 1 : 0) 
+    };
+    
+    return data;
+    
+  } catch (error: any) {
+    const lastStep = steps[steps.length - 1];
+    lastStep.status = 'error';
+    lastStep.message = `Erreur: ${error.message}`;
+    return null;
+  }
+}
+
+async function fetchFromAPI(url: string, connection?: string, fields?: string): Promise<any> {
+  if (!url) return null;
+  
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  
+  // Parser les headers de connexion si fournis
+  if (connection) {
+    try {
+      const connConfig = JSON.parse(connection);
+      if (connConfig.headers) {
+        Object.assign(headers, connConfig.headers);
+      }
+      if (connConfig.apiKey) {
+        headers['Authorization'] = `Bearer ${connConfig.apiKey}`;
+      }
+    } catch {
+      // Si ce n'est pas du JSON, traiter comme une clé API
+      if (connection.trim()) {
+        headers['Authorization'] = `Bearer ${connection}`;
+      }
+    }
+  }
+
+  const response = await fetch(url, { headers, method: 'GET' });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  
+  // Extraire les champs spécifiques si demandé
+  if (fields) {
+    return extractFields(data, fields);
+  }
+  
+  return data;
+}
+
+async function fetchFromJSON(url: string): Promise<any> {
+  if (!url) return null;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`JSON fetch error: ${response.status}`);
+  }
+  
+  return await response.json();
+}
+
+async function fetchFromCSV(url: string, _fields?: string): Promise<any> {
+  if (!url) return null;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`CSV fetch error: ${response.status}`);
+  }
+  
+  const text = await response.text();
+  const lines = text.split('\n').filter(l => l.trim());
+  
+  if (lines.length === 0) return [];
+  
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+  const data = lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => { row[h] = values[i] || ''; });
+    return row;
+  });
+  
+  return data;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _fetchFromExcel(url: string, fields?: string): Promise<any> {
+  // Pour Excel, on attend une URL vers un fichier .xlsx
+  // Le parsing Excel nécessite une lib spéciale, on utilise xlsx qui est déjà importé
+  if (!url) return null;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Excel fetch error: ${response.status}`);
+    }
+    
+    const buffer = await response.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    
+    // Prendre la première feuille ou celle spécifiée dans fields
+    let sheetName = workbook.SheetNames[0];
+    if (fields) {
+      const sheetMatch = fields.match(/sheet:\s*([^,]+)/i);
+      if (sheetMatch && workbook.SheetNames.includes(sheetMatch[1].trim())) {
+        sheetName = sheetMatch[1].trim();
+      }
+    }
+    
+    const sheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(sheet);
+    
+    return data;
+  } catch (error: any) {
+    throw new Error(`Excel parse error: ${error.message}`);
+  }
+}
+
+async function fetchFromDatabase(_connection: string, query?: string): Promise<any> {
+  // Pour les BDD, on utilise la connexion PostgreSQL configurée
+  if (!sql || !query) return null;
+  
+  try {
+    // Sécurité: on n'exécute que des SELECT
+    const cleanQuery = query.trim().toLowerCase();
+    if (!cleanQuery.startsWith('select')) {
+      throw new Error('Seules les requêtes SELECT sont autorisées');
+    }
+    
+    const result = await sql.unsafe(query);
+    return result;
+  } catch (error: any) {
+    throw new Error(`Database error: ${error.message}`);
+  }
+}
+
+async function fetchFromMonitoring(_type: string, url: string, connection?: string): Promise<any> {
+  // Les outils de monitoring exposent généralement des APIs REST
+  return await fetchFromAPI(url, connection);
+}
+
+/**
+ * Récupère les données depuis une boîte email via API
+ * Supporte: Microsoft Graph API, Gmail API, ou API personnalisée
+ */
+async function fetchFromEmail(
+  emailAddress: string | undefined, 
+  connection: string | undefined, 
+  fields: string | undefined,
+  steps: ExecutionStep[]
+): Promise<any> {
+  const stepNum = steps.length;
+  
+  // Parser la configuration de connexion
+  let config: any = {};
+  if (connection) {
+    try {
+      config = JSON.parse(connection);
+    } catch {
+      // Si ce n'est pas du JSON, traiter comme un token
+      config = { token: connection };
+    }
+  }
+
+  const { 
+    provider, // 'microsoft', 'gmail', 'custom'
+    token,
+    apiKey: _apiKey, // Reserved for future OAuth implementations
+    clientId: _clientId, // Reserved for OAuth
+    clientSecret: _clientSecret, // Reserved for OAuth
+    refreshToken: _refreshToken, // Reserved for OAuth refresh
+    apiUrl,
+    folder = 'inbox',
+    subject, // Filtre sur le sujet
+    from, // Filtre sur l'expéditeur
+    maxResults = 10,
+    extractPattern, // Regex pour extraire la valeur du corps
+  } = config;
+
+  // Déterminer le provider automatiquement si non spécifié
+  const detectedProvider = provider || 
+    (emailAddress?.includes('@outlook') || emailAddress?.includes('@microsoft') || emailAddress?.includes('@hotmail') ? 'microsoft' : 
+     emailAddress?.includes('@gmail') ? 'gmail' : 'custom');
+
+  try {
+    let emails: any[] = [];
+
+    // Microsoft Graph API
+    if (detectedProvider === 'microsoft' && token) {
+      const graphUrl = `https://graph.microsoft.com/v1.0/me/mailFolders/${folder}/messages?$top=${maxResults}&$orderby=receivedDateTime desc`;
+      
+      const graphResponse = await fetch(graphUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!graphResponse.ok) {
+        const errorData = await graphResponse.json().catch(() => ({}));
+        throw new Error(`Microsoft Graph API error: ${graphResponse.status} - ${errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const graphData = await graphResponse.json();
+      emails = (graphData.value || []).map((msg: any) => ({
+        id: msg.id,
+        subject: msg.subject,
+        from: msg.from?.emailAddress?.address,
+        body: msg.body?.content || msg.bodyPreview,
+        date: msg.receivedDateTime,
+        isRead: msg.isRead,
+      }));
+    }
+    // Gmail API
+    else if (detectedProvider === 'gmail' && token) {
+      // D'abord, lister les messages
+      let listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}`;
+      if (subject) listUrl += `&q=subject:${encodeURIComponent(subject)}`;
+      if (from) listUrl += `&q=from:${encodeURIComponent(from)}`;
+
+      const listResponse = await fetch(listUrl, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!listResponse.ok) {
+        throw new Error(`Gmail API list error: ${listResponse.status}`);
+      }
+
+      const listData = await listResponse.json();
+      const messageIds = (listData.messages || []).map((m: any) => m.id);
+
+      // Récupérer le contenu de chaque message
+      for (const msgId of messageIds.slice(0, maxResults)) {
+        const msgResponse = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        
+        if (msgResponse.ok) {
+          const msgData = await msgResponse.json();
+          const headers = msgData.payload?.headers || [];
+          const subjectHeader = headers.find((h: any) => h.name === 'Subject')?.value;
+          const fromHeader = headers.find((h: any) => h.name === 'From')?.value;
+          const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
+          
+          // Décoder le corps du message (base64url)
+          let body = '';
+          const parts = msgData.payload?.parts || [msgData.payload];
+          for (const part of parts) {
+            if (part?.mimeType === 'text/plain' && part?.body?.data) {
+              body = Buffer.from(part.body.data, 'base64url').toString('utf-8');
+              break;
+            } else if (part?.mimeType === 'text/html' && part?.body?.data) {
+              body = Buffer.from(part.body.data, 'base64url').toString('utf-8');
+            }
+          }
+
+          emails.push({
+            id: msgId,
+            subject: subjectHeader,
+            from: fromHeader,
+            body: body,
+            date: dateHeader,
+          });
+        }
+      }
+    }
+    // API personnalisée
+    else if (apiUrl && token) {
+      const customResponse = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!customResponse.ok) {
+        throw new Error(`Custom email API error: ${customResponse.status}`);
+      }
+
+      const customResult = await customResponse.json();
+      if (Array.isArray(customResult)) {
+        emails = customResult;
+      } else {
+        emails = customResult.emails || customResult.messages || customResult.data || [customResult];
+      }
+    }
+    // Pas de configuration valide
+    else {
+      steps[stepNum - 1].status = 'error';
+      steps[stepNum - 1].message = `Email "${emailAddress}": Token d'accès requis. Configurez la connexion avec {"provider": "microsoft"|"gmail", "token": "votre_token"}`;
+      return null;
+    }
+
+    // Filtrer par sujet si spécifié
+    if (subject && emails.length > 0) {
+      const subjectLower = subject.toLowerCase();
+      emails = emails.filter((e: any) => 
+        e.subject?.toLowerCase().includes(subjectLower)
+      );
+    }
+
+    // Filtrer par expéditeur si spécifié
+    if (from && emails.length > 0) {
+      const fromLower = from.toLowerCase();
+      emails = emails.filter((e: any) => 
+        e.from?.toLowerCase().includes(fromLower)
+      );
+    }
+
+    // Extraire les valeurs du corps des emails selon le pattern
+    const pattern = extractPattern || fields;
+    if (pattern && emails.length > 0) {
+      const extractedValues: any[] = [];
+      
+      for (const email of emails) {
+        const bodyText = email.body || '';
+        
+        // Essayer le pattern comme regex
+        try {
+          const regex = new RegExp(pattern, 'gi');
+          const matches = bodyText.match(regex);
+          
+          if (matches) {
+            // Extraire les valeurs numériques des matches
+            for (const match of matches) {
+              const numMatch = match.match(/(\d+(?:[.,]\d+)?)/);
+              if (numMatch) {
+                extractedValues.push({
+                  emailId: email.id,
+                  subject: email.subject,
+                  date: email.date,
+                  value: parseFloat(numMatch[1].replace(',', '.')),
+                  rawMatch: match,
+                });
+              }
+            }
+          }
+        } catch {
+          // Si le pattern n'est pas une regex valide, chercher comme texte
+          if (bodyText.toLowerCase().includes(pattern.toLowerCase())) {
+            // Extraire le nombre qui suit le pattern
+            const textPattern = new RegExp(pattern + '[\\s:=]*(\\d+(?:[.,]\\d+)?)', 'gi');
+            const textMatch = bodyText.match(textPattern);
+            if (textMatch) {
+              const numMatch = textMatch[0].match(/(\d+(?:[.,]\d+)?)/);
+              if (numMatch) {
+                extractedValues.push({
+                  emailId: email.id,
+                  subject: email.subject,
+                  date: email.date,
+                  value: parseFloat(numMatch[1].replace(',', '.')),
+                });
+              }
+            }
+          }
+        }
+      }
+
+      if (extractedValues.length > 0) {
+        // Retourner la valeur la plus récente ou la somme selon la config
+        return extractedValues;
+      }
+    }
+
+    // Retourner les emails bruts si pas de pattern
+    return emails.map((e: any) => ({
+      id: e.id,
+      subject: e.subject,
+      from: e.from,
+      date: e.date,
+      bodyPreview: e.body?.substring(0, 200),
+    }));
+
+  } catch (error: any) {
+    steps[stepNum - 1].status = 'error';
+    steps[stepNum - 1].message = `Erreur lecture email: ${error.message}`;
+    return null;
+  }
+}
+
+/**
+ * Extrait des champs spécifiques d'un objet de données
+ */
+function extractFields(data: any, fieldsSpec: string): any {
+  if (!fieldsSpec) return data;
+  
+  const fields = fieldsSpec.split(',').map(f => f.trim());
+  
+  if (Array.isArray(data)) {
+    return data.map(item => {
+      const result: Record<string, any> = {};
+      fields.forEach(field => {
+        if (field.includes('.')) {
+          // Champ imbriqué
+          const parts = field.split('.');
+          let value = item;
+          for (const part of parts) {
+            value = value?.[part];
+          }
+          result[field] = value;
+        } else {
+          result[field] = item[field];
+        }
+      });
+      return result;
+    });
+  }
+  
+  const result: Record<string, any> = {};
+  fields.forEach(field => {
+    if (field.includes('.')) {
+      const parts = field.split('.');
+      let value = data;
+      for (const part of parts) {
+        value = value?.[part];
+      }
+      result[field] = value;
+    } else {
+      result[field] = data[field];
+    }
+  });
+  return result;
+}
 
 // ============================================
 // Moteur de calcul
