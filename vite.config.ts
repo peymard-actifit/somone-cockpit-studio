@@ -20,6 +20,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
+    // Augmenter la limite d'avertissement pour les chunks (le bundle est naturellement gros)
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html'),
       output: {
@@ -27,6 +29,39 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
+        // Optimisation: Séparer les vendors lourds en chunks distincts
+        manualChunks: (id) => {
+          // Fichier d'icônes volumineux (~10k icônes) dans un chunk séparé
+          if (id.includes('src/components/icons.ts')) {
+            return 'icons';
+          }
+          // Librairies de génération de documents (chargées à la demande)
+          if (id.includes('jspdf') || id.includes('pdfjs-dist')) {
+            return 'pdf-libs';
+          }
+          if (id.includes('pptxgenjs')) {
+            return 'pptx-libs';
+          }
+          if (id.includes('html2canvas') || id.includes('file-saver') || id.includes('xlsx') || id.includes('jszip')) {
+            return 'export-libs';
+          }
+          // Librairie de cartes
+          if (id.includes('leaflet') || id.includes('react-leaflet')) {
+            return 'map-libs';
+          }
+          // React core (toujours chargé)
+          if (id.includes('react-dom') || id.includes('react-router-dom')) {
+            return 'react-vendor';
+          }
+          // State management
+          if (id.includes('zustand')) {
+            return 'zustand';
+          }
+          // Drag and drop
+          if (id.includes('@dnd-kit')) {
+            return 'dnd-kit';
+          }
+        },
       },
     },
   },
