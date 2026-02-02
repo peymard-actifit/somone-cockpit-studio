@@ -8,11 +8,21 @@
 - `package.json` - Dépendances
 - `tsconfig.json` - TypeScript
 
-## API Backend - IMPORTANT
+## API Backend - LIMITATIONS VERCEL
 
-**NE PAS** extraire le code de `api/index.ts` dans des sous-modules (`api/lib/`).
-Vercel serverless ne bundle pas correctement les imports relatifs locaux.
-Le fichier doit rester monolithique pour la compatibilité Vercel.
+### Ce qui NE FONCTIONNE PAS avec Vercel Serverless :
+1. **Imports depuis sous-dossiers** (`api/_lib/`, `api/lib/`) - Vercel ne les bundle pas
+2. **Architecture multi-fichiers avec code partagé** - Les imports relatifs échouent
+3. **Imports depuis src/** - Les fonctions serverless sont isolées
+
+### Ce qui FONCTIONNE :
+1. **Un seul fichier monolithique** `api/index.ts` avec tout le code
+2. **Imports depuis node_modules** (npm packages)
+3. **Multi-fichiers SANS code partagé** (duplication acceptable pour petites routes)
+
+### Conclusion
+Le fichier `api/index.ts` doit rester **monolithique** (~9000 lignes).
+C'est une contrainte de Vercel, pas un choix d'architecture.
 
 ## Configuration Vite - manualChunks
 
