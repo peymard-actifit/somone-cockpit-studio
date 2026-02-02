@@ -29,18 +29,26 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Optimisation: Séparer uniquement les libs lazy-loadées
+        // Optimisation: Séparer UNIQUEMENT les libs avec import dynamique (await import)
+        // Ne PAS inclure les libs importées statiquement (xlsx, jszip, file-saver, etc.)
         manualChunks: (id) => {
-          // Librairies de génération de documents (chargées à la demande via import dynamique)
+          // jspdf et pdfjs-dist sont importés via await import() dans PresentationConfigModal et AIPromptInput
           if (id.includes('jspdf') || id.includes('pdfjs-dist')) {
             return 'pdf-libs';
           }
+          // pptxgenjs est importé via await import() dans PresentationConfigModal
           if (id.includes('pptxgenjs')) {
             return 'pptx-libs';
           }
-          if (id.includes('html2canvas') || id.includes('xlsx') || id.includes('jszip')) {
-            return 'export-libs';
+          // html2canvas est importé via await import() dans PresentationConfigModal
+          if (id.includes('html2canvas')) {
+            return 'html2canvas';
           }
+          // mammoth est importé via await import() dans AIPromptInput
+          if (id.includes('mammoth')) {
+            return 'mammoth';
+          }
+          // Note: xlsx, jszip, file-saver sont importés STATIQUEMENT donc restent dans le bundle principal
         },
       },
     },

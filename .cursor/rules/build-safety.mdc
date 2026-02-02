@@ -1,0 +1,49 @@
+# Règles de sécurité pour le Build et le Déploiement
+
+## Règle critique - Stabilité de production
+
+Toute modification du système de build (vite.config.ts, package.json, tsconfig) doit être testée AVANT déploiement.
+
+## Configuration Vite - manualChunks
+
+### INTERDIT
+```typescript
+// ❌ NE JAMAIS séparer React et ses dépendances directes
+manualChunks: {
+  'react-vendor': ['react', 'react-dom'],  // DANGER
+  'dnd-kit': ['@dnd-kit/core'],            // DANGER - dépend de React
+  'zustand': ['zustand'],                   // DANGER - dépend de React
+}
+```
+
+### AUTORISÉ
+```typescript
+// ✅ Séparer UNIQUEMENT les libs avec import dynamique (await import)
+manualChunks: (id) => {
+  // Libs importées via await import() uniquement
+  if (id.includes('jspdf')) return 'pdf-libs';
+  if (id.includes('pptxgenjs')) return 'pptx-libs';
+  if (id.includes('html2canvas')) return 'html2canvas';
+}
+```
+
+## Vérification avant déploiement
+
+Avant tout déploiement, vérifier :
+
+1. **Build local** : `npm run build` doit réussir sans erreur
+2. **TypeScript** : `npx tsc --noEmit` doit passer
+3. **Test manuel** : Ouvrir `dist/index.html` localement si possible
+
+## Règles pour les imports dynamiques
+
+- Les `await import('...')` peuvent être mis dans des chunks séparés
+- Les `import ... from '...'` statiques NE DOIVENT PAS être séparés de leur dépendances
+- Ne JAMAIS séparer une lib qui dépend de React dans un chunk différent de React
+
+## En cas d'erreur en production
+
+1. Rollback immédiat vers la dernière version stable
+2. Analyser l'erreur dans la console
+3. Corriger et tester localement
+4. Re-déployer
