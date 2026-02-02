@@ -1,8 +1,18 @@
 # Règles de sécurité pour le Build et le Déploiement
 
-## Règle critique - Stabilité de production
+## Règle CRITIQUE - Stabilité de production
 
-Toute modification du système de build (vite.config.ts, package.json, tsconfig) doit être testée AVANT déploiement.
+**AVANT toute modification de ces fichiers, TESTER LOCALEMENT :**
+- `api/index.ts` - API backend (NE PAS MODULARISER sans test Vercel)
+- `vite.config.ts` - Configuration build
+- `package.json` - Dépendances
+- `tsconfig.json` - TypeScript
+
+## API Backend - IMPORTANT
+
+**NE PAS** extraire le code de `api/index.ts` dans des sous-modules (`api/lib/`).
+Vercel serverless ne bundle pas correctement les imports relatifs locaux.
+Le fichier doit rester monolithique pour la compatibilité Vercel.
 
 ## Configuration Vite - manualChunks
 
