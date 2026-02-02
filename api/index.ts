@@ -18,6 +18,7 @@ import {
   type ExecutionStep,
   // Config
   APP_VERSION,
+  JWT_SECRET,
   DEEPL_API_KEY,
   IMAGE_CONFIG,
   MAX_PAYLOAD_SIZE_MB,
