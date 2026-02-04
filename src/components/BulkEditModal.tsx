@@ -42,6 +42,12 @@ export default function BulkEditModal({ isOpen, onClose, elements, categories, d
   const { updateElement } = useCockpitStore();
   const [searchTerm, setSearchTerm] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
+  
+  // États pour l'application en masse
+  const [showBulkIconPicker, setShowBulkIconPicker] = useState(false);
+  const [bulkSizeX, setBulkSizeX] = useState<string>('2');
+  const [bulkSizeY, setBulkSizeY] = useState<string>('2');
+  const bulkIconPickerRef = useRef<HTMLDivElement>(null);
 
   // Filtrer les éléments par recherche
   const filteredElements = elements.filter(el => 
@@ -58,6 +64,19 @@ export default function BulkEditModal({ isOpen, onClose, elements, categories, d
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
   }, [isOpen, onClose]);
+
+  // Fermer le picker d'icônes en masse quand on clique à l'extérieur
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (bulkIconPickerRef.current && !bulkIconPickerRef.current.contains(e.target as Node)) {
+        setShowBulkIconPicker(false);
+      }
+    };
+    if (showBulkIconPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showBulkIconPicker]);
 
   if (!isOpen) return null;
 
@@ -93,6 +112,23 @@ export default function BulkEditModal({ isOpen, onClose, elements, categories, d
 
   const handleUpdate = (elementId: string, updates: Partial<Element>) => {
     updateElement(elementId, updates);
+  };
+
+  // Appliquer une icône à tous les éléments filtrés
+  const applyIconToAll = (icon: string) => {
+    filteredElements.forEach(el => {
+      updateElement(el.id, { icon });
+    });
+    setShowBulkIconPicker(false);
+  };
+
+  // Appliquer les tailles à tous les éléments filtrés
+  const applySizeToAll = () => {
+    const width = parseFloat(bulkSizeX) || 2;
+    const height = parseFloat(bulkSizeY) || 2;
+    filteredElements.forEach(el => {
+      updateElement(el.id, { width, height });
+    });
   };
 
   return (
@@ -134,11 +170,91 @@ export default function BulkEditModal({ isOpen, onClose, elements, categories, d
           </div>
         </div>
 
+        {/* Ligne des boutons "Appliquer à tous" */}
+        <div className="grid grid-cols-[2fr_100px_150px_55px_55px_80px_60px_100px_100px] gap-2 px-4 py-2 bg-[#EEF2FF] border-b border-[#E2E8F0] flex-shrink-0 items-center">
+          <div className="text-xs text-[#64748B]">Appliquer à tous :</div>
+          <div></div>
+          {/* Bouton icône en masse */}
+          <div className="relative" ref={bulkIconPickerRef}>
+            <button
+              onClick={() => setShowBulkIconPicker(!showBulkIconPicker)}
+              className="w-full px-2 py-1 bg-[#1E3A5F] text-white rounded text-xs hover:bg-[#2C4A6E] transition-colors flex items-center justify-center gap-1"
+            >
+              <MuiIcon name="FormatPaint" size={12} />
+              Icône
+            </button>
+            {/* Picker d'icônes en masse */}
+            {showBulkIconPicker && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E2E8F0] rounded-xl shadow-xl p-3 w-72 max-h-64 overflow-y-auto">
+                {iconCategories.map((category, catIndex) => (
+                  <div key={category.name} className={catIndex > 0 ? 'mt-2.5' : ''}>
+                    <div className="text-[9px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
+                      {category.name}
+                    </div>
+                    <div className="grid grid-cols-6 gap-0.5">
+                      {category.icons.map(icon => {
+                        const iconIsShape = isShape(icon);
+                        return (
+                          <button
+                            key={icon}
+                            onClick={() => applyIconToAll(icon)}
+                            className="p-1.5 rounded hover:bg-[#F5F7FA] text-[#1E3A5F] transition-all"
+                            title={iconIsShape ? SIMPLE_SHAPES.find(s => s.id === icon)?.name : icon}
+                          >
+                            {iconIsShape ? (
+                              <span className="text-sm block text-center">
+                                {getShapeLabel(icon)}
+                              </span>
+                            ) : (
+                              <MuiIcon name={icon} size={16} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Inputs taille X et Y en masse */}
+          <input
+            type="number"
+            step="0.1"
+            min="0.1"
+            value={bulkSizeX}
+            onChange={(e) => setBulkSizeX(e.target.value)}
+            className="px-1 py-1 border border-[#E2E8F0] rounded text-xs text-center focus:outline-none focus:border-[#1E3A5F]"
+            title="Taille X à appliquer"
+          />
+          <input
+            type="number"
+            step="0.1"
+            min="0.1"
+            value={bulkSizeY}
+            onChange={(e) => setBulkSizeY(e.target.value)}
+            className="px-1 py-1 border border-[#E2E8F0] rounded text-xs text-center focus:outline-none focus:border-[#1E3A5F]"
+            title="Taille Y à appliquer"
+          />
+          <button
+            onClick={applySizeToAll}
+            className="col-span-1 px-2 py-1 bg-[#1E3A5F] text-white rounded text-xs hover:bg-[#2C4A6E] transition-colors flex items-center justify-center gap-1"
+          >
+            <MuiIcon name="AspectRatio" size={12} />
+            Tailles
+          </button>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+
         {/* En-têtes de colonnes */}
-        <div className="grid grid-cols-[2fr_100px_150px_80px_60px_120px_120px] gap-2 px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs font-semibold text-[#64748B] flex-shrink-0">
+        <div className="grid grid-cols-[2fr_100px_150px_55px_55px_80px_60px_100px_100px] gap-2 px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs font-semibold text-[#64748B] flex-shrink-0">
           <div>Nom</div>
           <div>Statut</div>
           <div>Icône / Forme</div>
+          <div className="text-center">X %</div>
+          <div className="text-center">Y %</div>
           <div>Valeur</div>
           <div>Unité</div>
           <div>Catégorie</div>
@@ -217,7 +333,7 @@ function BulkEditRow({ element, categories, templates, statuses, iconCategories,
   };
 
   return (
-    <div className="grid grid-cols-[2fr_100px_150px_80px_60px_120px_120px] gap-2 px-4 py-1.5 border-b border-[#F1F5F9] hover:bg-[#F8FAFC] items-center text-sm">
+    <div className="grid grid-cols-[2fr_100px_150px_55px_55px_80px_60px_100px_100px] gap-2 px-4 py-1.5 border-b border-[#F1F5F9] hover:bg-[#F8FAFC] items-center text-sm">
       {/* Nom */}
       <input
         type="text"
@@ -310,6 +426,28 @@ function BulkEditRow({ element, categories, templates, statuses, iconCategories,
           </div>
         )}
       </div>
+
+      {/* Taille X (width) */}
+      <input
+        type="number"
+        step="0.1"
+        min="0.1"
+        value={element.width !== undefined ? element.width : ''}
+        onChange={(e) => onUpdate(element.id, { width: parseFloat(e.target.value) || undefined })}
+        placeholder="-"
+        className="px-1 py-1 border border-transparent hover:border-[#E2E8F0] focus:border-[#1E3A5F] rounded text-[#1E3A5F] focus:outline-none bg-transparent text-center text-xs"
+      />
+
+      {/* Taille Y (height) */}
+      <input
+        type="number"
+        step="0.1"
+        min="0.1"
+        value={element.height !== undefined ? element.height : ''}
+        onChange={(e) => onUpdate(element.id, { height: parseFloat(e.target.value) || undefined })}
+        placeholder="-"
+        className="px-1 py-1 border border-transparent hover:border-[#E2E8F0] focus:border-[#1E3A5F] rounded text-[#1E3A5F] focus:outline-none bg-transparent text-center text-xs"
+      />
 
       {/* Valeur */}
       <input
