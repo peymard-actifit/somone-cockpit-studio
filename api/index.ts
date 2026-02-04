@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.15.1';
+const APP_VERSION = '17.15.2';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3823,7 +3823,7 @@ INSTRUCTIONS:
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
 
-      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView, templateIcons, clientUpdatedAt, dataHistory, selectedDataDate } = req.body;
+      const { name, domains, zones, logo, scrollingBanner, sharedWith, useOriginalView, templateIcons, clientUpdatedAt, dataHistory, selectedDataDate, contextualHelps, showHelpOnHover } = req.body;
       const now = new Date().toISOString();
 
       // Vérification de la taille totale du payload
@@ -4003,10 +4003,10 @@ INSTRUCTIONS:
         originals: cockpit.data.originals,
         // IMPORTANT: Préserver le dossier parent
         folderId: cockpit.data.folderId,
-        // IMPORTANT: Préserver les aides contextuelles locales (exportées avec la maquette)
-        contextualHelps: cockpit.data.contextualHelps || [],
-        // IMPORTANT: Préserver la préférence d'aide au survol
-        showHelpOnHover: cockpit.data.showHelpOnHover,
+        // Aides contextuelles locales (mises à jour si fournies, sinon préservées)
+        contextualHelps: contextualHelps !== undefined ? contextualHelps : (cockpit.data.contextualHelps || []),
+        // Préférence d'aide au survol (mise à jour si fournie, sinon préservée)
+        showHelpOnHover: showHelpOnHover !== undefined ? showHelpOnHover : cockpit.data.showHelpOnHover,
         // IMPORTANT: Préserver les statistiques de vue
         viewCount: cockpit.data.viewCount,
         lastViewedAt: cockpit.data.lastViewedAt,

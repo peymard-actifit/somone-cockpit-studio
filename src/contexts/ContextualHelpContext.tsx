@@ -325,14 +325,17 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
               updatedHelps = [...existingHelps, newHelp];
             }
             
-            // Mettre à jour le store sans déclencher d'auto-save supplémentaire
+            // Mettre à jour le store et déclencher l'auto-save
             useCockpitStore.setState({
               currentCockpit: {
                 ...currentCockpit,
                 contextualHelps: updatedHelps,
+                updatedAt: new Date().toISOString(), // Marquer comme modifié
               },
             });
-            console.log('[ContextualHelp] Store mis à jour avec aide locale:', elementKey);
+            // Déclencher l'auto-save pour afficher l'indicateur et sauvegarder
+            useCockpitStore.getState().triggerAutoSave();
+            console.log('[ContextualHelp] Store mis à jour avec aide locale + auto-save déclenché:', elementKey);
           }
         }
         
@@ -377,9 +380,12 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
               currentCockpit: {
                 ...currentCockpit,
                 contextualHelps: updatedHelps,
+                updatedAt: new Date().toISOString(), // Marquer comme modifié
               },
             });
-            console.log('[ContextualHelp] Aide locale supprimée du store:', elementKey);
+            // Déclencher l'auto-save pour afficher l'indicateur et sauvegarder
+            useCockpitStore.getState().triggerAutoSave();
+            console.log('[ContextualHelp] Aide locale supprimée du store + auto-save déclenché:', elementKey);
           }
         }
         
