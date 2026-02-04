@@ -10,6 +10,7 @@ import LinkElementModal from './LinkElementModal';
 interface CategorySectionProps {
   category: Category;
   onElementClick?: (elementId: string) => void;
+  onDomainClick?: (domainId: string) => void; // Double-clic pour naviguer vers le domaine source
   onCategoryClick?: (categoryId: string) => void; // Callback pour cliquer sur la catégorie (vue Catégorie)
   readOnly?: boolean;
   domainId?: string; // ID du domaine pour les préférences indépendantes
@@ -22,7 +23,7 @@ interface CategorySectionProps {
 
 // Ce composant gère uniquement les catégories HORIZONTALES
 // Les catégories VERTICALES sont gérées directement dans DomainView
-export default function CategorySection({ category, onElementClick, onCategoryClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth, domains, useGridLayout = false, useOriginalView = false }: CategorySectionProps) {
+export default function CategorySection({ category, onElementClick, onDomainClick, onCategoryClick, readOnly = false, domainId, horizontalSpacing: propHorizontalSpacing, categoryHeaderMinWidth, domains, useGridLayout = false, useOriginalView = false }: CategorySectionProps) {
   const { addElement, deleteCategory, moveElement, reorderElement, findElementsByName, linkElement } = useCockpitStore();
   const confirm = useConfirm();
   // Récupérer le contexte de zoom pour compenser la taille du texte
@@ -307,6 +308,7 @@ export default function CategorySection({ category, onElementClick, onCategoryCl
               key={element.id}
               element={element}
               onElementClick={onElementClick}
+              onDomainClick={onDomainClick}
               readOnly={readOnly}
               categoryId={category.id}
               index={index}

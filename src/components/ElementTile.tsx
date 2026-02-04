@@ -10,6 +10,7 @@ interface ElementTileProps {
   element: Element;
   mini?: boolean;
   onElementClick?: (elementId: string) => void;
+  onDomainClick?: (domainId: string) => void; // Double-clic pour naviguer vers le domaine source (si héritage couleur)
   readOnly?: boolean;
   categoryId?: string; // Pour le drag and drop
   index?: number; // Index dans la catégorie pour le réordonnancement
@@ -19,7 +20,7 @@ interface ElementTileProps {
   domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
 }
 
-export default function ElementTile({ element, mini = false, onElementClick, readOnly = false, categoryId, index, totalElements, onReorder, domainId, domains: domainsProp }: ElementTileProps) {
+export default function ElementTile({ element, mini = false, onElementClick, onDomainClick, readOnly = false, categoryId, index, totalElements, onReorder, domainId, domains: domainsProp }: ElementTileProps) {
   const { setCurrentElement, deleteElement, duplicateElementLinked, currentCockpit } = useCockpitStore();
   const confirm = useConfirm();
   // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
@@ -166,11 +167,19 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
     }
   };
 
+  // Double-clic pour naviguer vers le domaine source si l'élément hérite sa couleur d'un domaine
+  const handleDoubleClick = () => {
+    if (element.status === 'herite_domaine' && element.inheritFromDomainId && onDomainClick) {
+      onDomainClick(element.inheritFromDomainId);
+    }
+  };
+
   if (mini) {
     // Version mini pour les cartes et vues avec image de fond
     return (
       <button
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         data-help-key={`element-${element.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`}
         className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-md transition-all hover:scale-105 hover:shadow-lg border border-[#E2E8F0]"
       >
@@ -190,6 +199,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
     <button
       ref={buttonRef}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       draggable={!readOnly && !mini && !!categoryId}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}

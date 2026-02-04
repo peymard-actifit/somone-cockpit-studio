@@ -416,14 +416,15 @@ interface PointCluster {
 interface MapViewProps {
   domain: Domain;
   onElementClick?: (elementId: string) => void;
+  onDomainClick?: (domainId: string) => void; // Double-clic pour naviguer vers le domaine source
   readOnly?: boolean;
   domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
   onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée
-  hideHeader?: boolean; // État actuel du masquage du header
+  hideHeader?: boolean | null; // État actuel du masquage du header (null = comportement par défaut)
   onToggleHeader?: (hide: boolean) => void; // Callback pour toggle le header
 }
 
-export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: _domainsProp, onDateChange, hideHeader, onToggleHeader }: MapViewProps) {
+export default function MapView({ domain, onElementClick: _onElementClick, onDomainClick, readOnly: _readOnly = false, domains: _domainsProp, onDateChange, hideHeader, onToggleHeader }: MapViewProps) {
   const fullscreenContainerRef = useRef<HTMLDivElement>(null); // Pour le mode plein écran
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -1220,6 +1221,20 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
     }
   };
 
+  // Double-clic sur un point pour naviguer vers le domaine source si l'élément hérite sa couleur
+  const handlePointDoubleClick = (point: MapElement) => {
+    if (!point.elementId || !onDomainClick) return;
+    
+    // Trouver l'élément lié
+    for (const cat of (domain.categories || [])) {
+      const element = (cat.elements || []).find(e => e.id === point.elementId);
+      if (element && element.status === 'herite_domaine' && element.inheritFromDomainId) {
+        onDomainClick(element.inheritFromDomainId);
+        return;
+      }
+    }
+  };
+
   // Créer un Element à partir d'un point de carte
   const createElementFromPoint = (point: MapElement) => {
     // Chercher ou créer une catégorie "Points de carte" dans le domaine - protection pour les tableaux
@@ -1890,17 +1905,17 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
             <div className="flex items-center gap-1.5">
               <MuiIcon name="VerticalAlignTop" size={12} className="text-[#1E3A5F]" />
               <button
-                onClick={() => onToggleHeader(!hideHeader)}
+                onClick={() => onToggleHeader(hideHeader === false ? true : false)}
                 className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-                  !hideHeader ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                  hideHeader === false ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
                 }`}
                 role="switch"
-                aria-checked={!hideHeader}
-                title={hideHeader ? t('zoom.showHeader') : t('zoom.hideHeader')}
+                aria-checked={hideHeader === false}
+                title={hideHeader === false ? t('zoom.hideHeader') : t('zoom.showHeader')}
               >
                 <span
                   className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
-                    !hideHeader ? 'translate-x-3.5' : 'translate-x-0.5'
+                    hideHeader === false ? 'translate-x-3.5' : 'translate-x-0.5'
                   }`}
                 />
               </button>
@@ -2354,6 +2369,10 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
                     return;
                   }
                   handlePointClick(point);
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  handlePointDoubleClick(point);
                 }}
               >
                 {/* Icône colorée, forme simple - draggable en mode studio */}

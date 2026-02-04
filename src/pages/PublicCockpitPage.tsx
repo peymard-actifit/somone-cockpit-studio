@@ -24,8 +24,12 @@ function PublicCockpitContent() {
   const [showMindMap, setShowMindMap] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   // État pour masquer le header via le toggle dans les vues
-  const [hideHeader, setHideHeader] = useState(() => {
+  // null = jamais défini (comportement par défaut : masqué sur Map/Background, visible ailleurs)
+  // true = masquer (choix explicite de l'utilisateur)
+  // false = afficher (choix explicite de l'utilisateur)
+  const [hideHeader, setHideHeader] = useState<boolean | null>(() => {
     const saved = localStorage.getItem(`hideHeader-${publicId}`);
+    if (saved === null) return null; // Jamais défini par l'utilisateur
     return saved === 'true';
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -302,6 +306,13 @@ function PublicCockpitContent() {
   // Handler pour revenir à la vue domaine
   const handleBackToDomain = () => {
     setCurrentElementId(null);
+  };
+
+  // Handler pour double-clic sur un élément avec héritage de couleur → naviguer vers le domaine source
+  const handleDomainClick = (domainId: string) => {
+    setCurrentDomainId(domainId);
+    setCurrentElementId(null);
+    trackEvent('page', { domainId });
   };
 
   // =====================================================
@@ -726,8 +737,12 @@ function PublicCockpitContent() {
     </header>
   );
 
-  // Déterminer si le header doit être masqué (hideHeader toggle ou vue Map/Background)
-  const shouldHideHeader = hideHeader || isMapOrBackgroundView;
+  // Déterminer si le header doit être masqué
+  // Si l'utilisateur a défini une préférence (hideHeader !== null), on la respecte
+  // Sinon, comportement par défaut : masqué sur Map/Background, visible ailleurs
+  const shouldHideHeader = hideHeader === null 
+    ? isMapOrBackgroundView  // Comportement par défaut si jamais défini
+    : hideHeader;            // Préférence utilisateur si définie
   const isHeaderVisible = !shouldHideHeader || isHeaderHovered;
 
   return (
@@ -790,6 +805,7 @@ function PublicCockpitContent() {
             <DomainView
               domain={currentDomain}
               onElementClick={handleElementClick}
+              onDomainClick={handleDomainClick}
               readOnly={true}
               cockpit={cockpit}
               onDateChange={handleDateChange}

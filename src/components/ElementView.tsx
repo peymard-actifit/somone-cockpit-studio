@@ -22,7 +22,7 @@ interface ElementViewProps {
   onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition d'un sous-élément
   forceVerticalSubCategories?: boolean; // Force toutes les sous-categories en mode vertical (vue grille)
   onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée (mode publié)
-  hideHeader?: boolean; // État actuel du masquage du header
+  hideHeader?: boolean | null; // État actuel du masquage du header (null = comportement par défaut)
   onToggleHeader?: (hide: boolean) => void; // Callback pour toggle le header
 }
 
@@ -631,33 +631,33 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
           <span className="text-sm font-medium text-[#1E3A5F]">%</span>
         </div>
 
-        {/* DateTimeline - toggle + cases dans un seul bloc compact (mode publié uniquement) */}
-        {readOnly && onDateChange && (
-          <DateTimeline onDateChange={onDateChange} domainId={element.id} />
-        )}
-
-        {/* Toggle masquage header (mode publié uniquement) */}
+        {/* Toggle masquage header (mode publié uniquement) - AU DESSUS de la timeline */}
         {readOnly && onToggleHeader && (
           <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
             <div className="flex items-center gap-1.5">
               <MuiIcon name="VerticalAlignTop" size={12} className="text-[#1E3A5F]" />
               <button
-                onClick={() => onToggleHeader(!hideHeader)}
+                onClick={() => onToggleHeader(hideHeader === false ? true : false)}
                 className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
-                  !hideHeader ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                  hideHeader === false ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
                 }`}
                 role="switch"
-                aria-checked={!hideHeader}
-                title={hideHeader ? t('zoom.showHeader') : t('zoom.hideHeader')}
+                aria-checked={hideHeader === false}
+                title={hideHeader === false ? t('zoom.hideHeader') : t('zoom.showHeader')}
               >
                 <span
                   className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
-                    !hideHeader ? 'translate-x-3.5' : 'translate-x-0.5'
+                    hideHeader === false ? 'translate-x-3.5' : 'translate-x-0.5'
                   }`}
                 />
               </button>
             </div>
           </div>
+        )}
+
+        {/* DateTimeline - toggle + cases dans un seul bloc compact (mode publié uniquement) */}
+        {readOnly && onDateChange && (
+          <DateTimeline onDateChange={onDateChange} domainId={element.id} />
         )}
       </div>
 

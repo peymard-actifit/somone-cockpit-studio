@@ -22,14 +22,15 @@ import { useLanguage } from '../contexts/LanguageContext';
 interface DomainViewProps {
   domain: Domain;
   onElementClick?: (elementId: string) => void;
+  onDomainClick?: (domainId: string) => void; // Double-clic pour naviguer vers le domaine source
   readOnly?: boolean;
   cockpit?: Cockpit; // Pour la vue publiée
   onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée
-  hideHeader?: boolean; // État actuel du masquage du header
+  hideHeader?: boolean | null; // État actuel du masquage du header (null = comportement par défaut)
   onToggleHeader?: (hide: boolean) => void; // Callback pour toggle le header
 }
 
-export default function DomainView({ domain, onElementClick, readOnly = false, cockpit: cockpitProp, onDateChange, hideHeader, onToggleHeader }: DomainViewProps) {
+export default function DomainView({ domain, onElementClick, onDomainClick, readOnly = false, cockpit: cockpitProp, onDateChange, hideHeader, onToggleHeader }: DomainViewProps) {
   const { addCategory, deleteCategory, addElement, moveElement, reorderElement, findElementsByName, linkElement, currentCockpit } = useCockpitStore();
   const confirm = useConfirm();
   const { t } = useLanguage();
@@ -162,7 +163,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'map') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader} />
+        <MapView domain={domain} onElementClick={onElementClick} onDomainClick={onDomainClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader} />
       </div>
     );
   }
@@ -171,7 +172,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'background') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader} />
+        <BackgroundView domain={domain} onElementClick={onElementClick} onDomainClick={onDomainClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader} />
       </div>
     );
   }
@@ -551,6 +552,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                           key={element.id}
                           element={element}
                           onElementClick={onElementClick}
+                          onDomainClick={onDomainClick}
                           readOnly={readOnly}
                           categoryId={category.id}
                           index={index}
@@ -644,6 +646,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
                 <CategorySection
                   category={category}
                   onElementClick={onElementClick}
+                  onDomainClick={onDomainClick}
                   onCategoryClick={(categoryId) => setSelectedCategoryId(categoryId)}
                   readOnly={readOnly}
                   domainId={domain.id}
