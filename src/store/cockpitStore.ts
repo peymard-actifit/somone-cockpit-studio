@@ -141,7 +141,9 @@ interface CockpitState {
   // Utilitaires
   triggerAutoSave: () => void;
   triggerImmediateSave: () => Promise<void>; // Sauvegarde immédiate pour opérations critiques
-  forceSave: () => Promise<boolean>;
+  forceSave: (includeImages?: boolean) => Promise<boolean>; // includeImages = true pour envoyer les images réelles
+  pendingImageDomainIds: Set<string>; // Domaines avec images modifiées à sauvegarder
+  markDomainImageChanged: (domainId: string) => void; // Marquer une image comme modifiée
   clearError: () => void;
 
   // Tracking des modifications
@@ -243,6 +245,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   examplesLibrary: null,
   showExamples: false,
   availableExamplesViews: [],
+  pendingImageDomainIds: new Set<string>(),
 
   // =====================================================
   // GESTION DES RÉPERTOIRES
@@ -869,9 +872,17 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     }
   },
 
+  // Marquer un domaine comme ayant une image modifiée (à sauvegarder réellement)
+  markDomainImageChanged: (domainId: string) => {
+    const { pendingImageDomainIds } = get();
+    pendingImageDomainIds.add(domainId);
+    console.log(`[markDomainImageChanged] 🖼️ Image marquée pour sauvegarde: domaine ${domainId}`);
+  },
+
   // Sauvegarde forcée et synchrone - retourne une promesse
-  forceSave: async () => {
-    const { autoSaveTimeout, currentCockpit } = get();
+  // includeImages = true force l'envoi de toutes les images
+  forceSave: async (includeImages = false) => {
+    const { autoSaveTimeout, currentCockpit, pendingImageDomainIds } = get();
 
     // Annuler l'auto-save en attente
     if (autoSaveTimeout) {
@@ -886,16 +897,31 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     const token = useAuthStore.getState().token;
     
-    // OPTIMISATION: Toujours utiliser le marqueur [IMAGE_PRESERVED] pour les images de fond
-    // Cela réduit drastiquement la taille du payload (les images sont préservées côté serveur)
-    const domainsWithoutImages = (currentCockpit.domains || []).map((d: any) => ({
-      ...d,
-      backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
-    }));
+    // OPTIMISATION: Utiliser le marqueur [IMAGE_PRESERVED] sauf pour les images modifiées
+    // ou si includeImages est true (sauvegarde complète)
+    const domainsWithOptimizedImages = (currentCockpit.domains || []).map((d: any) => {
+      // Si includeImages ou si ce domaine a une image modifiée, envoyer l'image réelle
+      if (includeImages || pendingImageDomainIds.has(d.id)) {
+        if (d.backgroundImage && pendingImageDomainIds.has(d.id)) {
+          console.log(`[forceSave] 🖼️ Envoi image réelle pour "${d.name}" (${(d.backgroundImage.length / 1024).toFixed(0)} KB)`);
+        }
+        return d; // Garder l'image réelle
+      }
+      // Sinon, utiliser le marqueur pour préserver l'image existante côté serveur
+      return {
+        ...d,
+        backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
+      };
+    });
+    
+    // Vider les images en attente après les avoir incluses dans le payload
+    if (pendingImageDomainIds.size > 0) {
+      console.log(`[forceSave] 📤 ${pendingImageDomainIds.size} image(s) modifiée(s) incluse(s) dans la sauvegarde`);
+    }
     
     const payload: any = {
       name: currentCockpit.name,
-      domains: domainsWithoutImages,
+      domains: domainsWithOptimizedImages,
       logo: currentCockpit.logo,
       scrollingBanner: currentCockpit.scrollingBanner,
       sharedWith: currentCockpit.sharedWith || [],
@@ -915,7 +941,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
     const payloadStr = JSON.stringify(payload);
     const payloadSizeMB = payloadStr.length / 1024 / 1024;
-    console.log(`[forceSave] 📦 Taille du payload ALLÉGÉ: ${payloadSizeMB.toFixed(2)} MB (images préservées côté serveur)`);
+    const hasImages = pendingImageDomainIds.size > 0 || includeImages;
+    console.log(`[forceSave] 📦 Taille du payload${hasImages ? '' : ' ALLÉGÉ'}: ${payloadSizeMB.toFixed(2)} MB${hasImages ? ' (avec images)' : ' (images préservées côté serveur)'}`);
     
     // Toujours sauvegarder une copie locale
     offlineSync.backupCockpit(currentCockpit);
@@ -958,8 +985,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       }
 
       console.log(`[forceSave] ✅ Sauvegarde réussie (${payloadSizeMB.toFixed(2)} MB)`);
-      // Succès : nettoyer le backup local
+      // Succès : nettoyer le backup local et les images en attente
       offlineSync.clearBackup(currentCockpit.id);
+      pendingImageDomainIds.clear();
       return true;
     } catch (error: any) {
       // Erreur réseau : passer en mode offline

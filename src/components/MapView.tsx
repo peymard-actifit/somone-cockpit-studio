@@ -428,7 +428,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, onDom
   const fullscreenContainerRef = useRef<HTMLDivElement>(null); // Pour le mode plein écran
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
-  const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement, lastClonedMapElementId, clearLastClonedMapElementId, triggerImmediateSave } = useCockpitStore();
+  const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement, lastClonedMapElementId, clearLastClonedMapElementId, triggerImmediateSave, markDomainImageChanged } = useCockpitStore();
   const { token } = useAuthStore();
   const { t } = useLanguage();
 
@@ -1116,6 +1116,11 @@ export default function MapView({ domain, onElementClick: _onElementClick, onDom
       const sizeMB = configForm.imageUrl.length / 1024 / 1024;
 
       console.log(`[MapView] ðŸ’¾ Sauvegarde image: ${sizeMB.toFixed(2)} MB (${configForm.imageUrl.length} chars)`);
+    }
+
+    // Marquer cette image comme modifiée pour qu'elle soit envoyée réellement
+    if (configForm.imageUrl) {
+      markDomainImageChanged(domain.id);
     }
 
     // Sauvegarder l'URL de l'image et le clustering

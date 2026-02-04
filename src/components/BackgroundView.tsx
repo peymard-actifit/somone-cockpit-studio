@@ -424,7 +424,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, triggerImmediateSave, findElementsByName, linkElement, currentCockpit, lastClonedElementId, clearLastClonedElementId, zones } = useCockpitStore();
+  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, triggerImmediateSave, findElementsByName, linkElement, currentCockpit, lastClonedElementId, clearLastClonedElementId, zones, markDomainImageChanged } = useCockpitStore();
   // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
   const domains = domainsProp || currentCockpit?.domains;
 
@@ -747,6 +747,10 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
     setIsSaving(true);
     console.log(`[BackgroundView] Sauvegarde image: ${sizeMB.toFixed(2)} MB (${imageUrl.length} chars)`);
 
+    // Marquer cette image comme modifiée AVANT la mise à jour
+    // pour qu'elle soit envoyée réellement lors de la sauvegarde
+    markDomainImageChanged(domain.id);
+
     // Mettre à jour le domaine
     updateDomain(domain.id, {
       backgroundImage: imageUrl,
@@ -754,7 +758,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
       enableClustering: enableClustering,
     });
 
-    // Forcer une sauvegarde IMMÉDIATE
+    // Forcer une sauvegarde IMMÉDIATE (l'image sera incluse car marquée comme modifiée)
     const saved = await forceSave();
     setIsSaving(false);
 
