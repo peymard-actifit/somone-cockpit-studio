@@ -467,6 +467,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const elementDragStartPosRef = useRef<{ elementId: string; x: number; y: number } | null>(null);
   const hasDraggedElementRef = useRef<boolean>(false);
   const preventClickRef = useRef<boolean>(false); // Pour empêcher le onClick après un drag
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // Pour distinguer click / double-click
 
   // Modal de configuration
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -2370,15 +2371,27 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                   if (preventClickRef.current) {
                     return;
                   }
-                  // Ouvrir le menu d'édition via onElementClick
-                  if (_onElementClick) {
-                    _onElementClick(element.id);
-                  } else {
-                    setCurrentElement(element.id);
+                  // Utiliser un délai pour distinguer click simple / double-click
+                  if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
                   }
+                  clickTimeoutRef.current = setTimeout(() => {
+                    // Ouvrir le menu d'édition via onElementClick
+                    if (_onElementClick) {
+                      _onElementClick(element.id);
+                    } else {
+                      setCurrentElement(element.id);
+                    }
+                    clickTimeoutRef.current = null;
+                  }, 250); // 250ms de délai pour attendre un éventuel double-click
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
+                  // Annuler le click simple en cours
+                  if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
+                    clickTimeoutRef.current = null;
+                  }
                   // Double-clic pour naviguer vers le domaine source si l'élément hérite sa couleur
                   if (element.status === 'herite_domaine' && element.inheritFromDomainId && onDomainClick) {
                     onDomainClick(element.inheritFromDomainId);

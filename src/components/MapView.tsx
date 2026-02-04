@@ -474,6 +474,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, onDom
   const pointDragStartPosRef = useRef<{ pointId: string; x: number; y: number } | null>(null);
   const hasDraggedPointRef = useRef<boolean>(false);
   const preventClickRef = useRef<boolean>(false); // Pour empêcher le onClick après un drag
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // Pour distinguer click / double-click
 
   // Modales
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -2368,10 +2369,22 @@ export default function MapView({ domain, onElementClick: _onElementClick, onDom
                   if (preventClickRef.current) {
                     return;
                   }
-                  handlePointClick(point);
+                  // Utiliser un délai pour distinguer click simple / double-click
+                  if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
+                  }
+                  clickTimeoutRef.current = setTimeout(() => {
+                    handlePointClick(point);
+                    clickTimeoutRef.current = null;
+                  }, 250); // 250ms de délai pour attendre un éventuel double-click
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
+                  // Annuler le click simple en cours
+                  if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
+                    clickTimeoutRef.current = null;
+                  }
                   handlePointDoubleClick(point);
                 }}
               >
