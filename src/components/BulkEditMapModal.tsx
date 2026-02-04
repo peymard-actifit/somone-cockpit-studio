@@ -4,6 +4,31 @@ import { STATUS_COLORS, STATUS_LABELS } from '../types';
 import { MuiIcon } from './IconPicker';
 import { useCockpitStore } from '../store/cockpitStore';
 
+// Formes simples disponibles
+const SIMPLE_SHAPES = [
+  { id: 'shape:circle', name: 'Cercle', label: '●' },
+  { id: 'shape:square', name: 'Carré', label: '■' },
+  { id: 'shape:triangle', name: 'Triangle', label: '▲' },
+  { id: 'shape:diamond', name: 'Losange', label: '◆' },
+  { id: 'shape:hexagon', name: 'Hexagone', label: '⬡' },
+  { id: 'shape:star', name: 'Étoile', label: '★' },
+  { id: 'shape:stadium', name: 'Stade', label: '▭' },
+  { id: 'shape:lightning', name: 'Éclair', label: '⚡' },
+  { id: 'shape:faucet', name: 'Robinet', label: '🚰' },
+];
+
+// Helper pour détecter si c'est une forme
+const isShape = (icon: string | undefined): boolean => {
+  return icon?.startsWith('shape:') || false;
+};
+
+// Helper pour obtenir le label de la forme
+const getShapeLabel = (icon: string | undefined): string => {
+  if (!icon || !isShape(icon)) return '';
+  const shape = SIMPLE_SHAPES.find(s => s.id === icon);
+  return shape?.label || icon.replace('shape:', '');
+};
+
 interface BulkEditMapModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,11 +60,32 @@ export default function BulkEditMapModal({ isOpen, onClose, mapElements }: BulkE
 
   const statuses: TileStatus[] = ['ok', 'information', 'mineur', 'critique', 'fatal', 'deconnecte'];
 
-  // Icônes populaires pour sélection rapide
-  const popularIcons = [
-    'Store', 'Building', 'Factory', 'Warehouse', 'Home',
-    'MapPin', 'Navigation', 'Truck', 'Package', 'ShoppingCart',
-    'Server', 'Database', 'Wifi', 'AlertTriangle', 'Shield',
+  // Icônes organisées par catégories
+  const iconCategories = [
+    {
+      name: 'Formes',
+      icons: SIMPLE_SHAPES.map(s => s.id),
+    },
+    {
+      name: 'Lieux',
+      icons: ['Store', 'Building', 'Factory', 'Warehouse', 'Home', 'Apartment', 'Business', 'LocationCity'],
+    },
+    {
+      name: 'Transport',
+      icons: ['Truck', 'LocalShipping', 'DirectionsCar', 'Flight', 'Train', 'DirectionsBoat'],
+    },
+    {
+      name: 'Infrastructure',
+      icons: ['Server', 'Database', 'Storage', 'Wifi', 'Router', 'Memory', 'Dns', 'Cloud'],
+    },
+    {
+      name: 'Alertes',
+      icons: ['Warning', 'Error', 'Info', 'CheckCircle', 'Cancel', 'Block', 'ReportProblem'],
+    },
+    {
+      name: 'Divers',
+      icons: ['Place', 'MapPin', 'Flag', 'Star', 'Favorite', 'Bookmark', 'Person', 'Group'],
+    },
   ];
 
   const handleUpdate = (elementId: string, updates: Partial<MapElement>) => {
@@ -86,10 +132,10 @@ export default function BulkEditMapModal({ isOpen, onClose, mapElements }: BulkE
         </div>
 
         {/* En-têtes de colonnes */}
-        <div className="grid grid-cols-[2fr_100px_80px_100px_100px] gap-2 px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs font-semibold text-[#64748B] flex-shrink-0">
+        <div className="grid grid-cols-[2fr_100px_180px_100px_100px] gap-2 px-4 py-2 bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs font-semibold text-[#64748B] flex-shrink-0">
           <div>Nom</div>
           <div>Statut</div>
-          <div>Icône</div>
+          <div>Icône / Forme</div>
           <div>Latitude</div>
           <div>Longitude</div>
         </div>
@@ -106,7 +152,7 @@ export default function BulkEditMapModal({ isOpen, onClose, mapElements }: BulkE
                 key={element.id}
                 element={element}
                 statuses={statuses}
-                popularIcons={popularIcons}
+                iconCategories={iconCategories}
                 onUpdate={handleUpdate}
               />
             ))
@@ -126,16 +172,41 @@ export default function BulkEditMapModal({ isOpen, onClose, mapElements }: BulkE
 interface BulkEditMapRowProps {
   element: MapElement;
   statuses: TileStatus[];
-  popularIcons: string[];
+  iconCategories: Array<{ name: string; icons: string[] }>;
   onUpdate: (elementId: string, updates: Partial<MapElement>) => void;
 }
 
-function BulkEditMapRow({ element, statuses, popularIcons, onUpdate }: BulkEditMapRowProps) {
+function BulkEditMapRow({ element, statuses, iconCategories, onUpdate }: BulkEditMapRowProps) {
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const colors = STATUS_COLORS[element.status] || STATUS_COLORS.ok;
+  const currentIcon = element.icon || 'Place';
+  const isCurrentShape = isShape(currentIcon);
+
+  // Fermer le picker quand on clique à l'extérieur
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowIconPicker(false);
+      }
+    };
+    if (showIconPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showIconPicker]);
+
+  // Obtenir le nom de l'icône actuelle
+  const getCurrentIconName = () => {
+    if (isCurrentShape) {
+      const shape = SIMPLE_SHAPES.find(s => s.id === currentIcon);
+      return shape?.name || currentIcon.replace('shape:', '');
+    }
+    return currentIcon;
+  };
 
   return (
-    <div className="grid grid-cols-[2fr_100px_80px_100px_100px] gap-2 px-4 py-1.5 border-b border-[#F1F5F9] hover:bg-[#F8FAFC] items-center text-sm">
+    <div className="grid grid-cols-[2fr_100px_180px_100px_100px] gap-2 px-4 py-1.5 border-b border-[#F1F5F9] hover:bg-[#F8FAFC] items-center text-sm">
       {/* Nom */}
       <input
         type="text"
@@ -161,28 +232,69 @@ function BulkEditMapRow({ element, statuses, popularIcons, onUpdate }: BulkEditM
         </select>
       </div>
 
-      {/* Icône */}
-      <div className="relative">
+      {/* Icône - Affichage amélioré avec nom visible */}
+      <div className="relative" ref={pickerRef}>
         <button
           onClick={() => setShowIconPicker(!showIconPicker)}
-          className="w-full px-2 py-1 border border-[#E2E8F0] rounded flex items-center justify-center hover:bg-[#F5F7FA]"
+          className={`w-full px-2 py-1 border rounded flex items-center gap-2 hover:bg-[#F5F7FA] transition-colors ${
+            showIconPicker ? 'border-[#1E3A5F] bg-[#F5F7FA]' : 'border-[#E2E8F0]'
+          }`}
         >
-          <MuiIcon name={element.icon || 'Place'} size={16} className="text-[#1E3A5F]" />
+          {/* Icône actuelle avec couleur du statut */}
+          <div 
+            className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: colors.hex + '20', color: colors.hex }}
+          >
+            {isCurrentShape ? (
+              <span className="text-sm">{getShapeLabel(currentIcon)}</span>
+            ) : (
+              <MuiIcon name={currentIcon} size={16} className="text-inherit" />
+            )}
+          </div>
+          {/* Nom de l'icône */}
+          <span className="text-xs text-[#64748B] truncate flex-1 text-left">{getCurrentIconName()}</span>
+          {/* Chevron */}
+          <MuiIcon name={showIconPicker ? 'ExpandLess' : 'ExpandMore'} size={14} className="text-[#94A3B8] flex-shrink-0" />
         </button>
+
+        {/* Picker d'icônes amélioré */}
         {showIconPicker && (
-          <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E2E8F0] rounded-lg shadow-lg p-2 grid grid-cols-5 gap-1 w-40">
-            {popularIcons.map(icon => (
-              <button
-                key={icon}
-                onClick={() => {
-                  onUpdate(element.id, { icon });
-                  setShowIconPicker(false);
-                }}
-                className={`p-1.5 rounded hover:bg-[#F5F7FA] ${element.icon === icon ? 'bg-[#E2E8F0]' : ''}`}
-                title={icon}
-              >
-                <MuiIcon name={icon} size={16} className="text-[#1E3A5F]" />
-              </button>
+          <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E2E8F0] rounded-xl shadow-xl p-3 w-80 max-h-72 overflow-y-auto">
+            {iconCategories.map((category, catIndex) => (
+              <div key={category.name} className={catIndex > 0 ? 'mt-3' : ''}>
+                <div className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5">
+                  {category.name}
+                </div>
+                <div className="grid grid-cols-6 gap-1">
+                  {category.icons.map(icon => {
+                    const isSelected = currentIcon === icon;
+                    const iconIsShape = isShape(icon);
+                    return (
+                      <button
+                        key={icon}
+                        onClick={() => {
+                          onUpdate(element.id, { icon });
+                          setShowIconPicker(false);
+                        }}
+                        className={`p-1.5 rounded-lg transition-all ${
+                          isSelected 
+                            ? 'bg-[#1E3A5F] text-white ring-2 ring-[#1E3A5F] ring-offset-1' 
+                            : 'hover:bg-[#F5F7FA] text-[#1E3A5F]'
+                        }`}
+                        title={iconIsShape ? SIMPLE_SHAPES.find(s => s.id === icon)?.name : icon}
+                      >
+                        {iconIsShape ? (
+                          <span className="text-sm block text-center">
+                            {getShapeLabel(icon)}
+                          </span>
+                        ) : (
+                          <MuiIcon name={icon} size={18} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </div>
         )}
