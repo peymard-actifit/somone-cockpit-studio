@@ -44,28 +44,32 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
   const [hoverTooltip, setHoverTooltip] = useState<{ content: string; x: number; y: number } | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentHoverKeyRef = useRef<string | null>(null);
+  
+  // Refs pour éviter les dépendances circulaires dans les callbacks
+  const cockpitRef = useRef<CockpitWithHelp | null>(null);
+  const languageRef = useRef(language);
+  
+  // Mettre à jour les refs quand les valeurs changent
+  useEffect(() => {
+    cockpitRef.current = cockpit;
+  }, [cockpit]);
+  
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
 
   // Le système est activé si le cockpit a showHelpOnHover=true (ou non défini = true par défaut)
   const isEnabled = cockpit?.showHelpOnHover !== false;
 
   // Fonction pour configurer le cockpit
   const setCockpit = useCallback((newCockpit: CockpitWithHelp | null) => {
+    console.log('[PublicHelp] setCockpit appelé:', {
+      showHelpOnHover: newCockpit?.showHelpOnHover,
+      contextualHelpsCount: newCockpit?.contextualHelps?.length || 0,
+      contextualHelps: newCockpit?.contextualHelps?.map(h => h.elementKey)
+    });
     setCockpitState(newCockpit);
   }, []);
-
-  // Trouver une aide par sa clé
-  const findHelp = useCallback((elementKey: string): LocalContextualHelp | null => {
-    if (!cockpit?.contextualHelps) return null;
-    return cockpit.contextualHelps.find(h => h.elementKey === elementKey) || null;
-  }, [cockpit]);
-
-  // Obtenir le contenu traduit
-  const getTranslatedContent = useCallback((help: LocalContextualHelp): string => {
-    if (language === 'EN' && help.contentEN) {
-      return help.contentEN;
-    }
-    return help.content;
-  }, [language]);
 
   // Fonction pour remonter la hiérarchie DOM et trouver un data-help-key
   const getHelpKeyFromElement = (element: HTMLElement): string | null => {
@@ -85,69 +89,6 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
     return null;
   };
 
-  // Gérer le survol de la souris
-  const handleMouseMove = useCallback((event: MouseEvent) => {
-    if (!isEnabled) return;
-
-    const target = event.target as HTMLElement;
-    
-    // Ignorer les inputs et textareas
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-      setHoverTooltip(null);
-      currentHoverKeyRef.current = null;
-      return;
-    }
-
-    // Chercher la clé d'aide
-    const helpKey = getHelpKeyFromElement(target);
-    
-    if (!helpKey) {
-      if (currentHoverKeyRef.current) {
-        if (hoverTimeoutRef.current) {
-          clearTimeout(hoverTimeoutRef.current);
-        }
-        setHoverTooltip(null);
-        currentHoverKeyRef.current = null;
-      }
-      return;
-    }
-
-    // Si même clé, juste mettre à jour la position
-    if (helpKey === currentHoverKeyRef.current) {
-      if (hoverTooltip) {
-        setHoverTooltip(prev => prev ? {
-          ...prev,
-          x: event.clientX + 15,
-          y: event.clientY + 15
-        } : null);
-      }
-      return;
-    }
-
-    // Nouvelle clé - annuler le timeout précédent
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-
-    currentHoverKeyRef.current = helpKey;
-    setHoverTooltip(null);
-
-    // Délai avant d'afficher le tooltip
-    hoverTimeoutRef.current = setTimeout(() => {
-      if (currentHoverKeyRef.current !== helpKey) return;
-
-      const help = findHelp(helpKey);
-      if (help) {
-        const content = getTranslatedContent(help);
-        setHoverTooltip({
-          content,
-          x: event.clientX + 15,
-          y: event.clientY + 15
-        });
-      }
-    }, 400); // 400ms de délai
-  }, [isEnabled, findHelp, getTranslatedContent, hoverTooltip]);
-
   // Cacher le tooltip quand la souris quitte le document
   const handleMouseLeave = useCallback(() => {
     if (hoverTimeoutRef.current) {
@@ -157,20 +98,96 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
     currentHoverKeyRef.current = null;
   }, []);
 
-  // Attacher/détacher les écouteurs
+  // Attacher/détacher les écouteurs - utilise une fonction inline pour accéder aux refs
   useEffect(() => {
-    if (isEnabled) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseleave', handleMouseLeave);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseleave', handleMouseLeave);
-        if (hoverTimeoutRef.current) {
-          clearTimeout(hoverTimeoutRef.current);
-        }
-      };
+    if (!isEnabled) {
+      console.log('[PublicHelp] Système désactivé');
+      return;
     }
-  }, [isEnabled, handleMouseMove, handleMouseLeave]);
+    
+    console.log('[PublicHelp] Système activé, écouteurs attachés');
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Ignorer les inputs et textareas
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        setHoverTooltip(null);
+        currentHoverKeyRef.current = null;
+        return;
+      }
+
+      // Chercher la clé d'aide
+      const helpKey = getHelpKeyFromElement(target);
+      
+      if (!helpKey) {
+        if (currentHoverKeyRef.current) {
+          if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+          }
+          setHoverTooltip(null);
+          currentHoverKeyRef.current = null;
+        }
+        return;
+      }
+
+      // Si même clé, juste mettre à jour la position
+      if (helpKey === currentHoverKeyRef.current) {
+        setHoverTooltip(prev => prev ? {
+          ...prev,
+          x: event.clientX + 15,
+          y: event.clientY + 15
+        } : null);
+        return;
+      }
+
+      // Nouvelle clé - annuler le timeout précédent
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+
+      currentHoverKeyRef.current = helpKey;
+      setHoverTooltip(null);
+
+      // Délai avant d'afficher le tooltip
+      hoverTimeoutRef.current = setTimeout(() => {
+        if (currentHoverKeyRef.current !== helpKey) return;
+
+        // Utiliser les refs pour accéder aux valeurs actuelles
+        const currentCockpit = cockpitRef.current;
+        const currentLanguage = languageRef.current;
+        
+        if (!currentCockpit?.contextualHelps) {
+          console.log('[PublicHelp] Pas d\'aides contextuelles dans le cockpit');
+          return;
+        }
+        
+        const help = currentCockpit.contextualHelps.find(h => h.elementKey === helpKey);
+        
+        console.log('[PublicHelp] Recherche aide pour:', helpKey, '-> trouvé:', !!help);
+        
+        if (help) {
+          const content = (currentLanguage === 'EN' && help.contentEN) ? help.contentEN : help.content;
+          setHoverTooltip({
+            content,
+            x: event.clientX + 15,
+            y: event.clientY + 15
+          });
+        }
+      }, 400); // 400ms de délai
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, [isEnabled, handleMouseLeave]);
 
   return (
     <PublicHelpContext.Provider value={{ isEnabled, setCockpit }}>

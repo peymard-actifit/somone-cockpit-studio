@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.12.0';
+const APP_VERSION = '17.12.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2926,6 +2926,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // Historique des données des sous-éléments
             dataHistory: snapshot.dataHistory || null,
             selectedDataDate: snapshot.selectedDataDate || null,
+            // Aides contextuelles (depuis snapshot ou données courantes)
+            contextualHelps: snapshot.contextualHelps || data.contextualHelps || [],
+            showHelpOnHover: snapshot.showHelpOnHover !== undefined ? snapshot.showHelpOnHover : (data.showHelpOnHover !== false),
           };
 
           console.log(`[Public API] Envoi reponse SNAPSHOT avec ${response.domains.length} domaines, dataHistory: ${snapshot.dataHistory ? 'OUI' : 'NON'}`);
@@ -3003,6 +3006,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Historique des données des sous-éléments
         dataHistory: data.dataHistory || null,
         selectedDataDate: data.selectedDataDate || null,
+        // Aides contextuelles locales à la maquette
+        contextualHelps: data.contextualHelps || [],
+        showHelpOnHover: data.showHelpOnHover !== false, // true par défaut
       };
 
       // Log final pour vérifier ce qui est envoyé
@@ -4358,6 +4364,9 @@ INSTRUCTIONS:
         // Historique des données des sous-éléments
         dataHistory: cockpit.data.dataHistory ? JSON.parse(JSON.stringify(cockpit.data.dataHistory)) : null,
         selectedDataDate: cockpit.data.selectedDataDate || null,
+        // Aides contextuelles locales à la maquette (pour affichage au survol dans cockpit publié)
+        contextualHelps: cockpit.data.contextualHelps ? JSON.parse(JSON.stringify(cockpit.data.contextualHelps)) : [],
+        showHelpOnHover: cockpit.data.showHelpOnHover !== false, // true par défaut
       };
 
       // Stocker le snapshot dans PostgreSQL (Neon)
