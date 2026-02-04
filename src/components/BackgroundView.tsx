@@ -1899,11 +1899,6 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
             </button>
           </div>
 
-          {/* Toggle timeline des dates (mode publié uniquement) */}
-          {_readOnly && onDateChange && (
-            <DateTimeline onDateChange={onDateChange} domainId={domain.id} showToggleOnly />
-          )}
-
           {/* Toggle masquage header (mode publié uniquement) */}
           {_readOnly && onToggleHeader && (
             <div className="flex items-center gap-1.5">
@@ -1924,6 +1919,11 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
                 />
               </button>
             </div>
+          )}
+
+          {/* Toggle timeline des dates (mode publié uniquement) - toujours à la fin */}
+          {_readOnly && onDateChange && (
+            <DateTimeline onDateChange={onDateChange} domainId={domain.id} showToggleOnly />
           )}
         </div>
 
