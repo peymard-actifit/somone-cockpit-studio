@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.22.5';
+const APP_VERSION = '17.22.6';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -4085,7 +4085,14 @@ INSTRUCTIONS:
         mergedDomains = cockpit.data.domains || [];
       }
 
-      // Log uniquement en développement
+      // LOG AVANT SAUVEGARDE - vérifier que les images sont présentes
+      console.log(`[PUT] AVANT SAUVEGARDE - ${mergedDomains.length} domaines:`);
+      mergedDomains.forEach((d: any, idx: number) => {
+        const hasBg = d.backgroundImage && typeof d.backgroundImage === 'string' && d.backgroundImage.trim().length > 0;
+        const isMarker = d.backgroundImage === '[IMAGE_PRESERVED]';
+        const isReal = hasBg && !isMarker && d.backgroundImage.startsWith('data:image/');
+        console.log(`[PUT] Final[${idx}] "${d.name}": bg=${isReal ? `REELLE (${d.backgroundImage.length} chars)` : (isMarker ? 'MARQUEUR' : 'ABSENTE')}`);
+      });
       log.debug(`[PUT] Sauvegarde de ${mergedDomains.length} domaines`);
       /* Logs verbeux supprimés
       mergedDomains.forEach((d: any, idx: number) => {
