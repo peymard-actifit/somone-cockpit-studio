@@ -45,6 +45,9 @@ const SIMPLE_SHAPES = [
   { id: 'shape:horse', name: 'Cheval', label: 'Cheval' },
   { id: 'shape:sheep', name: 'Mouton', label: 'Mouton' },
   { id: 'shape:chicken', name: 'Poule', label: 'Poule' },
+  // Symboles spéciaux
+  { id: 'shape:lightning', name: 'Éclair', label: 'Éclair (Zeus)' },
+  { id: 'shape:faucet', name: 'Robinet', label: 'Robinet (eau)' },
 ];
 
 // Helper pour détecter si une icône est une forme simple
@@ -318,6 +321,45 @@ const ShapeSVG = ({ shape, color, size }: { shape: string; color: string; size: 
           <line x1="48" y1="70" x2="48" y2="88" stroke="white" strokeWidth="3" />
           <line x1="30" y1="88" x2="40" y2="88" stroke="white" strokeWidth="2" />
           <line x1="43" y1="88" x2="53" y2="88" stroke="white" strokeWidth="2" />
+        </svg>
+      );
+    // Symboles spéciaux
+    case 'lightning':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Éclair stylisé type Zeus - forme en zigzag puissante */}
+          <polygon 
+            points="55,5 35,42 48,42 30,95 75,48 58,48 80,5" 
+            fill={color}
+          />
+          {/* Reflet lumineux */}
+          <polygon 
+            points="60,12 50,35 55,35 45,70 65,45 58,45 70,12" 
+            fill="white" 
+            fillOpacity="0.3"
+          />
+        </svg>
+      );
+    case 'faucet':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Robinet d'eau de profil - très reconnaissable */}
+          {/* Corps principal du robinet (tube horizontal) */}
+          <rect x="20" y="35" width="50" height="14" rx="3" fill={color} />
+          {/* Bec verseur (courbé vers le bas) */}
+          <path d="M70,42 Q85,42 85,55 L85,70 Q85,75 80,75 L78,75 Q73,75 73,70 L73,58 Q73,52 67,52" 
+                fill={color} />
+          {/* Poignée/volant (croix style classique) */}
+          <rect x="30" y="20" width="8" height="20" rx="2" fill={color} />
+          <rect x="24" y="26" width="20" height="8" rx="2" fill={color} />
+          {/* Cercle central de la poignée */}
+          <circle cx="34" cy="30" r="5" fill="white" fillOpacity="0.5" />
+          {/* Fixation murale */}
+          <rect x="8" y="30" width="16" height="24" rx="3" fill={color} />
+          <rect x="5" y="33" width="6" height="18" rx="2" fill="white" fillOpacity="0.3" />
+          {/* Gouttes d'eau */}
+          <ellipse cx="79" cy="82" rx="3" ry="5" fill={color} fillOpacity="0.6" />
+          <ellipse cx="79" cy="92" rx="2" ry="3" fill={color} fillOpacity="0.4" />
         </svg>
       );
     default:
