@@ -171,6 +171,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
     return (
       <button
         onClick={handleClick}
+        data-help-key={`element-${element.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`}
         className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-md transition-all hover:scale-105 hover:shadow-lg border border-[#E2E8F0]"
       >
         <div
@@ -195,6 +196,7 @@ export default function ElementTile({ element, mini = false, onElementClick, rea
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      data-help-key={`element-${element.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`}
       className={`
         group relative
         w-[200px] h-[140px]

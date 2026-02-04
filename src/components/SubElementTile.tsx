@@ -192,6 +192,7 @@ export default function SubElementTile({ subElement, breadcrumb, readOnly = fals
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onMouseMove={handleMouseMove}
+        data-help-key={`subelement-${subElement.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`}
         className={`
           group relative overflow-hidden
           ${isVertical ? 'w-full' : 'min-w-[150px]'} ${isVertical ? '' : 'px-4'} py-3

@@ -284,8 +284,8 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     setIsLoading(true);
     try {
       const url = getApiUrl(elementKey, cockpitId);
-      // Inclure contentEN seulement pour les aides globales (cockpitId === null)
-      const bodyData = cockpitId ? { content } : { content, contentEN: contentEN || '' };
+      // Inclure contentEN pour toutes les aides (globales et locales)
+      const bodyData = { content, contentEN: contentEN || '' };
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -643,8 +643,8 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
     if (!currentKey) return;
     
     // Passer le currentCockpitId pour sauvegarder dans la maquette si c'est une aide locale
-    // Pour les aides globales, passer aussi contentEN
-    const success = await saveHelp(currentKey, editContent, currentCockpitId, currentCockpitId ? undefined : editContentEN);
+    // Toujours passer contentEN (globales et locales supportent la traduction)
+    const success = await saveHelp(currentKey, editContent, currentCockpitId, editContentEN);
     if (success) {
       setIsEditing(false);
     }
@@ -709,50 +709,39 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
                     <span>{t('help.htmlHint')}</span>
                   </div>
                   
-                  {/* Pour les aides globales : 2 zones (FR et EN) */}
-                  {!currentCockpitId ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">🇫🇷 {t('help.frenchContent')}</label>
-                        <textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full h-32 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder={t('help.placeholder')}
-                          autoFocus
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-xs font-medium text-slate-600">🇬🇧 {t('help.englishContent')}</label>
-                          <button
-                            onClick={translateToEnglish}
-                            disabled={isTranslating || !editContent.trim()}
-                            className="flex items-center gap-1 px-2 py-0.5 text-xs bg-violet-100 text-violet-700 hover:bg-violet-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t('help.translate')}
-                          >
-                            <MuiIcon name="Translate" size={12} />
-                            {isTranslating ? t('help.translating') : t('help.translate')}
-                          </button>
-                        </div>
-                        <textarea
-                          value={editContentEN}
-                          onChange={(e) => setEditContentEN(e.target.value)}
-                          className="w-full h-32 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder={t('help.placeholder')}
-                        />
-                      </div>
+                  {/* 2 zones (FR et EN) pour toutes les aides (globales et locales) */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">🇫🇷 {t('help.frenchContent')}</label>
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full h-32 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={t('help.placeholder')}
+                        autoFocus
+                      />
                     </div>
-                  ) : (
-                    /* Pour les aides locales : 1 seule zone */
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full h-48 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={t('help.placeholder')}
-                      autoFocus
-                    />
-                  )}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium text-slate-600">🇬🇧 {t('help.englishContent')}</label>
+                        <button
+                          onClick={translateToEnglish}
+                          disabled={isTranslating || !editContent.trim()}
+                          className="flex items-center gap-1 px-2 py-0.5 text-xs bg-violet-100 text-violet-700 hover:bg-violet-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={t('help.translate')}
+                        >
+                          <MuiIcon name="Translate" size={12} />
+                          {isTranslating ? t('help.translating') : t('help.translate')}
+                        </button>
+                      </div>
+                      <textarea
+                        value={editContentEN}
+                        onChange={(e) => setEditContentEN(e.target.value)}
+                        className="w-full h-32 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={t('help.placeholder')}
+                      />
+                    </div>
+                  </div>
                   
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2 text-xs text-slate-400">

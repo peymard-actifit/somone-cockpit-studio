@@ -11,6 +11,7 @@ import { getDomainWorstStatus, STATUS_COLORS } from '../types';
 import { TrackingProvider, useTracking } from '../contexts/TrackingContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCockpitStore } from '../store/cockpitStore';
+import { PublicHelpProvider, usePublicHelp } from '../contexts/PublicHelpContext';
 
 function PublicCockpitContent() {
   const { publicId } = useParams();
@@ -27,6 +28,7 @@ function PublicCockpitContent() {
   const [showAIChat, setShowAIChat] = useState(false);
   const { trackEvent } = useTracking();
   const { language, setLanguage, t } = useLanguage();
+  const { setCockpit: setHelpCockpit } = usePublicHelp();
 
   // Fonction pour changer la date active (local uniquement, pas de sauvegarde serveur)
   const handleDateChange = (newDate: string) => {
@@ -170,6 +172,12 @@ function PublicCockpitContent() {
         // Mettre le cockpit dans le store pour que les composants enfants puissent y accéder
         // (nécessaire pour les données historiques dans SubElementTile)
         useCockpitStore.setState({ currentCockpit: cockpitToSet });
+        
+        // Configurer le contexte d'aide publique avec les aides du cockpit
+        setHelpCockpit({
+          showHelpOnHover: cockpitToSet.showHelpOnHover,
+          contextualHelps: cockpitToSet.contextualHelps,
+        });
 
         // Sélectionner le premier domaine par défaut
         if (data.domains && data.domains.length > 0) {
@@ -188,11 +196,12 @@ function PublicCockpitContent() {
       fetchPublicCockpit();
     }
     
-    // Nettoyer le store quand le composant est démonté
+    // Nettoyer le store et le contexte d'aide quand le composant est démonté
     return () => {
       useCockpitStore.setState({ currentCockpit: null });
+      setHelpCockpit(null);
     };
-  }, [publicId]);
+  }, [publicId, setHelpCockpit]);
 
   // Tracker la première page vue une fois le cockpit chargé
   useEffect(() => {
@@ -864,13 +873,15 @@ function PublicCockpitContent() {
   );
 }
 
-// Wrapper avec le TrackingProvider
+// Wrapper avec le TrackingProvider et PublicHelpProvider
 export default function PublicCockpitPage() {
   const { publicId } = useParams();
   
   return (
     <TrackingProvider publicId={publicId} enabled={true}>
-      <PublicCockpitContent />
+      <PublicHelpProvider>
+        <PublicCockpitContent />
+      </PublicHelpProvider>
     </TrackingProvider>
   );
 }

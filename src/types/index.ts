@@ -75,6 +75,7 @@ export interface Cockpit {
   contextualHelps?: Array<{
     elementKey: string;
     content: string;
+    contentEN?: string; // Traduction anglaise de l'aide
     updatedAt: string;
     updatedByUsername?: string;
   }>;

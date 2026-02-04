@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.11.3';
+const APP_VERSION = '17.12.0';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2347,7 +2347,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const cockpitId = localHelpPutMatch[1];
       const elementKey = decodeURIComponent(localHelpPutMatch[2]);
-      const { content } = req.body;
+      const { content, contentEN } = req.body;
 
       if (!content) {
         return res.status(400).json({ error: 'Contenu requis' });
@@ -2371,6 +2371,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (existingIndex >= 0) {
         // Mettre à jour
         localHelps[existingIndex].content = content;
+        localHelps[existingIndex].contentEN = contentEN || ''; // Traduction anglaise
         localHelps[existingIndex].updatedAt = now;
         localHelps[existingIndex].updatedByUsername = currentUser.username;
       } else {
@@ -2378,6 +2379,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         localHelps.push({
           elementKey,
           content,
+          contentEN: contentEN || '', // Traduction anglaise
           updatedAt: now,
           updatedByUsername: currentUser.username
         });
