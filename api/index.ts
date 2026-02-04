@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.22.4';
+const APP_VERSION = '17.22.5';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -3997,6 +3997,19 @@ INSTRUCTIONS:
               ...newDomain,       // Puis appliquer les nouvelles valeurs
             };
 
+            // LOG DÉTAILLÉ pour debug
+            const newImgInfo = newDomain.backgroundImage 
+              ? (newDomain.backgroundImage === '[IMAGE_PRESERVED]' 
+                  ? 'MARQUEUR' 
+                  : `RÉELLE (${newDomain.backgroundImage.length} chars)`)
+              : 'ABSENTE';
+            const existingImgInfo = existingDomain.backgroundImage 
+              ? (existingDomain.backgroundImage === '[IMAGE_PRESERVED]' 
+                  ? 'MARQUEUR' 
+                  : `RÉELLE (${existingDomain.backgroundImage.length} chars)`)
+              : 'ABSENTE';
+            console.log(`[PUT MERGE] "${newDomain.name}" - nouvelle: ${newImgInfo}, existante: ${existingImgInfo}`);
+
             // TOUJOURS PRÉSERVER backgroundImage si elle existe dans l'existant
             // Sauf si newDomain en fournit explicitement une nouvelle (non vide)
             // Support du marqueur [IMAGE_PRESERVED] pour les sauvegardes légères
@@ -4007,24 +4020,27 @@ INSTRUCTIONS:
               existingDomain.backgroundImage !== '[IMAGE_PRESERVED]' &&
               existingDomain.backgroundImage.startsWith('data:image/');
             
-            if (existingImageIsReal) {
-              // Si newDomain n'a pas de backgroundImage valide OU utilise le marqueur [IMAGE_PRESERVED], garder l'existant
-              if (!newDomain.backgroundImage ||
-                typeof newDomain.backgroundImage !== 'string' ||
-                newDomain.backgroundImage.trim().length === 0 ||
-                newDomain.backgroundImage === '' ||
-                newDomain.backgroundImage === '[IMAGE_PRESERVED]') {
-                merged.backgroundImage = existingDomain.backgroundImage;
-                log.debug(`[PUT] Préservé backgroundImage pour "${newDomain.name}"${newDomain.backgroundImage === '[IMAGE_PRESERVED]' ? ' (marqueur détecté)' : ''}`);
-              } else {
-                // newDomain a une nouvelle image, l'utiliser
-                log.debug(`[PUT] Nouveau backgroundImage pour "${newDomain.name}"`);
-              }
+            // Vérifier si la nouvelle image est réelle (pas marqueur, pas vide)
+            const newImageIsReal = newDomain.backgroundImage &&
+              typeof newDomain.backgroundImage === 'string' &&
+              newDomain.backgroundImage.trim().length > 0 &&
+              newDomain.backgroundImage !== '[IMAGE_PRESERVED]' &&
+              newDomain.backgroundImage.startsWith('data:image/');
+
+            if (newImageIsReal) {
+              // NOUVELLE IMAGE RÉELLE - toujours l'utiliser
+              merged.backgroundImage = newDomain.backgroundImage;
+              console.log(`[PUT MERGE] ✅ Utilisation nouvelle image réelle pour "${newDomain.name}" (${newDomain.backgroundImage.length} chars)`);
+            } else if (existingImageIsReal) {
+              // Pas de nouvelle image réelle mais existante est réelle - la préserver
+              merged.backgroundImage = existingDomain.backgroundImage;
+              console.log(`[PUT MERGE] ✅ Préservation image existante pour "${newDomain.name}" (${existingDomain.backgroundImage.length} chars)`);
             } else if (newDomain.backgroundImage === '[IMAGE_PRESERVED]') {
               // L'image existante n'est pas valide et on a le marqueur - supprimer le marqueur
-              log.debug(`[PUT] Marqueur [IMAGE_PRESERVED] ignoré pour "${newDomain.name}" - pas d'image existante valide`);
+              console.log(`[PUT MERGE] ⚠️ Marqueur ignoré pour "${newDomain.name}" - pas d'image existante valide`);
               merged.backgroundImage = undefined;
             }
+            // Sinon: pas d'image existante ni nouvelle, merged.backgroundImage reste undefined
 
             // TOUJOURS PRÉSERVER mapBounds si elle existe dans l'existant
             if (existingDomain.mapBounds &&
