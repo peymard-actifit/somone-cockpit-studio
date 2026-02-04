@@ -59,7 +59,17 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
   }, [language]);
 
   // Le système est activé si le cockpit a showHelpOnHover=true (ou non défini = true par défaut)
-  const isEnabled = cockpit?.showHelpOnHover !== false;
+  const isEnabled = cockpit?.showHelpOnHover !== false && cockpit !== null;
+  
+  // Log du changement d'état
+  useEffect(() => {
+    console.log('[PublicHelp] État du système:', { 
+      isEnabled, 
+      cockpitLoaded: !!cockpit,
+      showHelpOnHover: cockpit?.showHelpOnHover,
+      helpsCount: cockpit?.contextualHelps?.length || 0
+    });
+  }, [isEnabled, cockpit]);
 
   // Fonction pour configurer le cockpit
   const setCockpit = useCallback((newCockpit: CockpitWithHelp | null) => {

@@ -173,6 +173,12 @@ function PublicCockpitContent() {
         // (nécessaire pour les données historiques dans SubElementTile)
         useCockpitStore.setState({ currentCockpit: cockpitToSet });
         
+        // DEBUG: Log des données d'aide contextuelle reçues de l'API
+        console.log('[PublicCockpitPage] === AIDE CONTEXTUELLE ===');
+        console.log('[PublicCockpitPage] showHelpOnHover:', cockpitToSet.showHelpOnHover);
+        console.log('[PublicCockpitPage] contextualHelps count:', cockpitToSet.contextualHelps?.length || 0);
+        console.log('[PublicCockpitPage] contextualHelps keys:', cockpitToSet.contextualHelps?.map((h: any) => h.elementKey) || []);
+        
         // Configurer le contexte d'aide publique avec les aides du cockpit
         setHelpCockpit({
           showHelpOnHover: cockpitToSet.showHelpOnHover,
