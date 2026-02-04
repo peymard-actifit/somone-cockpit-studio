@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.22.1';
+const APP_VERSION = '17.22.2';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2405,6 +2405,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 .filter((domain: any) => domain.publiable !== false)
                 .map((domain: any) => ({
                   ...domain,
+                  // Filtrer le marqueur [IMAGE_PRESERVED]
+                  backgroundImage: domain.backgroundImage && 
+                    domain.backgroundImage !== '[IMAGE_PRESERVED]' && 
+                    domain.backgroundImage.startsWith('data:image/') 
+                      ? domain.backgroundImage 
+                      : undefined,
                   categories: (domain.categories || []).map((category: any) => ({
                     ...category,
                     elements: (category.elements || []).filter((el: any) => el.publiable !== false)
@@ -2494,6 +2500,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   .filter((domain: any) => domain.publiable !== false)
                   .map((domain: any) => ({
                     ...domain,
+                    // Filtrer le marqueur [IMAGE_PRESERVED]
+                    backgroundImage: domain.backgroundImage && 
+                      domain.backgroundImage !== '[IMAGE_PRESERVED]' && 
+                      domain.backgroundImage.startsWith('data:image/') 
+                        ? domain.backgroundImage 
+                        : undefined,
                     categories: (domain.categories || []).map((category: any) => ({
                       ...category,
                       elements: (category.elements || []).filter((el: any) => el.publiable !== false)
@@ -3988,9 +4000,14 @@ INSTRUCTIONS:
             // TOUJOURS PRÉSERVER backgroundImage si elle existe dans l'existant
             // Sauf si newDomain en fournit explicitement une nouvelle (non vide)
             // Support du marqueur [IMAGE_PRESERVED] pour les sauvegardes légères
-            if (existingDomain.backgroundImage &&
+            // IMPORTANT: L'image existante doit être une vraie image (data:image/), pas le marqueur lui-même
+            const existingImageIsReal = existingDomain.backgroundImage &&
               typeof existingDomain.backgroundImage === 'string' &&
-              existingDomain.backgroundImage.trim().length > 0) {
+              existingDomain.backgroundImage.trim().length > 0 &&
+              existingDomain.backgroundImage !== '[IMAGE_PRESERVED]' &&
+              existingDomain.backgroundImage.startsWith('data:image/');
+            
+            if (existingImageIsReal) {
               // Si newDomain n'a pas de backgroundImage valide OU utilise le marqueur [IMAGE_PRESERVED], garder l'existant
               if (!newDomain.backgroundImage ||
                 typeof newDomain.backgroundImage !== 'string' ||
@@ -4003,6 +4020,10 @@ INSTRUCTIONS:
                 // newDomain a une nouvelle image, l'utiliser
                 log.debug(`[PUT] Nouveau backgroundImage pour "${newDomain.name}"`);
               }
+            } else if (newDomain.backgroundImage === '[IMAGE_PRESERVED]') {
+              // L'image existante n'est pas valide et on a le marqueur - supprimer le marqueur
+              log.debug(`[PUT] Marqueur [IMAGE_PRESERVED] ignoré pour "${newDomain.name}" - pas d'image existante valide`);
+              merged.backgroundImage = undefined;
             }
 
             // TOUJOURS PRÉSERVER mapBounds si elle existe dans l'existant
@@ -4121,6 +4142,7 @@ INSTRUCTIONS:
           const useOriginalViewValue = cockpit.data.useOriginalView === true;
           
           // Créer un nouveau snapshot avec les données mises à jour
+          // IMPORTANT: Ne jamais inclure le marqueur [IMAGE_PRESERVED] dans le snapshot
           const updatedSnapshot = {
             name: cockpit.name,
             logo: cockpit.data.logo || null,
@@ -4132,6 +4154,12 @@ INSTRUCTIONS:
                 .filter((domain: any) => domain.publiable !== false)
                 .map((domain: any) => ({
                   ...domain,
+                  // Filtrer le marqueur [IMAGE_PRESERVED] - ne garder que les vraies images
+                  backgroundImage: domain.backgroundImage && 
+                    domain.backgroundImage !== '[IMAGE_PRESERVED]' && 
+                    domain.backgroundImage.startsWith('data:image/') 
+                      ? domain.backgroundImage 
+                      : undefined,
                   categories: (domain.categories || []).map((category: any) => ({
                     ...category,
                     elements: (category.elements || []).filter((el: any) => el.publiable !== false)
@@ -4444,6 +4472,12 @@ INSTRUCTIONS:
             .filter((domain: any) => domain.publiable !== false)
             .map((domain: any) => ({
               ...domain,
+              // Filtrer le marqueur [IMAGE_PRESERVED] - ne garder que les vraies images
+              backgroundImage: domain.backgroundImage && 
+                domain.backgroundImage !== '[IMAGE_PRESERVED]' && 
+                domain.backgroundImage.startsWith('data:image/') 
+                  ? domain.backgroundImage 
+                  : undefined,
               categories: (domain.categories || []).map((category: any) => ({
                 ...category,
                 elements: (category.elements || []).filter((el: any) => el.publiable !== false)
