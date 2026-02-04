@@ -124,6 +124,7 @@ export default function StudioPage() {
   const exportToExcel = useCockpitStore(state => state.exportToExcel);
   const setCurrentElement = useCockpitStore(state => state.setCurrentElement);
   const setCurrentDomain = useCockpitStore(state => state.setCurrentDomain);
+  const forceSave = useCockpitStore(state => state.forceSave);
   
   // Exemples
   const showExamples = useCockpitStore(state => state.showExamples);
@@ -322,10 +323,18 @@ export default function StudioPage() {
 
           {/* Indicateur de sauvegarde et fil des modifications */}
           <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs transition-all ${isSaving
+            <div 
+              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs transition-all cursor-pointer hover:opacity-80 ${isSaving
                 ? 'bg-green-500/20 text-green-300'
                 : 'bg-white/10 text-white/60'
-              }`}>
+              }`}
+              onDoubleClick={async () => {
+                setIsSaving(true);
+                await forceSave();
+                setTimeout(() => setIsSaving(false), 1500);
+              }}
+              title={t('studio.forceSaveHint')}
+            >
               <MuiIcon name="Save" size={12} />
               {isSaving ? t('studio.saved') : t('studio.autoSave')}
             </div>

@@ -116,6 +116,7 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'studio.exportExcel': { FR: 'Export Excel', EN: 'Export Excel' },
   'studio.autoSave': { FR: 'Auto-save', EN: 'Auto-save' },
   'studio.saved': { FR: 'Sauvegardé', EN: 'Saved' },
+  'studio.forceSaveHint': { FR: 'Double-cliquez pour forcer la sauvegarde', EN: 'Double-click to force save' },
   'studio.tutorial': { FR: 'Tutoriel', EN: 'Tutorial' },
   'studio.reviewTutorial': { FR: 'Revoir', EN: 'Review' },
   'studio.by': { FR: 'Par', EN: 'By' },
