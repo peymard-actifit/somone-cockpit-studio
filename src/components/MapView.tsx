@@ -428,7 +428,7 @@ export default function MapView({ domain, onElementClick: _onElementClick, onDom
   const fullscreenContainerRef = useRef<HTMLDivElement>(null); // Pour le mode plein écran
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
-  const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement, lastClonedMapElementId, clearLastClonedMapElementId } = useCockpitStore();
+  const { updateDomain, addMapElement, updateMapElement, cloneMapElement, updateMapBounds, setCurrentElement, addCategory, addElement, updateElement, findElementsByName, linkElement, lastClonedMapElementId, clearLastClonedMapElementId, triggerImmediateSave } = useCockpitStore();
   const { token } = useAuthStore();
   const { t } = useLanguage();
 
@@ -1011,6 +1011,9 @@ export default function MapView({ domain, onElementClick: _onElementClick, onDom
         e.preventDefault();
         e.stopPropagation();
       }
+      // IMPORTANT: Sauvegarder immédiatement après le déplacement d'un point
+      // pour garantir que la position est synchronisée avec le cockpit publié
+      triggerImmediateSave();
     }
 
     // Réinitialiser immédiatement pour éviter les conflits

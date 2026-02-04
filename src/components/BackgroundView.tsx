@@ -424,7 +424,7 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, findElementsByName, linkElement, currentCockpit, lastClonedElementId, clearLastClonedElementId, zones } = useCockpitStore();
+  const { setCurrentElement, updateElement, updateDomain, addCategory, addElement, cloneElement, forceSave, triggerImmediateSave, findElementsByName, linkElement, currentCockpit, lastClonedElementId, clearLastClonedElementId, zones } = useCockpitStore();
   // Utiliser les domaines passés en prop (mode public) ou ceux du store (mode édition)
   const domains = domainsProp || currentCockpit?.domains;
 
@@ -1153,6 +1153,9 @@ export default function BackgroundView({ domain, onElementClick: _onElementClick
         e.preventDefault();
         e.stopPropagation();
       }
+      // IMPORTANT: Sauvegarder immédiatement après le déplacement d'un élément
+      // pour garantir que la position est synchronisée avec le cockpit publié
+      triggerImmediateSave();
     }
 
     // Réinitialiser immédiatement pour éviter les conflits
