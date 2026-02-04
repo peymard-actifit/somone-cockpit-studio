@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.19.2';
+const APP_VERSION = '17.19.3';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -4057,6 +4057,9 @@ INSTRUCTIONS:
             // Historique des données des sous-éléments
             dataHistory: cockpit.data.dataHistory ? JSON.parse(JSON.stringify(cockpit.data.dataHistory)) : null,
             selectedDataDate: cockpit.data.selectedDataDate || null,
+            // Aides contextuelles locales (pour affichage au survol dans cockpit publié)
+            contextualHelps: cockpit.data.contextualHelps ? JSON.parse(JSON.stringify(cockpit.data.contextualHelps)) : [],
+            showHelpOnHover: cockpit.data.showHelpOnHover !== false,
           };
           
           // Sauvegarder le snapshot mis à jour dans PostgreSQL
