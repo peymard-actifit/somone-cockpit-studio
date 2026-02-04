@@ -1317,6 +1317,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       },
       currentDomainId: duplicatedDomain.id, // Sélectionner le nouveau domaine
     });
+    
+    // IMPORTANT: Si le domaine original avait une image, marquer le nouveau domaine
+    // pour que son image soit envoyée réellement (pas le marqueur [IMAGE_PRESERVED])
+    if (originalDomain.backgroundImage && originalDomain.backgroundImage.length > 0) {
+      get().markDomainImageChanged(duplicatedDomain.id);
+      console.log(`[duplicateDomain] 🖼️ Image copiée marquée pour sauvegarde: "${duplicatedDomain.name}"`);
+    }
+    
     // Sauvegarde immédiate pour la duplication de domaine (opération critique)
     get().triggerImmediateSave();
   },
