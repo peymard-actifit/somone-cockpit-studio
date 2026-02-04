@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { useCockpitStore } from '../store/cockpitStore';
 import { MuiIcon } from '../components/IconPicker';
 import { useLanguage } from './LanguageContext';
 
@@ -301,6 +302,40 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
         // Mettre à jour le cache avec les deux versions
         const cacheKey = getCacheKey(elementKey, cockpitId);
         helpCacheRef.current.set(cacheKey, { content, contentEN });
+        
+        // Si c'est une aide locale, mettre à jour le store pour éviter l'écrasement par l'auto-save
+        if (cockpitId) {
+          const currentCockpit = useCockpitStore.getState().currentCockpit;
+          if (currentCockpit && currentCockpit.id === cockpitId) {
+            const existingHelps = currentCockpit.contextualHelps || [];
+            const existingIndex = existingHelps.findIndex((h: any) => h.elementKey === elementKey);
+            const newHelp = {
+              elementKey,
+              content,
+              contentEN: contentEN || '',
+              updatedAt: new Date().toISOString(),
+              updatedByUsername: user?.username,
+            };
+            
+            let updatedHelps;
+            if (existingIndex >= 0) {
+              updatedHelps = [...existingHelps];
+              updatedHelps[existingIndex] = newHelp;
+            } else {
+              updatedHelps = [...existingHelps, newHelp];
+            }
+            
+            // Mettre à jour le store sans déclencher d'auto-save supplémentaire
+            useCockpitStore.setState({
+              currentCockpit: {
+                ...currentCockpit,
+                contextualHelps: updatedHelps,
+              },
+            });
+            console.log('[ContextualHelp] Store mis à jour avec aide locale:', elementKey);
+          }
+        }
+        
         return true;
       }
     } catch (error) {
@@ -309,7 +344,7 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
       setIsLoading(false);
     }
     return false;
-  }, [token, isAdmin]);
+  }, [token, isAdmin, user]);
 
   // Delete help content (avec support cockpitId pour aides locales)
   const deleteHelp = useCallback(async (elementKey: string, cockpitId: string | null = null) => {
@@ -330,6 +365,24 @@ export function ContextualHelpProvider({ children }: ContextualHelpProviderProps
         const cacheKey = getCacheKey(elementKey, cockpitId);
         helpCacheRef.current.delete(cacheKey);
         setHelpContent(null);
+        
+        // Si c'est une aide locale, mettre à jour le store pour éviter la désynchronisation
+        if (cockpitId) {
+          const currentCockpit = useCockpitStore.getState().currentCockpit;
+          if (currentCockpit && currentCockpit.id === cockpitId) {
+            const existingHelps = currentCockpit.contextualHelps || [];
+            const updatedHelps = existingHelps.filter((h: any) => h.elementKey !== elementKey);
+            
+            useCockpitStore.setState({
+              currentCockpit: {
+                ...currentCockpit,
+                contextualHelps: updatedHelps,
+              },
+            });
+            console.log('[ContextualHelp] Aide locale supprimée du store:', elementKey);
+          }
+        }
+        
         return true;
       }
     } catch (error) {

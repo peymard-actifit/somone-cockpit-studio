@@ -715,6 +715,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         // Historique des données des sous-éléments
         dataHistory: currentCockpit.dataHistory,
         selectedDataDate: currentCockpit.selectedDataDate,
+        // Aides contextuelles locales à la maquette
+        contextualHelps: currentCockpit.contextualHelps || [],
+        showHelpOnHover: currentCockpit.showHelpOnHover,
       };
 
       // Vérifier la taille du payload AVANT envoi (limite Vercel ~4.5MB)
@@ -815,6 +818,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       // Historique des données des sous-éléments
       dataHistory: currentCockpit.dataHistory,
       selectedDataDate: currentCockpit.selectedDataDate,
+      // Aides contextuelles locales à la maquette
+      contextualHelps: currentCockpit.contextualHelps || [],
+      showHelpOnHover: currentCockpit.showHelpOnHover,
     };
 
     const payloadStr = JSON.stringify(payload);
@@ -898,6 +904,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       // Historique des données des sous-éléments
       dataHistory: currentCockpit.dataHistory,
       selectedDataDate: currentCockpit.selectedDataDate,
+      // Aides contextuelles locales à la maquette
+      contextualHelps: currentCockpit.contextualHelps || [],
+      showHelpOnHover: currentCockpit.showHelpOnHover,
     };
     if ((currentCockpit as any).zones) {
       payload.zones = (currentCockpit as any).zones;
@@ -3046,6 +3055,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           // Historique des données des sous-éléments
           dataHistory: currentCockpit.dataHistory,
           selectedDataDate: currentCockpit.selectedDataDate,
+          // Aides contextuelles locales à la maquette
+          contextualHelps: currentCockpit.contextualHelps || [],
+          showHelpOnHover: currentCockpit.showHelpOnHover,
         };
         if ((currentCockpit as any).zones) {
           payload.zones = (currentCockpit as any).zones;
