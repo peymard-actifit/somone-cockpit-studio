@@ -78,6 +78,7 @@ interface CockpitState {
   deleteDomain: (domainId: string) => void;
   duplicateDomain: (domainId: string) => void;
   reorderDomains: (domainIds: string[]) => void;
+  autoPositionElementsForBackground: (domainId: string) => void;
 
   addCategory: (domainId: string, name: string, orientation: 'horizontal' | 'vertical') => void;
   updateCategory: (categoryId: string, updates: Partial<Category>) => void;
@@ -1146,14 +1147,15 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     if (!originalDomain) return;
 
     // Fonction pour générer de nouveaux IDs pour tous les enfants
-    const duplicateWithNewIds = (domain: Domain): Domain => {
+    // Les éléments et sous-éléments sont liés au domaine d'origine via inheritFromDomainId
+    const duplicateWithNewIds = (domain: Domain, originalDomainId: string): Domain => {
       const newDomainId = generateId();
 
       // Dupliquer les catégories avec nouveaux IDs
       const newCategories = (domain.categories || []).map(category => {
         const newCategoryId = generateId();
 
-        // Dupliquer les éléments avec nouveaux IDs
+        // Dupliquer les éléments avec nouveaux IDs et liaison au domaine d'origine
         const newElements = (category.elements || []).map(element => {
           const newElementId = generateId();
 
@@ -1161,11 +1163,14 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           const newSubCategories = (element.subCategories || []).map(subCategory => {
             const newSubCategoryId = generateId();
 
-            // Dupliquer les sous-éléments avec nouveaux IDs
+            // Dupliquer les sous-éléments avec nouveaux IDs et liaison au domaine d'origine
             const newSubElements = (subCategory.subElements || []).map(subElement => ({
               ...subElement,
               id: generateId(),
-              linkedGroupId: undefined, // Supprimer les liaisons
+              linkedGroupId: undefined, // Supprimer les liaisons entre éléments
+              // Hériter la couleur du domaine d'origine
+              status: 'herite_domaine' as const,
+              inheritFromDomainId: originalDomainId,
             }));
 
             return {
@@ -1179,7 +1184,10 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             ...element,
             id: newElementId,
             subCategories: newSubCategories,
-            linkedGroupId: undefined, // Supprimer les liaisons
+            linkedGroupId: undefined, // Supprimer les liaisons entre éléments
+            // Hériter la couleur du domaine d'origine
+            status: 'herite_domaine' as const,
+            inheritFromDomainId: originalDomainId,
           };
         });
 
@@ -1221,7 +1229,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       };
     };
 
-    const duplicatedDomain = duplicateWithNewIds(originalDomain);
+    const duplicatedDomain = duplicateWithNewIds(originalDomain, originalDomain.id);
 
     // Trouver l'index du domaine original
     const originalIndex = (state.currentCockpit.domains || []).findIndex(d => d.id === domainId);
@@ -1285,6 +1293,83 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     // Déclencher l'auto-save
     console.log('[reorderDomains] 📤 Déclenchement auto-save...');
     get().triggerAutoSave();
+  },
+
+  autoPositionElementsForBackground: (domainId: string) => {
+    const state = get();
+    if (!state.currentCockpit) return;
+
+    const domain = (state.currentCockpit.domains || []).find(d => d.id === domainId);
+    if (!domain) return;
+
+    // Paramètres de positionnement (en pourcentage)
+    const ELEMENT_SIZE = 0.6;      // Taille de l'icône (6px sur 1000px ≈ 0.6%)
+    const H_SPACING = 1.5;         // Espacement horizontal entre éléments (10px sur ~700px)
+    const V_SPACING = 3.0;         // Espacement vertical entre lignes (20px sur ~700px)
+    const START_Y = 10;            // Position Y de départ (haut)
+
+    // Collecter tous les éléments par catégorie
+    const categoriesWithElements = (domain.categories || [])
+      .filter(cat => (cat.elements || []).length > 0)
+      .map(cat => ({
+        category: cat,
+        elements: cat.elements || []
+      }));
+
+    if (categoriesWithElements.length === 0) return;
+
+    // Calculer les positions pour chaque catégorie (centrées)
+    const updatedCategories = domain.categories.map(category => {
+      const catElements = category.elements || [];
+      if (catElements.length === 0) return category;
+
+      // Trouver l'index de cette catégorie pour calculer sa position Y
+      const catIndex = categoriesWithElements.findIndex(c => c.category.id === category.id);
+      if (catIndex === -1) return category;
+
+      // Position Y de la ligne (centrée verticalement avec espacement)
+      const totalHeight = categoriesWithElements.length * (ELEMENT_SIZE + V_SPACING);
+      const startYCentered = Math.max(START_Y, (100 - totalHeight) / 2);
+      const lineY = startYCentered + catIndex * (ELEMENT_SIZE + V_SPACING);
+
+      // Calculer la largeur totale de la ligne pour centrer
+      const totalWidth = catElements.length * ELEMENT_SIZE + (catElements.length - 1) * H_SPACING;
+      const startX = (100 - totalWidth) / 2;
+
+      // Positionner chaque élément
+      const updatedElements = catElements.map((element, elemIndex) => ({
+        ...element,
+        positionX: startX + elemIndex * (ELEMENT_SIZE + H_SPACING),
+        positionY: lineY,
+        width: ELEMENT_SIZE,
+        height: ELEMENT_SIZE,
+        // Utiliser une icône basique (carré) si pas d'icône définie
+        icon: element.icon || 'shape:square'
+      }));
+
+      return {
+        ...category,
+        elements: updatedElements
+      };
+    });
+
+    set((state) => {
+      if (!state.currentCockpit) return state;
+      return {
+        currentCockpit: {
+          ...state.currentCockpit,
+          domains: state.currentCockpit.domains.map(d =>
+            d.id === domainId
+              ? { ...d, categories: updatedCategories, updatedAt: new Date().toISOString() }
+              : d
+          ),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+
+    get().triggerImmediateSave();
+    console.log(`[autoPositionElementsForBackground] ✅ Éléments positionnés automatiquement pour le domaine "${domain.name}"`);
   },
 
   addCategory: (domainId: string, name: string, orientation: 'horizontal' | 'vertical') => {

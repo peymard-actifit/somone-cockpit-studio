@@ -376,6 +376,7 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
   const updateDomain = useCockpitStore(state => state.updateDomain);
   const deleteDomain = useCockpitStore(state => state.deleteDomain);
   const duplicateDomain = useCockpitStore(state => state.duplicateDomain);
+  const autoPositionElementsForBackground = useCockpitStore(state => state.autoPositionElementsForBackground);
   const updateCategory = useCockpitStore(state => state.updateCategory);
   const deleteCategory = useCockpitStore(state => state.deleteCategory);
   const reorderCategory = useCockpitStore(state => state.reorderCategory);
@@ -3106,7 +3107,18 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
             ].filter(item => !isClientUser || !item.clientRestricted).map(({ type, label, desc }) => (
               <button
                 key={type}
-                onClick={() => updateDomain(domain.id, { templateType: type })}
+                onClick={() => {
+                  // Si on passe en vue Background et qu'on n'était pas déjà en Background
+                  const wasBackground = domain.templateType === 'background';
+                  updateDomain(domain.id, { templateType: type });
+                  // Auto-positionner les éléments uniquement lors du passage EN vue Background
+                  if (type === 'background' && !wasBackground) {
+                    // Délai pour laisser le temps à la mise à jour du templateType
+                    setTimeout(() => {
+                      autoPositionElementsForBackground(domain.id);
+                    }, 100);
+                  }
+                }}
                 className={`w-full flex items-start gap-3 px-3 py-3 rounded-lg transition-all text-left ${domain.templateType === type
                   ? 'bg-[#1E3A5F]/10 border border-[#1E3A5F]/30 text-[#1E3A5F]'
                   : 'bg-[#F5F7FA] text-[#64748B] hover:bg-[#EEF2F7] border border-[#E2E8F0]'
