@@ -23,12 +23,23 @@ function PublicCockpitContent() {
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
   const [showMindMap, setShowMindMap] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  // État pour masquer le header via le toggle dans les vues
+  const [hideHeader, setHideHeader] = useState(() => {
+    const saved = localStorage.getItem(`hideHeader-${publicId}`);
+    return saved === 'true';
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const { trackEvent } = useTracking();
   const { language, setLanguage, t } = useLanguage();
   const { setCockpit: setHelpCockpit } = usePublicHelp();
+
+  // Fonction pour toggle le header depuis les panneaux de contrôle des vues
+  const handleToggleHeader = (hide: boolean) => {
+    setHideHeader(hide);
+    localStorage.setItem(`hideHeader-${publicId}`, String(hide));
+  };
 
   // Fonction pour changer la date active (local uniquement, pas de sauvegarde serveur)
   const handleDateChange = (newDate: string) => {
@@ -715,25 +726,29 @@ function PublicCockpitContent() {
     </header>
   );
 
+  // Déterminer si le header doit être masqué (hideHeader toggle ou vue Map/Background)
+  const shouldHideHeader = hideHeader || isMapOrBackgroundView;
+  const isHeaderVisible = !shouldHideHeader || isHeaderHovered;
+
   return (
     <div className="h-screen bg-cockpit-bg-dark flex flex-col overflow-hidden">
-      {/* Zone de survol invisible pour faire réapparaître le header (vues Map/Background) */}
-      {isMapOrBackgroundView && !isHeaderHovered && (
+      {/* Zone de survol invisible pour faire réapparaître le header */}
+      {shouldHideHeader && !isHeaderHovered && (
         <div 
           className="fixed top-0 left-0 right-0 h-2 z-[60] cursor-pointer"
           onMouseEnter={() => setIsHeaderHovered(true)}
         />
       )}
       
-      {/* Header - conditionnel selon useOriginalView et masqué sur Map/Background */}
+      {/* Header - conditionnel selon useOriginalView et toggle hideHeader */}
       <div 
         className={`transition-all duration-300 ${
-          isMapOrBackgroundView && !isHeaderHovered 
+          !isHeaderVisible 
             ? 'transform -translate-y-full absolute top-0 left-0 right-0 z-50' 
             : ''
         }`}
-        onMouseEnter={() => isMapOrBackgroundView && setIsHeaderHovered(true)}
-        onMouseLeave={() => isMapOrBackgroundView && setIsHeaderHovered(false)}
+        onMouseEnter={() => shouldHideHeader && setIsHeaderHovered(true)}
+        onMouseLeave={() => shouldHideHeader && setIsHeaderHovered(false)}
       >
         {useOriginalView ? renderOriginalHeader() : renderStandardHeader()}
       </div>
@@ -764,6 +779,8 @@ function PublicCockpitContent() {
                 readOnly={true}
                 onBack={handleBackToDomain}
                 onDateChange={handleDateChange}
+                hideHeader={hideHeader}
+                onToggleHeader={handleToggleHeader}
               />
             </div>
           </div>
@@ -776,6 +793,8 @@ function PublicCockpitContent() {
               readOnly={true}
               cockpit={cockpit}
               onDateChange={handleDateChange}
+              hideHeader={hideHeader}
+              onToggleHeader={handleToggleHeader}
             />
           </div>
         ) : (
@@ -787,8 +806,8 @@ function PublicCockpitContent() {
 
       {/* Le panneau de contrôles avec DateTimeline est maintenant intégré dans ZoomableContainer */}
 
-      {/* Footer - masqué sur les vues Map/Background */}
-      {!isMapOrBackgroundView && (
+      {/* Footer - masqué quand le header est masqué */}
+      {!shouldHideHeader && (
         <footer className="bg-cockpit-bg-card border-t border-slate-700/50 flex-shrink-0">
           {/* Bandeau défilant */}
           {cockpit.scrollingBanner && (

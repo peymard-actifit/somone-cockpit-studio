@@ -22,9 +22,11 @@ interface ElementViewProps {
   onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition d'un sous-élément
   forceVerticalSubCategories?: boolean; // Force toutes les sous-categories en mode vertical (vue grille)
   onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée (mode publié)
+  hideHeader?: boolean; // État actuel du masquage du header
+  onToggleHeader?: (hide: boolean) => void; // Callback pour toggle le header
 }
 
-export default function ElementView({ element, domain, readOnly = false, onBack, onSubElementClick, forceVerticalSubCategories = false, onDateChange }: ElementViewProps) {
+export default function ElementView({ element, domain, readOnly = false, onBack, onSubElementClick, forceVerticalSubCategories = false, onDateChange, hideHeader, onToggleHeader }: ElementViewProps) {
   const { setCurrentElement, addSubCategory, addSubElement, deleteSubCategory, reorderSubElement, moveSubElement, findSubElementsByName, linkSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
@@ -632,6 +634,30 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
         {/* DateTimeline - toggle + cases dans un seul bloc compact (mode publié uniquement) */}
         {readOnly && onDateChange && (
           <DateTimeline onDateChange={onDateChange} domainId={element.id} />
+        )}
+
+        {/* Toggle masquage header (mode publié uniquement) */}
+        {readOnly && onToggleHeader && (
+          <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md">
+            <div className="flex items-center gap-1.5">
+              <MuiIcon name="VerticalAlignTop" size={12} className="text-[#1E3A5F]" />
+              <button
+                onClick={() => onToggleHeader(!hideHeader)}
+                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+                  !hideHeader ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                }`}
+                role="switch"
+                aria-checked={!hideHeader}
+                title={hideHeader ? t('zoom.showHeader') : t('zoom.hideHeader')}
+              >
+                <span
+                  className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
+                    !hideHeader ? 'translate-x-3.5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

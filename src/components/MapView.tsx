@@ -431,9 +431,11 @@ interface MapViewProps {
   readOnly?: boolean;
   domains?: Domain[]; // Domaines pour calculer l'héritage (mode public)
   onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée
+  hideHeader?: boolean; // État actuel du masquage du header
+  onToggleHeader?: (hide: boolean) => void; // Callback pour toggle le header
 }
 
-export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: _domainsProp, onDateChange }: MapViewProps) {
+export default function MapView({ domain, onElementClick: _onElementClick, readOnly: _readOnly = false, domains: _domainsProp, onDateChange, hideHeader, onToggleHeader }: MapViewProps) {
   const fullscreenContainerRef = useRef<HTMLDivElement>(null); // Pour le mode plein écran
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -1893,6 +1895,28 @@ export default function MapView({ domain, onElementClick: _onElementClick, readO
           {/* Toggle timeline des dates (mode publié uniquement) */}
           {_readOnly && onDateChange && (
             <DateTimeline onDateChange={onDateChange} domainId={domain.id} showToggleOnly />
+          )}
+
+          {/* Toggle masquage header (mode publié uniquement) */}
+          {_readOnly && onToggleHeader && (
+            <div className="flex items-center gap-1.5">
+              <MuiIcon name="VerticalAlignTop" size={12} className="text-[#1E3A5F]" />
+              <button
+                onClick={() => onToggleHeader(!hideHeader)}
+                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1 ${
+                  !hideHeader ? 'bg-[#1E3A5F]' : 'bg-[#CBD5E1]'
+                }`}
+                role="switch"
+                aria-checked={!hideHeader}
+                title={hideHeader ? t('zoom.showHeader') : t('zoom.hideHeader')}
+              >
+                <span
+                  className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform shadow-sm ${
+                    !hideHeader ? 'translate-x-3.5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
           )}
         </div>
 

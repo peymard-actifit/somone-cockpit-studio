@@ -440,6 +440,8 @@ export const DEFAULT_TRANSLATIONS: Record<string, { FR: string; EN: string }> = 
   'zoom.exitFullscreen': { FR: 'Quitter le plein écran', EN: 'Exit fullscreen' },
   'zoom.center': { FR: 'Recaler la vue', EN: 'Reset view position' },
   'zoom.fitToWindow': { FR: 'Ajuster à la fenêtre (double-clic: 100%)', EN: 'Fit to window (double-click: 100%)' },
+  'zoom.showHeader': { FR: 'Afficher la barre de navigation', EN: 'Show navigation bar' },
+  'zoom.hideHeader': { FR: 'Masquer la barre de navigation', EN: 'Hide navigation bar' },
   
   // === Timeline des dates ===
   'dateTimeline.show': { FR: 'Afficher les dates', EN: 'Show dates' },

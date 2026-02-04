@@ -25,9 +25,11 @@ interface DomainViewProps {
   readOnly?: boolean;
   cockpit?: Cockpit; // Pour la vue publiée
   onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée
+  hideHeader?: boolean; // État actuel du masquage du header
+  onToggleHeader?: (hide: boolean) => void; // Callback pour toggle le header
 }
 
-export default function DomainView({ domain, onElementClick, readOnly = false, cockpit: cockpitProp, onDateChange }: DomainViewProps) {
+export default function DomainView({ domain, onElementClick, readOnly = false, cockpit: cockpitProp, onDateChange, hideHeader, onToggleHeader }: DomainViewProps) {
   const { addCategory, deleteCategory, addElement, moveElement, reorderElement, findElementsByName, linkElement, currentCockpit } = useCockpitStore();
   const confirm = useConfirm();
   const { t } = useLanguage();
@@ -160,7 +162,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'map') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} />
+        <MapView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader} />
       </div>
     );
   }
@@ -169,7 +171,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'background') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} />
+        <BackgroundView domain={domain} onElementClick={onElementClick} readOnly={readOnly} domains={cockpit?.domains} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader} />
       </div>
     );
   }
@@ -178,7 +180,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'hours-tracking') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader}>
           <HoursTrackingView domain={domain} readOnly={readOnly} />
         </ZoomableContainer>
       </div>
@@ -189,7 +191,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (domain.templateType === 'grid') {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader}>
           <GridView domain={domain} onElementClick={onElementClick} readOnly={readOnly} viewMode={gridViewMode} domains={cockpit?.domains} />
         </ZoomableContainer>
       </div>
@@ -201,7 +203,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader}>
           <AlertsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
         </ZoomableContainer>
       </div>
@@ -213,7 +215,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader}>
           <StatsView domain={domain} cockpit={cockpit} readOnly={readOnly} />
         </ZoomableContainer>
       </div>
@@ -225,7 +227,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
     if (!cockpit) return null;
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange}>
+        <ZoomableContainer domainId={domain.id} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader}>
           <LibraryView domain={domain} cockpit={cockpit} readOnly={readOnly} />
         </ZoomableContainer>
       </div>
@@ -339,7 +341,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (showFullDomainView) {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={`${domain.id}-full`} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange}>
+        <ZoomableContainer domainId={`${domain.id}-full`} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader}>
           <FullDomainView
             domain={domain}
             onBack={() => setShowFullDomainView(false)}
@@ -361,7 +363,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   if (selectedCategory) {
     return (
       <div className="h-full flex flex-col" style={{ minHeight: 0, height: '100%' }}>
-        <ZoomableContainer domainId={`${domain.id}-cat-${selectedCategory.id}`} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange}>
+        <ZoomableContainer domainId={`${domain.id}-cat-${selectedCategory.id}`} readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader}>
           <CategoryView
             category={selectedCategory}
             domain={domain}
@@ -381,7 +383,7 @@ export default function DomainView({ domain, onElementClick, readOnly = false, c
   }
 
   return (
-    <ZoomableContainer domainId={domain.id} className="bg-[#F5F7FA]" readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange}>
+    <ZoomableContainer domainId={domain.id} className="bg-[#F5F7FA]" readOnly={readOnly} minFontZoom={domain.minFontZoom} onDateChange={onDateChange} hideHeader={hideHeader} onToggleHeader={onToggleHeader}>
       <div
         className="min-h-full relative"
       >
