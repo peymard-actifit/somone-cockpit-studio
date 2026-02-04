@@ -687,6 +687,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const currentState = get();
       const currentCockpit = currentState.currentCockpit;
       const zones = currentState.zones;
+      const pendingImageDomainIds = currentState.pendingImageDomainIds;
       
       if (!currentCockpit) {
         console.warn('[Auto-save] Pas de cockpit à sauvegarder');
@@ -699,16 +700,31 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
         return;
       }
       
-      // OPTIMISATION: Toujours utiliser le marqueur [IMAGE_PRESERVED] pour les images de fond
-      // Cela réduit drastiquement la taille du payload (les images sont préservées côté serveur)
-      const domainsWithoutImages = (currentCockpit.domains || []).map((d: any) => ({
-        ...d,
-        backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
-      }));
+      // OPTIMISATION: Utiliser le marqueur [IMAGE_PRESERVED] sauf pour les images modifiées
+      const domainsWithOptimizedImages = (currentCockpit.domains || []).map((d: any) => {
+        // Si ce domaine a une image modifiée, envoyer l'image réelle
+        if (pendingImageDomainIds.has(d.id)) {
+          if (d.backgroundImage) {
+            console.log(`[Auto-save] 🖼️ Envoi image réelle pour "${d.name}" (${(d.backgroundImage.length / 1024).toFixed(0)} KB)`);
+          }
+          return d; // Garder l'image réelle
+        }
+        // Sinon, utiliser le marqueur pour préserver l'image existante côté serveur
+        return {
+          ...d,
+          backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
+        };
+      });
+      
+      // Vider les images en attente après les avoir incluses
+      const hadPendingImages = pendingImageDomainIds.size > 0;
+      if (hadPendingImages) {
+        console.log(`[Auto-save] 📤 ${pendingImageDomainIds.size} image(s) modifiée(s) incluse(s)`);
+      }
       
       const payload: any = {
         name: currentCockpit.name,
-        domains: domainsWithoutImages,
+        domains: domainsWithOptimizedImages,
         logo: currentCockpit.logo,
         scrollingBanner: currentCockpit.scrollingBanner,
         sharedWith: currentCockpit.sharedWith || [],
@@ -728,7 +744,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       const payloadStr = JSON.stringify(payload);
       const payloadSizeMB = payloadStr.length / 1024 / 1024;
       
-      console.log(`[Auto-save] 📦 Sauvegarde ALLÉGÉE en cours... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines, images préservées)`);
+      console.log(`[Auto-save] 📦 Sauvegarde${hadPendingImages ? '' : ' ALLÉGÉE'} en cours... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines${hadPendingImages ? ', avec images' : ', images préservées'})`);
       
       // Toujours sauvegarder une copie locale (backup)
       offlineSync.backupCockpit(currentCockpit);
@@ -764,8 +780,9 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
           console.error(`[Auto-save] ❌ Erreur serveur: ${response.status} - ${errorText}`);
         } else {
           console.log(`[Auto-save] ✅ Sauvegarde réussie`);
-          // Succès : nettoyer le backup local
+          // Succès : nettoyer le backup local et les images en attente
           offlineSync.clearBackup(currentCockpit.id);
+          pendingImageDomainIds.clear();
         }
       } catch (error: any) {
         // Erreur réseau : passer en mode offline
@@ -779,7 +796,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
 
   // Sauvegarde immédiate pour opérations critiques (création/suppression de domaines, etc.)
   triggerImmediateSave: async () => {
-    const { autoSaveTimeout } = get();
+    const { autoSaveTimeout, pendingImageDomainIds } = get();
 
     // Annuler tout auto-save en attente
     if (autoSaveTimeout) {
@@ -802,16 +819,27 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       return;
     }
     
-    // OPTIMISATION: Toujours utiliser le marqueur [IMAGE_PRESERVED] pour les images de fond
-    // Cela réduit drastiquement la taille du payload (les images sont préservées côté serveur)
-    const domainsWithoutImages = (currentCockpit.domains || []).map((d: any) => ({
-      ...d,
-      backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
-    }));
+    // OPTIMISATION: Utiliser le marqueur [IMAGE_PRESERVED] sauf pour les images modifiées
+    const domainsWithOptimizedImages = (currentCockpit.domains || []).map((d: any) => {
+      // Si ce domaine a une image modifiée, envoyer l'image réelle
+      if (pendingImageDomainIds.has(d.id)) {
+        if (d.backgroundImage) {
+          console.log(`[Immediate-save] 🖼️ Envoi image réelle pour "${d.name}" (${(d.backgroundImage.length / 1024).toFixed(0)} KB)`);
+        }
+        return d; // Garder l'image réelle
+      }
+      // Sinon, utiliser le marqueur pour préserver l'image existante côté serveur
+      return {
+        ...d,
+        backgroundImage: d.backgroundImage ? '[IMAGE_PRESERVED]' : undefined,
+      };
+    });
+    
+    const hadPendingImages = pendingImageDomainIds.size > 0;
     
     const payload: any = {
       name: currentCockpit.name,
-      domains: domainsWithoutImages,
+      domains: domainsWithOptimizedImages,
       logo: currentCockpit.logo,
       scrollingBanner: currentCockpit.scrollingBanner,
       sharedWith: currentCockpit.sharedWith || [],
@@ -837,7 +865,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       elementsCount: (d.categories || []).reduce((sum, c) => sum + (c.elements?.length || 0), 0),
       hasBackgroundImage: !!d.backgroundImage
     }));
-    console.log(`[Immediate-save] 📦 Sauvegarde immédiate ALLÉGÉE... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines, images préservées côté serveur)`);
+    console.log(`[Immediate-save] 📦 Sauvegarde immédiate${hadPendingImages ? '' : ' ALLÉGÉE'}... (${payloadSizeMB.toFixed(2)} MB, ${currentCockpit.domains?.length || 0} domaines${hadPendingImages ? ', avec images' : ', images préservées'})`);
     console.log(`[Immediate-save] Domaines:`, domainsInfo);
     
     // Toujours sauvegarder une copie locale
@@ -865,6 +893,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       } else {
         console.log(`[Immediate-save] ✅ Sauvegarde réussie`);
         offlineSync.clearBackup(currentCockpit.id);
+        pendingImageDomainIds.clear();
       }
     } catch (error: any) {
       console.warn('[Immediate-save] ⚠️ Erreur réseau:', error.message);
@@ -1129,6 +1158,15 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
   updateDomain: (domainId: string, updates: Partial<Domain>) => {
     const domain = (get().currentCockpit?.domains || []).find(d => d.id === domainId);
     const domainName = updates.name || domain?.name || 'Domaine';
+
+    // IMPORTANT: Si backgroundImage change et n'est pas le marqueur, marquer comme image modifiée
+    // pour qu'elle soit envoyée réellement lors de la prochaine sauvegarde
+    if (updates.backgroundImage !== undefined && 
+        updates.backgroundImage !== '[IMAGE_PRESERVED]' &&
+        updates.backgroundImage !== domain?.backgroundImage) {
+      get().markDomainImageChanged(domainId);
+      console.log(`[updateDomain] 🖼️ Image de fond modifiée pour "${domainName}"`);
+    }
 
     set((state) => {
       if (!state.currentCockpit) return state;
