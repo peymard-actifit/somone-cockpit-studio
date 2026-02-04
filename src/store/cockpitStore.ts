@@ -1147,31 +1147,35 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
     if (!originalDomain) return;
 
     // Fonction pour générer de nouveaux IDs pour tous les enfants
-    // Les éléments et sous-éléments sont liés au domaine d'origine via inheritFromDomainId
-    const duplicateWithNewIds = (domain: Domain, originalDomainId: string): Domain => {
+    // Chaque élément copié est lié à l'élément original via linkedGroupId
+    // Chaque sous-élément copié est lié au sous-élément original via linkedGroupId
+    const duplicateWithNewIds = (domain: Domain): Domain => {
       const newDomainId = generateId();
 
       // Dupliquer les catégories avec nouveaux IDs
       const newCategories = (domain.categories || []).map(category => {
         const newCategoryId = generateId();
 
-        // Dupliquer les éléments avec nouveaux IDs et liaison au domaine d'origine
+        // Dupliquer les éléments avec nouveaux IDs et liaison à l'élément original
         const newElements = (category.elements || []).map(element => {
           const newElementId = generateId();
+          // L'élément copié est lié à l'élément original (ou au groupe existant si déjà lié)
+          const elementLinkId = element.linkedGroupId || element.id;
 
           // Dupliquer les sous-catégories avec nouveaux IDs
           const newSubCategories = (element.subCategories || []).map(subCategory => {
             const newSubCategoryId = generateId();
 
-            // Dupliquer les sous-éléments avec nouveaux IDs et liaison au domaine d'origine
-            const newSubElements = (subCategory.subElements || []).map(subElement => ({
-              ...subElement,
-              id: generateId(),
-              linkedGroupId: undefined, // Supprimer les liaisons entre éléments
-              // Hériter la couleur du domaine d'origine
-              status: 'herite_domaine' as const,
-              inheritFromDomainId: originalDomainId,
-            }));
+            // Dupliquer les sous-éléments avec nouveaux IDs et liaison au sous-élément original
+            const newSubElements = (subCategory.subElements || []).map(subElement => {
+              // Le sous-élément copié est lié au sous-élément original (ou au groupe existant si déjà lié)
+              const subElementLinkId = subElement.linkedGroupId || subElement.id;
+              return {
+                ...subElement,
+                id: generateId(),
+                linkedGroupId: subElementLinkId, // Liaison vers le sous-élément original
+              };
+            });
 
             return {
               ...subCategory,
@@ -1184,10 +1188,8 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
             ...element,
             id: newElementId,
             subCategories: newSubCategories,
-            linkedGroupId: undefined, // Supprimer les liaisons entre éléments
-            // Hériter la couleur du domaine d'origine
-            status: 'herite_domaine' as const,
-            inheritFromDomainId: originalDomainId,
+            linkedGroupId: elementLinkId, // Liaison vers l'élément original
+            inheritFromDomainId: undefined, // Pas d'héritage de domaine
           };
         });
 
@@ -1229,7 +1231,7 @@ export const useCockpitStore = create<CockpitState>((set, get) => ({
       };
     };
 
-    const duplicatedDomain = duplicateWithNewIds(originalDomain, originalDomain.id);
+    const duplicatedDomain = duplicateWithNewIds(originalDomain);
 
     // Trouver l'index du domaine original
     const originalIndex = (state.currentCockpit.domains || []).findIndex(d => d.id === domainId);
