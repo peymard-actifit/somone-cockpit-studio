@@ -761,6 +761,7 @@ function PublicCockpitContent() {
                 element={currentElement}
                 readOnly={true}
                 onBack={handleBackToDomain}
+                onDateChange={handleDateChange}
               />
             </div>
           </div>

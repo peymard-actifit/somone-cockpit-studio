@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 import LinkElementModal from './LinkElementModal';
 import { useLanguage } from '../contexts/LanguageContext';
+import DateTimeline from './DateTimeline';
 
 // Constantes pour le zoom
 const MIN_ZOOM = 0.1;  // Étendu pour permettre une vue plus large
@@ -20,9 +21,10 @@ interface ElementViewProps {
   onBack?: () => void;
   onSubElementClick?: (subElementId: string) => void; // Callback pour ouvrir le menu d'édition d'un sous-élément
   forceVerticalSubCategories?: boolean; // Force toutes les sous-categories en mode vertical (vue grille)
+  onDateChange?: (date: string) => void; // Callback pour changer la date sélectionnée (mode publié)
 }
 
-export default function ElementView({ element, domain, readOnly = false, onBack, onSubElementClick, forceVerticalSubCategories = false }: ElementViewProps) {
+export default function ElementView({ element, domain, readOnly = false, onBack, onSubElementClick, forceVerticalSubCategories = false, onDateChange }: ElementViewProps) {
   const { setCurrentElement, addSubCategory, addSubElement, deleteSubCategory, reorderSubElement, moveSubElement, findSubElementsByName, linkSubElement } = useCockpitStore();
   const confirm = useConfirm();
   const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
@@ -626,6 +628,11 @@ export default function ElementView({ element, domain, readOnly = false, onBack,
           />
           <span className="text-sm font-medium text-[#1E3A5F]">%</span>
         </div>
+
+        {/* DateTimeline - toggle + cases dans un seul bloc compact (mode publié uniquement) */}
+        {readOnly && onDateChange && (
+          <DateTimeline onDateChange={onDateChange} domainId={element.id} />
+        )}
       </div>
 
       {/* Contenu zoomable */}
