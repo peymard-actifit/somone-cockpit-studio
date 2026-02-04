@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.20.0';
+const APP_VERSION = '17.20.1';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -2388,6 +2388,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cockpit.updatedAt = now;
       await saveDb(db);
 
+      // SYNCHRONISATION DU SNAPSHOT SI PUBLIÉ
+      if (cockpit.data.isPublished && cockpit.data.publicId && cockpit.data.hasSnapshot) {
+        try {
+          const newSnapshotVersion = (cockpit.data.snapshotVersion || 0) + 1;
+          const useOriginalViewValue = cockpit.data.useOriginalView === true;
+          
+          const updatedSnapshot = {
+            name: cockpit.name,
+            logo: cockpit.data.logo || null,
+            scrollingBanner: cockpit.data.scrollingBanner || null,
+            useOriginalView: useOriginalViewValue,
+            welcomeMessage: cockpit.data.welcomeMessage || null,
+            domains: JSON.parse(JSON.stringify(
+              (cockpit.data.domains || [])
+                .filter((domain: any) => domain.publiable !== false)
+                .map((domain: any) => ({
+                  ...domain,
+                  categories: (domain.categories || []).map((category: any) => ({
+                    ...category,
+                    elements: (category.elements || []).filter((el: any) => el.publiable !== false)
+                  }))
+                }))
+            )),
+            zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
+            snapshotVersion: newSnapshotVersion,
+            snapshotCreatedAt: new Date().toISOString(),
+            dataHistory: cockpit.data.dataHistory ? JSON.parse(JSON.stringify(cockpit.data.dataHistory)) : null,
+            selectedDataDate: cockpit.data.selectedDataDate || null,
+            contextualHelps: cockpit.data.contextualHelps ? JSON.parse(JSON.stringify(cockpit.data.contextualHelps)) : [],
+            showHelpOnHover: cockpit.data.showHelpOnHover !== false,
+          };
+          
+          const pgSuccess = await saveSnapshot(cockpit.id, cockpit.data.publicId, cockpit.name, updatedSnapshot, newSnapshotVersion);
+          if (pgSuccess) {
+            cockpit.data.snapshotVersion = newSnapshotVersion;
+            await saveDb(db);
+            console.log(`[Contextual Help] Snapshot synchronisé v${newSnapshotVersion} pour "${cockpit.name}"`);
+          }
+        } catch (snapshotError: any) {
+          console.error('[Contextual Help] Erreur synchronisation snapshot:', snapshotError?.message);
+        }
+      }
+
       const help = localHelps.find((h: any) => h.elementKey === elementKey);
       return res.json({ help, isLocal: true });
     }
@@ -2433,6 +2476,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         localHelps.splice(existingIndex, 1);
         cockpit.updatedAt = new Date().toISOString();
         await saveDb(db);
+        
+        // SYNCHRONISATION DU SNAPSHOT SI PUBLIÉ
+        if (cockpit.data.isPublished && cockpit.data.publicId && cockpit.data.hasSnapshot) {
+          try {
+            const newSnapshotVersion = (cockpit.data.snapshotVersion || 0) + 1;
+            const useOriginalViewValue = cockpit.data.useOriginalView === true;
+            
+            const updatedSnapshot = {
+              name: cockpit.name,
+              logo: cockpit.data.logo || null,
+              scrollingBanner: cockpit.data.scrollingBanner || null,
+              useOriginalView: useOriginalViewValue,
+              welcomeMessage: cockpit.data.welcomeMessage || null,
+              domains: JSON.parse(JSON.stringify(
+                (cockpit.data.domains || [])
+                  .filter((domain: any) => domain.publiable !== false)
+                  .map((domain: any) => ({
+                    ...domain,
+                    categories: (domain.categories || []).map((category: any) => ({
+                      ...category,
+                      elements: (category.elements || []).filter((el: any) => el.publiable !== false)
+                    }))
+                  }))
+              )),
+              zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
+              snapshotVersion: newSnapshotVersion,
+              snapshotCreatedAt: new Date().toISOString(),
+              dataHistory: cockpit.data.dataHistory ? JSON.parse(JSON.stringify(cockpit.data.dataHistory)) : null,
+              selectedDataDate: cockpit.data.selectedDataDate || null,
+              contextualHelps: cockpit.data.contextualHelps ? JSON.parse(JSON.stringify(cockpit.data.contextualHelps)) : [],
+              showHelpOnHover: cockpit.data.showHelpOnHover !== false,
+            };
+            
+            const pgSuccess = await saveSnapshot(cockpit.id, cockpit.data.publicId, cockpit.name, updatedSnapshot, newSnapshotVersion);
+            if (pgSuccess) {
+              cockpit.data.snapshotVersion = newSnapshotVersion;
+              await saveDb(db);
+              console.log(`[Contextual Help DELETE] Snapshot synchronisé v${newSnapshotVersion} pour "${cockpit.name}"`);
+            }
+          } catch (snapshotError: any) {
+            console.error('[Contextual Help DELETE] Erreur synchronisation snapshot:', snapshotError?.message);
+          }
+        }
+        
         return res.json({ success: true, message: 'Aide contextuelle locale supprimée', isLocal: true });
       }
 
