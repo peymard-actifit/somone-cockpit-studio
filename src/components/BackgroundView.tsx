@@ -48,6 +48,7 @@ const SIMPLE_SHAPES = [
   // Symboles spéciaux
   { id: 'shape:lightning', name: 'Éclair', label: 'Éclair (Zeus)' },
   { id: 'shape:faucet', name: 'Robinet', label: 'Robinet (eau)' },
+  { id: 'shape:stadium', name: 'Stade', label: 'Stade (pilule)' },
 ];
 
 // Helper pour détecter si une icône est une forme simple
@@ -367,6 +368,33 @@ const ShapeSVG = ({ shape, color, size }: { shape: string; color: string; size: 
           {/* Gouttes d'eau */}
           <ellipse cx="79" cy="82" rx="3" ry="5" fill={color} fillOpacity="0.6" />
           <ellipse cx="79" cy="92" rx="2" ry="3" fill={color} fillOpacity="0.4" />
+        </svg>
+      );
+    case 'stadium':
+      return (
+        <svg width={size} height={size} viewBox={viewBox}>
+          {/* Forme stade/pilule - rectangle avec demi-cercles aux extrémités */}
+          {/* Utilisation d'un path pour dessiner la forme complète */}
+          <path 
+            d="M25,30 
+               L75,30 
+               A20,20 0 0 1 75,70 
+               L25,70 
+               A20,20 0 0 1 25,30 
+               Z" 
+            fill={color}
+          />
+          {/* Reflet lumineux */}
+          <path 
+            d="M30,35 
+               L70,35 
+               A15,15 0 0 1 70,50 
+               L30,50 
+               A15,15 0 0 1 30,35 
+               Z" 
+            fill="white"
+            fillOpacity="0.2"
+          />
         </svg>
       );
     default:
