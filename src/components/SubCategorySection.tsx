@@ -225,6 +225,7 @@ export default function SubCategorySection({ subCategory, element, domain, readO
       <div
         className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0' : 'mb-4'}`}
         style={useInlineLayout && subCategoryHeaderMinWidth && !useGridLayout ? { minWidth: `${subCategoryHeaderMinWidth}px` } : undefined}
+        data-help-key={`subcategory-${subCategory.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`}
       >
         {subCategory.icon && (
           <div className="w-8 h-8 bg-[#1E3A5F] rounded-lg flex items-center justify-center flex-shrink-0">

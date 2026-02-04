@@ -229,6 +229,7 @@ export default function CategorySection({ category, onElementClick, onCategoryCl
         className={`flex items-center gap-3 ${useInlineLayout ? 'mb-0 flex-shrink-0 self-start' : 'mb-4'} ${useGridLayout && useInlineLayout ? getMarginBottomClass(categorySpacing) : ''} ${onCategoryClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
         style={useInlineLayout && categoryHeaderMinWidth && !useGridLayout ? { minWidth: `${categoryHeaderMinWidth}px` } : undefined}
         onClick={() => onCategoryClick?.(category.id)}
+        data-help-key={`category-${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`}
         role={onCategoryClick ? 'button' : undefined}
         tabIndex={onCategoryClick ? 0 : undefined}
         onKeyDown={(e) => {

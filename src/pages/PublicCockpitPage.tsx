@@ -346,6 +346,7 @@ function PublicCockpitContent() {
                         ? 'bg-[#4A6D8C] text-white'
                         : 'bg-[#2D4A63] text-slate-300 hover:bg-[#3A5A75] hover:text-white'
                     }`}
+                    data-help-key={`domain-${domain.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`}
                   >
                     {domain.name}
                     {/* Pastille de statut en haut à droite */}
@@ -694,6 +695,7 @@ function PublicCockpitContent() {
                       ? 'bg-white text-[#1E3A5F]'
                       : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                   }`}
+                  data-help-key={`domain-${domain.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`}
                 >
                   {/* Pastille de statut */}
                   {hasAlert && (

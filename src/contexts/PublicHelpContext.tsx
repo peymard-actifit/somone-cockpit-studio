@@ -43,7 +43,9 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
   const [cockpit, setCockpitState] = useState<CockpitWithHelp | null>(null);
   const [hoverTooltip, setHoverTooltip] = useState<{ content: string; x: number; y: number } | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Timeout pour masquer après 10s
   const currentHoverKeyRef = useRef<string | null>(null);
+  const shownKeysRef = useRef<Set<string>>(new Set()); // Clés déjà affichées (pour ne pas réafficher avant d'être sorti)
   
   // Refs pour éviter les dépendances circulaires dans les callbacks
   const cockpitRef = useRef<CockpitWithHelp | null>(null);
@@ -104,8 +106,13 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
     setHoverTooltip(null);
     currentHoverKeyRef.current = null;
+    // Réinitialiser les clés affichées quand on quitte le document
+    shownKeysRef.current.clear();
   }, []);
 
   // Attacher/détacher les écouteurs - utilise une fonction inline pour accéder aux refs
@@ -131,9 +138,15 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
       const helpKey = getHelpKeyFromElement(target);
       
       if (!helpKey) {
+        // On quitte une zone avec aide - permettre de la réafficher plus tard
         if (currentHoverKeyRef.current) {
+          // Retirer la clé des clés affichées quand on la quitte
+          shownKeysRef.current.delete(currentHoverKeyRef.current);
           if (hoverTimeoutRef.current) {
             clearTimeout(hoverTimeoutRef.current);
+          }
+          if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
           }
           setHoverTooltip(null);
           currentHoverKeyRef.current = null;
@@ -141,7 +154,7 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
         return;
       }
 
-      // Si même clé, juste mettre à jour la position
+      // Si même clé, juste mettre à jour la position (si tooltip visible)
       if (helpKey === currentHoverKeyRef.current) {
         setHoverTooltip(prev => prev ? {
           ...prev,
@@ -151,13 +164,26 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
         return;
       }
 
-      // Nouvelle clé - annuler le timeout précédent
+      // Nouvelle clé - annuler les timeouts précédents
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
+      }
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+
+      // Si l'ancienne clé existait, la retirer des clés affichées
+      if (currentHoverKeyRef.current) {
+        shownKeysRef.current.delete(currentHoverKeyRef.current);
       }
 
       currentHoverKeyRef.current = helpKey;
       setHoverTooltip(null);
+
+      // Ne pas réafficher si cette clé a déjà été affichée (il faut sortir et revenir)
+      if (shownKeysRef.current.has(helpKey)) {
+        return;
+      }
 
       // Délai avant d'afficher le tooltip
       hoverTimeoutRef.current = setTimeout(() => {
@@ -183,8 +209,16 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
             x: event.clientX + 15,
             y: event.clientY + 15
           });
+          
+          // Marquer cette clé comme affichée
+          shownKeysRef.current.add(helpKey);
+          
+          // Masquer automatiquement après 10 secondes
+          hideTimeoutRef.current = setTimeout(() => {
+            setHoverTooltip(null);
+          }, 10000); // 10 secondes
         }
-      }, 400); // 400ms de délai
+      }, 400); // 400ms de délai avant affichage
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -195,6 +229,9 @@ export function PublicHelpProvider({ children }: PublicHelpProviderProps) {
       document.removeEventListener('mouseleave', handleMouseLeave);
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
+      }
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
       }
     };
   }, [isEnabled, handleMouseLeave]);
