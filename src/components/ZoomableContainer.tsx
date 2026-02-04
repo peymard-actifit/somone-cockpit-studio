@@ -454,7 +454,7 @@ export default function ZoomableContainer({
 
           {/* Panneau de toggles regroupés (mode publié uniquement) */}
           {readOnly && (onToggleHeader || onDateChange) && (
-            <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md flex items-center gap-3">
+            <div className="bg-white rounded-lg px-2 py-1.5 border border-[#E2E8F0] shadow-md flex flex-col gap-2">
               {/* Toggle masquage header */}
               {onToggleHeader && (
                 <div className="flex items-center gap-1.5">
