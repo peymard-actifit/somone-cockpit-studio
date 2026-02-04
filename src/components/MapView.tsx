@@ -324,17 +324,24 @@ const ShapeSVG = ({ shape, color, size }: { shape: string; color: string; size: 
     case 'lightning':
       return (
         <svg width={size} height={size} viewBox={viewBox}>
+          {/* Cadre / nuage d'orage en haut */}
+          <ellipse cx="50" cy="12" rx="35" ry="10" fill={color} fillOpacity="0.4" />
+          <ellipse cx="35" cy="15" rx="20" ry="8" fill={color} fillOpacity="0.3" />
+          <ellipse cx="65" cy="15" rx="20" ry="8" fill={color} fillOpacity="0.3" />
           {/* Éclair stylisé type Zeus - forme en zigzag puissante */}
           <polygon 
-            points="55,5 35,42 48,42 30,95 75,48 58,48 80,5" 
+            points="55,18 38,45 48,45 32,85 72,50 58,50 75,18" 
             fill={color}
           />
           {/* Reflet lumineux */}
           <polygon 
-            points="60,12 50,35 55,35 45,70 65,45 58,45 70,12" 
+            points="58,24 48,40 52,40 42,68 62,48 55,48 65,24" 
             fill="white" 
             fillOpacity="0.3"
           />
+          {/* Impact au sol */}
+          <ellipse cx="52" cy="92" rx="12" ry="4" fill={color} fillOpacity="0.5" />
+          <ellipse cx="52" cy="92" rx="6" ry="2" fill="white" fillOpacity="0.4" />
         </svg>
       );
     case 'faucet':
