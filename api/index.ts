@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import * as XLSX from 'xlsx';
 
 // Version de l'application (mise à jour automatiquement par le script de déploiement)
-const APP_VERSION = '17.22.7';
+const APP_VERSION = '17.22.8';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'somone-cockpit-secret-key-2024';
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
@@ -4166,6 +4166,8 @@ INSTRUCTIONS:
           
           // Créer un nouveau snapshot avec les données mises à jour
           // IMPORTANT: Ne jamais inclure le marqueur [IMAGE_PRESERVED] dans le snapshot
+          // FILTRAGE COMPLET: domaines, éléments, sous-éléments non publiables
+          // + catégories vides + sous-catégories vides
           const updatedSnapshot = {
             name: cockpit.name,
             logo: cockpit.data.logo || null,
@@ -4183,10 +4185,27 @@ INSTRUCTIONS:
                     domain.backgroundImage.startsWith('data:image/') 
                       ? domain.backgroundImage 
                       : undefined,
-                  categories: (domain.categories || []).map((category: any) => ({
-                    ...category,
-                    elements: (category.elements || []).filter((el: any) => el.publiable !== false)
-                  }))
+                  // Filtrer les catégories vides (après filtrage des éléments)
+                  categories: (domain.categories || [])
+                    .map((category: any) => ({
+                      ...category,
+                      // Filtrer les éléments non publiables
+                      elements: (category.elements || [])
+                        .filter((el: any) => el.publiable !== false)
+                        .map((el: any) => ({
+                          ...el,
+                          // Filtrer les sous-catégories vides (après filtrage des sous-éléments)
+                          subCategories: (el.subCategories || [])
+                            .map((subCat: any) => ({
+                              ...subCat,
+                              // Filtrer les sous-éléments non publiables
+                              subElements: (subCat.subElements || [])
+                                .filter((se: any) => se.publiable !== false)
+                            }))
+                            .filter((subCat: any) => (subCat.subElements || []).length > 0) // Retirer sous-catégories vides
+                        }))
+                    }))
+                    .filter((category: any) => (category.elements || []).length > 0) // Retirer catégories vides
                 }))
             )),
             zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
@@ -4485,6 +4504,8 @@ INSTRUCTIONS:
       const useOriginalViewValue = cockpit.data.useOriginalView === true;
       console.log(`[PUBLISH] Snapshot useOriginalView sera: ${useOriginalViewValue}`);
       
+      // FILTRAGE COMPLET: domaines, éléments, sous-éléments non publiables
+      // + catégories vides + sous-catégories vides
       const publishedSnapshot = {
         logo: cockpit.data.logo || null,
         scrollingBanner: cockpit.data.scrollingBanner || null,
@@ -4501,10 +4522,27 @@ INSTRUCTIONS:
                 domain.backgroundImage.startsWith('data:image/') 
                   ? domain.backgroundImage 
                   : undefined,
-              categories: (domain.categories || []).map((category: any) => ({
-                ...category,
-                elements: (category.elements || []).filter((el: any) => el.publiable !== false)
-              }))
+              // Filtrer les catégories vides (après filtrage des éléments)
+              categories: (domain.categories || [])
+                .map((category: any) => ({
+                  ...category,
+                  // Filtrer les éléments non publiables
+                  elements: (category.elements || [])
+                    .filter((el: any) => el.publiable !== false)
+                    .map((el: any) => ({
+                      ...el,
+                      // Filtrer les sous-catégories vides (après filtrage des sous-éléments)
+                      subCategories: (el.subCategories || [])
+                        .map((subCat: any) => ({
+                          ...subCat,
+                          // Filtrer les sous-éléments non publiables
+                          subElements: (subCat.subElements || [])
+                            .filter((se: any) => se.publiable !== false)
+                        }))
+                        .filter((subCat: any) => (subCat.subElements || []).length > 0) // Retirer sous-catégories vides
+                    }))
+                }))
+                .filter((category: any) => (category.elements || []).length > 0) // Retirer catégories vides
             }))
         )),
         zones: JSON.parse(JSON.stringify(cockpit.data.zones || [])),
