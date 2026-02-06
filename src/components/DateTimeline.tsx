@@ -13,9 +13,10 @@ interface DateTimelineProps {
 
 // Configuration de la timeline
 const MAX_VISIBLE_CELLS = 15; // Maximum 15 cases visibles
-const ARROW_HEIGHT = 24; // Hauteur fixe des flèches
-const MIN_CELL_HEIGHT = 16; // Hauteur minimum d'une case
-const TIMELINE_PADDING = 4; // Padding vertical du conteneur
+const ARROW_HEIGHT = 20; // Hauteur fixe des flèches (compact)
+const MIN_CELL_HEIGHT = 12; // Hauteur minimum d'une case
+const MAX_CELL_HEIGHT = 28; // Hauteur maximum d'une case
+const TIMELINE_PADDING = 2; // Padding vertical du conteneur
 
 // Fonction pour formater une date selon la langue
 function formatDateForLocale(dateStr: string, language: 'FR' | 'EN'): string {
@@ -74,11 +75,14 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
   // Calculer la hauteur disponible pour la timeline
   useEffect(() => {
     const updateHeight = () => {
-      // Hauteur de la fenêtre moins les marges (header, padding, etc.)
+      // Hauteur de la fenêtre moins les marges importantes
       const windowHeight = window.innerHeight;
-      // Marge totale : header (~105px) + padding bas (~20px) + toggle (~40px) + marge sécurité (~35px)
-      const totalMargin = 200;
-      setAvailableHeight(Math.max(200, windowHeight - totalMargin));
+      // Marge totale : header (~105px) + toggle+controles (~80px) + footer (~30px) + marge sécurité (~85px)
+      const totalMargin = 300;
+      // La timeline doit tenir dans la fenêtre visible
+      // Hauteur max = 15 cases * 28px max + 2 flèches * 20px + padding = 460px max
+      const maxTimelineHeight = MAX_VISIBLE_CELLS * MAX_CELL_HEIGHT + ARROW_HEIGHT * 2 + TIMELINE_PADDING * 2;
+      setAvailableHeight(Math.min(maxTimelineHeight, Math.max(200, windowHeight - totalMargin)));
     };
     
     updateHeight();
@@ -146,7 +150,9 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
   // Calculer la hauteur disponible pour les cases (entre les flèches)
   const arrowsHeight = needsScrolling ? ARROW_HEIGHT * 2 : 0;
   const cellsContainerHeight = availableHeight - arrowsHeight - TIMELINE_PADDING * 2;
-  const cellHeight = Math.max(MIN_CELL_HEIGHT, Math.floor(cellsContainerHeight / visibleCellsCount));
+  // Hauteur de case bornée entre MIN et MAX
+  const calculatedCellHeight = Math.floor(cellsContainerHeight / visibleCellsCount);
+  const cellHeight = Math.min(MAX_CELL_HEIGHT, Math.max(MIN_CELL_HEIGHT, calculatedCellHeight));
   
   // Cases visibles (avec défilement)
   const visibleCells = needsScrolling
