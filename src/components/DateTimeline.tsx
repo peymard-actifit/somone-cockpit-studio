@@ -11,9 +11,11 @@ interface DateTimelineProps {
   showTimelineOnly?: boolean; // Afficher uniquement les cases (pour positionnement séparé)
 }
 
-// Hauteur par défaut des cases (même hauteur que les boutons du menu)
-const DEFAULT_CELL_HEIGHT = 28;
-const MIN_CELL_HEIGHT = 4;
+// Configuration de la timeline
+const MAX_VISIBLE_CELLS = 15; // Maximum 15 cases visibles
+const ARROW_HEIGHT = 24; // Hauteur fixe des flèches
+const MIN_CELL_HEIGHT = 16; // Hauteur minimum d'une case
+const TIMELINE_PADDING = 4; // Padding vertical du conteneur
 
 // Fonction pour formater une date selon la langue
 function formatDateForLocale(dateStr: string, language: 'FR' | 'EN'): string {
@@ -41,7 +43,8 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
   const { currentCockpit } = useCockpitStore();
   const { t, language } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [maxHeight, setMaxHeight] = useState<number>(0);
+  const [availableHeight, setAvailableHeight] = useState<number>(0);
+  const [scrollOffset, setScrollOffset] = useState(0); // Index de la première case visible
   
   // État pour montrer/cacher le timeline (persiste en localStorage)
   const storageKey = domainId ? `dateTimeline-${domainId}` : 'dateTimeline-global';
@@ -68,12 +71,14 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
     return () => window.removeEventListener('dateTimelineToggle', handleToggleChange as EventListener);
   }, [storageKey]);
 
-  // Calculer la hauteur disponible
+  // Calculer la hauteur disponible pour la timeline
   useEffect(() => {
     const updateHeight = () => {
-      // Hauteur de la fenêtre moins un peu de marge
-      const availableHeight = window.innerHeight - 250;
-      setMaxHeight(availableHeight);
+      // Hauteur de la fenêtre moins les marges (header, padding, etc.)
+      const windowHeight = window.innerHeight;
+      // Marge totale : header (~105px) + padding bas (~20px) + toggle (~40px) + marge sécurité (~35px)
+      const totalMargin = 200;
+      setAvailableHeight(Math.max(200, windowHeight - totalMargin));
     };
     
     updateHeight();
@@ -133,13 +138,24 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
     return null;
   }
 
-  // Calculer la hauteur de chaque case
+  // Calculer le nombre de cases visibles et leur hauteur
   const totalDates = datesCriticalities.length;
-  const idealHeight = DEFAULT_CELL_HEIGHT;
-  const neededHeight = totalDates * idealHeight;
-  const cellHeight = neededHeight > maxHeight 
-    ? Math.max(MIN_CELL_HEIGHT, maxHeight / totalDates)
-    : idealHeight;
+  const needsScrolling = totalDates > MAX_VISIBLE_CELLS;
+  const visibleCellsCount = Math.min(totalDates, MAX_VISIBLE_CELLS);
+  
+  // Calculer la hauteur disponible pour les cases (entre les flèches)
+  const arrowsHeight = needsScrolling ? ARROW_HEIGHT * 2 : 0;
+  const cellsContainerHeight = availableHeight - arrowsHeight - TIMELINE_PADDING * 2;
+  const cellHeight = Math.max(MIN_CELL_HEIGHT, Math.floor(cellsContainerHeight / visibleCellsCount));
+  
+  // Cases visibles (avec défilement)
+  const visibleCells = needsScrolling
+    ? datesCriticalities.slice(scrollOffset, scrollOffset + visibleCellsCount)
+    : datesCriticalities;
+  
+  // Vérifier si on peut défiler
+  const canScrollUp = scrollOffset > 0;
+  const canScrollDown = scrollOffset + visibleCellsCount < totalDates;
 
   // Date actuellement sélectionnée
   const selectedDate = currentCockpit?.selectedDataDate;
@@ -149,6 +165,61 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
       onDateChange(date);
     }
   };
+
+  // Fonctions de défilement
+  const scrollUp = () => {
+    if (canScrollUp) {
+      setScrollOffset(Math.max(0, scrollOffset - 1));
+    }
+  };
+
+  const scrollDown = () => {
+    if (canScrollDown) {
+      setScrollOffset(Math.min(totalDates - visibleCellsCount, scrollOffset + 1));
+    }
+  };
+
+  // Rendu d'une flèche
+  const renderArrow = (direction: 'up' | 'down', enabled: boolean, onClick: () => void) => (
+    <button
+      onClick={onClick}
+      disabled={!enabled}
+      className={`w-7 flex items-center justify-center transition-colors ${
+        enabled 
+          ? 'bg-[#1E3A5F] hover:bg-[#2D4A6F] text-white cursor-pointer' 
+          : 'bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed'
+      }`}
+      style={{ height: ARROW_HEIGHT }}
+      title={direction === 'up' ? 'Dates plus anciennes' : 'Dates plus récentes'}
+    >
+      <MuiIcon name={direction === 'up' ? 'KeyboardArrowUp' : 'KeyboardArrowDown'} size={16} />
+    </button>
+  );
+
+  // Rendu des cases de la timeline
+  const renderCells = () => (
+    <div className="flex flex-col">
+      {visibleCells.map((item, index) => {
+        const isSelected = item.date === selectedDate;
+        const formattedDate = formatDateForLocale(item.date, language);
+        return (
+          <button
+            key={item.date}
+            onClick={() => handleDateClick(item.date)}
+            className={`w-7 transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
+              isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
+            }`}
+            style={{
+              height: cellHeight,
+              backgroundColor: item.color,
+              borderBottom: index < visibleCells.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
+            }}
+            title={formattedDate}
+          />
+        );
+      })}
+    </div>
+  );
 
   // Mode toggle uniquement (pour intégration dans le panneau de toggles)
   if (showToggleOnly) {
@@ -182,29 +253,17 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
       <div 
         ref={containerRef}
         className="bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden"
-        style={{ maxHeight: maxHeight }}
+        style={{ maxHeight: availableHeight }}
       >
         <div className="flex flex-col">
-          {datesCriticalities.map((item, index) => {
-            const isSelected = item.date === selectedDate;
-            const formattedDate = formatDateForLocale(item.date, language);
-            return (
-              <button
-                key={item.date}
-                onClick={() => handleDateClick(item.date)}
-                className={`w-7 transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
-                  isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
-                }`}
-                style={{
-                  height: cellHeight,
-                  backgroundColor: item.color,
-                  // Légère bordure pour séparer visuellement les dates
-                  borderBottom: index < datesCriticalities.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
-                }}
-                title={formattedDate}
-              />
-            );
-          })}
+          {/* Flèche haut (si défilement nécessaire) */}
+          {needsScrolling && renderArrow('up', canScrollUp, scrollUp)}
+          
+          {/* Cases de la timeline */}
+          {renderCells()}
+          
+          {/* Flèche bas (si défilement nécessaire) */}
+          {needsScrolling && renderArrow('down', canScrollDown, scrollDown)}
         </div>
       </div>
     );
@@ -241,29 +300,17 @@ export default function DateTimeline({ onDateChange, domainId, showToggleOnly = 
         <div 
           ref={containerRef}
           className="bg-white rounded-lg border border-[#E2E8F0] shadow-md overflow-hidden"
-          style={{ maxHeight: maxHeight }}
+          style={{ maxHeight: availableHeight }}
         >
           <div className="flex flex-col">
-            {datesCriticalities.map((item, index) => {
-              const isSelected = item.date === selectedDate;
-              const formattedDate = formatDateForLocale(item.date, language);
-              return (
-                <button
-                  key={item.date}
-                  onClick={() => handleDateClick(item.date)}
-                  className={`w-7 transition-all hover:opacity-80 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50 ${
-                    isSelected ? 'ring-2 ring-inset ring-white shadow-inner' : ''
-                  }`}
-                  style={{
-                    height: cellHeight,
-                    backgroundColor: item.color,
-                    // Légère bordure pour séparer visuellement les dates
-                    borderBottom: index < datesCriticalities.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
-                  }}
-                  title={formattedDate}
-                />
-              );
-            })}
+            {/* Flèche haut (si défilement nécessaire) */}
+            {needsScrolling && renderArrow('up', canScrollUp, scrollUp)}
+            
+            {/* Cases de la timeline */}
+            {renderCells()}
+            
+            {/* Flèche bas (si défilement nécessaire) */}
+            {needsScrolling && renderArrow('down', canScrollDown, scrollDown)}
           </div>
         </div>
       )}
