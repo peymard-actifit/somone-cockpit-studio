@@ -1098,6 +1098,23 @@ export default function EditorPanel({ domain, element, selectedSubElementId }: E
               </button>
             </div>
 
+            {/* Case publiable pour le sous-élément */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id={`subelement-publiable-${selectedSubElement.id}`}
+                checked={selectedSubElement.publiable !== false}
+                onChange={(e) => {
+                  updateSubElement(selectedSubElement.id, { publiable: e.target.checked });
+                  setSelectedSubElement({ ...selectedSubElement, publiable: e.target.checked });
+                }}
+                className="w-4 h-4 text-[#1E3A5F] border-[#E2E8F0] rounded focus:ring-[#1E3A5F]"
+              />
+              <label htmlFor={`subelement-publiable-${selectedSubElement.id}`} className="text-sm text-[#64748B] cursor-pointer">
+                {t('editor.publiable')}
+              </label>
+            </div>
+
             {/* Liaison du sous-élément - masqué pour les clients */}
             {!isClientUser && (
               <div className="border-t border-[#E2E8F0] pt-4 mt-4">

@@ -271,7 +271,29 @@ function PublicCockpitContent() {
   if (!cockpit) return null;
 
   // Protection: s'assurer que cockpit.domains existe
-  const domains = cockpit.domains || [];
+  // Filtrer les éléments non publiables et les catégories/sous-catégories vides
+  const domains = (cockpit.domains || [])
+    .filter(d => d.publiable !== false) // Filtrer les domaines non publiables
+    .map(domain => ({
+      ...domain,
+      categories: (domain.categories || [])
+        .map(category => ({
+          ...category,
+          elements: (category.elements || [])
+            .filter(el => el.publiable !== false) // Filtrer les éléments non publiables
+            .map(element => ({
+              ...element,
+              subCategories: (element.subCategories || [])
+                .map(subCat => ({
+                  ...subCat,
+                  subElements: (subCat.subElements || [])
+                    .filter(se => se.publiable !== false) // Filtrer les sous-éléments non publiables
+                }))
+                .filter(subCat => (subCat.subElements || []).length > 0) // Filtrer les sous-catégories vides
+            }))
+        }))
+        .filter(category => (category.elements || []).length > 0) // Filtrer les catégories vides
+    }));
   const currentDomain = domains.find(d => d.id === currentDomainId);
   
   // Déterminer si on utilise la vue originale (activé par défaut si non défini)

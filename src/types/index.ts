@@ -279,6 +279,7 @@ export interface SubElement {
   icon?: string;
   status: TileStatus;
   order: number;
+  publiable?: boolean;  // Si le sous-élément doit être publié (défaut: true)
   alert?: Alert;
   sources?: DataSource[]; // Sources de données associées
   calculations?: Calculation[]; // Calculs associés
